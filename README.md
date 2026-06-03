@@ -9,7 +9,7 @@
 
 | 스킬 | 단계 | 한 줄 역할 | 입력 | 출력 | 다음 |
 | --- | --- | --- | --- | --- | --- |
-| `fg-ask` | ① 질의·계획 | 작업 정의·분류 + grill-with-docs식 그릴링으로 계획을 날카롭게 | 사용자 요청 | `.forge/task.md` + `.forge/plan.md` + CONTEXT/ADR | `fg-execute` / 직접 처리 |
+| `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/plan.md` + CONTEXT/ADR | `fg-execute` |
 | `fg-execute` | ② 실행 | 계획을 Dynamic Workflow로 실행 | `.forge/plan.md` | 결과 + `.forge/run.md` | `fg-learn` |
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md` | `docs/retro/*.md` + 승급 | `fg-complete` / `fg-ask` |
 | `fg-complete` | ④ 완료 | 작업 봉인·활성 상태 정리·재실행 방지 | `.forge/*` | `.forge/done/<id>/` | `fg-ask` / 종료 |
@@ -61,7 +61,6 @@ repo/
 │   ├── adr/0001-*.md          # 아키텍처 결정 (영속)
 │   └── retro/YYYY-MM-DD-*.md  # 회고 로그 (영속)
 └── .forge/                    # 루프 작업 상태 (휘발, gitignore)
-    ├── task.md                # ① fg-ask 분류 산출 (한 문장 정의)
     ├── plan.md                # ① fg-ask 그릴링 산출 = 실행의 정답 기준
     ├── run.md                 # ② fg-execute 산출 = 계획 vs 실제
     └── done/                  # ④ fg-complete 봉인 아카이브
