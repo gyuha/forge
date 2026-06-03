@@ -1,6 +1,6 @@
 # forge
 
-> 작업 하나를 **질의 → 계획 → 실행 → 회고 → 정리**의 한 바퀴로 돌리는 개발 루프.
+> 작업 하나를 **질의·계획 → 실행 → 회고 → 정리**의 한 바퀴로 돌리는 개발 루프.
 > `fg-` 프리픽스를 가진 Claude Code 스킬 4개로 구성된 루프형 워크플로우 플러그인.
 
 [English](./README.md)
@@ -16,7 +16,7 @@
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `docs/retro/*.md` + 승급 | `fg-cleanup` / `fg-ask` |
 | `fg-cleanup` | ④ 정리 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기 | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 
-`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 `fg-ask`+`fg-plan` 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다. `fg-cleanup`은 "forge cleanup", "작업 정리", "이거 정리해줘"에서 트리거된다(기존 "forge complete"도 alias로 인식한다).
+`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 별도 `fg-plan` 단계를 `fg-ask`로 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다. `fg-cleanup`은 "forge cleanup", "작업 정리", "이거 정리해줘"에서 트리거된다(기존 "forge complete"도 alias로 인식한다).
 
 ## 전체 흐름
 

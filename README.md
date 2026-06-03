@@ -1,6 +1,6 @@
 # forge
 
-> A development loop that takes one task through a single cycle of **ask → plan → execute → retro → cleanup**.
+> A development loop that takes one task through a single cycle of **ask·plan → execute → retro → cleanup**.
 > A loop-style workflow plugin made of four Claude Code skills with the `fg-` prefix.
 
 [한국어](./README.ko.md)
@@ -16,7 +16,7 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 | `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry | `.forge/run.md`, `plan.md`, `executed/` | `docs/retro/*.md` + promotions | `fg-cleanup` / `fg-ask` |
 | `fg-cleanup` | ④ Cleanup | Tidies up the cycle — confirms retro, closes `STATUS.md` to done, archives, clears active state, closes the loop | `.forge/*` | `.forge/done/<date-slug>/` | `fg-ask` / end |
 
-`fg-ask` is the entry point of the loop — it handles both inquiry/triage and grilling (the former `fg-ask`+`fg-plan` merged). It triggers on utterances like "start with forge", "new task", "let's work on this", "refine the plan". `fg-cleanup` triggers on "forge cleanup", "tidy up this task", "clean this up" (and still recognizes the legacy "forge complete" as an alias).
+`fg-ask` is the entry point of the loop — it handles both inquiry/triage and grilling (the former separate `fg-plan` step is folded into `fg-ask`). It triggers on utterances like "start with forge", "new task", "let's work on this", "refine the plan". `fg-cleanup` triggers on "forge cleanup", "tidy up this task", "clean this up" (and still recognizes the legacy "forge complete" as an alias).
 
 ## Overall flow
 
