@@ -1,0 +1,85 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## 이 리포가 무엇인가
+
+forge는 **Claude Code 플러그인**이다 — 코드를 빌드하는 프로젝트가 아니라, `fg-*` 워크플로우 스킬을 패키징한 플러그인이자 그 자신이 설치 가능한 마켓플레이스다. 산출물은 전부 Markdown(`SKILL.md`, 형식 문서)과 JSON(매니페스트)이다.
+
+**빌드·테스트·린트 시스템이 없다.** package.json, Makefile, CI 없음. "개발"은 Markdown/JSON을 편집하는 것이고, 검증은 아래 방법으로 한다.
+
+```bash
+# 매니페스트 JSON 유효성 (편집 후 반드시 확인 — 깨지면 설치 실패)
+python3 -c "import json; json.load(open('.claude-plugin/plugin.json')); json.load(open('.claude-plugin/marketplace.json')); print('OK')"
+
+# 실제 동작 테스트는 설치해서 트리거해보는 것뿐 (단위 테스트 없음)
+#   /plugin marketplace add gyuha/forge   (또는 로컬 경로)
+#   /plugin install forge@forge
+# 설치는 GitHub 기본 브랜치(main)를 당긴다 → 설치 테스트하려면 main에 push되어 있어야 한다.
+```
+
+## 패키징 구조 (단일 리포 = 플러그인 + 마켓플레이스)
+
+`harness` 플러그인과 동일한 패턴이다: 리포 루트가 곧 플러그인 루트이자 마켓플레이스.
+
+- `.claude-plugin/plugin.json` — 플러그인 매니페스트. `skills/` 가 자동 탐색되므로 `skills` 필드는 생략 가능.
+- `.claude-plugin/marketplace.json` — 이 리포를 마켓플레이스로 등록. `plugins[].source` 는 `"./"`(루트가 곧 플러그인).
+- 스킬은 `skills/<name>/SKILL.md` 로 자동 탐색된다. **스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name`** 이다.
+
+매니페스트의 스킬 개수·설명을 바꿀 땐 `plugin.json`과 `marketplace.json`을 함께 갱신해야 한다(둘 다 사람이 읽는 설명을 담는다).
+
+## 핵심 아키텍처 — forge 루프
+
+forge의 본질은 작업 하나를 한 바퀴 돌리는 4단계 루프다. 각 스킬은 **독립 실행**되며, 상태를 `.forge/` 파일로 주고받아 흐름을 잇는다.
+
+```
+fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③회고) → fg-complete(④완료) → (새 작업) fg-ask
+```
+
+- **fg-ask** — grill-with-docs식 대화형 그릴링. 계획을 도메인·용어·결정에 대고 검증해 `.forge/plan.md`로 정리. **반드시 본 세션 대화로** 진행(워크플로우 밖).
+- **fg-execute** — `.forge/plan.md`를 Claude Code Dynamic Workflow로 실행, 계획↔실제 차이를 `.forge/run.md`에 기록.
+- **fg-learn** — 학습을 분류해 영속 문서로 승급, `docs/retro/`에 회고 남김. 항상 대화형.
+- **fg-complete** — 작업을 `.forge/done/<날짜-slug>/`로 봉인하고 활성 `.forge/`를 비움 → **재실행 방지의 핵심 메커니즘**.
+
+### 상태 계약 (`.forge/` — 휘발, gitignore)
+
+스킬을 편집할 때 이 입출력 계약을 깨지 않아야 흐름이 이어진다. 입력 파일이 없으면 각 스킬은 앞 단계를 안내한다.
+
+| 파일 | 생산자 | 소비자 |
+| --- | --- | --- |
+| `.forge/plan.md` | fg-ask | fg-execute(정답 기준), fg-learn |
+| `.forge/run.md` | fg-execute | fg-learn |
+| `.forge/done/` | fg-complete | — (아카이브) |
+
+- **활성 `.forge/`가 비어 있으면 = 진행 중 작업 없음.** fg-execute는 빈 상태에서 실행하지 않는다(재실행 방지). fg-complete가 봉인하며 비운다.
+- 재그릴링이 필요하면 fg-learn/fg-execute가 **fg-ask**를 가리킨다(과거 별도 `fg-plan` 단계는 fg-ask로 통합됨).
+
+### 영속 문서 모델
+
+`.forge/`(휘발)와 달리 이들은 영속이며 루프의 "연료"다. 전부 **lazy 생성**(쓸 내용이 생길 때만).
+
+- `CONTEXT.md` / `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신.
+- `docs/adr/NNNN-slug.md` — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
+- `docs/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
+
+형식 정의는 `references/{CONTEXT,ADR,RETRO}-FORMAT.md`. fg-execute·fg-learn·fg-complete는 이 공통 1벌을 `../../references/`(또는 `${CLAUDE_PLUGIN_ROOT}/references/`)로 참조하고 자체 복사하지 않는다.
+
+## 설계 원칙 (두 기둥)
+
+스킬을 수정할 때 이 둘을 깨면 forge가 forge가 아니게 된다:
+
+1. **그릴링은 절대 Dynamic Workflow 안에 넣지 않는다.** 워크플로우는 실행 중 사용자 입력을 못 받는다. 한 질문씩 주고받는 그릴링(fg-ask)은 반드시 워크플로우 밖 대화로.
+2. **문서는 산출물이 아니라 루프의 연료다.** 계획에서 다듬은 용어가 실행의 기준이 되고, 회고의 학습이 다음 계획의 출발점이 된다.
+
+## 스킬 편집 규약
+
+- **핸드오프**: 각 스킬은 끝에서 "방금 한 것 / 다음 단계 / 시작하는 법"을 **자연스러운 대화체**로 전한다(정해진 양식을 사무적으로 출력하지 않는다).
+- **언어**: 스킬 본문·문서는 한글(grill-with-docs 원문을 그대로 옮긴 부분은 영문 verbatim).
+- **절제**: ADR·글로서리 용어는 바를 넘을 때만 승급. 회고에서 나온 모든 걸 영속 문서로 밀어 넣지 않는다.
+
+## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
+
+여러 파일을 읽어야 드러나는, 의도적 반복 작업으로 생긴 어긋남:
+
+- **`skills/fg-ask/`의 frontmatter `name`이 `grill-with-docs`** 다(디렉터리명 `fg-ask` 및 다른 스킬들이 가리키는 "fg-ask"와 불일치). 이 스킬은 grill-with-docs 원본을 **자기완결 3파일**(`SKILL.md` + 형제 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`, 영문)로 통째 복제한 상태다. 따라서 형식 문서가 **두 벌** 공존한다 — fg-ask 내부(영문 원본)와 루트 `references/`(한글 번역, 나머지 스킬이 사용).
+- **`forge-prd.md`는 통합 이전 5단계 설계 초안**이다. `fg-plan`을 살아있는 단계로, `task.md`를 산출물로 가리키는 등 현재 구현(4단계, fg-plan/task.md 없음)과 정면 충돌한다. 명세로 신뢰하지 말 것 — 실제는 `skills/`와 `README.md`가 기준.
