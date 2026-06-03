@@ -65,7 +65,7 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 - `docs/adr/NNNN-slug.md` — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
 - `docs/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
 
-형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(영문, grill-with-docs 원본), `skills/fg-execute/PLAN-FORMAT.md`(한글, plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 영문 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`(한글). 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
+형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-execute/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
 
 ## 설계 원칙 (두 기둥)
 
@@ -78,6 +78,7 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 
 - **핸드오프**: 각 스킬은 끝에서 "방금 한 것 / 다음 단계 / 시작하는 법"을 **자연스러운 대화체**로 전한다(정해진 양식을 사무적으로 출력하지 않는다).
 - **언어**: 스킬 본문(`SKILL.md`)·형식 문서(`*-FORMAT.md`)는 **영문으로 작성**한다(grill-with-docs 원문을 그대로 옮긴 부분은 영문 verbatim 유지). 단 스킬이 **사용자에게 출력하는 언어는 사용자의 언어를 따른다** — 각 스킬에 "respond in the user's language" 지시를 명시하고, 산출 문서(plan·회고·CONTEXT·ADR 등 사용자 프로젝트에 남는 문서)도 사용자 언어로 쓴다.
+- **README 이중 언어 동기화**: `README.md`(영문)와 `README.ko.md`(한글)는 같은 내용의 번역 쌍이다. **`README.md`를 갱신하면 반드시 `README.ko.md`도 같은 변경으로 함께 갱신한다**(역방향도 동일). 한쪽만 고치면 두 문서가 어긋난다.
 - **절제**: ADR·글로서리 용어는 바를 넘을 때만 승급. 회고에서 나온 모든 걸 영속 문서로 밀어 넣지 않는다.
 
 ## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
