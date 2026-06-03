@@ -1,7 +1,7 @@
 # forge
 
 > 작업 하나를 **질의 → 계획 → 실행 → 회고 → 완료**의 한 바퀴로 돌리는 개발 루프.
-> `fg-` 프리픽스를 가진 Claude Code 스킬 5개로 구성된 루프형 워크플로우 플러그인.
+> `fg-` 프리픽스를 가진 Claude Code 스킬 4개로 구성된 루프형 워크플로우 플러그인.
 
 계획은 grill-with-docs식 대화형 그릴링으로, 실행은 Claude Code Dynamic Workflow로 수행하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
 
@@ -9,13 +9,12 @@
 
 | 스킬 | 단계 | 한 줄 역할 | 입력 | 출력 | 다음 |
 | --- | --- | --- | --- | --- | --- |
-| `fg-ask` | ① 질의 | 작업 정의·컨텍스트 식별·잡일/루프 분류 | 사용자 요청 | `.forge/task.md` | `fg-plan` / 직접 처리 |
-| `fg-plan` | ② 계획 | 대화형 그릴링으로 계획을 날카롭게 | `.forge/task.md` | `.forge/plan.md` + CONTEXT/ADR | `fg-execute` |
-| `fg-execute` | ③ 실행 | 계획을 Dynamic Workflow로 실행 | `.forge/plan.md` | 결과 + `.forge/run.md` | `fg-learn` |
-| `fg-learn` | ④ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md` | `docs/retro/*.md` + 승급 | `fg-complete` / `fg-plan` |
-| `fg-complete` | ⑤ 완료 | 작업 봉인·활성 상태 정리·재실행 방지 | `.forge/*` | `.forge/done/<id>/` | `fg-ask` / 종료 |
+| `fg-ask` | ① 질의·계획 | 작업 정의·분류 + grill-with-docs식 그릴링으로 계획을 날카롭게 | 사용자 요청 | `.forge/task.md` + `.forge/plan.md` + CONTEXT/ADR | `fg-execute` / 직접 처리 |
+| `fg-execute` | ② 실행 | 계획을 Dynamic Workflow로 실행 | `.forge/plan.md` | 결과 + `.forge/run.md` | `fg-learn` |
+| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md` | `docs/retro/*.md` + 승급 | `fg-complete` / `fg-ask` |
+| `fg-complete` | ④ 완료 | 작업 봉인·활성 상태 정리·재실행 방지 | `.forge/*` | `.forge/done/<id>/` | `fg-ask` / 종료 |
 
-`fg-ask`가 루프의 진입점이다. "forge 시작", "새 작업", "이거 작업하자" 같은 발화에서 트리거된다.
+`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 `fg-ask`+`fg-plan` 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다.
 
 ## 전체 흐름
 
@@ -23,15 +22,14 @@
 
 ```mermaid
 flowchart LR
-    A[fg-ask<br/>① 질의] --> P[fg-plan<br/>② 계획·그릴링]
-    P --> E[fg-execute<br/>③ 실행·Dynamic WF]
-    E --> L[fg-learn<br/>④ 회고]
-    L --> C[fg-complete<br/>⑤ 완료·봉인]
-    L -.재그릴링.-> P
+    A[fg-ask<br/>① 질의·계획·그릴링] --> E[fg-execute<br/>② 실행·Dynamic WF]
+    E --> L[fg-learn<br/>③ 회고]
+    L --> C[fg-complete<br/>④ 완료·봉인]
+    L -.재그릴링.-> A
     C -->|새 작업| A
     A -.잡일.-> X[루프 건너뛰고 바로 처리]
-    P -.용어.-> CTX[(CONTEXT.md)]
-    P -.중대 결정.-> ADR[(docs/adr/)]
+    A -.용어.-> CTX[(CONTEXT.md)]
+    A -.중대 결정.-> ADR[(docs/adr/)]
     L -.승급.-> CTX
     L -.승급.-> ADR
     L -.세션 학습.-> RETRO[(docs/retro/)]
@@ -63,10 +61,10 @@ repo/
 │   ├── adr/0001-*.md          # 아키텍처 결정 (영속)
 │   └── retro/YYYY-MM-DD-*.md  # 회고 로그 (영속)
 └── .forge/                    # 루프 작업 상태 (휘발, gitignore)
-    ├── task.md                # ① fg-ask 산출
-    ├── plan.md                # ② fg-plan 산출 = 실행의 정답 기준
-    ├── run.md                 # ③ fg-execute 산출 = 계획 vs 실제
-    └── done/                  # ⑤ fg-complete 봉인 아카이브
+    ├── task.md                # ① fg-ask 분류 산출 (한 문장 정의)
+    ├── plan.md                # ① fg-ask 그릴링 산출 = 실행의 정답 기준
+    ├── run.md                 # ② fg-execute 산출 = 계획 vs 실제
+    └── done/                  # ④ fg-complete 봉인 아카이브
 ```
 
 - 각 스킬은 입력 파일을 `.forge/`에서 읽고 산출을 `.forge/`에 쓴다. `fg-execute`만 따로 불러도 `.forge/plan.md`를 찾아 이어간다.
@@ -80,4 +78,4 @@ repo/
 
 ## 크레딧
 
-`fg-ask`/`fg-plan`의 그릴링·문서화 패턴과 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`는 [mattpocock/skills의 grill-with-docs](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)를 계승했다.
+`fg-ask`의 그릴링·문서화 패턴(원문 포함)과 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`는 [mattpocock/skills의 grill-with-docs](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)를 계승했다.

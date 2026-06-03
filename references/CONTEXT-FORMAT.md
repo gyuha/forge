@@ -1,6 +1,6 @@
 # CONTEXT.md 형식
 
-> grill-with-docs 계승. `fg-plan`(인라인 갱신)·`fg-learn`(승급)이 공통으로 사용한다.
+> grill-with-docs 계승. `fg-ask`(그릴링 중 인라인 갱신)·`fg-learn`(승급)이 공통으로 사용한다.
 
 ## 구조
 

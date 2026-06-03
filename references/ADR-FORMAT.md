@@ -1,6 +1,6 @@
 # ADR 형식
 
-> grill-with-docs 계승. `fg-plan`·`fg-learn`이 공통으로 사용한다.
+> grill-with-docs 계승. `fg-ask`(그릴링)·`fg-learn`(승급)이 공통으로 사용한다.
 
 ADR은 `docs/adr/`에 살고 순차 번호를 쓴다: `0001-slug.md`, `0002-slug.md` …
 

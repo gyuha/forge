@@ -3,9 +3,9 @@ name: fg-execute
 description: 다듬어진 계획(.forge/plan.md)을 Claude Code Dynamic Workflow로 실행한다. 마이그레이션·전수 감사처럼 많은 서브에이전트가 필요한 큰 작업을 백그라운드 병렬로 돌릴 때, 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘' 맥락에서 사용. 활성 계획이 없으면 실행하지 않으며, 이미 실행된 계획의 중복 실행을 경고한다.
 ---
 
-# fg-execute — ③ 실행(Dynamic Workflow)
+# fg-execute — ② 실행(Dynamic Workflow)
 
-forge 루프의 세 번째 바퀴다. fg-plan이 다듬어 둔 `.forge/plan.md`를 Claude Code Dynamic Workflow로 실제 코드/변경에 반영한다. 마이그레이션, 전수 감사, 대량 리팩터처럼 서브에이전트 여럿이 병렬로 붙어야 하는 큰 작업을 백그라운드로 돌리고, 그 결과를 계획에 대고 검증하는 단계다.
+forge 루프의 두 번째 바퀴다. fg-ask가 다듬어 둔 `.forge/plan.md`를 Claude Code Dynamic Workflow로 실제 코드/변경에 반영한다. 마이그레이션, 전수 감사, 대량 리팩터처럼 서브에이전트 여럿이 병렬로 붙어야 하는 큰 작업을 백그라운드로 돌리고, 그 결과를 계획에 대고 검증하는 단계다.
 
 ## 목적
 
@@ -15,14 +15,14 @@ forge 루프의 세 번째 바퀴다. fg-plan이 다듬어 둔 `.forge/plan.md`�
 
 워크플로우는 서브에이전트를 여럿 띄우므로 토큰을 많이 쓴다. 실수로 같은 계획을 두 번 돌리면 비용과 부작용(중복 커밋, 중복 마이그레이션 등)이 크다. 그래서 실행에 들어가기 전에 상태를 먼저 확인한다.
 
-- **활성 `.forge/plan.md`가 없으면** 실행하지 않는다. 직전 작업이 이미 fg-complete로 봉인돼 `.forge/`가 비어 있는 상태일 가능성이 높다. 새 작업이면 fg-ask로, 계획만 없으면 fg-plan으로 안내한다. 없는 계획을 추측해서 만들어 돌리지 않는다 — 그건 fg-plan의 일이다.
+- **활성 `.forge/plan.md`가 없으면** 실행하지 않는다. 직전 작업이 이미 fg-complete로 봉인돼 `.forge/`가 비어 있는 상태일 가능성이 높다. 새 작업이든 계획만 없든 fg-ask로 안내한다(작업 정의·그릴링을 거쳐 계획을 만드는 단계). 없는 계획을 추측해서 만들어 돌리지 않는다 — 그건 fg-ask(질의·그릴링)의 일이다.
 - **이미 `.forge/run.md`가 있으면** 이 계획은 한 번 실행된 것이다. 다시 돌리기 전에 중복 실행임을 알리고 사용자 확인을 받는다. 사용자가 "이어서/재시도"를 원하는지, 아니면 단지 결과를 보려는 것인지 구분한다. 확인 없이 덮어쓰지 않는다.
 - 둘 다 통과하면(`plan.md` 있음, `run.md` 없음) 정상 착수다.
 
 ```mermaid
 flowchart TD
     A[fg-execute 시작] --> B{.forge/plan.md 있나?}
-    B -- 없음 --> C[실행 중단<br/>fg-ask 또는 fg-plan 안내]
+    B -- 없음 --> C[실행 중단<br/>fg-ask 안내]
     B -- 있음 --> D{.forge/run.md 이미 있나?}
     D -- 있음 --> E[중복 실행 경고<br/>사용자 확인 대기]
     E -- 재실행 승인 --> F
@@ -70,13 +70,13 @@ Claude가 Dynamic Workflow를 구성하도록 유도한다. 프롬프트에 `wor
 3. **시작하는 법** — 그대로 회고로 이어갈지 묻거나, "forge learn" / "회고" 같은 트리거를 알려준다.
 
 예외 상황 안내:
-- 결과가 계획과 크게 어긋났다면 fg-learn으로 가기 전에 **fg-plan으로 재그릴링**(계획을 다시 다듬는 것)을 권한다.
+- 결과가 계획과 크게 어긋났다면 fg-learn으로 가기 전에 **fg-ask로 재그릴링**(계획을 다시 다듬는 것)을 권한다.
 - 중간에 끼어든 잡일은 워크플로우에 욱여넣지 말고 그 자리에서 직접 처리하라고 가리킨다.
 
 ## 문서 영향
 
 - `.forge/run.md` 생성 — 계획 대 실제의 차이 메모(회고 입력). lazy 생성.
 - (선택) 반복 작업이면 저장된 워크플로우 `/명령`.
-- 입력으로 읽는 `.forge/plan.md`는 수정하지 않는다(계획은 fg-plan의 소유).
+- 입력으로 읽는 `.forge/plan.md`는 수정하지 않는다(계획은 fg-ask의 소유).
 
 형식 참조: 영속 문서를 다룰 일이 생기면 `${CLAUDE_PLUGIN_ROOT}/references/CONTEXT-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/references/ADR-FORMAT.md`(플러그인 환경) 또는 스킬 기준 상대경로 `../../references/`의 동일 파일을 읽어 형식을 맞춘다. 이 스킬은 형식을 자체 복사하지 않는다.
