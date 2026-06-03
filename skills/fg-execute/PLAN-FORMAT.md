@@ -34,7 +34,7 @@ Documents are written in the user's language; the headings below are canonical E
 
 ## Splitting rule (a plan is never split)
 
-**If you feel the urge to split it, that is a signal the work was two tasks.** The state contract that one plan.md = one run.md = one sealing (fg-complete) is invariant. Do not split a plan into phases run sequentially and accumulated into run.md — that is incompatible with fg-execute's re-run guard (a duplicate warning when run.md already exists).
+**If you feel the urge to split it, that is a signal the work was two tasks.** The state contract that one plan.md = one run.md = one sealing (fg-cleanup) is invariant. Do not split a plan into phases run sequentially and accumulated into run.md — that is incompatible with fg-execute's re-run guard (a duplicate warning when run.md already exists).
 
 ```
 Can this plan be run end-to-end in one workflow?
@@ -42,8 +42,8 @@ Can this plan be run end-to-end in one workflow?
 │     → No split. Compose waves via dependency notation and run it in one pass.
 └── No — a human check / decision must intervene before the next step can proceed
       → That check point is the task boundary.
-        Narrow the plan to everything before that point, complete and seal one loop (execute→learn→complete),
-        and open a new fg-ask for the rest as a fg-complete follow-up.
+        Narrow the plan to everything before that point, complete and seal one loop (execute→learn→cleanup),
+        and open a new fg-ask for the rest as a fg-cleanup follow-up.
 ```
 
 We do not distinguish "simple go-ahead approval" from "major decision branch" — a Dynamic Workflow cannot take human input at runtime, so either way it must stop, and a stop is a task boundary.

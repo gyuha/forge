@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "description": "단계별 워크플로우 스킬 모음(fg-*). 작업 하나를 질의·계획→실행→회고→완료의 한 바퀴로 돌리는 개발 루프. fg-ask(질의·분류 + grill-with-docs식 대화형 그릴링), fg-execute(백로그 작업 선택 메뉴·모두 실행, Dynamic Workflow 실행), fg-learn(회고·문서 승급), fg-complete(봉인·재실행 방지)로 구성. '새 작업 시작', 'forge로 시작', '이거 작업하자', '계획 다듬자' 같은 맥락에서 사용.",
+  "description": "단계별 워크플로우 스킬 모음(fg-*). 작업 하나를 질의·계획→실행→회고→정리의 한 바퀴로 돌리는 개발 루프. fg-ask(질의·분류 + grill-with-docs식 대화형 그릴링), fg-execute(백로그 작업 선택 메뉴·모두 실행, Dynamic Workflow 실행), fg-learn(회고·문서 승급), fg-cleanup(정리·봉인·재실행 방지)로 구성. '새 작업 시작', 'forge로 시작', '이거 작업하자', '계획 다듬자' 같은 맥락에서 사용.",
   "version": "0.1.0",
   "author": {
     "name": "gyuha",

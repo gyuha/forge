@@ -1,6 +1,6 @@
 ---
 name: fg-execute
-description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds several tasks, presents the unfinished ones as a selection menu (last option 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘'. Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
+description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds exactly one unexecuted plan, runs it right away without a confirmation question; when it holds several, presents a guide dialog of the unfinished ones (last option 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘'. Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
 ---
 
 # fg-execute — ② Execute (Dynamic Workflow)
@@ -19,11 +19,11 @@ A workflow spins up many subagents, so it burns a lot of tokens. Running the sam
 
 **1) Check the active slot.** If `.forge/plan.md` (the active slot) already exists, there is a task in progress — skip the backlog and go straight to the re-run guard below (only one task is active at a time).
 
-**2) If the active slot is empty, scan the backlog.** Gather unfinished candidates from `.forge/backlog/*.md` (= plans with no matching slug seal in `.forge/done/`). Depending on the candidate count:
+**2) If the active slot is empty, scan the backlog.** Gather unfinished candidates from `.forge/backlog/*.md` (= plans with no matching slug seal in `.forge/done/` — a seal is a `done/<date-slug>/STATUS.md` marker with `status: done`, written when fg-cleanup archives the task). Before presenting anything, give the user a one-line status summary derived from the file layout: "done X (from `done/*/STATUS.md` with `status: done`) · awaiting retro Y (`executed/`, `status: executed`) · unexecuted Z (`backlog/`)" — so they see at a glance what has finished and what remains. Read each STATUS.md's `status` field to confirm the count (done = `done/*/STATUS.md` at `status: done`). Then, depending on the candidate count:
 
 - **0** — There is no plan to execute. Point to fg-ask and stop (the stage that defines the task, grills it, and produces a plan). Do not guess a plan into existence and run it.
-- **1** — Without a ceremonial menu, confirm in one line: "There is 1 task in the backlog (<title>) — run it now?" then promote it.
-- **2 or more** — Show a selection menu via `AskUserQuestion`. The options = each unfinished plan (label: title, description: one-line goal + slice count), and **the last option is "Run all (N sequential)"**. Show the menu in conversation, outside the workflow.
+- **1** — **No menu, no confirmation question: promote and run it right away.** Announce in one line what is being run ("Running the only unexecuted plan from fg-ask: <title>") and proceed — the orchestration-script approval in step 2 of the main body still gates the actual workflow, so this skips only the redundant pre-confirmation.
+- **2 or more** — Show a guide dialog via `AskUserQuestion`, framed as "these are the plans fg-ask produced that haven't run yet — which one shall I execute?". The options = each unfinished plan (label: title, description: one-line goal + slice count), and **the last option, at the very bottom, is "Run all (N sequential)"**. Show the dialog in conversation, outside the workflow.
 
 **3) Promotion and ADR check.** Move (promote) the chosen backlog file to `.forge/plan.md` — from this point it is in the normal starting state of "active plan present, no run," and joins the main body below. Right before starting, check that the `docs/adr/NNNN-*` referenced by the plan's "Source of truth" actually exists — if not, it is a stale-plan signal, so warn and ask once: "shall I supplement it via fg-ask, or proceed as is?" (this does not block).
 
@@ -36,9 +36,8 @@ flowchart TD
     S -- no --> BL[Scan .forge/backlog/<br/>collect unfinished candidates]
     BL --> N{Candidate count}
     N -- 0 --> C[Stop execution<br/>point to fg-ask]
-    N -- 1 --> Y{Run now?<br/>one-line confirm} -- yes --> P[Promote: backlog → plan.md<br/>+ verify ADR exists]
-    Y -- no --> C
-    N -- 2+ --> M[AskUserQuestion menu<br/>last: Run all]
+    N -- 1 --> P[Run right away, no confirm<br/>Promote: backlog → plan.md<br/>+ verify ADR exists]
+    N -- 2+ --> M[AskUserQuestion guide dialog<br/>last: Run all]
     M -- single choice --> P
     M -- Run all --> ALL[Run-all procedure<br/>see section below]
     P --> F
@@ -70,26 +69,37 @@ Once the orchestration script is ready, **get user approval first**. After appro
 
 `.forge/plan.md`, `CONTEXT.md`, and the ADRs in `docs/adr/` are the source of truth. The workflow cross-verifies its output against this source of truth — it **judges each slice's "completion criterion" against the actual output** for satisfaction, rather than stopping at "it ran."
 
-### 4. Record divergences in run.md
+### 4. Record divergences in run.md, then mark execution complete
 
 When execution finishes, note "the divergences between plan and reality" in `.forge/run.md`. Write down what went as planned, what missed, the on-the-spot decisions made along the way, and where it got stuck. This is the raw material for the fg-learn retro.
 
-Flow: build the workflow → approve the script → background parallel execution → cross-verify against the plan → record `.forge/run.md`
+Right after writing `run.md`, write a companion `STATUS.md` (in the user's language) to mark the run as executed — it travels alongside the plan/run files as a status marker, not a second ledger (the source of truth for state is still file location). In the single-task path, write it to `.forge/STATUS.md` (the active slot, next to plan.md/run.md). Content:
+
+```
+# STATUS — {title}
+slug: {slug}
+status: executed
+executed: {YYYY-MM-DD}
+```
+
+fg-learn reads this `status: executed` to confirm a parked task is awaiting retro; fg-cleanup later flips it to `status: done` and archives plan/run/STATUS together. (For the "Run all" path, the STATUS.md is written into the per-task `executed/<slug>/` folder — see that section.)
+
+Flow: build the workflow → approve the script → background parallel execution → cross-verify against the plan → record `.forge/run.md` → write `.forge/STATUS.md` (status: executed)
 
 ## "Run all" — execute-only batch
 
 If you pick "Run all" from the selection menu, the backlog's unfinished plans are **executed only, in sequence**. Retro and sealing are not auto-inserted — fg-learn is always conversational, and barreling past it just piles up un-retro'd heaps with nothing learned. Run all is not unattended automation; it is a declaration of "I'll do the execute stage in one batch."
 
 1. **Confirm the order.** Snapshot and freeze the current N unfinished candidates, and show the user the execution order once (default: slug alphabetical) — "shall I run them in this order? If there are dependencies between tasks, reorder now."
-2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md`) → without sealing, **move plan+run to `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted.
-   - `executed/` is the explicit expression of the intermediate state "executed but not yet retro'd." Putting an un-retro'd task into `done/` would bypass fg-complete's no-seal-without-retro guard, so never send it to `done/` before the retro.
+2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md` → write `STATUS.md` at `status: executed`) → without sealing, **move plan+run+STATUS to `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted. In this batch path write the `STATUS.md` directly into `.forge/executed/<slug>/` alongside plan+run (not into the active slot), since each task parks immediately.
+   - `executed/` is the explicit expression of the intermediate state "executed but not yet retro'd." Putting an un-retro'd task into `done/` would bypass fg-cleanup's no-seal-without-retro guard, so never send it to `done/` before the retro.
    - Each task gets its own run. Do not merge several tasks into one run.
 3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-execute's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state.
-4. **Handoff.** When everything is done, point: "I ran all N, and each has plan+run in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
+4. **Handoff.** When everything is done, point: "I ran all N, and each has plan+run+STATUS (status: executed) in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
 
 ## Constraints
 
-- **If a mid-run sign-off is needed**, that is a signal the task was actually two — split it into separate **tasks** (finish and seal everything up to the checkpoint as one loop, and open a new fg-ask for the rest as an fg-complete follow-up). A Dynamic Workflow cannot take human input mid-runtime. Do not split one plan into phases and accumulate them into `run.md` — that conflicts with the re-run guard. Determine the split per the split rules in [PLAN-FORMAT.md](./PLAN-FORMAT.md).
+- **If a mid-run sign-off is needed**, that is a signal the task was actually two — split it into separate **tasks** (finish and seal everything up to the checkpoint as one loop, and open a new fg-ask for the rest as an fg-cleanup follow-up). A Dynamic Workflow cannot take human input mid-runtime. Do not split one plan into phases and accumulate them into `run.md` — that conflicts with the re-run guard. Determine the split per the split rules in [PLAN-FORMAT.md](./PLAN-FORMAT.md).
 - **Estimate cost first.** For a big job, trial a small slice to gauge token cost before scaling to the whole. If the scale is small enough for a single agent, skip the workflow and just handle it directly — that is cheaper and faster.
 - **If the job will recur**, save the execution script as a `/command` (slash command) for reuse.
 - Environment requirements: research preview · Claude Code v2.1.154+ · paid plan.
@@ -109,7 +119,8 @@ Exception handling:
 ## Document impact
 
 - Creates `.forge/run.md` — the note of plan-vs-actual divergences (retro input). Lazy creation.
-- On backlog promotion, moves `.forge/backlog/<slug>.md` → `.forge/plan.md`. On "Run all," creates per-task `.forge/executed/<slug>/{plan,run}.md` (awaiting retro).
+- Creates `.forge/STATUS.md` (`status: executed`) right after `run.md` — a companion marker fg-learn/fg-cleanup read; fg-cleanup later flips it to `status: done` and archives it with plan/run.
+- On backlog promotion, moves `.forge/backlog/<slug>.md` → `.forge/plan.md`. On "Run all," creates per-task `.forge/executed/<slug>/{plan,run,STATUS}.md` (awaiting retro).
 - (Optional) a saved workflow `/command` if the job recurs.
 - Does not modify the `.forge/plan.md` it reads as input (the plan is fg-ask's property).
 

@@ -1,11 +1,11 @@
 # forge
 
-> 작업 하나를 **질의 → 계획 → 실행 → 회고 → 완료**의 한 바퀴로 돌리는 개발 루프.
+> 작업 하나를 **질의 → 계획 → 실행 → 회고 → 정리**의 한 바퀴로 돌리는 개발 루프.
 > `fg-` 프리픽스를 가진 Claude Code 스킬 4개로 구성된 루프형 워크플로우 플러그인.
 
 [English](./README.md)
 
-계획은 grill-with-docs식 대화형 그릴링으로, 실행은 Claude Code Dynamic Workflow로 수행하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
+계획은 grill-with-docs식 대화형 그릴링으로, 실행은 Claude Code Dynamic Workflow로 수행하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 정리 단계에서 한 바퀴의 잔여물을 정리하며 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
 
 ## 스킬 카탈로그
 
@@ -13,20 +13,26 @@
 | --- | --- | --- | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-execute` |
 | `fg-execute` | ② 실행 | 백로그에서 작업 선택(메뉴·모두 실행) 후 Dynamic Workflow로 실행 | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` (또는 `executed/`) | `fg-learn` |
-| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `docs/retro/*.md` + 승급 | `fg-complete` / `fg-ask` |
-| `fg-complete` | ④ 완료 | 작업 봉인·활성 상태 정리·재실행 방지 | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
+| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `docs/retro/*.md` + 승급 | `fg-cleanup` / `fg-ask` |
+| `fg-cleanup` | ④ 정리 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기 | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 
-`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 `fg-ask`+`fg-plan` 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다.
+`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 `fg-ask`+`fg-plan` 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다. `fg-cleanup`은 "forge cleanup", "작업 정리", "이거 정리해줘"에서 트리거된다(기존 "forge complete"도 alias로 인식한다).
 
 ## 전체 흐름
 
-한 스킬이 끝나면 다음 스킬로 가는 길(무엇을 했고, 다음은 무엇이며, 어떻게 시작하는지)을 안내하고, 바로 이어갈지 물어 동의하면 그 자리에서 다음 스킬을 호출한다. 루프는 `fg-complete`가 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다.
+한 스킬이 끝나면 다음 스킬로 가는 길(무엇을 했고, 다음은 무엇이며, 어떻게 시작하는지)을 안내하고, 바로 이어갈지 물어 동의하면 그 자리에서 다음 스킬을 호출한다. 루프는 `fg-cleanup`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다.
+
+```
+fg-ask ───▶ fg-execute ───▶ fg-learn ───▶ fg-cleanup
+① 질의/계획     ② 실행          ③ 회고        ④ 정리
+(그릴링·대화형) (Dynamic WF)   (문서 반영)    (봉인·재실행 방지)
+```
 
 ```mermaid
 flowchart LR
     A[fg-ask<br/>① 질의·계획·그릴링] --> E[fg-execute<br/>② 실행·Dynamic WF]
     E --> L[fg-learn<br/>③ 회고]
-    L --> C[fg-complete<br/>④ 완료·봉인]
+    L --> C[fg-cleanup<br/>④ 정리·봉인]
     L -.재그릴링.-> A
     C -->|새 작업| A
     A -.잡일.-> X[루프 건너뛰고 바로 처리]
@@ -66,14 +72,15 @@ repo/
     ├── backlog/<slug>.md      # ① fg-ask 그릴링 산출 — 미실행 plan 대기열
     ├── plan.md                # 활성 슬롯: 지금 도는 한 바퀴의 정답 기준 (fg-execute가 백로그에서 승격)
     ├── run.md                 # ② fg-execute 산출 = 계획 vs 실제
-    ├── executed/<slug>/       # "모두 실행" 후 회고 대기 (plan+run, 미회고)
-    └── done/                  # ④ fg-complete 봉인 아카이브
+    ├── STATUS.md              # 활성 슬롯: fg-execute가 실행 완료 시 작성해 실행 완료를 표시 (status: executed)
+    ├── executed/<slug>/       # "모두 실행" 후 회고 대기 (plan+run+STATUS, 미회고)
+    └── done/<날짜-slug>/       # ④ fg-cleanup 봉인 아카이브 (plan+run+STATUS, status: done)
 ```
 
 - 각 스킬은 입력 파일을 `.forge/`에서 읽고 산출을 `.forge/`에 쓴다. `fg-execute`만 따로 불러도 백로그·활성 슬롯을 찾아 이어간다.
 - `fg-execute`는 백로그에 작업이 여럿이면 미완료 목록을 선택 메뉴로 제시한다(마지막 옵션 "모두 실행"). 활성 슬롯은 항상 1개 — 한 plan.md = 한 run.md = 한 봉인.
 - 입력 파일이 없으면 스킬은 앞 단계를 안내한다.
-- 활성 슬롯·백로그·회고 대기열이 모두 비어 있으면 = 진행 중 작업 없음. `fg-execute`는 빈 상태에서 실행하지 않는다(재실행 방지).
+- 활성 슬롯·백로그·회고 대기열이 모두 비어 있으면 = 진행 중 작업 없음. `fg-execute`는 빈 상태에서 실행하지 않는다(재실행 방지). 완료 판별은 `done/*/STATUS.md`(status: done)다.
 
 ## 두 기둥
 
