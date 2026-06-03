@@ -36,7 +36,7 @@ forge의 본질은 작업 하나를 한 바퀴 돌리는 4단계 루프다. 각 
 fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③회고) → fg-complete(④완료) → (새 작업) fg-ask
 ```
 
-- **fg-ask** — grill-with-docs식 대화형 그릴링. 계획을 도메인·용어·결정에 대고 검증해 `.forge/plan.md`로 정리. **반드시 본 세션 대화로** 진행(워크플로우 밖).
+- **fg-ask** — grill-with-docs식 대화형 그릴링. 계획을 도메인·용어·결정에 대고 검증해 `.forge/backlog/<slug>.md`로 적재. **반드시 본 세션 대화로** 진행(워크플로우 밖).
 - **fg-execute** — `.forge/plan.md`를 Claude Code Dynamic Workflow로 실행, 계획↔실제 차이를 `.forge/run.md`에 기록.
 - **fg-learn** — 학습을 분류해 영속 문서로 승급, `docs/retro/`에 회고 남김. 항상 대화형.
 - **fg-complete** — 작업을 `.forge/done/<날짜-slug>/`로 봉인하고 활성 `.forge/`를 비움 → **재실행 방지의 핵심 메커니즘**.
@@ -47,11 +47,14 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 
 | 파일 | 생산자 | 소비자 |
 | --- | --- | --- |
-| `.forge/plan.md` | fg-ask | fg-execute(정답 기준), fg-learn |
+| `.forge/backlog/<slug>.md` | fg-ask | fg-execute(선택 메뉴·승격) |
+| `.forge/plan.md` (활성 슬롯) | fg-execute(백로그에서 승격) | fg-execute(정답 기준), fg-learn |
 | `.forge/run.md` | fg-execute | fg-learn |
+| `.forge/executed/<slug>/` | fg-execute("모두 실행" park) | fg-learn(회고 대기), fg-complete(봉인) |
 | `.forge/done/` | fg-complete | — (아카이브) |
 
-- **활성 `.forge/`가 비어 있으면 = 진행 중 작업 없음.** fg-execute는 빈 상태에서 실행하지 않는다(재실행 방지). fg-complete가 봉인하며 비운다.
+- **활성 슬롯은 항상 1개** — 한 plan.md = 한 run.md = 한 봉인. 백로그는 미실행 대기열, `executed/`는 "실행됐으나 미회고"의 명시적 상태다. plan 첫 줄의 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자다(파일 이동에도 영속).
+- **활성 슬롯·백로그·executed가 모두 비어 있으면 = 진행 중 작업 없음.** fg-execute는 빈 상태에서 실행하지 않는다(재실행 방지). fg-complete가 봉인하며 비운다.
 - 재그릴링이 필요하면 fg-learn/fg-execute가 **fg-ask**를 가리킨다(과거 별도 `fg-plan` 단계는 fg-ask로 통합됨).
 
 ### 영속 문서 모델
@@ -62,7 +65,7 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 - `docs/adr/NNNN-slug.md` — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
 - `docs/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
 
-형식 정의는 `references/{CONTEXT,ADR,RETRO}-FORMAT.md`. fg-execute·fg-learn·fg-complete는 이 공통 1벌을 `../../references/`(또는 `${CLAUDE_PLUGIN_ROOT}/references/`)로 참조하고 자체 복사하지 않는다.
+형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(영문, grill-with-docs 원본), `skills/fg-execute/PLAN-FORMAT.md`(한글, plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 영문 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`(한글). 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
 
 ## 설계 원칙 (두 기둥)
 
@@ -74,12 +77,12 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 ## 스킬 편집 규약
 
 - **핸드오프**: 각 스킬은 끝에서 "방금 한 것 / 다음 단계 / 시작하는 법"을 **자연스러운 대화체**로 전한다(정해진 양식을 사무적으로 출력하지 않는다).
-- **언어**: 스킬 본문·문서는 한글(grill-with-docs 원문을 그대로 옮긴 부분은 영문 verbatim).
+- **언어**: 스킬 본문(`SKILL.md`)·형식 문서(`*-FORMAT.md`)는 **영문으로 작성**한다(grill-with-docs 원문을 그대로 옮긴 부분은 영문 verbatim 유지). 단 스킬이 **사용자에게 출력하는 언어는 사용자의 언어를 따른다** — 각 스킬에 "respond in the user's language" 지시를 명시하고, 산출 문서(plan·회고·CONTEXT·ADR 등 사용자 프로젝트에 남는 문서)도 사용자 언어로 쓴다.
 - **절제**: ADR·글로서리 용어는 바를 넘을 때만 승급. 회고에서 나온 모든 걸 영속 문서로 밀어 넣지 않는다.
 
 ## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
 
 여러 파일을 읽어야 드러나는, 의도적 반복 작업으로 생긴 어긋남:
 
-- **`skills/fg-ask/`의 frontmatter `name`이 `grill-with-docs`** 다(디렉터리명 `fg-ask` 및 다른 스킬들이 가리키는 "fg-ask"와 불일치). 이 스킬은 grill-with-docs 원본을 **자기완결 3파일**(`SKILL.md` + 형제 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`, 영문)로 통째 복제한 상태다. 따라서 형식 문서가 **두 벌** 공존한다 — fg-ask 내부(영문 원본)와 루트 `references/`(한글 번역, 나머지 스킬이 사용).
+- **`skills/fg-ask/`는 grill-with-docs 원본의 자기완결 3파일**(`SKILL.md` + 형제 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`, 영문)이며, SKILL.md 본문은 영문 verbatim이고 forge 루프 연결(백로그 산출, fg-execute 핸드오프, 회고 환류)은 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. 이 verbatim 본문과 Forge integration 섹션은 따로 움직이므로, 둘 중 하나만 고치면 계약이 깨진다.
 - **`forge-prd.md`는 통합 이전 5단계 설계 초안**이다. `fg-plan`을 살아있는 단계로, `task.md`를 산출물로 가리키는 등 현재 구현(4단계, fg-plan/task.md 없음)과 정면 충돌한다. 명세로 신뢰하지 말 것 — 실제는 `skills/`와 `README.md`가 기준.

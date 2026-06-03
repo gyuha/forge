@@ -1,70 +1,74 @@
 ---
 name: fg-learn
-description: 실행 후 학습을 분류해 CONTEXT.md·ADR·회고 로그(docs/retro)로 승급하고 다음 질의를 끌어낸다. 작업 후 배운 것을 문서에 남기고 싶을 때, 'forge learn', '회고하자', '이번 작업 정리해줘' 맥락에서 사용. 항상 대화형으로 진행하며 승급 규율을 지킨다.
+description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, and the retro log (docs/retro), then surface the next inquiry. Use when you want to record what you learned into docs after a task — in the context of 'forge learn', '회고하자', '이번 작업 정리해줘'. Always conversational, and respects the promotion discipline.
 ---
 
-# fg-learn — ③ 회고 (문서 반영)
+# fg-learn — ③ Retro (reflect into docs)
 
-forge 루프의 세 번째 바퀴다. 실행에서 얻은 학습을 분류해 알맞은 문서로 보내고, 다음 질의를 끌어낸다. 회고를 거치는 이유는 단순하다 — 실행하며 배운 것을 그 자리에서 적어두지 않으면 다음 사람(혹은 미래의 당신)이 같은 벽에 다시 부딪힌다. 다만 배운 걸 전부 영속 문서로 밀어 넣으면 문서가 노이즈로 오염된다. 그래서 이 스킬의 핵심은 **분류와 승급 규율**이다.
+This is the third turn of the forge loop. It classifies the learnings gained during execution, routes them to the right doc, and surfaces the next inquiry. The reason to run a retro is simple — if you don't write down what you learned during execution right then, the next person (or future you) hits the same wall again. But if you push every learning into permanent docs, the docs get polluted with noise. So the core of this skill is **classification and promotion discipline**.
 
-이 회고는 **항상 대화형으로 진행한다.** 회고 초안을 워크플로우로 자동 생성하지 않는다. 무엇이 배울 가치가 있고 무엇을 어느 문서로 올릴지는 사람의 판단이 필요한 일이라, 기계적으로 뽑아내면 오히려 규율이 무너진다.
+**Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
-## 입력
+This retro **always runs conversationally.** It does not auto-generate a retro draft via a workflow. Deciding what is worth learning and which doc each learning belongs in requires human judgment, so extracting it mechanically only breaks the discipline.
 
-`.forge/run.md`(실행 기록: 계획 vs 실제)와 `.forge/plan.md`(계획 = 실행의 정답 기준)를 읽는다. 이 둘을 나란히 놓아야 "계획과 현실이 어디서 갈라졌나"를 짚을 수 있다.
+## Input
 
-입력 파일이 없으면 앞 단계를 안내한다. `run.md`가 없으면 아직 실행을 마치지 않은 것이니 `fg-execute`로 먼저 실행하라고 알린다. `plan.md`까지 없으면 `fg-ask` → `fg-execute` 순서를 안내한다. 활성 `.forge/`가 비어 있으면 진행 중인 작업이 없다는 뜻이므로 `fg-ask`로 작업을 새로 여는 것부터 권한다.
+It reads `.forge/run.md` (the run record: plan vs actual) and `.forge/plan.md` (the plan = the source of truth for execution). You have to put these side by side to pinpoint "where did the plan and reality diverge."
 
-## 동작
+Besides the active slot, **`.forge/executed/<slug>/`** (work parked by fg-execute "Run all" that is awaiting retro) is also an input — in this case plan/run are read **inside each `executed/<slug>/` directory**, not the active slot (when parked, the active slot is empty). Work whose retro is already done (a `docs/retro/*-<slug>.md` exists) is dropped from the candidates, and if two or more remain, first ask "which work should we retro first," and retro **each work separately and conversationally** — do not lump multiple works into one retro. Each work's slug is taken from the `<!-- forge-slug: ... -->` comment on the first line of the plan and used verbatim in the retro filename (`docs/retro/YYYY-MM-DD-<slug>.md`) — fg-complete judges retro completion by this slug.
 
-### 1. 회고 질문을 던진다
+If the input files are missing, point to the prior step. If `run.md` is missing (and `executed/` is also empty), execution hasn't finished yet, so tell them to run `fg-execute` first. If even `plan.md` is missing, guide them through the order `fg-ask` → `fg-execute`. If the active `.forge/` is empty, it means there's no work in progress, so recommend opening new work with `fg-ask` first.
 
-사람과 함께 다음을 짚는다. 한 번에 쏟아내지 말고 대화로 끌어낸다.
+## Behavior
 
-- 계획과 현실이 일치했나? `run.md`의 갈라진 지점을 근거로 묻는다.
-- 어떤 용어·가정이 깨졌나? 실행 중 새로 등장했거나 의미가 바뀐 개념이 있나.
-- 다음에 다르게 할 것은? 프로세스, 도구, 접근 순서 중 무엇을 바꾸겠나.
+### 1. Ask retro questions
 
-별일 없이 계획대로 흘렀고 배운 게 없으면 길게 늘이지 않는다. 회고는 의례가 아니다. 한 줄로 기록하고 넘어간다.
+Work through the following with the human. Don't dump it all at once — draw it out in conversation.
 
-### 2. 학습을 세 종류로 분류한다
+- Did the plan match reality? Ask grounded in the divergence points in `run.md`.
+- Which terms/assumptions broke? Were there concepts that newly appeared or shifted meaning during execution.
+- What to do differently next time? Among process, tooling, and order of approach, what would you change.
 
-배운 것을 성격에 따라 세 갈래로 나눠 각 문서로 보낸다. 승급 기준을 넘지 못하는 학습은 **전부 회고 로그**로 간다 — 그게 회고 로그의 존재 이유다.
+If nothing notable happened, things went per plan, and there's nothing learned, don't stretch it out. A retro is not a ritual. Record it in one line and move on.
 
-| 학습의 성격 | 목적지 | 승급 기준 |
+### 2. Classify learnings into three kinds
+
+Split what you learned into three branches by nature and route each to its doc. Learnings that don't clear the promotion bar **all go to the retro log** — that's the reason the retro log exists.
+
+| Nature of the learning | Destination | Promotion bar |
 | --- | --- | --- |
-| 새/변경된 도메인 용어 | `CONTEXT.md` | 컨텍스트 고유 개념일 때만. 일반 개념·구현 세부는 제외 |
-| 되돌리기 어렵고 의아하고 트레이드오프인 결정 | `docs/adr/NNNN-slug.md` | 세 조건을 **모두** 충족할 때만 |
-| 프로세스·세션 학습 | `docs/retro/YYYY-MM-DD-slug.md` | 기록할 가치가 있으면 |
+| New/changed domain term | `CONTEXT.md` | Only if it's a context-specific concept. General concepts and implementation details are excluded |
+| A decision that is hard to reverse, puzzling, and a real trade-off | `docs/adr/NNNN-slug.md` | Only when **all three** conditions are met |
+| Process/session learning | `docs/retro/YYYY-MM-DD-slug.md` | If it's worth recording |
 
-### 3. 승급 규율을 지킨다
+### 3. Respect the promotion discipline
 
-회고에서 나온 모든 걸 `CONTEXT.md`나 ADR에 밀어 넣지 않는다. 이유는 명확하다 — `CONTEXT.md`는 글로서리이고, 구현 세부와 일회성 잡음이 섞이면 다음 독자가 신뢰하지 않게 된다. ADR도 마찬가지로, 사소한 결정까지 기록하면 진짜 중요한 결정이 묻힌다.
+Don't push everything that came out of the retro into `CONTEXT.md` or an ADR. The reason is clear — `CONTEXT.md` is a glossary, and if implementation details and one-off noise get mixed in, the next reader stops trusting it. The same goes for ADRs: if you record even trivial decisions, the truly important ones get buried.
 
-그래서 바를 못 넘는 학습은 망설임 없이 회고 로그로 보낸다. 그리고 **무엇을 승급할지의 판단은 자동으로 하지 않는다.** 후보를 제시하고 사람의 확인을 받은 뒤에만 `CONTEXT.md`/ADR에 반영한다.
+So learnings that don't clear the bar go to the retro log without hesitation. And **the judgment of what to promote is not made automatically.** Reflect into `CONTEXT.md`/ADR only after presenting candidates and getting the human's confirmation.
 
-### 4. 문서를 쓴다
+### 4. Write the docs
 
-- 회고 로그는 `docs/retro/YYYY-MM-DD-slug.md`에 항상 남긴다(세션별 1파일, lazy 생성). 형식은 `${CLAUDE_PLUGIN_ROOT}/references/RETRO-FORMAT.md`(스킬 기준 상대경로 `../../references/RETRO-FORMAT.md`)를 읽어 따른다.
-- 용어를 승급하면 `CONTEXT.md`에 반영한다. 형식은 `${CLAUDE_PLUGIN_ROOT}/references/CONTEXT-FORMAT.md`(`../../references/CONTEXT-FORMAT.md`)를 따른다.
-- 결정을 승급하면 `docs/adr/NNNN-slug.md`를 추가한다. 형식은 `${CLAUDE_PLUGIN_ROOT}/references/ADR-FORMAT.md`(`../../references/ADR-FORMAT.md`)를 따른다.
+- The retro log always lands in `docs/retro/YYYY-MM-DD-slug.md` (one file per session, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
+- If you promote a term, reflect it into `CONTEXT.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md` (skill-relative path `../fg-ask/CONTEXT-FORMAT.md`).
+- If you promote a decision, add `docs/adr/NNNN-slug.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
 
-회고 로그의 "문서 반영" 칸에 무엇을 어디로 승급했는지(또는 없음)를 적어 추적성을 남긴다.
+In the "Doc updates" field of the retro log, record what was promoted to where (or none) to leave traceability.
 
-다음은 학습 분류와 재그릴링 분기를 한눈에 본 흐름이다.
+The following diagram shows the learning classification and re-grilling branch at a glance.
 
 ```mermaid
 flowchart TD
-    A[run.md · plan.md 읽기] --> B{계획에서<br/>크게 벗어났나?}
-    B -- 예 --> R[fg-ask 재그릴링 안내<br/>마무리 전 권장]
-    B -- 아니오 --> C[회고 질문<br/>대화형]
-    C --> D{학습 분류}
-    D -- 도메인 고유 용어 --> E[CONTEXT.md 승급<br/>사람 확인 후]
-    D -- 되돌리기 어려움·의아·트레이드오프 --> F[ADR 추가<br/>세 조건 모두 충족 시]
-    D -- 그 외 모든 학습 --> G[docs/retro 회고 로그]
+    A[Read run.md · plan.md<br/>active slot or executed/slug/] --> B{Diverged a lot<br/>from the plan?}
+    B -- Yes --> R[Guide fg-ask re-grilling<br/>recommended before wrapping up]
+    B -- No --> C[Retro questions<br/>conversational]
+    C --> D{Classify learning}
+    D -- Domain-specific term --> E[Promote to CONTEXT.md<br/>after human confirmation]
+    D -- Hard to reverse · puzzling · trade-off --> F[Add ADR<br/>only if all three conditions met]
+    D -- All other learnings --> G[docs/retro retro log]
     E --> G
     F --> G
-    G --> H[fg-complete 안내<br/>+ 후속 작업 후보]
+    G --> H[Guide fg-complete<br/>+ follow-up work candidates]
 
     style R fill:#f9d6d6,stroke:#c0392b
     style E fill:#d6e9f9,stroke:#2980b9
@@ -73,18 +77,18 @@ flowchart TD
     style H fill:#fdf2d0,stroke:#d4a017
 ```
 
-## 다음 흐름 안내 (핸드오프)
+## Next-flow guidance (handoff)
 
-회고를 마치면 끝에서 다음을 자연스러운 대화체로 전한다. 정해진 양식을 사무적으로 출력하지 말고, 방금 한 일을 짚어주듯 말한다.
+When the retro is done, deliver the following at the end in natural conversational tone. Don't print a fixed template mechanically — speak as if pointing out what you just did.
 
-- **방금 한 것** — `docs/retro/...`에 회고를 남겼고, 무엇을 `CONTEXT.md`/ADR로 승급했는지(또는 아무것도 안 올렸는지) 한 줄로 요약한다.
-- **다음 단계** — 이 작업을 마무리할 때다. `fg-complete`로 작업을 봉인하면 된다고 안내하고, 회고에서 떠오른 후속 작업 후보가 있으면 함께 제시한다.
-- **시작하는 법** — 그대로 마무리로 이어갈지 묻거나, `forge complete` 트리거 문구를 알려준다.
+- **What you just did** — you left a retro at `docs/retro/...`, and summarize in one line what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
+- **Next step** — it's time to wrap up this work. Guide them that they can seal the work with `fg-complete`, and if any follow-up work candidates surfaced during the retro, present them too. But if more retro-awaiting work remains in `.forge/executed/`, recommend **retroing the next work first** over sealing — it's better to batch retros while memory is fresh.
+- **How to start** — ask whether to go straight into wrapping up, and if the user agrees, call the `fg-complete` skill right there to continue. If they want to do it later, tell them the trigger — the utterance "forge complete" / "작업 마무리", or `/forge:fg-complete`.
 
-예외 — 실행이 계획에서 크게 벗어났다면, 마무리로 직행하기 전에 `fg-ask`로 다시 그릴링하는 게 낫다고 안내한다. 계획과 실제가 너무 어긋난 채로 봉인하면 다음 작업의 출발점이 흐려지기 때문이다.
+Exception — if execution diverged a lot from the plan, guide them that it's better to re-grill with `fg-ask` before going straight to wrapping up. Sealing while the plan and the actual are too far apart blurs the starting point of the next work.
 
-## 문서 영향
+## Doc impact
 
-- `docs/retro/YYYY-MM-DD-slug.md` 생성(항상, lazy).
-- 승급 조건 충족 시 `CONTEXT.md` 갱신 / `docs/adr/NNNN-slug.md` 추가(사람 확인 후).
-- `.forge/`는 gitignore된 휘발 상태이므로 추적하지 않는다 — 영속 산출물은 위 영속 문서뿐이다.
+- Creates `docs/retro/YYYY-MM-DD-slug.md` (always, lazy).
+- When the promotion conditions are met, updates `CONTEXT.md` / adds `docs/adr/NNNN-slug.md` (after human confirmation).
+- `.forge/` is gitignored volatile state, so it is not tracked — the only persistent artifacts are the permanent docs above.

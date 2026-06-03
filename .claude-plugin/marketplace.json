@@ -13,10 +13,17 @@
     {
       "name": "forge",
       "source": "./",
-      "description": "작업 하나를 질의·계획→실행→회고→완료의 한 바퀴로 돌리는 fg-* 스킬 4개. 질의·계획은 grill-with-docs식 대화형 그릴링, 실행은 Dynamic Workflow, 회고는 문서 승급, 완료는 봉인·재실행 방지.",
+      "description": "작업 하나를 질의·계획→실행→회고→완료의 한 바퀴로 돌리는 fg-* 스킬 4개. 질의·계획은 grill-with-docs식 대화형 그릴링, 실행은 백로그에서 작업을 골라(모두 실행 지원) Dynamic Workflow, 회고는 문서 승급, 완료는 봉인·재실행 방지.",
       "version": "0.1.0",
       "category": "workflow",
-      "tags": ["workflow", "loop", "planning", "grill", "retrospective", "forge"]
+      "tags": [
+        "workflow",
+        "loop",
+        "planning",
+        "grill",
+        "retrospective",
+        "forge"
+      ]
     }
   ]
 }

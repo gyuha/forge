@@ -1,58 +1,60 @@
 ---
 name: fg-complete
-description: 한 바퀴를 마무리하고 작업을 봉인해 같은 계획이 재실행되지 않게 한다. 회고까지 끝낸 작업을 종결하고 싶을 때, 'forge complete', '작업 마무리', '이거 봉인해줘' 맥락에서 사용. 활성 .forge 상태를 비워 재실행을 차단하고 완료를 안내한다.
+description: Closes out one loop and seals the task so the same plan never re-runs. Use when you want to finalize a task whose retro is already done, in contexts like 'forge complete', '작업 마무리', '이거 봉인해줘'. Empties the active .forge state to block re-runs and guides the wrap-up.
 ---
 
-# fg-complete — ④ 완료(봉인·재실행 방지)
+# fg-complete — ④ Complete (sealing / re-run guard)
 
-forge 루프의 마지막 단계다. 한 바퀴(질의·계획→실행→회고→완료)를 명확히 끝내고, 끝낸 작업을 봉인해 같은 작업이 다시 실행되지 않게 한다. 봉인 단위는 **작업(task)** 하나다 — 에픽이나 여러 작업을 묶어서 닫는 개념은 없다. 작업이 곧 한 바퀴이기 때문에, 그 한 바퀴만 깔끔히 닫으면 된다.
+This is the last step of the forge loop. It cleanly ends one loop (ask·plan → execute → retro → complete) and seals the finished task so that the same task never runs again. The unit of sealing is a single **task** — there is no notion of closing an epic or bundling several tasks together. Because a task *is* one loop, you only need to close that one loop cleanly.
 
-이 스킬은 자기완결 standalone이다. 외부 스킬에 의존하지 않고, 입력은 `.forge/`에서 읽고 산출은 `.forge/done/`에 쓴다.
+**Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
-## 시작 전: 봉인 가능한 상태인지 확인
+This skill is self-contained and standalone. It depends on no external skills: it reads input from `.forge/` and writes output to `.forge/done/`.
 
-봉인은 되돌리기 번거롭고, 한 번 비우면 활성 작업의 흔적이 아카이브로 넘어간다. 그래서 시작 전에 두 가지를 본다.
+## Before starting: confirm the state is sealable
 
-먼저 활성 작업이 실제로 있는지 본다. `.forge/`에 `plan.md`/`run.md`가 없거나 비어 있으면 진행 중인 작업이 없다는 뜻이다. 이때는 봉인할 게 없으므로, 새 작업을 시작하려면 `fg-ask`부터 하라고 안내하고 멈춘다.
+Sealing is cumbersome to undo, and once you empty the state, the trace of the active task moves into the archive. So before starting, look at two things.
 
-다음으로 **회고가 끝났는지** 확인한다. 회고 없이 봉인하면 그 한 바퀴에서 배운 것이 영영 사라진다 — forge가 회고를 루프의 정식 단계로 두는 이유가 이것이다. 이번 작업에 대응하는 회고가 `docs/retro/YYYY-MM-DD-slug.md`에 있는지, 그리고 `.forge/run.md`가 회고를 거쳤는지 본다. 안 끝났으면 봉인하지 말고 "먼저 `fg-learn`으로 회고하세요"라고 안내한 뒤 멈춘다. 사용자가 회고를 건너뛰겠다고 명시적으로 고집하지 않는 한, 미회고 봉인은 막는다.
+First, check whether there is actually a task to seal. The seal targets are the **active slot** (`.forge/plan.md`/`run.md`) and the **awaiting-retro queue** (`.forge/executed/<slug>/` — the tasks parked by fg-execute "Run all"). If both are absent or empty, it means there is no task in progress. In that case there is nothing to seal, so guide the user to start with `fg-ask` to begin a new task, and stop.
+
+Next, confirm **whether the retro is done**, on a per-task basis. Sealing without a retro means whatever was learned in that loop is lost forever — this is exactly why forge keeps the retro as a formal step of the loop. The decision rule is slug matching: for each task, the first line of the plan `<!-- forge-slug: <slug> -->` must have a corresponding retro (`docs/retro/*-<slug>.md`) for the retro to count as done. Do not seal a task that is not done; instead guide "first run a retro with `fg-learn`" — when there are several tasks in `executed/`, seal only the ones whose retro is done and leave the rest. Unless the user explicitly insists on skipping the retro, block sealing without a retro (the no-seal-without-retro guard).
 
 ```
-활성 .forge 비었나? ── 예 ──▶ "진행 중 작업 없음. fg-ask로 새로 시작" → 멈춤
-        │ 아니오
+Active .forge empty? ── yes ──▶ "No task in progress. Start fresh with fg-ask" → stop
+        │ no
         ▼
-회고 끝났나? ── 아니오 ──▶ "먼저 fg-learn으로 회고하세요" → 멈춤
-        │ 예
+Retro done? ── no ──▶ "First run a retro with fg-learn" → stop
+        │ yes
         ▼
-   봉인 진행
+   Proceed with sealing
 ```
 
-## 동작
+## Behavior
 
-봉인은 아카이브 → 비우기 → 안내 → 루프 닫기 순서로 진행한다. 순서가 중요한 이유는, 아카이브가 끝나기 전에 활성 상태를 비우면 옮길 원본을 잃기 때문이다.
+Sealing proceeds in the order archive → empty → notify → close the loop. The order matters because if you empty the active state before the archive finishes, you lose the original you were going to move.
 
-**1) 봉인·아카이브.** 활성 `.forge/plan.md`, `.forge/run.md`를 `.forge/done/<날짜-slug>/`로 옮긴다. `<날짜-slug>`는 회고 파일과 같은 규칙(`YYYY-MM-DD-slug`)을 따라 나중에 짝을 찾기 쉽게 한다. 아카이브 디렉터리에는 언제 완료했고 무엇을 끝냈는지 한 줄 완료 표시를 남겨, 이 폴더가 닫힌 작업임을 분명히 한다.
+**1) Seal·archive.** Move the plan/run of the task being sealed into `.forge/done/<date-slug>/` — for the active slot, move `.forge/plan.md`/`run.md`; for the awaiting-retro queue, move the whole `.forge/executed/<slug>/` directory. The slug is taken from the `forge-slug` comment on the first line of the plan and paired with the retro file under the same rule (`YYYY-MM-DD-slug`). The unit of sealing is still one task — when there are several tasks in `executed/`, seal each into its own separate `done/` directory. Leave a one-line completion marker in the archive directory noting when it was finished and what was completed, making it clear this folder is a closed task.
 
-참고로 `.forge/`는 gitignore된 휘발 상태라 추적하지 않는다. 봉인이 남기는 영속 흔적은 `.forge/done/`이 아니라, 회고(`docs/retro/`)와 그 작업이 갱신한 영속 문서(`CONTEXT.md`, `docs/adr/` 등)다. 아카이브는 어디까지나 로컬 작업 기록이다.
+For reference, `.forge/` is gitignored, volatile state and is not tracked. The persistent trace a seal leaves is not `.forge/done/` but the retro (`docs/retro/`) and the persistent docs that task updated (`CONTEXT.md`, `docs/adr/`, etc.). The archive is, at most, a local work record.
 
-**2) 활성 상태 비우기.** 아카이브가 끝나면 활성 `.forge/`의 `plan.md`/`run.md`를 비운다. 이것이 **재실행 방지의 핵심 메커니즘**이다. `fg-execute`는 `.forge/plan.md`를 정답 기준으로 삼아 실행하는데, 그 파일이 사라지면 더는 실행할 계획을 찾지 못한다. 즉 "닫은 작업이 우연히 다시 돌아가는" 사고를 구조적으로 막는다.
+**2) Empty the active state.** By the time the archive move is done, the active `.forge/` should no longer have `plan.md`/`run.md` — if any leftover copy or byproduct remains, delete it and confirm the active state is definitely empty. This is the **core mechanism of the re-run guard**. `fg-execute` runs by treating `.forge/plan.md` as the source of truth; once that file is gone, it can no longer find a plan to run. In other words, it structurally prevents the accident of "a closed task accidentally running again."
 
-**3) 완료 안내.** 무엇을 끝냈고, 어떤 영속 문서가 갱신됐으며(회고·ADR·CONTEXT 등), 아카이브가 어디에 남았는지 한눈에 정리한다. 한 바퀴가 끝났음을 사용자가 분명히 인지하도록 마무리를 명시적으로 만든다.
+**3) Completion notice.** Summarize at a glance what was finished, which persistent docs were updated (retro, ADR, CONTEXT, etc.), and where the archive was left. Make the wrap-up explicit so the user clearly recognizes that one loop is done.
 
-**4) 루프 닫기.** `fg-learn`이 후속 작업거리(follow-up)를 남겼다면, 그걸 **새 작업**으로 시작할지 묻는다. 이건 방금 닫은 작업을 재개하는 게 아니라 — 그 작업은 봉인됐다 — 새 한 바퀴를 `fg-ask`부터 여는 것이다. 후속이 없으면 여기서 끝낸다.
+**4) Close the loop.** If `fg-learn` left a follow-up, ask whether to start it as a **new task**. This is not resuming the task you just closed — that task is sealed — but opening a new loop starting from `fg-ask`. If there is no follow-up, finish here.
 
 ```mermaid
 flowchart TD
-    A[봉인 시작] --> P{활성 .forge 비었나?}
-    P -- 예 --> PN[진행 중 작업 없음<br/>fg-ask 안내] --> STOP1([멈춤])
-    P -- 아니오 --> R{회고 끝났나?}
-    R -- 아니오 --> RN[fg-learn으로<br/>회고 먼저 안내] --> STOP2([멈춤])
-    R -- 예 --> ARCH[아카이브<br/>.forge/done/날짜-slug/]
-    ARCH --> CLEAR[활성 .forge 비우기<br/>= 재실행 차단]
-    CLEAR --> NOTI[완료 안내<br/>갱신 문서 요약]
-    NOTI --> LOOP{follow-up 있나?}
-    LOOP -- 예 --> ASK[새 작업으로<br/>fg-ask 시작 제안] --> STOP3([끝])
-    LOOP -- 아니오 --> STOP4([끝])
+    A[Start sealing] --> P{Active .forge empty?}
+    P -- yes --> PN[No task in progress<br/>guide to fg-ask] --> STOP1([stop])
+    P -- no --> R{Retro done?}
+    R -- no --> RN[guide to retro first<br/>with fg-learn] --> STOP2([stop])
+    R -- yes --> ARCH[Archive<br/>.forge/done/date-slug/]
+    ARCH --> CLEAR[Empty active .forge<br/>= block re-run]
+    CLEAR --> NOTI[Completion notice<br/>summary of updated docs]
+    NOTI --> LOOP{Follow-up exists?}
+    LOOP -- yes --> ASK[Propose starting<br/>fg-ask as a new task] --> STOP3([end])
+    LOOP -- no --> STOP4([end])
 
     style ARCH fill:#cfe8cf,stroke:#2e7d32
     style CLEAR fill:#ffe0b2,stroke:#e65100
@@ -60,20 +62,20 @@ flowchart TD
     style RN fill:#f8d7da,stroke:#c62828
 ```
 
-## 마무리: 다음 흐름 안내
+## Wrap-up: guide the next flow
 
-봉인을 끝내면 다음 세 가지를 대화체로 자연스럽게 전한다. 정형 양식을 사무적으로 찍어내지 말고, 사용자가 지금 어디에 서 있는지 알 수 있게 말한다.
+When sealing is done, convey the following three things naturally, in a conversational tone. Don't mechanically stamp out a fixed template; speak so the user knows where they stand right now.
 
-- **방금 한 것** — 작업을 봉인해 `.forge/done/<날짜-slug>/`에 아카이브했고 활성 상태를 비웠다는 점, 그리고 이번 바퀴가 갱신한 문서(회고·ADR·CONTEXT)를 한 줄로 요약한다.
-- **다음 단계** — 활성 상태가 비었으니 같은 계획이 다시 실행될 일은 없다는 점을 분명히 한다. `fg-learn`이 후속 작업을 남겼다면 그것을 새 작업으로 시작할 수 있다고 알린다.
-- **시작하는 법** — 후속 작업을 이어가려면 `fg-ask`로 새 한 바퀴를 시작하면 된다고 안내한다('forge ask' 같은 트리거 문구를 알려준다). 후속이 없으면 여기서 마무리한다.
+- **What you just did** — that you sealed the task and archived it into `.forge/done/<date-slug>/` and emptied the active state, plus a one-line summary of the docs this loop updated (retro, ADR, CONTEXT).
+- **Next step** — make it clear that, since the active state is empty, the same plan will never run again. If `fg-learn` left a follow-up, let them know it can be started as a new task.
+- **How to start** — if there is a follow-up, ask whether to start a new loop right away, and if the user agrees, invoke the `fg-ask` skill on the spot to open the grilling for the follow-up task. If they want to do it later, tell them the trigger — the utterances "forge ask" / "새 작업 시작", or `/forge:fg-ask`. If there is no follow-up, finish here.
 
-## 문서 영향
+## Document impact
 
-- `.forge/done/<날짜-slug>/` — 봉인된 `plan.md`/`run.md` 아카이브(로컬, gitignore).
-- 활성 `.forge/` — `plan.md`/`run.md`를 비워 다음 실행이 계획을 찾지 못하게 한다.
-- 영속 문서(`docs/retro/`, `docs/adr/`, `CONTEXT.md` 등)는 이 단계에서 새로 만들지 않는다 — 이미 앞 단계가 갱신한 것이다.
+- `.forge/done/<date-slug>/` — archive of the sealed `plan.md`/`run.md` (local, gitignored).
+- Active `.forge/` — emptied of `plan.md`/`run.md` so the next run finds no plan.
+- Persistent docs (`docs/retro/`, `docs/adr/`, `CONTEXT.md`, etc.) are not newly created in this step — the earlier steps already updated them.
 
-회고·ADR·CONTEXT의 형식이 필요하면 플러그인 공통 references를 직접 읽는다(스킬마다 복사하지 않는다):
-`${CLAUDE_PLUGIN_ROOT}/references/RETRO-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/references/ADR-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/references/CONTEXT-FORMAT.md`
-(스킬 디렉터리 기준 상대경로: `../../references/<파일>`)
+If you need the format for retro·ADR·CONTEXT, read the original format docs directly (don't copy per skill):
+`${CLAUDE_PLUGIN_ROOT}/skills/fg-learn/RETRO-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`
+(relative paths from the skill directory: `../fg-learn/RETRO-FORMAT.md`, `../fg-ask/<file>`)

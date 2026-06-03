@@ -1,82 +1,116 @@
 ---
 name: fg-execute
-description: 다듬어진 계획(.forge/plan.md)을 Claude Code Dynamic Workflow로 실행한다. 마이그레이션·전수 감사처럼 많은 서브에이전트가 필요한 큰 작업을 백그라운드 병렬로 돌릴 때, 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘' 맥락에서 사용. 활성 계획이 없으면 실행하지 않으며, 이미 실행된 계획의 중복 실행을 경고한다.
+description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds several tasks, presents the unfinished ones as a selection menu (last option 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘'. Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
 ---
 
-# fg-execute — ② 실행(Dynamic Workflow)
+# fg-execute — ② Execute (Dynamic Workflow)
 
-forge 루프의 두 번째 바퀴다. fg-ask가 다듬어 둔 `.forge/plan.md`를 Claude Code Dynamic Workflow로 실제 코드/변경에 반영한다. 마이그레이션, 전수 감사, 대량 리팩터처럼 서브에이전트 여럿이 병렬로 붙어야 하는 큰 작업을 백그라운드로 돌리고, 그 결과를 계획에 대고 검증하는 단계다.
+The second turn of the forge loop. It takes the `.forge/plan.md` that fg-ask refined and applies it to real code/changes as a Claude Code Dynamic Workflow. This is the stage where large jobs — migrations, full audits, mass refactors — that need many subagents working in parallel run in the background, and their results are verified against the plan.
 
-## 목적
+**Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
-`.forge/plan.md`는 "정답 기준"이다. 이 스킬은 그 기준을 워크플로우로 집행하고, 계획과 실제 결과가 어디서 갈렸는지를 `.forge/run.md`에 남긴다. 이 메모가 다음 단계 fg-learn의 회고 입력이 된다. 계획 자체를 다시 손대는 것이 아니라, 계획대로 돌리고 차이를 기록하는 것이 핵심이다.
+## Purpose
 
-## 시작 전: 재실행 가드
+`.forge/plan.md` is the "source of truth." This skill enforces that source of truth through a workflow, and records where the plan and the actual results diverged in `.forge/run.md`. That note becomes the retro input for the next stage, fg-learn. The point is not to touch the plan itself again, but to run it as planned and record the divergences.
 
-워크플로우는 서브에이전트를 여럿 띄우므로 토큰을 많이 쓴다. 실수로 같은 계획을 두 번 돌리면 비용과 부작용(중복 커밋, 중복 마이그레이션 등)이 크다. 그래서 실행에 들어가기 전에 상태를 먼저 확인한다.
+## Before starting: task selection and the re-run guard
 
-- **활성 `.forge/plan.md`가 없으면** 실행하지 않는다. 직전 작업이 이미 fg-complete로 봉인돼 `.forge/`가 비어 있는 상태일 가능성이 높다. 새 작업이든 계획만 없든 fg-ask로 안내한다(작업 정의·그릴링을 거쳐 계획을 만드는 단계). 없는 계획을 추측해서 만들어 돌리지 않는다 — 그건 fg-ask(질의·그릴링)의 일이다.
-- **이미 `.forge/run.md`가 있으면** 이 계획은 한 번 실행된 것이다. 다시 돌리기 전에 중복 실행임을 알리고 사용자 확인을 받는다. 사용자가 "이어서/재시도"를 원하는지, 아니면 단지 결과를 보려는 것인지 구분한다. 확인 없이 덮어쓰지 않는다.
-- 둘 다 통과하면(`plan.md` 있음, `run.md` 없음) 정상 착수다.
+A workflow spins up many subagents, so it burns a lot of tokens. Running the same plan twice by mistake is costly and has side effects (duplicate commits, duplicate migrations, etc.). So before entering execution, check the state first, and when the backlog holds several tasks, the user picks what to run.
+
+**1) Check the active slot.** If `.forge/plan.md` (the active slot) already exists, there is a task in progress — skip the backlog and go straight to the re-run guard below (only one task is active at a time).
+
+**2) If the active slot is empty, scan the backlog.** Gather unfinished candidates from `.forge/backlog/*.md` (= plans with no matching slug seal in `.forge/done/`). Depending on the candidate count:
+
+- **0** — There is no plan to execute. Point to fg-ask and stop (the stage that defines the task, grills it, and produces a plan). Do not guess a plan into existence and run it.
+- **1** — Without a ceremonial menu, confirm in one line: "There is 1 task in the backlog (<title>) — run it now?" then promote it.
+- **2 or more** — Show a selection menu via `AskUserQuestion`. The options = each unfinished plan (label: title, description: one-line goal + slice count), and **the last option is "Run all (N sequential)"**. Show the menu in conversation, outside the workflow.
+
+**3) Promotion and ADR check.** Move (promote) the chosen backlog file to `.forge/plan.md` — from this point it is in the normal starting state of "active plan present, no run," and joins the main body below. Right before starting, check that the `docs/adr/NNNN-*` referenced by the plan's "Source of truth" actually exists — if not, it is a stale-plan signal, so warn and ask once: "shall I supplement it via fg-ask, or proceed as is?" (this does not block).
+
+**4) Re-run guard.** **If `.forge/run.md` already exists**, this plan has run once. Before running it again, announce the duplicate run and get user confirmation. Distinguish whether the user wants to "continue/retry" or merely wants to see the results. Do not overwrite without confirmation. However, **if this is a re-run after plan.md was updated through an fg-ask re-grilling, this warning is the normal path** — once the user approves, proceed with the updated plan and write a fresh `run.md`.
 
 ```mermaid
 flowchart TD
-    A[fg-execute 시작] --> B{.forge/plan.md 있나?}
-    B -- 없음 --> C[실행 중단<br/>fg-ask 안내]
-    B -- 있음 --> D{.forge/run.md 이미 있나?}
-    D -- 있음 --> E[중복 실행 경고<br/>사용자 확인 대기]
-    E -- 재실행 승인 --> F
-    E -- 취소 --> C
-    D -- 없음 --> F[정상 착수: 워크플로우 구성]
+    A[fg-execute start] --> S{Active slot<br/>.forge/plan.md present?}
+    S -- yes --> D{.forge/run.md already present?}
+    S -- no --> BL[Scan .forge/backlog/<br/>collect unfinished candidates]
+    BL --> N{Candidate count}
+    N -- 0 --> C[Stop execution<br/>point to fg-ask]
+    N -- 1 --> Y{Run now?<br/>one-line confirm} -- yes --> P[Promote: backlog → plan.md<br/>+ verify ADR exists]
+    Y -- no --> C
+    N -- 2+ --> M[AskUserQuestion menu<br/>last: Run all]
+    M -- single choice --> P
+    M -- Run all --> ALL[Run-all procedure<br/>see section below]
+    P --> F
+    D -- yes --> E[Duplicate-run warning<br/>await user confirmation]
+    E -- re-run approved --> F
+    E -- cancel --> C
+    D -- no --> F[Normal start: build the workflow]
 
     style C fill:#f8d7da,stroke:#c0392b
     style E fill:#fff3cd,stroke:#e0a800
+    style M fill:#d6e9f9,stroke:#2980b9
+    style ALL fill:#e8d6f9,stroke:#8e44ad
     style F fill:#d4edda,stroke:#28a745
 ```
 
-## 동작
+## Behavior
 
-### 1. 워크플로우 착수
+### 1. Start the workflow
 
-Claude가 Dynamic Workflow를 구성하도록 유도한다. 프롬프트에 `workflow` 키워드를 넣거나 effort를 `ultracode`로 올린다. 이렇게 하면 Claude가 `.forge/plan.md`를 읽어 작업을 슬라이스로 나누고 오케스트레이션 스크립트를 짠다.
+Right before starting, if `docs/retro/` exists, pick **only the most recent 3–5** retros **from the same area as this plan's slug (overlapping slug stem/domain)** and skim their "Do differently next time" and "Divergences" (same selection rule as fg-ask — do not read them all) — so the same traps (e.g. "this migration breaks if run in parallel") are folded into slice decomposition, wave layout, and cost estimation up front. If there are no relevant retros, skip this. Retros are only a **reference** for building the workflow, not the source of truth for cross-verification (the source of truth is plan/CONTEXT.md/ADR, unchanged — see section 3 below).
 
-### 2. 스크립트 승인 → 병렬 실행
+Prompt Claude to build a Dynamic Workflow. Put the `workflow` keyword in the prompt, or raise effort to `ultracode`. Do not improvise the tasks to run — the **"Work slices" list in `.forge/plan.md` is the primary unit of work** (format: [PLAN-FORMAT.md](./PLAN-FORMAT.md)). It is fine for the workflow to split slices finer for execution convenience, but it must not drop a slice or trespass on the plan's "Non-goals." Where a dependency is noted (`depends: S1`), bundle into a serial wave; where there is none, bundle as parallelizable, and write the orchestration script accordingly. If the slices section is missing entirely (only a goal, no work decomposition), do not invent one and run it — point to fg-ask.
 
-오케스트레이션 스크립트가 나오면 **사용자 승인을 먼저 받는다**. 승인 후 백그라운드 병렬 서브에이전트로 실행하며, 이 세션은 응답을 유지한 채 진행을 받는다. 진행 상황은 `/workflows`로 관찰한다.
+### 2. Script approval → parallel execution
 
-### 3. 계획 기준 교차 검증
+Once the orchestration script is ready, **get user approval first**. After approval, run it as background parallel subagents while this session keeps responding and receives progress. Observe progress with `/workflows`.
 
-`.forge/plan.md`, `CONTEXT.md`, `docs/adr/`의 ADR이 정답 기준이다. 워크플로우는 산출 결과를 이 기준에 대고 교차 검증한다 — 계획이 의도한 것을 실제로 만들었는지 확인하는 것이지, 그냥 "돌아갔다"로 끝내지 않는다.
+### 3. Cross-verify against the plan
 
-### 4. 차이를 run.md에 기록
+`.forge/plan.md`, `CONTEXT.md`, and the ADRs in `docs/adr/` are the source of truth. The workflow cross-verifies its output against this source of truth — it **judges each slice's "completion criterion" against the actual output** for satisfaction, rather than stopping at "it ran."
 
-실행이 끝나면 "계획과 현실의 차이"를 `.forge/run.md`에 메모한다. 계획대로 된 부분, 빗나간 부분, 도중에 내린 즉석 결정, 막힌 지점을 적는다. 이게 fg-learn 회고의 원재료다.
+### 4. Record divergences in run.md
 
-흐름: 워크플로우 구성 → 스크립트 승인 → 백그라운드 병렬 실행 → 계획 기준 교차 검증 → `.forge/run.md` 기록
+When execution finishes, note "the divergences between plan and reality" in `.forge/run.md`. Write down what went as planned, what missed, the on-the-spot decisions made along the way, and where it got stuck. This is the raw material for the fg-learn retro.
 
-## 제약
+Flow: build the workflow → approve the script → background parallel execution → cross-verify against the plan → record `.forge/run.md`
 
-- **중간 사인오프가 필요하면** 작업을 단계로 쪼개 각각을 별도 워크플로우로 돌린다. Dynamic Workflow는 런타임 중간에 사람 입력을 받을 수 없기 때문이다.
-- **비용을 먼저 가늠한다.** 큰 작업은 작은 슬라이스로 시험해 토큰 비용을 어림한 뒤 전체로 확장한다. 한 에이전트로 충분한 규모면 워크플로우를 생략하고 그냥 직접 처리하는 게 싸고 빠르다.
-- **반복할 작업이면** 실행 스크립트를 `/명령`(슬래시 커맨드)으로 저장해 재사용한다.
-- 환경 요건: 연구 프리뷰 · Claude Code v2.1.154+ · 유료 플랜.
+## "Run all" — execute-only batch
 
-## 다음 흐름 안내
+If you pick "Run all" from the selection menu, the backlog's unfinished plans are **executed only, in sequence**. Retro and sealing are not auto-inserted — fg-learn is always conversational, and barreling past it just piles up un-retro'd heaps with nothing learned. Run all is not unattended automation; it is a declaration of "I'll do the execute stage in one batch."
 
-실행이 끝나면 다음 세 가지를 대화체로 전한다. (양식을 사무적으로 찍어내지 말 것.)
+1. **Confirm the order.** Snapshot and freeze the current N unfinished candidates, and show the user the execution order once (default: slug alphabetical) — "shall I run them in this order? If there are dependencies between tasks, reorder now."
+2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md`) → without sealing, **move plan+run to `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted.
+   - `executed/` is the explicit expression of the intermediate state "executed but not yet retro'd." Putting an un-retro'd task into `done/` would bypass fg-complete's no-seal-without-retro guard, so never send it to `done/` before the retro.
+   - Each task gets its own run. Do not merge several tasks into one run.
+3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-execute's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state.
+4. **Handoff.** When everything is done, point: "I ran all N, and each has plan+run in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
 
-1. **방금 한 것** — 워크플로우가 무엇을 바꿨는지, 그리고 계획과 어긋난 지점을 `.forge/run.md`에 적어 뒀음을 한 줄로 요약한다.
-2. **다음 단계** — 다음은 fg-learn이다. 실행에서 드러난 교훈을 영속 문서(CONTEXT.md, ADR, 회고)에 반영하는 단계이고, 실행 직후가 기억이 선명할 때라 적기다.
-3. **시작하는 법** — 그대로 회고로 이어갈지 묻거나, "forge learn" / "회고" 같은 트리거를 알려준다.
+## Constraints
 
-예외 상황 안내:
-- 결과가 계획과 크게 어긋났다면 fg-learn으로 가기 전에 **fg-ask로 재그릴링**(계획을 다시 다듬는 것)을 권한다.
-- 중간에 끼어든 잡일은 워크플로우에 욱여넣지 말고 그 자리에서 직접 처리하라고 가리킨다.
+- **If a mid-run sign-off is needed**, that is a signal the task was actually two — split it into separate **tasks** (finish and seal everything up to the checkpoint as one loop, and open a new fg-ask for the rest as an fg-complete follow-up). A Dynamic Workflow cannot take human input mid-runtime. Do not split one plan into phases and accumulate them into `run.md` — that conflicts with the re-run guard. Determine the split per the split rules in [PLAN-FORMAT.md](./PLAN-FORMAT.md).
+- **Estimate cost first.** For a big job, trial a small slice to gauge token cost before scaling to the whole. If the scale is small enough for a single agent, skip the workflow and just handle it directly — that is cheaper and faster.
+- **If the job will recur**, save the execution script as a `/command` (slash command) for reuse.
+- Environment requirements: research preview · Claude Code v2.1.154+ · paid plan.
 
-## 문서 영향
+## Next-flow handoff
 
-- `.forge/run.md` 생성 — 계획 대 실제의 차이 메모(회고 입력). lazy 생성.
-- (선택) 반복 작업이면 저장된 워크플로우 `/명령`.
-- 입력으로 읽는 `.forge/plan.md`는 수정하지 않는다(계획은 fg-ask의 소유).
+When execution finishes, convey the following three in a conversational tone. (Do not stamp out a form mechanically.)
 
-형식 참조: 영속 문서를 다룰 일이 생기면 `${CLAUDE_PLUGIN_ROOT}/references/CONTEXT-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/references/ADR-FORMAT.md`(플러그인 환경) 또는 스킬 기준 상대경로 `../../references/`의 동일 파일을 읽어 형식을 맞춘다. 이 스킬은 형식을 자체 복사하지 않는다.
+1. **What I just did** — summarize in one line what the workflow changed, and that the divergences from the plan were written to `.forge/run.md`.
+2. **Next step** — next is fg-learn, the stage that folds the lessons surfaced in execution into permanent docs (CONTEXT.md, ADR, retro); right after execution is the right time, while memory is fresh.
+3. **How to start** — ask whether to go straight into the retro, and if the user agrees, invoke the `fg-learn` skill right there to continue. If they'd rather do it later, give the trigger — "forge learn" / "회고" utterance, or `/forge:fg-learn`.
+
+Exception handling:
+- If the result diverged greatly from the plan, recommend **re-grilling via fg-ask** (refining the plan again) before going to fg-learn.
+- For odd jobs that crept in mid-run, point the user to handle them directly on the spot rather than cramming them into the workflow.
+
+## Document impact
+
+- Creates `.forge/run.md` — the note of plan-vs-actual divergences (retro input). Lazy creation.
+- On backlog promotion, moves `.forge/backlog/<slug>.md` → `.forge/plan.md`. On "Run all," creates per-task `.forge/executed/<slug>/{plan,run}.md` (awaiting retro).
+- (Optional) a saved workflow `/command` if the job recurs.
+- Does not modify the `.forge/plan.md` it reads as input (the plan is fg-ask's property).
+
+Format reference: when you need to handle permanent docs, read `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (plugin environment), or the same files at the skill-relative path `../fg-ask/` to match the format. The source of the format docs is the single fg-ask copy; this skill does not copy them itself.
