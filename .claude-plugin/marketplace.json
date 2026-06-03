@@ -1,0 +1,22 @@
+{
+  "name": "forge",
+  "owner": {
+    "name": "gyuha",
+    "email": "nicegyuha@gmail.com",
+    "url": "https://github.com/gyuha"
+  },
+  "metadata": {
+    "description": "forge — 질의→계획→실행→회고→완료의 단계별 워크플로우 스킬 모음(fg-*).",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "forge",
+      "source": "./",
+      "description": "작업 하나를 질의→계획→실행→회고→완료의 한 바퀴로 돌리는 fg-* 스킬 5개. 계획은 대화형 그릴링, 실행은 Dynamic Workflow, 회고는 문서 승급, 완료는 봉인·재실행 방지.",
+      "version": "0.1.0",
+      "category": "workflow",
+      "tags": ["workflow", "loop", "planning", "grill", "retrospective", "forge"]
+    }
+  ]
+}
