@@ -10,7 +10,7 @@ forge는 **Claude Code 플러그인**이다 — 코드를 빌드하는 프로젝
 
 ```bash
 # 매니페스트 JSON 유효성 (편집 후 반드시 확인 — 깨지면 설치 실패)
-python3 -c "import json; json.load(open('.claude-plugin/plugin.json')); json.load(open('.claude-plugin/marketplace.json')); print('OK')"
+node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
 
 # 실제 동작 테스트는 설치해서 트리거해보는 것뿐 (단위 테스트 없음)
 #   /plugin marketplace add gyuha/forge   (또는 로컬 경로)
@@ -82,6 +82,28 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 - **언어**: 스킬 본문(`SKILL.md`)·형식 문서(`*-FORMAT.md`)는 **영문으로 작성**한다(grill-with-docs 원문을 그대로 옮긴 부분은 영문 verbatim 유지). 단 스킬이 **사용자에게 출력하는 언어는 사용자의 언어를 따른다** — 각 스킬에 "respond in the user's language" 지시를 명시하고, 산출 문서(plan·회고·CONTEXT·ADR 등 사용자 프로젝트에 남는 문서)도 사용자 언어로 쓴다.
 - **README 이중 언어 동기화**: `README.md`(영문)와 `README.ko.md`(한글)는 같은 내용의 번역 쌍이다. **`README.md`를 갱신하면 반드시 `README.ko.md`도 같은 변경으로 함께 갱신한다**(역방향도 동일). 한쪽만 고치면 두 문서가 어긋난다.
 - **절제**: ADR·글로서리 용어는 바를 넘을 때만 승급. 회고에서 나온 모든 걸 영속 문서로 밀어 넣지 않는다.
+
+## 배포 규칙
+
+사용자가 프롬프트에 **"배포"** 라고 치면 아래 절차를 순서대로 수행한다.
+
+1. **CHANGELOG.md 갱신** — 마지막 배포(마지막 버전 범프 커밋) 이후의 커밋들을 요약해 새 버전 섹션을 맨 위에 추가한다. 형식은 Keep a Changelog 약식:
+
+   ```markdown
+   ## [X.Y.Z] - YYYY-MM-DD
+   ### Added / Changed / Fixed (해당 항목만)
+   - 변경 요약 한 줄씩
+   ```
+
+   파일이 없으면 `# Changelog` 헤더와 함께 새로 만든다(lazy 생성).
+2. **버전 범프** — 기본은 **patch**. 사용자가 "배포 minor" / "배포 major"라고 지정하면 그에 따른다. 버전은 **3곳을 반드시 동기 갱신**한다: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`.
+3. **검증** — 매니페스트 JSON 유효성 확인(위 node 한 줄).
+4. **commit & push** — `chore(release): vX.Y.Z` 형식으로 커밋하고 `main`에 push한다(설치는 main을 당기므로 push까지가 배포다).
+
+절차 흐름: `CHANGELOG.md 작성 → 버전 3곳 범프 → JSON 검증 → commit → push`
+
+- 작업 트리에 배포와 무관한 변경이 섞여 있으면 멈추고 먼저 확인받는다(배포 커밋에 끼워 넣지 않는다).
+- 마지막 배포 이후 커밋이 하나도 없으면 배포할 것이 없다고 알리고 멈춘다.
 
 ## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
 
