@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "forge — a stage-by-stage workflow skill set (fg-*) for the ask·plan → execute → retro → cleanup loop.",
-    "version": "0.1.0"
+    "version": "0.1.1"
   },
   "plugins": [
     {
       "name": "forge",
       "source": "./",
       "description": "Four fg-* skills that take one task through a single cycle of ask·plan → execute → retro → cleanup. Ask·plan is grill-with-docs-style conversational grilling, execute picks a task from the backlog (Run all supported) and runs it as a Dynamic Workflow, retro promotes learnings to docs, and cleanup seals the task and guards against re-runs.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "workflow",
       "tags": [
         "workflow",
