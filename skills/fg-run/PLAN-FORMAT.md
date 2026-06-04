@@ -1,6 +1,6 @@
 # plan.md format
 
-> Produced by `fg-ask` transcribing the grilling agreement, and read by `fg-execute` as the basis for execution decisions. This is not a machine schema but notes an LLM reads — keep the skeleton, but scale the length to the size of the work.
+> Produced by `fg-ask` transcribing the grilling agreement, and read by `fg-run` as the basis for execution decisions. This is not a machine schema but notes an LLM reads — keep the skeleton, but scale the length to the size of the work.
 
 Documents are written in the user's language; the headings below are canonical English names — render them in the user's language. Consumers match sections by meaning and position, not exact strings.
 
@@ -8,6 +8,7 @@ Documents are written in the user's language; the headings below are canonical E
 
 ```md
 <!-- forge-slug: {task-slug} -->
+<!-- retro-hint: optional -->   {optional, omit by default — see Rules}
 # {one-line task title}
 
 ## Goal / Non-goals
@@ -27,14 +28,15 @@ Documents are written in the user's language; the headings below are canonical E
 ## Rules
 
 - **The `forge-slug` comment on the first line is the persistent identifier.** It is the kebab-case of the task title (e.g. `settlement-payout-split`, with `-2` on collision). Even when the plan file moves from the backlog (`.forge/backlog/<slug>.md`) into the active slot (`.forge/plan.md`), this comment stays, so the retro (`.forge/retro/*-<slug>.md`) and the sealing (`.forge/done/<date-slug>/`) pair up by the same slug.
-- **Every slice MUST have exactly one "observable completion criterion."** It is the yardstick fg-execute uses to cross-check the result. This is the only thing that is mandatory; everything else is variable.
+- **Every slice MUST have exactly one "observable completion criterion."** It is the yardstick fg-run uses to cross-check the result. This is the only thing that is mandatory; everything else is variable.
 - **A small task may legitimately be a single slice.** Do not fill out the form ceremonially. Add a one-line verification method / artifact / dependency only when it is non-obvious (omit it otherwise).
-- **The dependency notation is the basis for execution order.** If `(depends: S1)` is present, fg-execute groups it into a serial wave; if absent, it is treated as parallelizable.
+- **The dependency notation is the basis for execution order.** If `(depends: S1)` is present, fg-run groups it into a serial wave; if absent, it is treated as parallelizable.
+- **`retro-hint: optional` is an optional, non-binding hint (omit by default).** When fg-ask judges during grilling that a task is trivial enough that a retro will likely have nothing to fold into the docs, it may add a `<!-- retro-hint: optional -->` comment near the `forge-slug` line. It only changes which option fg-run leads with at its handoff — it does **not** force a skip. The actual skip decision is fg-run's, gated on the run's divergence (no skip offered when the result diverged significantly). Omitting the hint is the default and means "retro recommended."
 - **Transcription mapping from the grilling agreement** — refined terms → Source of truth Glossary terms, hard-to-reverse decisions → ADR links, agreed units of work → slices (+ completion criteria), what was decided not to do this time → Non-goals.
 
 ## Splitting rule (a plan is never split)
 
-**If you feel the urge to split it, that is a signal the work was two tasks.** The state contract that one plan.md = one run.md = one sealing (fg-cleanup) is invariant. Do not split a plan into phases run sequentially and accumulated into run.md — that is incompatible with fg-execute's re-run guard (a duplicate warning when run.md already exists).
+**If you feel the urge to split it, that is a signal the work was two tasks.** The state contract that one plan.md = one run.md = one sealing (fg-cleanup) is invariant. Do not split a plan into phases run sequentially and accumulated into run.md — that is incompatible with fg-run's re-run guard (a duplicate warning when run.md already exists).
 
 ```
 Can this plan be run end-to-end in one workflow?

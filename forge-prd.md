@@ -22,7 +22,7 @@ updated: 2026-06-03
 ## 2. 단계와 스킬
 
 ```
-fg-ask ───▶ fg-execute ───▶ fg-learn ───▶ fg-complete
+fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-complete
 ① 질의/계획     ② 실행          ③ 회고        ④ 완료
 (그릴링·대화형) (Dynamic WF)   (문서 반영)    (봉인·재실행 방지)
 ```

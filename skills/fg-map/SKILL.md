@@ -5,7 +5,7 @@ description: Maps the codebase with parallel subagents into structured documents
 
 # fg-map — codebase mapping (loop-side utility)
 
-This skill is **not a stage of the forge loop** (fg-ask → fg-execute → fg-learn → fg-cleanup). It is an **on-demand utility** that produces one kind of the loop's permanent-doc fuel: a structured map of the codebase under `.forge/codebase/`. fg-ask reads that map before grilling, so it no longer has to re-explore the whole codebase each session — that re-exploration is where context rot comes from. Run fg-map when the codebase has changed enough that the map is stale; it is not something every task triggers.
+This skill is **not a stage of the forge loop** (fg-ask → fg-run → fg-learn → fg-cleanup). It is an **on-demand utility** that produces one kind of the loop's permanent-doc fuel: a structured map of the codebase under `.forge/codebase/`. fg-ask reads that map before grilling, so it no longer has to re-explore the whole codebase each session — that re-exploration is where context rot comes from. Run fg-map when the codebase has changed enough that the map is stale; it is not something every task triggers.
 
 **Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project are written in the user's language. The document names and section headings below are canonical English names — keep the file names as-is (`STACK.md` etc.), but render the prose inside in the user's language.
 

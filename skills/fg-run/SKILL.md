@@ -1,9 +1,9 @@
 ---
-name: fg-execute
-description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds exactly one unexecuted plan, runs it right away without a confirmation question; when it holds several, presents a guide dialog of the unfinished ones (last option 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘'. Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
+name: fg-run
+description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds exactly one unexecuted plan, runs it right away without a confirmation question; when it holds several, presents a guide dialog of the unfinished ones (last option 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge run', '계획 실행', '이거 워크플로우로 돌려줘' (the old trigger 'forge execute' is still recognized as an alias). Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
 ---
 
-# fg-execute — ② Execute (Dynamic Workflow)
+# fg-run — ② Execute (Dynamic Workflow)
 
 The second turn of the forge loop. It takes the `.forge/plan.md` that fg-ask refined and applies it to real code/changes as a Claude Code Dynamic Workflow. This is the stage where large jobs — migrations, full audits, mass refactors — that need many subagents working in parallel run in the background, and their results are verified against the plan.
 
@@ -31,7 +31,7 @@ A workflow spins up many subagents, so it burns a lot of tokens. Running the sam
 
 ```mermaid
 flowchart TD
-    A[fg-execute start] --> S{Active slot<br/>.forge/plan.md present?}
+    A[fg-run start] --> S{Active slot<br/>.forge/plan.md present?}
     S -- yes --> D{.forge/run.md already present?}
     S -- no --> BL[Scan .forge/backlog/<br/>collect unfinished candidates]
     BL --> N{Candidate count}
@@ -80,9 +80,10 @@ Right after writing `run.md`, write a companion `STATUS.md` (in the user's langu
 slug: {slug}
 status: executed
 executed: {YYYY-MM-DD}
+retro: pending
 ```
 
-fg-learn reads this `status: executed` to confirm a parked task is awaiting retro; fg-cleanup later flips it to `status: done` and archives plan/run/STATUS together. (For the "Run all" path, the STATUS.md is written into the per-task `executed/<slug>/` folder — see that section.)
+The `retro:` field tracks the retro state of this task: `pending` at execution time, later either the retro path (`.forge/retro/YYYY-MM-DD-<slug>.md`, filled by fg-cleanup when sealing a retro'd task) or `skipped (<reason>)` when the retro was intentionally skipped (see the handoff below). fg-learn reads `status: executed` to confirm a parked task is awaiting retro, and skips a task already marked `retro: skipped`; fg-cleanup later flips `status` to `done` and archives plan/run/STATUS together, accepting either a retro file or `retro: skipped` as satisfying its no-seal-without-retro guard. (For the "Run all" path, the STATUS.md is written into the per-task `executed/<slug>/` folder — see that section.)
 
 Flow: build the workflow → approve the script → background parallel execution → cross-verify against the plan → record `.forge/run.md` → write `.forge/STATUS.md` (status: executed)
 
@@ -94,7 +95,7 @@ If you pick "Run all" from the selection menu, the backlog's unfinished plans ar
 2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md` → write `STATUS.md` at `status: executed`) → without sealing, **move plan+run+STATUS to `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted. In this batch path write the `STATUS.md` directly into `.forge/executed/<slug>/` alongside plan+run (not into the active slot), since each task parks immediately.
    - `executed/` is the explicit expression of the intermediate state "executed but not yet retro'd." Putting an un-retro'd task into `done/` would bypass fg-cleanup's no-seal-without-retro guard, so never send it to `done/` before the retro.
    - Each task gets its own run. Do not merge several tasks into one run.
-3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-execute's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state.
+3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-run's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state.
 4. **Handoff.** When everything is done, point: "I ran all N, and each has plan+run+STATUS (status: executed) in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
 
 ## Constraints
@@ -112,8 +113,14 @@ When execution finishes, convey the following three in a conversational tone. (D
 2. **Next step** — next is fg-learn, the stage that folds the lessons surfaced in execution into permanent docs (CONTEXT.md, ADR, retro); right after execution is the right time, while memory is fresh.
 3. **How to start** — ask whether to go straight into the retro, and if the user agrees, invoke the `fg-learn` skill right there to continue. If they'd rather do it later, give the trigger — "forge learn" / "회고" utterance, or `/forge:fg-learn`.
 
+**Retro is the default. The skip path is offered only when the run had no or negligible divergence** (plan ≈ actual in `run.md`). In that low-divergence case, present an explicit choice at the handoff — never auto-skip:
+- **Retro via fg-learn** (default) — fold the lessons into the docs.
+- **Skip the retro** — for a trivial task with nothing to learn. Record `retro: skipped (<one-line reason>)` in `.forge/STATUS.md` and point straight to fg-cleanup; no retro file is created. fg-cleanup accepts this marker as satisfying its no-seal-without-retro guard.
+
+If the plan carries a `<!-- retro-hint: optional -->` marker comment (fg-ask flagged it as likely-trivial; see PLAN-FORMAT.md), lead with the skip option — but still ask; the hint is not binding. If there is no such hint, lead with the retro.
+
 Exception handling:
-- If the result diverged greatly from the plan, recommend **re-grilling via fg-ask** (refining the plan again) before going to fg-learn.
+- If the result diverged greatly from the plan, **do not offer the skip** — recommend **re-grilling via fg-ask** (refining the plan again) before going to fg-learn. Significant divergence is exactly the signal that there is something to learn.
 - For odd jobs that crept in mid-run, point the user to handle them directly on the spot rather than cramming them into the workflow.
 
 ## Document impact

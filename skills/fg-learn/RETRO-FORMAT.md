@@ -32,7 +32,7 @@ Documents are written in the user's language; the headings below are canonical E
 
 - **An uneventful session gets one line.** A retro is not a ritual. If everything went to plan and there was nothing to learn, record it briefly and move on.
 - **Keep promotion discipline.** Do not push everything from a retro into CONTEXT.md/ADR. Every learning that doesn't clear the bar stays in this retro log — that is the reason this retro log exists.
-- **"Do differently next time" and "Divergences" are fuel the next loop reads.** Failing to be promoted does not mean they're buried — the next task's fg-ask grilling and fg-execute workflow composition read these two fields from retros in the same area as a starting point. So write them concretely enough that the next task can use them directly (what diverged, why, and how to handle it next time) instead of vague impressions.
+- **"Do differently next time" and "Divergences" are fuel the next loop reads.** Failing to be promoted does not mean they're buried — the next task's fg-ask grilling and fg-run workflow composition read these two fields from retros in the same area as a starting point. So write them concretely enough that the next task can use them directly (what diverged, why, and how to handle it next time) instead of vague impressions.
 - **Avoid polluting CONTEXT.md.** Record implementation details in the retro log, but do not put them into the glossary (CONTEXT.md).
 - **Decide what to promote together with the human.** Don't push automatically — propose and get confirmation.
 

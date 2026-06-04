@@ -1,6 +1,6 @@
 ---
 name: fg-ask
-description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions. The entry point of the forge loop and its plan-grilling stage — use in contexts like "start a new task", "start with forge", "let's work on this", '새 작업 시작', 'forge로 시작', '이거 작업하자', '계획 다듬자', '이 계획 그릴링해줘'. Once an agreed plan is loaded into .forge/backlog/<slug>.md, fg-execute picks it up and runs it. Always conducted as a conversation in this session (outside any workflow).
+description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions. The entry point of the forge loop and its plan-grilling stage — use in contexts like "start a new task", "start with forge", "let's work on this", '새 작업 시작', 'forge로 시작', '이거 작업하자', '계획 다듬자', '이 계획 그릴링해줘'. Once an agreed plan is loaded into .forge/backlog/<slug>.md, fg-run picks it up and runs it. Always conducted as a conversation in this session (outside any workflow).
 ---
 
 <what-to-do>
@@ -25,8 +25,8 @@ Most repos have a single context:
 
 ```
 /
-├── CONTEXT.md
-├── docs/
+├── .forge/
+│   ├── CONTEXT.md
 │   └── adr/
 │       ├── 0001-event-sourced-orders.md
 │       └── 0002-postgres-for-write-model.md
@@ -38,18 +38,16 @@ If a `CONTEXT-MAP.md` exists at the root, the repo has multiple contexts. The ma
 ```
 /
 ├── CONTEXT-MAP.md
-├── docs/
-│   └── adr/                          ← system-wide decisions
+├── .forge/
+│   └── adr/                          ← all ADRs live here (single location, every context)
 ├── src/
 │   ├── ordering/
-│   │   ├── CONTEXT.md
-│   │   └── docs/adr/                 ← context-specific decisions
+│   │   └── CONTEXT.md                ← glossary stays next to its code
 │   └── billing/
-│       ├── CONTEXT.md
-│       └── docs/adr/
+│       └── CONTEXT.md
 ```
 
-Create files lazily — only when you have something to write. If no `CONTEXT.md` exists, create one when the first term is resolved. If no `docs/adr/` exists, create it when the first ADR is needed.
+Create files lazily — only when you have something to write. If no `.forge/CONTEXT.md` exists, create one when the first term is resolved. If no `.forge/adr/` exists, create it when the first ADR is needed.
 
 ## During the session
 
@@ -97,6 +95,6 @@ The original text ends above. What follows is the minimal glue that keeps the fo
 - **Before starting: feed back the latest retros.** If `.forge/retro/` exists, read it as a starting point for grilling — pull each retro's "Do differently next time" and "Divergences" into your opening questions (which past traps could recur this time, which assumptions broke). **Selection rule (when retros have piled up):** first take those in the same area as this task (overlapping slug stem / domain terms), then up to the most recent 3–5. Don't read all of them. Retros are reference fuel for sharpening the plan, not a source of truth — the plan's source of truth comes only from CONTEXT.md and ADRs. If there are no retros or none are relevant, skip silently.
 - **Before starting: read the codebase map.** If `.forge/codebase/` exists (produced by the `fg-map` utility), read the documents relevant to this task before grilling — they are a structured map of the stack, architecture, conventions, and known concerns, so you grill against the map instead of re-exploring the whole codebase from scratch (this is what cuts context rot). Check each document's `last_mapped_commit` frontmatter against the current HEAD (`git rev-parse HEAD`): if the map is many commits behind (e.g. dozens), warn in one line — "the codebase map is stale (mapped at {sha}, now {n} commits back); consider re-running fg-map" — then proceed anyway (do not block). If `.forge/codebase/` does not exist, skip silently; the map is optional fuel, not a prerequisite.
 - **Before starting: check for existing work.** Before entering grilling, look at the active slot (`.forge/plan.md`) and the backlog (`.forge/backlog/`) for an existing plan, and consult the completion markers `.forge/done/*/STATUS.md` for what has already been sealed — if the requested work matches an already-completed slug, surface it ("a task with this slug was sealed on {date}") so the user knowingly starts a new cycle, and pick a non-colliding slug for the new plan. If this request is a **re-grilling** (refining an existing plan), update that file (slot or backlog). If it is a **new task**, proceed as is — the new plan stacks in the backlog and coexists with existing work. But do not overwrite the active slot's `plan.md` without confirmation — silently changing the plan of a task that already has a `run.md` would pollute fg-learn's "Plan vs actual" comparison.
-- **Output.** Once grilling reaches a shared understanding, write the agreed plan to `.forge/backlog/<slug>.md` (slug = kebab-case of the task title, `-2` on collision; the directory is created lazily). Embed a `<!-- forge-slug: <slug> -->` comment on the plan's first line — a persistent identifier that lets retro and sealing pair up by the same slug even after the plan moves to the active slot. The format follows the skeleton in [PLAN-FORMAT.md](../fg-execute/PLAN-FORMAT.md) (or `${CLAUDE_PLUGIN_ROOT}/skills/fg-execute/PLAN-FORMAT.md`) — sharpened terms → source-of-truth glossary, hard-to-reverse decisions → ADR links, agreed units of work → slices (+ observable completion criterion), things decided not to do this time → non-goals. If you spot a point that needs human confirmation midway, narrow the plan up to there — leave the rest as a separate task in the backlog (see PLAN-FORMAT.md for the splitting rule).
-- **Handoff.** After arranging the plan in the backlog, naturally point to `fg-execute` as the next step — fg-execute picks a task from the backlog (a selection menu if there are several, with "Run all" at the end), promotes it to the active slot, and runs it. Ask whether the task is big enough to run as a Dynamic Workflow or small enough to handle directly, to decide the execution mode. **Ask whether to continue straight into execution, and if the user agrees, invoke the `fg-execute` skill right there to continue.** If they want to do it later, tell them the trigger — saying "forge execute" / "계획 실행", or `/forge:fg-execute`.
+- **Output.** Once grilling reaches a shared understanding, write the agreed plan to `.forge/backlog/<slug>.md` (slug = kebab-case of the task title, `-2` on collision; the directory is created lazily). Embed a `<!-- forge-slug: <slug> -->` comment on the plan's first line — a persistent identifier that lets retro and sealing pair up by the same slug even after the plan moves to the active slot. The format follows the skeleton in [PLAN-FORMAT.md](../fg-run/PLAN-FORMAT.md) (or `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/PLAN-FORMAT.md`) — sharpened terms → source-of-truth glossary, hard-to-reverse decisions → ADR links, agreed units of work → slices (+ observable completion criterion), things decided not to do this time → non-goals. If you spot a point that needs human confirmation midway, narrow the plan up to there — leave the rest as a separate task in the backlog (see PLAN-FORMAT.md for the splitting rule). If during grilling the task turns out trivial enough that a retro will likely have nothing to fold into the docs (a tiny, low-risk change), you may add a `<!-- retro-hint: optional -->` marker comment near the `forge-slug` line — a non-binding hint that lets fg-run lead with the "skip retro" option at its handoff. Omit it by default; the actual skip is fg-run's call, gated on the run's divergence.
+- **Handoff.** After arranging the plan in the backlog, naturally point to `fg-run` as the next step — fg-run picks a task from the backlog (a selection menu if there are several, with "Run all" at the end), promotes it to the active slot, and runs it. Ask whether the task is big enough to run as a Dynamic Workflow or small enough to handle directly, to decide the execution mode. **Ask whether to continue straight into execution, and if the user agrees, invoke the `fg-run` skill right there to continue.** If they want to do it later, tell them the trigger — saying "forge run" / "계획 실행", or `/forge:fg-run`.
 - **Volatile state.** `.forge/` is gitignored working state, so it is not tracked or committed.
