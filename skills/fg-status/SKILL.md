@@ -35,12 +35,13 @@ Keep it scannable. Don't paste full file contents — titles, slugs, and one-lin
 
 ### Task table
 
-Render the tasks as a compact table with these four columns (column headers are canonical English — render them in the user's language):
+Render the tasks as a compact table with these five columns (column headers are canonical English — render them in the user's language):
 
 ```
-Date | Task | Stage | Retro
+No. | Date | Task | Stage | Retro
 ```
 
+- **No.** — a display row number, **1-based per section**, reflecting the table's display order. It is **not** a stored marker — ordering is set by the existing `priority`/`part` markers; the number just shows the result. For pending work (active slot / backlog / awaiting-retro), number in the order fg-run would offer them — `priority` (high → medium → low) then `part` (N/M) then slug alphabetical — so **#1 is the task that runs next**. For the `done/` section, number by recency (most recent = 1). Do not assign numbers across sections; each section restarts at 1.
 - **Date** — the task's date. For `done/`, the directory's `YYYY-MM-DD`. For active/executed, the STATUS `executed:` date. For a fresh backlog item, `—`.
 - **Task** — the task slug (or its one-line title).
 - **Stage (current stage only — not the full pipeline)** — the single stage the task currently sits at, mapped from its bucket:
@@ -54,15 +55,15 @@ Date | Task | Stage | Retro
 
 - **Retro (O/X)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; `skipped` → `X`; anything else (pending / not yet reached) → `—`.
 
-Example:
+Example (Done section, numbered by recency):
 
 ```
-Date         | Task                   | Stage | Retro
-2026-06-04   | fg-status-table-format | done  | X
-2026-06-04   | optional-retro-skip    | done  | O
+No. | Date       | Task                   | Stage | Retro
+1   | 2026-06-04 | fg-status-table-format | done  | X
+2   | 2026-06-04 | optional-retro-skip    | done  | O
 ```
 
-The table derives purely from file location + the STATUS `retro:` field (same read as everything else — still read-only). Keep the active slot / backlog / executed sections scannable too; the four columns are the shared shape.
+The table derives purely from file location + the STATUS `retro:` field (same read as everything else — still read-only). Keep the active slot / backlog / executed sections scannable too; the five columns are the shared shape.
 
 ## Deriving the next step (state machine)
 

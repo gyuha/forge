@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.7] - 2026-06-05
+
+### Changed
+- `fg-status` 표에 **순번(No.) 컬럼** 추가 — 섹션별 1부터 표시 순서 행 번호. 미완료 작업은 priority→part→slug 순(= #1이 fg-run이 다음 제시할 작업), done은 최근순. 새 순서 마커는 만들지 않음(순서는 기존 priority/part가 담당, 번호는 표시용)
+
 ## [0.2.6] - 2026-06-05
 
 ### Changed
