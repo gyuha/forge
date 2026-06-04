@@ -33,6 +33,28 @@ Report in the user's language. Show **in-flight detail, history in summary**:
 
 Keep it scannable. Don't paste full file contents — titles, slugs, and one-line states only.
 
+### Per-task stage badge
+
+Next to **every** task (in any bucket), show its progress through the four loop stages as a badge:
+
+```
+ask · run · learn · done
+```
+
+Legend: `✓` passed · `▶` current stage · `—` not reached · `—(skip)` deliberately skipped (retro only). Map each bucket to the badge:
+
+| Bucket | Badge |
+| --- | --- |
+| `backlog/` (planned, unexecuted) | `ask ✓ · ▶run · learn — · done —` |
+| active slot, `plan.md` only (no run.md) | `ask ✓ · ▶run · learn — · done —` |
+| active slot, `run.md` present, STATUS `retro: pending` | `ask ✓ · run ✓ · ▶learn · done —` |
+| active slot / `executed/`, STATUS `retro: skipped` (not sealed) | `ask ✓ · run ✓ · learn —(skip) · ▶done` |
+| `executed/`, STATUS `retro: pending` (awaiting retro) | `ask ✓ · run ✓ · ▶learn · done —` |
+| `done/`, STATUS `retro:` = a path | `ask ✓ · run ✓ · learn ✓ · done ✓` |
+| `done/`, STATUS `retro: skipped` | `ask ✓ · run ✓ · learn —(skip) · done ✓` |
+
+So each line reads e.g. `optional-retro-skip — ask ✓ · run ✓ · learn —(skip) · done ✓`. The badge derives purely from file location + the STATUS `retro:` field (same read as everything else — still read-only).
+
 ## Deriving the next step (state machine)
 
 Determine the one next step from the file layout, in this priority order:
