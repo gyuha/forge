@@ -22,38 +22,47 @@ Read these from `.forge/` (skip silently what doesn't exist):
 
 ## What it prints
 
-Report in the user's language. Show **in-flight detail, history in summary**:
+Report in the user's language (the section labels below are canonical English — render them in the user's language). Show **in-flight detail, history in summary**:
 
-- **진행 중 (active slot)** — task title · slug · has run.md? · STATUS `status`/`retro`. (Or "없음".)
-- **대기 (backlog)** — list each unexecuted ASK (title · slug). (Or "없음".)
-- **회고 대기 (executed/)** — list each parked task. (Or "없음".)
-- **완료 (done)** — count + the most recent few (date-slug · `retro: done`/`skipped`). Summary, not a full dump.
-- **빠른 작업 (quick/LOG)** — count + the most recent few entries. Summary.
-- **👉 다음 단계** — the single next step and how to trigger it (see below).
+- **Active slot** — task title · slug · has run.md? · STATUS `status`/`retro`. (Or "none".)
+- **Backlog** — list each unexecuted ASK (title · slug). (Or "none".)
+- **Awaiting retro (executed/)** — list each parked task. (Or "none".)
+- **Done** — count + the most recent few (date-slug · `retro: done`/`skipped`). Summary, not a full dump.
+- **Quick lane (quick/LOG)** — count + the most recent few entries. Summary.
+- **👉 Next step** — the single next step and how to trigger it (see below).
 
 Keep it scannable. Don't paste full file contents — titles, slugs, and one-line states only.
 
-### Per-task stage badge
+### Task table
 
-Next to **every** task (in any bucket), show its progress through the four loop stages as a badge:
+Render the tasks as a compact table with these four columns (column headers are canonical English — render them in the user's language):
 
 ```
-ask · run · learn · done
+Date | Task | Stage | Retro
 ```
 
-Legend: `✓` passed · `▶` current stage · `—` not reached · `—(skip)` deliberately skipped (retro only). Map each bucket to the badge:
+- **Date** — the task's date. For `done/`, the directory's `YYYY-MM-DD`. For active/executed, the STATUS `executed:` date. For a fresh backlog item, `—`.
+- **Task** — the task slug (or its one-line title).
+- **Stage (current stage only — not the full pipeline)** — the single stage the task currently sits at, mapped from its bucket:
 
-| Bucket | Badge |
-| --- | --- |
-| `backlog/` (planned, unexecuted) | `ask ✓ · ▶run · learn — · done —` |
-| active slot, `plan.md` only (no run.md) | `ask ✓ · ▶run · learn — · done —` |
-| active slot, `run.md` present, STATUS `retro: pending` | `ask ✓ · run ✓ · ▶learn · done —` |
-| active slot / `executed/`, STATUS `retro: skipped` (not sealed) | `ask ✓ · run ✓ · learn —(skip) · ▶done` |
-| `executed/`, STATUS `retro: pending` (awaiting retro) | `ask ✓ · run ✓ · ▶learn · done —` |
-| `done/`, STATUS `retro:` = a path | `ask ✓ · run ✓ · learn ✓ · done ✓` |
-| `done/`, STATUS `retro: skipped` | `ask ✓ · run ✓ · learn —(skip) · done ✓` |
+  | Bucket | Stage |
+  | --- | --- |
+  | `backlog/` (planned, unexecuted) | `ask` |
+  | active slot, `plan.md` only (no run.md) | `run` |
+  | active slot `run.md` present (retro pending) / `executed/` | `learn` |
+  | `done/` (sealed) | `done` |
 
-So each line reads e.g. `optional-retro-skip — ask ✓ · run ✓ · learn —(skip) · done ✓`. The badge derives purely from file location + the STATUS `retro:` field (same read as everything else — still read-only).
+- **Retro (O/X)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; `skipped` → `X`; anything else (pending / not yet reached) → `—`.
+
+Example:
+
+```
+Date         | Task                   | Stage | Retro
+2026-06-04   | fg-status-table-format | done  | X
+2026-06-04   | optional-retro-skip    | done  | O
+```
+
+The table derives purely from file location + the STATUS `retro:` field (same read as everything else — still read-only). Keep the active slot / backlog / executed sections scannable too; the four columns are the shared shape.
 
 ## Deriving the next step (state machine)
 
@@ -67,11 +76,11 @@ Determine the one next step from the file layout, in this priority order:
 4. **Active slot empty, but `backlog/` has unexecuted plans** → **fg-run** (it promotes from the backlog), or **fg-ask** to refine first. Trigger: "forge run" / "계획 실행".
 5. **Everything empty (active + backlog + executed)** → no work in progress → **fg-ask** to start a new task. Trigger: "forge ask" / "새 작업 시작".
 
-State the next step as a one-liner: `👉 다음: <skill> — <trigger>`. You **may ask** whether to continue into it, but do not invoke it automatically — fg-status's job is to inform, not to act.
+State the next step as a one-liner: `👉 Next: <skill> — <trigger>` (rendered in the user's language). You **may ask** whether to continue into it, but do not invoke it automatically — fg-status's job is to inform, not to act.
 
 ## Handoff
 
-There is no loop handoff — fg-status is self-contained and read-only. End with the `👉 다음 단계` line so the user knows where they stand. If they want to act on it, they trigger the named skill themselves (or you ask once, then invoke only on agreement).
+There is no loop handoff — fg-status is self-contained and read-only. End with the `👉 Next` line so the user knows where they stand. If they want to act on it, they trigger the named skill themselves (or you ask once, then invoke only on agreement).
 
 ## Document impact
 

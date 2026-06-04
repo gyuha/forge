@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.4] - 2026-06-04
+
+### Changed
+- `fg-status` 출력을 `Date | Task | Stage | Retro` 4열 테이블로 정리 — 단계는 현재 단계 하나만(버킷 매핑), 회고는 O/X(완료 O · 건너뜀 X · 미정 —). 직전의 파이프라인 배지를 대체
+- `fg-status` SKILL.md 본문을 영문으로 통일(출력 라벨·테이블 컬럼은 canonical English, 출력은 사용자 언어로 렌더) — 스킬 본문 영문 작성 규약에 맞춤
+
 ## [0.2.3] - 2026-06-04
 
 ### Changed

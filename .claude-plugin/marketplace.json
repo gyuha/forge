@@ -7,14 +7,14 @@
   },
   "metadata": {
     "description": "forge — a stage-by-stage workflow skill set (fg-*) for the ask·plan → execute → retro → cleanup loop.",
-    "version": "0.2.3"
+    "version": "0.2.4"
   },
   "plugins": [
     {
       "name": "forge",
       "source": "./",
       "description": "Seven fg-* skills. Four form a loop that takes one task through a single cycle of ask·plan → execute → retro → cleanup: ask·plan is grill-with-docs-style conversational grilling, execute picks a task from the backlog (Run all supported) and runs it as a Dynamic Workflow, retro promotes learnings to docs, and cleanup seals the task and guards against re-runs. Three more sit outside the loop: fg-map maps the codebase into .forge/codebase/ with parallel subagents so grilling reads a map instead of re-exploring the code (cuts context rot); fg-quick is a lightweight lane for trivial tasks that grills lightly, logs one line to .forge/quick/LOG.md, runs directly without formal artifacts (no ADR/plan/retro), and bails to fg-ask if the task turns out non-trivial; fg-status is a read-only reporter that surveys .forge/ and prints where every task stands plus the single next step you need (writes nothing, never auto-runs).",
-      "version": "0.2.3",
+      "version": "0.2.4",
       "category": "workflow",
       "tags": [
         "workflow",
