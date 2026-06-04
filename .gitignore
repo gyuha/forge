@@ -1,5 +1,10 @@
-# forge 루프 작업 상태 (휘발) — PRD §7, §13.3 결정에 따라 추적하지 않음
-.forge/
+# forge 루프 디렉터리 — .forge/는 기본 제외하되 영속 문서만 화이트리스트로 추적한다.
+# 휘발 상태(plan/run/STATUS/backlog/executed/done)는 제외, 영속 문서(CONTEXT/adr/retro/codebase)는 추적.
+.forge/*
+!.forge/CONTEXT.md
+!.forge/adr/
+!.forge/retro/
+!.forge/codebase/
 .claude/worktrees
 
 .planning/

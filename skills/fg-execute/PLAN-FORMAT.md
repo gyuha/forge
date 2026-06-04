@@ -15,8 +15,8 @@ Documents are written in the user's language; the headings below are canonical E
 - Non-goals: {what is explicitly NOT done this time. May be empty, but writing it keeps the workflow from drifting out of scope}
 
 ## Source of truth
-- Glossary terms: {related terms} in CONTEXT.md, or "none"
-- Related ADRs: docs/adr/NNNN-*, or "none"
+- Glossary terms: {related terms} in .forge/CONTEXT.md, or "none"
+- Related ADRs: .forge/adr/NNNN-*, or "none"
 - Definition of Done: {the observable state at which the whole task can be called "done"}
 
 ## Work slices
@@ -26,7 +26,7 @@ Documents are written in the user's language; the headings below are canonical E
 
 ## Rules
 
-- **The `forge-slug` comment on the first line is the persistent identifier.** It is the kebab-case of the task title (e.g. `settlement-payout-split`, with `-2` on collision). Even when the plan file moves from the backlog (`.forge/backlog/<slug>.md`) into the active slot (`.forge/plan.md`), this comment stays, so the retro (`docs/retro/*-<slug>.md`) and the sealing (`.forge/done/<date-slug>/`) pair up by the same slug.
+- **The `forge-slug` comment on the first line is the persistent identifier.** It is the kebab-case of the task title (e.g. `settlement-payout-split`, with `-2` on collision). Even when the plan file moves from the backlog (`.forge/backlog/<slug>.md`) into the active slot (`.forge/plan.md`), this comment stays, so the retro (`.forge/retro/*-<slug>.md`) and the sealing (`.forge/done/<date-slug>/`) pair up by the same slug.
 - **Every slice MUST have exactly one "observable completion criterion."** It is the yardstick fg-execute uses to cross-check the result. This is the only thing that is mandatory; everything else is variable.
 - **A small task may legitimately be a single slice.** Do not fill out the form ceremonially. Add a one-line verification method / artifact / dependency only when it is non-obvious (omit it otherwise).
 - **The dependency notation is the basis for execution order.** If `(depends: S1)` is present, fg-execute groups it into a serial wave; if absent, it is treated as parallelizable.

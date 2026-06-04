@@ -13,10 +13,11 @@
 | --- | --- | --- | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-execute` |
 | `fg-execute` | ② 실행 | 백로그에서 작업 선택(메뉴·모두 실행) 후 Dynamic Workflow로 실행 | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` (또는 `executed/`) | `fg-learn` |
-| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `docs/retro/*.md` + 승급 | `fg-cleanup` / `fg-ask` |
+| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-cleanup` / `fg-ask` |
 | `fg-cleanup` | ④ 정리 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기 | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
+| `fg-map` | 유틸리티(루프 밖) | 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드를 다시 탐색하지 않고 지도를 읽게 한다(context rot 감소) | 코드베이스 | `.forge/codebase/*.md` (7개 문서) | — (`fg-ask`가 소비) |
 
-`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 별도 `fg-plan` 단계를 `fg-ask`로 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다. `fg-cleanup`은 "forge cleanup", "작업 정리", "이거 정리해줘"에서 트리거된다(기존 "forge complete"도 alias로 인식한다).
+`fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 별도 `fg-plan` 단계를 `fg-ask`로 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다. `fg-cleanup`은 "forge cleanup", "작업 정리", "이거 정리해줘"에서 트리거된다(기존 "forge complete"도 alias로 인식한다). `fg-map`은 **루프 단계가 아니다** — 코드베이스가 크게 바뀌어 지도가 낡았을 때 돌리는 온디맨드 유틸리티로, "코드베이스 분석", "코드베이스 지도" 같은 발화에서 트리거된다.
 
 ## 전체 흐름
 
@@ -36,14 +37,17 @@ flowchart LR
     L -.재그릴링.-> A
     C -->|새 작업| A
     A -.잡일.-> X[루프 건너뛰고 바로 처리]
-    A -.용어.-> CTX[(CONTEXT.md)]
-    A -.중대 결정.-> ADR[(docs/adr/)]
+    A -.용어.-> CTX[(.forge/CONTEXT.md)]
+    A -.중대 결정.-> ADR[(.forge/adr/)]
     L -.승급.-> CTX
     L -.승급.-> ADR
-    L -.세션 학습.-> RETRO[(docs/retro/)]
+    L -.세션 학습.-> RETRO[(.forge/retro/)]
     C -.봉인.-> DONE[(.forge/done/)]
+    MAP[fg-map<br/>유틸리티 · 루프 밖] -.작성.-> CB[(.forge/codebase/)]
+    CB -.그릴링 전 읽기.-> A
     style A fill:#e3f2fd
     style C fill:#ffe0b2
+    style MAP fill:#e8f5e9
 ```
 
 ## 설치
@@ -72,22 +76,34 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 
 ## 공유 상태와 디렉터리
 
-단계를 독립적으로 호출해도 흐름이 이어지도록 상태를 파일로 넘긴다. 가벼운 `.forge/` 작업 디렉터리를 둔다(휘발 상태, gitignore됨).
+단계를 독립적으로 호출해도 흐름이 이어지도록 상태를 파일로 넘긴다. 모든 것을 `.forge/` 한 디렉터리에 둔다 — 휘발 루프 상태와 git 추적되는 영속 문서가 함께 산다. `.gitignore`가 `.forge/`를 기본 제외하고 영속 문서만 화이트리스트로 추적하므로, **위치는 전부 `.forge/` 안이고 구분은 git 추적 여부**다.
 
 ```
 repo/
-├── CONTEXT.md                 # 글로서리 (영속)
-├── CONTEXT-MAP.md             # 멀티 컨텍스트일 때만
-├── docs/
-│   ├── adr/0001-*.md          # 아키텍처 결정 (영속)
-│   └── retro/YYYY-MM-DD-*.md  # 회고 로그 (영속)
-└── .forge/                    # 루프 작업 상태 (휘발, gitignore)
+├── CONTEXT-MAP.md             # 멀티 컨텍스트일 때만 (루트 유지)
+└── .forge/                    # 모든 루프 문서가 여기 산다
+    │                          # ── 영속 문서 (화이트리스트로 git 추적) ──
+    ├── CONTEXT.md             # 글로서리 (단일 컨텍스트)
+    ├── adr/0001-*.md          # 아키텍처 결정
+    ├── retro/YYYY-MM-DD-*.md  # 회고 로그
+    ├── codebase/*.md          # fg-map이 만든 코드베이스 지도
+    │                          # ── 휘발 루프 상태 (gitignore) ──
     ├── backlog/<slug>.md      # ① fg-ask 그릴링 산출 — 미실행 plan 대기열
     ├── plan.md                # 활성 슬롯: 지금 도는 한 바퀴의 정답 기준 (fg-execute가 백로그에서 승격)
     ├── run.md                 # ② fg-execute 산출 = 계획 vs 실제
     ├── STATUS.md              # 활성 슬롯: fg-execute가 실행 완료 시 작성해 실행 완료를 표시 (status: executed)
     ├── executed/<slug>/       # "모두 실행" 후 회고 대기 (plan+run+STATUS, 미회고)
     └── done/<날짜-slug>/       # ④ fg-cleanup 봉인 아카이브 (plan+run+STATUS, status: done)
+```
+
+`.gitignore` 패턴:
+
+```gitignore
+.forge/*
+!.forge/CONTEXT.md
+!.forge/adr/
+!.forge/retro/
+!.forge/codebase/
 ```
 
 - 각 스킬은 입력 파일을 `.forge/`에서 읽고 산출을 `.forge/`에 쓴다. `fg-execute`만 따로 불러도 백로그·활성 슬롯을 찾아 이어간다.

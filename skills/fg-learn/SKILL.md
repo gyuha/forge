@@ -1,6 +1,6 @@
 ---
 name: fg-learn
-description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, and the retro log (docs/retro), then surface the next inquiry. Use when you want to record what you learned into docs after a task — in the context of 'forge learn', '회고하자', '이번 작업 정리해줘'. Always conversational, and respects the promotion discipline.
+description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, and the retro log (.forge/retro), then surface the next inquiry. Use when you want to record what you learned into docs after a task — in the context of 'forge learn', '회고하자', '이번 작업 정리해줘'. Always conversational, and respects the promotion discipline.
 ---
 
 # fg-learn — ③ Retro (reflect into docs)
@@ -17,7 +17,7 @@ It reads `.forge/run.md` (the run record: plan vs actual) and `.forge/plan.md` (
 
 Also consult the completion markers **`.forge/done/*/STATUS.md`** before picking what to retro — a task whose slug already has a sealed STATUS.md (`status: done`) is out of scope (retroing it again would be a state error worth surfacing, not silently doing). The companion marker **`.forge/executed/<slug>/STATUS.md`** (`status: executed`), by contrast, confirms execution finished and the work is awaiting retro — exactly the candidates this step picks from.
 
-Besides the active slot, **`.forge/executed/<slug>/`** (work parked by fg-execute "Run all" that is awaiting retro, each carrying a `STATUS.md` with `status: executed`) is also an input — in this case plan/run are read **inside each `executed/<slug>/` directory**, not the active slot (when parked, the active slot is empty). Work whose retro is already done (a `docs/retro/*-<slug>.md` exists) is dropped from the candidates, and if two or more remain, first ask "which work should we retro first," and retro **each work separately and conversationally** — do not lump multiple works into one retro. Each work's slug is taken from the `<!-- forge-slug: ... -->` comment on the first line of the plan and used verbatim in the retro filename (`docs/retro/YYYY-MM-DD-<slug>.md`) — fg-cleanup judges retro completion by this slug.
+Besides the active slot, **`.forge/executed/<slug>/`** (work parked by fg-execute "Run all" that is awaiting retro, each carrying a `STATUS.md` with `status: executed`) is also an input — in this case plan/run are read **inside each `executed/<slug>/` directory**, not the active slot (when parked, the active slot is empty). Work whose retro is already done (a `.forge/retro/*-<slug>.md` exists) is dropped from the candidates, and if two or more remain, first ask "which work should we retro first," and retro **each work separately and conversationally** — do not lump multiple works into one retro. Each work's slug is taken from the `<!-- forge-slug: ... -->` comment on the first line of the plan and used verbatim in the retro filename (`.forge/retro/YYYY-MM-DD-<slug>.md`) — fg-cleanup judges retro completion by this slug.
 
 If the input files are missing, point to the prior step. If `run.md` is missing (and `executed/` is also empty), execution hasn't finished yet, so tell them to run `fg-execute` first. If even `plan.md` is missing, guide them through the order `fg-ask` → `fg-execute`. If the active `.forge/` is empty, it means there's no work in progress, so recommend opening new work with `fg-ask` first.
 
@@ -40,8 +40,8 @@ Split what you learned into three branches by nature and route each to its doc. 
 | Nature of the learning | Destination | Promotion bar |
 | --- | --- | --- |
 | New/changed domain term | `CONTEXT.md` | Only if it's a context-specific concept. General concepts and implementation details are excluded |
-| A decision that is hard to reverse, puzzling, and a real trade-off | `docs/adr/NNNN-slug.md` | Only when **all three** conditions are met |
-| Process/session learning | `docs/retro/YYYY-MM-DD-slug.md` | If it's worth recording |
+| A decision that is hard to reverse, puzzling, and a real trade-off | `.forge/adr/NNNN-slug.md` | Only when **all three** conditions are met |
+| Process/session learning | `.forge/retro/YYYY-MM-DD-slug.md` | If it's worth recording |
 
 ### 3. Respect the promotion discipline
 
@@ -51,9 +51,9 @@ So learnings that don't clear the bar go to the retro log without hesitation. An
 
 ### 4. Write the docs
 
-- The retro log always lands in `docs/retro/YYYY-MM-DD-slug.md` (one file per session, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
+- The retro log always lands in `.forge/retro/YYYY-MM-DD-slug.md` (one file per session, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
 - If you promote a term, reflect it into `CONTEXT.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md` (skill-relative path `../fg-ask/CONTEXT-FORMAT.md`).
-- If you promote a decision, add `docs/adr/NNNN-slug.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
+- If you promote a decision, add `.forge/adr/NNNN-slug.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
 
 In the "Doc updates" field of the retro log, record what was promoted to where (or none) to leave traceability.
 
@@ -67,7 +67,7 @@ flowchart TD
     C --> D{Classify learning}
     D -- Domain-specific term --> E[Promote to CONTEXT.md<br/>after human confirmation]
     D -- Hard to reverse · puzzling · trade-off --> F[Add ADR<br/>only if all three conditions met]
-    D -- All other learnings --> G[docs/retro retro log]
+    D -- All other learnings --> G[.forge/retro retro log]
     E --> G
     F --> G
     G --> H[Guide fg-cleanup<br/>+ follow-up work candidates]
@@ -83,7 +83,7 @@ flowchart TD
 
 When the retro is done, deliver the following at the end in natural conversational tone. Don't print a fixed template mechanically — speak as if pointing out what you just did.
 
-- **What you just did** — you left a retro at `docs/retro/...`, and summarize in one line what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
+- **What you just did** — you left a retro at `.forge/retro/...`, and summarize in one line what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
 - **Next step** — it's time to tidy up this work. Guide them that they can seal the work with `fg-cleanup`, and if any follow-up work candidates surfaced during the retro, present them too. But if more retro-awaiting work remains in `.forge/executed/`, recommend **retroing the next work first** over sealing — it's better to batch retros while memory is fresh.
 - **How to start** — ask whether to go straight into tidying up, and if the user agrees, call the `fg-cleanup` skill right there to continue. If they want to do it later, tell them the trigger — the utterance "forge cleanup" / "작업 정리", or `/forge:fg-cleanup`.
 
@@ -91,6 +91,6 @@ Exception — if execution diverged a lot from the plan, guide them that it's be
 
 ## Doc impact
 
-- Creates `docs/retro/YYYY-MM-DD-slug.md` (always, lazy).
-- When the promotion conditions are met, updates `CONTEXT.md` / adds `docs/adr/NNNN-slug.md` (after human confirmation).
+- Creates `.forge/retro/YYYY-MM-DD-slug.md` (always, lazy).
+- When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/NNNN-slug.md` (after human confirmation).
 - `.forge/` is gitignored volatile state, so it is not tracked — the only persistent artifacts are the permanent docs above.

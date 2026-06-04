@@ -13,10 +13,11 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 | --- | --- | --- | --- | --- | --- |
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions | User request | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-execute` |
 | `fg-execute` | ② Execute | Picks a task from the backlog (menu · Run all) and runs it as a Dynamic Workflow | `.forge/backlog/`, `plan.md` | Results + `.forge/run.md` (or `executed/`) | `fg-learn` |
-| `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry | `.forge/run.md`, `plan.md`, `executed/` | `docs/retro/*.md` + promotions | `fg-cleanup` / `fg-ask` |
+| `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + promotions | `fg-cleanup` / `fg-ask` |
 | `fg-cleanup` | ④ Cleanup | Tidies up the cycle — confirms retro, closes `STATUS.md` to done, archives, clears active state, closes the loop | `.forge/*` | `.forge/done/<date-slug>/` | `fg-ask` / end |
+| `fg-map` | Utility (outside the loop) | Maps the codebase with parallel subagents into `.forge/codebase/` so grilling reads a map instead of re-exploring the code (cuts context rot) | Codebase | `.forge/codebase/*.md` (7 docs) | — (consumed by `fg-ask`) |
 
-`fg-ask` is the entry point of the loop — it handles both inquiry/triage and grilling (the former separate `fg-plan` step is folded into `fg-ask`). It triggers on utterances like "start with forge", "new task", "let's work on this", "refine the plan". `fg-cleanup` triggers on "forge cleanup", "tidy up this task", "clean this up" (and still recognizes the legacy "forge complete" as an alias).
+`fg-ask` is the entry point of the loop — it handles both inquiry/triage and grilling (the former separate `fg-plan` step is folded into `fg-ask`). It triggers on utterances like "start with forge", "new task", "let's work on this", "refine the plan". `fg-cleanup` triggers on "forge cleanup", "tidy up this task", "clean this up" (and still recognizes the legacy "forge complete" as an alias). `fg-map` is **not a loop stage** — it is an on-demand utility you run when the codebase has changed enough that the map is stale; it triggers on "map the codebase", "analyze the codebase".
 
 ## Overall flow
 
@@ -37,14 +38,17 @@ flowchart LR
     L -.re-grilling.-> A
     C -->|new task| A
     A -.chores.-> X[skip the loop, handle directly]
-    A -.terms.-> CTX[(CONTEXT.md)]
-    A -.major decisions.-> ADR[(docs/adr/)]
+    A -.terms.-> CTX[(.forge/CONTEXT.md)]
+    A -.major decisions.-> ADR[(.forge/adr/)]
     L -.promotion.-> CTX
     L -.promotion.-> ADR
-    L -.session learnings.-> RETRO[(docs/retro/)]
+    L -.session learnings.-> RETRO[(.forge/retro/)]
     C -.seal.-> DONE[(.forge/done/)]
+    MAP[fg-map<br/>utility · outside loop] -.writes.-> CB[(.forge/codebase/)]
+    CB -.read before grilling.-> A
     style A fill:#e3f2fd
     style C fill:#ffe0b2
+    style MAP fill:#e8f5e9
 ```
 
 ## Install
@@ -73,22 +77,34 @@ After installing, the loop starts in a Claude Code session by triggering `fg-ask
 
 ## Shared state and directories
 
-State is passed through files so the flow continues even when stages are invoked independently. A lightweight `.forge/` working directory holds it (volatile state, gitignored).
+State is passed through files so the flow continues even when stages are invoked independently. A single `.forge/` directory holds everything — both the volatile loop state and the git-tracked permanent docs. The `.gitignore` excludes `.forge/` by default and whitelists only the permanent docs, so location is `.forge/` for all of it and the distinction is whether git tracks it.
 
 ```
 repo/
-├── CONTEXT.md                 # glossary (persistent)
-├── CONTEXT-MAP.md             # only for multi-context repos
-├── docs/
-│   ├── adr/0001-*.md          # architecture decisions (persistent)
-│   └── retro/YYYY-MM-DD-*.md  # retro log (persistent)
-└── .forge/                    # loop working state (volatile, gitignored)
+├── CONTEXT-MAP.md             # only for multi-context repos (stays at root)
+└── .forge/                    # all loop documents live here
+    │                          # ── permanent docs (git-tracked via whitelist) ──
+    ├── CONTEXT.md             # glossary (single-context)
+    ├── adr/0001-*.md          # architecture decisions
+    ├── retro/YYYY-MM-DD-*.md  # retro log
+    ├── codebase/*.md          # codebase map from fg-map
+    │                          # ── volatile loop state (gitignored) ──
     ├── backlog/<slug>.md      # ① fg-ask grilling output — queue of unexecuted plans
     ├── plan.md                # active slot: source of truth for the current cycle (promoted from the backlog by fg-execute)
     ├── run.md                 # ② fg-execute output = plan vs actual
     ├── STATUS.md              # active slot: fg-execute writes this on finish to mark execution done (status: executed)
     ├── executed/<slug>/       # awaiting retro after "Run all" (plan+run+STATUS, no retro yet)
     └── done/<date-slug>/      # ④ fg-cleanup seal archive (plan+run+STATUS, status: done)
+```
+
+`.gitignore` pattern:
+
+```gitignore
+.forge/*
+!.forge/CONTEXT.md
+!.forge/adr/
+!.forge/retro/
+!.forge/codebase/
 ```
 
 - Each skill reads its input from `.forge/` and writes its output to `.forge/`. Even calling `fg-execute` alone finds the backlog and active slot and continues.

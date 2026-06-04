@@ -31,9 +31,9 @@ _Avoid_: Client, buyer, account
 
 ## Single vs multi-context repos
 
-**Single context (most repos):** One `CONTEXT.md` at the repo root.
+**Single context (most repos):** One `CONTEXT.md` at `.forge/CONTEXT.md`. (In forge, all loop documents live under `.forge/`; `CONTEXT.md` is a git-tracked permanent doc there — see the project's gitignore policy.)
 
-**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other:
+**Multiple contexts:** A `CONTEXT-MAP.md` at the repo root lists the contexts, where they live, and how they relate to each other. **Note — multi-context is the one exception to the `.forge/` consolidation:** the whole point of multi-context is to keep each glossary *next to the code it describes* (`src/ordering/CONTEXT.md`), so those per-context files stay beside their code and the `CONTEXT-MAP.md` stays at the repo root, not under `.forge/`. Only the single-context `CONTEXT.md` lives at `.forge/CONTEXT.md`.
 
 ```md
 # Context Map
@@ -53,8 +53,8 @@ _Avoid_: Client, buyer, account
 
 The skill infers which structure applies:
 
-- If `CONTEXT-MAP.md` exists, read it to find contexts
-- If only a root `CONTEXT.md` exists, single context
-- If neither exists, create a root `CONTEXT.md` lazily when the first term is resolved
+- If `CONTEXT-MAP.md` exists at the repo root, read it to find contexts (multi-context; per-context files stay beside their code)
+- If only `.forge/CONTEXT.md` exists, single context
+- If neither exists, create `.forge/CONTEXT.md` lazily when the first term is resolved
 
 When multiple contexts exist, infer which one the current topic relates to. If unclear, ask.

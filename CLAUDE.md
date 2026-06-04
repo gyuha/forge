@@ -38,10 +38,10 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 
 - **fg-ask** — grill-with-docs식 대화형 그릴링. 계획을 도메인·용어·결정에 대고 검증해 `.forge/backlog/<slug>.md`로 적재. **반드시 본 세션 대화로** 진행(워크플로우 밖).
 - **fg-execute** — `.forge/plan.md`를 Claude Code Dynamic Workflow로 실행, 계획↔실제 차이를 `.forge/run.md`에 기록.
-- **fg-learn** — 학습을 분류해 영속 문서로 승급, `docs/retro/`에 회고 남김. 항상 대화형.
+- **fg-learn** — 학습을 분류해 영속 문서로 승급, `.forge/retro/`에 회고 남김. 항상 대화형.
 - **fg-cleanup** — "완료 선언"이 아니라 한 바퀴의 잔여물을 정리(tidy up)하는 단계: 회고 확인, `STATUS.md`를 `done`으로 마감, 작업을 `.forge/done/<날짜-slug>/`로 봉인하고 활성 `.forge/`를 비워 루프를 닫음 → **재실행 방지의 핵심 메커니즘**.
 
-### 상태 계약 (`.forge/` — 휘발, gitignore)
+### 상태 계약 (`.forge/`의 휘발 상태 — git 미추적)
 
 스킬을 편집할 때 이 입출력 계약을 깨지 않아야 흐름이 이어진다. 입력 파일이 없으면 각 스킬은 앞 단계를 안내한다.
 
@@ -59,13 +59,14 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 - **STATUS.md는 작업 파일들과 함께 이동하는 동반 마커다(이중 장부 아님).** 상태의 원천은 파일 위치이고 STATUS.md는 plan/run과 함께 활성 슬롯→`executed/`→`done/`을 따라 이동한다. fg-execute가 `status: executed`로 만들고 fg-cleanup이 `status: done`(+`completed`/`retro`/`docs updated`)으로 마감한 뒤 plan/run과 함께 아카이브한다. 완료 판별 = `done/*/STATUS.md`의 `status: done`.
 - 재그릴링이 필요하면 fg-learn/fg-execute가 **fg-ask**를 가리킨다(과거 별도 `fg-plan` 단계는 fg-ask로 통합됨).
 
-### 영속 문서 모델
+### 영속 문서 모델 (`.forge/` 내부, git 추적)
 
-`.forge/`(휘발)와 달리 이들은 영속이며 루프의 "연료"다. 전부 **lazy 생성**(쓸 내용이 생길 때만).
+휘발 상태와 같은 `.forge/` 지붕 아래 있지만, 이들은 **영속이며 루프의 "연료"**다. `.gitignore`가 `.forge/`를 기본 제외(`​.forge/*`)하되 이 영속 문서들만 화이트리스트로 되살려 추적한다(`!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/`). 즉 **위치는 `.forge/` 안, 구분은 git 추적 여부**다. 전부 **lazy 생성**(쓸 내용이 생길 때만).
 
-- `CONTEXT.md` / `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신.
-- `docs/adr/NNNN-slug.md` — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
-- `docs/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
+- `.forge/CONTEXT.md` / 루트 `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신. **멀티 컨텍스트만 예외** — 컨텍스트별 `CONTEXT.md`는 코드 옆(`src/<context>/`)에, `CONTEXT-MAP.md`는 루트에 둔다(`.forge/` 통합 대상 아님). 단일 컨텍스트만 `.forge/CONTEXT.md`.
+- `.forge/adr/NNNN-slug.md` — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
+- `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
+- `.forge/codebase/*.md` — fg-map(루프 밖 유틸리티)이 생성하는 코드베이스 지도(7문서). fg-ask가 그릴링 전 읽어 context rot을 줄인다.
 
 형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-execute/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-cleanup 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
 
@@ -104,6 +105,7 @@ fg-ask(①질의·계획·그릴링) → fg-execute(②실행) → fg-learn(③�
 
 - 작업 트리에 배포와 무관한 변경이 섞여 있으면 멈추고 먼저 확인받는다(배포 커밋에 끼워 넣지 않는다).
 - 마지막 배포 이후 커밋이 하나도 없으면 배포할 것이 없다고 알리고 멈춘다.
+- **매니페스트의 두 description은 역할이 다르다.** `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→cleanup)를 정의하는 한 줄 태그라인이므로 루프 밖 유틸리티(fg-map류)는 넣지 않는다. `plugins[].description`(과 `plugin.json`의 `description`)은 전체 스킬 목록을 담는 설명이므로 루프 밖 스킬도 여기에 반영한다. 루프 밖 스킬을 metadata에 끼우면 루프 정의가 흐려진다.
 
 ## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
 

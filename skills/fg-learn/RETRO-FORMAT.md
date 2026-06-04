@@ -1,15 +1,15 @@
 # Retro Log Format
 
-> For `fg-learn` only. Retro logs are stored as per-session files at `docs/retro/YYYY-MM-DD-slug.md`.
+> For `fg-learn` only. Retro logs are stored as per-session files at `.forge/retro/YYYY-MM-DD-slug.md`.
 
 Documents are written in the user's language; the headings below are canonical English names — render them in the user's language.
 
 ## Location and naming
 
-- Path: `docs/retro/{YYYY-MM-DD}-{slug}.md`
+- Path: `.forge/retro/{YYYY-MM-DD}-{slug}.md`
 - `slug` is a kebab-case identifier that makes the task recognizable at a glance (e.g. `settlement-payout-split`)
 - If there are multiple tasks on the same day, the slug distinguishes them
-- The `docs/retro/` directory is created lazily — only when the first retro is needed
+- The `.forge/retro/` directory is created lazily — only when the first retro is needed
 
 ## Template
 
@@ -41,7 +41,7 @@ Documents are written in the user's language; the headings below are canonical E
 | Nature of the learning | Destination | Criterion |
 | --- | --- | --- |
 | New/changed domain term | `CONTEXT.md` | Only when it's a context-specific concept. Exclude general concepts and implementation details |
-| A decision that is hard to reverse, puzzling without context, and a real tradeoff | `docs/adr/NNNN-slug.md` | Only when all three conditions are met |
-| Process/session learning | `docs/retro/YYYY-MM-DD-slug.md` | If it's worth recording (= here, the retro log) |
+| A decision that is hard to reverse, puzzling without context, and a real tradeoff | `.forge/adr/NNNN-slug.md` | Only when all three conditions are met |
+| Process/session learning | `.forge/retro/YYYY-MM-DD-slug.md` | If it's worth recording (= here, the retro log) |
 
 For CONTEXT.md/ADR formats, see `../fg-ask/CONTEXT-FORMAT.md`/`../fg-ask/ADR-FORMAT.md`.
