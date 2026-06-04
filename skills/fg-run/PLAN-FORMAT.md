@@ -8,7 +8,8 @@ Documents are written in the user's language; the headings below are canonical E
 
 ```md
 <!-- forge-slug: {task-slug} -->
-<!-- retro-hint: optional -->   {optional, omit by default — see Rules}
+<!-- retro-hint: optional -->          {optional, omit by default — see Rules}
+<!-- priority: high|medium|low -->     {optional, default medium — see Rules}
 # {one-line task title}
 
 ## Goal / Non-goals
@@ -32,6 +33,7 @@ Documents are written in the user's language; the headings below are canonical E
 - **A small task may legitimately be a single slice.** Do not fill out the form ceremonially. Add a one-line verification method / artifact / dependency only when it is non-obvious (omit it otherwise).
 - **The dependency notation is the basis for execution order.** If `(depends: S1)` is present, fg-run groups it into a serial wave; if absent, it is treated as parallelizable.
 - **`retro-hint: optional` is an optional, non-binding hint (omit by default).** When fg-ask judges during grilling that a task is trivial enough that a retro will likely have nothing to fold into the docs, it may add a `<!-- retro-hint: optional -->` comment near the `forge-slug` line. It only changes which option fg-run leads with at its handoff — it does **not** force a skip. The actual skip decision is fg-run's, gated on the run's divergence (no skip offered when the result diverged significantly). Omitting the hint is the default and means "retro recommended."
+- **`priority: high|medium|low` is an optional ordering marker (omit by default = `medium`).** When several plans wait in the backlog, fg-run sorts its selection menu (and the "Run all" sequence) by this marker: `high → medium → low`, ties broken by slug alphabetical. It only affects **display/run order** — it is never an auto-selection; the user still picks from the menu. Set it during fg-ask grilling when a task's importance is clear; otherwise omit it (treated as `medium`).
 - **Transcription mapping from the grilling agreement** — refined terms → Source of truth Glossary terms, hard-to-reverse decisions → ADR links, agreed units of work → slices (+ completion criteria), what was decided not to do this time → Non-goals.
 
 ## Splitting rule (a plan is never split)
