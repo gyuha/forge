@@ -48,12 +48,25 @@ flowchart LR
 
 ## 설치
 
-GitHub 마켓플레이스로 추가한 뒤 플러그인을 설치한다.
+Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인을 설치한다.
 
 ```
 /plugin marketplace add gyuha/forge
 /plugin install forge@forge
 ```
+
+로컬 클론에서 설치하려면(예: 개발 중) 리포 루트 경로를 넘긴다:
+
+```
+/plugin marketplace add /path/to/forge
+/plugin install forge@forge
+```
+
+참고:
+
+- GitHub 설치는 리포의 기본 브랜치(`main`)를 당긴다 — 변경을 설치로 테스트하려면 먼저 `main`에 push되어 있어야 한다.
+- 스킬은 `skills/<name>/SKILL.md`에서 자동 탐색되므로 추가 설정이 필요 없다.
+- 이후 업데이트는 `/plugin marketplace update forge`, 제거는 `/plugin uninstall forge@forge`.
 
 설치 후 Claude Code 세션에서 `fg-ask`부터 트리거되거나, "forge로 시작" 같은 발화로 루프가 시작된다.
 

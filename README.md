@@ -49,12 +49,25 @@ flowchart LR
 
 ## Install
 
-Add the GitHub marketplace, then install the plugin.
+In a Claude Code session, add the GitHub marketplace, then install the plugin.
 
 ```
 /plugin marketplace add gyuha/forge
 /plugin install forge@forge
 ```
+
+To install from a local clone instead (e.g. while developing), pass the path to the repo root:
+
+```
+/plugin marketplace add /path/to/forge
+/plugin install forge@forge
+```
+
+Notes:
+
+- The GitHub install pulls the repo's default branch (`main`) — to test a change via install, it must be pushed to `main` first.
+- Skills are auto-discovered from `skills/<name>/SKILL.md`; no extra configuration is needed.
+- To update later, run `/plugin marketplace update forge`, and to remove, `/plugin uninstall forge@forge`.
 
 After installing, the loop starts in a Claude Code session by triggering `fg-ask`, or with an utterance like "start with forge".
 
