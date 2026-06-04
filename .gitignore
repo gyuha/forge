@@ -1,5 +1,6 @@
 # forge 루프 작업 상태 (휘발) — PRD §7, §13.3 결정에 따라 추적하지 않음
 .forge/
+.claude/worktrees
 
 .planning/
 !.planning/codebase/
