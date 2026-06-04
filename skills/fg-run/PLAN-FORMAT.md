@@ -10,6 +10,7 @@ Documents are written in the user's language; the headings below are canonical E
 <!-- forge-slug: {task-slug} -->
 <!-- retro-hint: optional -->          {optional, omit by default — see Rules}
 <!-- priority: high|medium|low -->     {optional, default medium — see Rules}
+<!-- part: N/M -->                     {optional — only on a plan that is one part of a split task; see Splitting rule}
 # {one-line task title}
 
 ## Goal / Non-goals
@@ -36,20 +37,28 @@ Documents are written in the user's language; the headings below are canonical E
 - **`priority: high|medium|low` is an optional ordering marker (omit by default = `medium`).** When several plans wait in the backlog, fg-run sorts its selection menu (and the "Run all" sequence) by this marker: `high → medium → low`, ties broken by slug alphabetical. It only affects **display/run order** — it is never an auto-selection; the user still picks from the menu. Set it during fg-ask grilling when a task's importance is clear; otherwise omit it (treated as `medium`).
 - **Transcription mapping from the grilling agreement** — refined terms → Source of truth Glossary terms, hard-to-reverse decisions → ADR links, agreed units of work → slices (+ completion criteria), what was decided not to do this time → Non-goals.
 
-## Splitting rule (a plan is never split)
+## Splitting rule (one plan is never split mid-run; a big task may become several plans)
 
-**If you feel the urge to split it, that is a signal the work was two tasks.** The state contract that one plan.md = one run.md = one sealing (fg-cleanup) is invariant. Do not split a plan into phases run sequentially and accumulated into run.md — that is incompatible with fg-run's re-run guard (a duplicate warning when run.md already exists).
+**The state contract one plan.md = one run.md = one sealing (fg-cleanup) is invariant.** Do not split a *single* plan into phases run sequentially and accumulated into one run.md — that is incompatible with fg-run's re-run guard (a duplicate warning when run.md already exists). Whatever you write as one plan must be runnable end-to-end in one workflow.
+
+There are **two reasons to split a big task into multiple plans** (each a separate, independently-sealable plan in the backlog):
+
+1. **A mid-run human checkpoint** — a human check / decision must intervene before the next step can proceed. A Dynamic Workflow cannot take human input at runtime, so the check point is a task boundary. (We do not distinguish "simple go-ahead" from "major decision branch" — either way it must stop.)
+2. **Size / decomposition** — the agreed work is large enough that it naturally breaks into chunks each of which is **independently shippable, verifiable, and sealable** on its own. Don't force such work into one giant plan. This is a judgment call (not a slice-count threshold): if each chunk can stand as its own complete `execute → learn → cleanup` loop, make each chunk its own plan.
 
 ```
-Can this plan be run end-to-end in one workflow?
-├── Yes (no human check needed mid-run, or only serial dependencies between slices)
-│     → No split. Compose waves via dependency notation and run it in one pass.
-└── No — a human check / decision must intervene before the next step can proceed
-      → That check point is the task boundary.
-        Narrow the plan to everything before that point, complete and seal one loop (execute→learn→cleanup),
-        and open a new fg-ask for the rest as a fg-cleanup follow-up.
+Does the agreed work split into chunks that are each independently shippable & sealable,
+or does a human checkpoint sit mid-way?
+├── No (one cohesive deliverable, runnable end-to-end in one workflow) → one plan.
+└── Yes → multiple plans, one per chunk. Each is a full standalone loop.
 ```
 
-We do not distinguish "simple go-ahead approval" from "major decision branch" — a Dynamic Workflow cannot take human input at runtime, so either way it must stop, and a stop is a task boundary.
+### Part-plans and soft ordering
 
-**The backlog (`.forge/backlog/`) is storage for multiple plans, not the splitting of one plan.** Each backlog plan is a separate task that runs its own independent loop (execute→retro→seal). There is no syntax for noting dependencies between plans — if the dependency is strong, it should have been a single plan in the first place (see the splitting rule above).
+When you split by size into an ordered series, give each plan a **soft sequence hint**, not a hard dependency:
+
+- Slug encodes order: `<base>-1of3`, `<base>-2of3`, `<base>-3of3` (so the slug-alphabetical tiebreak naturally lines them up).
+- Add a `<!-- part: N/M -->` marker. fg-run shows part-plans in order, labels them `(part N/M)`, and recommends completing them one at a time in sequence — but it does **not** block a later part if an earlier one isn't sealed yet. The order is a recommendation, not a gate.
+- **Each part-plan must still be independently sealable** — one part = one plan = one workflow = one run = one seal. The `part` marker changes display/recommendation order only.
+
+**The backlog (`.forge/backlog/`) is storage for multiple plans.** Each backlog plan runs its own independent loop (execute→retro→seal). There is **no hard dependency** syntax between plans — `part: N/M` is a soft ordering hint only. If one chunk genuinely cannot stand alone (a true hard dependency), it was not a real split point — fold it back into the plan it depends on.
