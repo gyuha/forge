@@ -12,6 +12,7 @@ Documents are written in the user's language; the headings below are canonical E
 <!-- retro-hint: optional -->          {optional, omit by default — see Rules}
 <!-- priority: high|medium|low -->     {optional, default medium — see Rules}
 <!-- part: N/M -->                     {optional — only on a plan that is one part of a split task; see Splitting rule}
+<!-- tdd: on|off -->                   {set by fg-ask, default from .forge/config.json — see Rules}
 # {one-line task title}
 
 ## Goal / Non-goals
@@ -32,6 +33,7 @@ Documents are written in the user's language; the headings below are canonical E
 
 - **The `forge-slug` comment on the first line is the persistent identifier.** It is the kebab-case of the task title (e.g. `settlement-payout-split`, with `-2` on collision). Even when the plan file moves from the backlog (`.forge/backlog/<slug>.md`) into the active slot (`.forge/plan.md`), this comment stays, so the retro (`.forge/retro/*-<slug>.md`) and the sealing (`.forge/done/<date-slug>/`) pair up by the same slug.
 - **The `task: N` comment is a stable, monotonically-increasing task number** (like an issue number), assigned by fg-ask when the plan is created: `N = max(task numbers across all plans in .forge/backlog, the active slot, .forge/executed, and .forge/done) + 1`, or `1` if none exist. Like `forge-slug`, it stays on the plan through backlog → active slot → done, never changing. It is an **identifier for display and selection** (fg-status shows it; fg-run lets you pick a task by it) — it is **not** an ordering signal (ordering is `priority`/`part`). Plans created before this feature have no `task:` and show as `—`. Out of scope for the fg-quick lane.
+- **The `tdd: on|off` comment records whether this task is built test-first.** fg-ask sets it at the start of grilling, defaulting to `tdd` in `.forge/config.json` (off if the file doesn't exist), and the user can override it for this task. When `on`, fg-run runs the plan test-first — each slice writes a failing test before the implementation and isn't done until that test passes. Omit it (or `off`) for the normal path. It is an execution-mode marker, not an ordering signal.
 - **Every slice MUST have exactly one "observable completion criterion."** It is the yardstick fg-run uses to cross-check the result. This is the only thing that is mandatory; everything else is variable.
 - **A small task may legitimately be a single slice.** Do not fill out the form ceremonially. Add a one-line verification method / artifact / dependency only when it is non-obvious (omit it otherwise).
 - **The dependency notation is the basis for execution order.** If `(depends: S1)` is present, fg-run groups it into a serial wave; if absent, it is treated as parallelizable.

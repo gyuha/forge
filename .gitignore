@@ -5,6 +5,7 @@
 !.forge/adr/
 !.forge/retro/
 !.forge/codebase/
+!.forge/config.json
 .claude/worktrees
 
 .planning/
