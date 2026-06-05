@@ -108,8 +108,11 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 
 절차 흐름: `CHANGELOG.md 작성 → 버전 3곳 범프 → JSON 검증 → commit → push`
 
+**배포 후 "설치 테스트":** `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행 못 한다(사용자가 직접 침). 에이전트가 검증할 수 있는 건 설치 전제뿐 — `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 main의 버전 3곳을, `awk '/^name:/'`로 `skills/*/SKILL.md`의 frontmatter `name`(자동 탐색 대상) 누락 여부를 확인한다.
+
 - 작업 트리에 배포와 무관한 변경이 섞여 있으면 멈추고 먼저 확인받는다(배포 커밋에 끼워 넣지 않는다).
 - 마지막 배포 이후 커밋이 하나도 없으면 배포할 것이 없다고 알리고 멈춘다.
+- **미커밋 변경이 곧 릴리스 내용이면**(커밋 0개인데 작업 트리에 그 릴리스의 기능 작업이 쌓여 있음) 먼저 그 작업을 별도 `feat` 커밋으로 묶은 뒤 릴리스 절차를 돈다(릴리스 커밋엔 CHANGELOG+버전 범프만). 이 리포의 정상 흐름이다.
 - **매니페스트의 두 description은 역할이 다르다.** `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→cleanup)를 정의하는 한 줄 태그라인이므로 루프 밖 유틸리티(fg-map류)는 넣지 않는다. `plugins[].description`(과 `plugin.json`의 `description`)은 전체 스킬 목록을 담는 설명이므로 루프 밖 스킬도 여기에 반영한다. 루프 밖 스킬을 metadata에 끼우면 루프 정의가 흐려진다.
 
 ## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
