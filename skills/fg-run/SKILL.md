@@ -69,7 +69,9 @@ Once the orchestration script is ready, **get user approval first**. After appro
 
 ### 3. Cross-verify against the plan
 
-`.forge/plan.md`, `CONTEXT.md`, and the ADRs in `.forge/adr/` are the source of truth. The workflow cross-verifies its output against this source of truth — it **judges each slice's "completion criterion" against the actual output** for satisfaction, rather than stopping at "it ran."
+`.forge/plan.md`, `CONTEXT.md`, and the ADRs in `.forge/adr/` are the source of truth. The workflow cross-verifies its output against this source of truth — it **judges each slice's "completion criterion" against the actual output** for satisfaction, rather than stopping at "it ran." This **plan-verification always runs** — it answers "did we build what the plan said," not "is the built code good."
+
+**Conditional code review (quality, not just spec).** Plan-verification doesn't catch bugs/security/structure problems — so for changes that warrant it, add a **review phase** to the orchestration script (after implementation, before recording `run.md`). Gate it on risk/size: include it when the change touches **risky areas (auth, data mutations, public API/contracts, migrations)** or is sizable; **skip it for trivial, low-risk changes** (don't review a typo — same restraint as retro-skip). Compose the review with the **workflow's own adversarial-verify subagents** (core `Agent`/`Workflow` — no external dependency); if a richer code-review capability is available, you may use it, but never hard-depend on one. The review reads the diff for bugs, security holes, and structural problems. **Findings handling:** fix real issues inside the same workflow run and re-verify; record any remaining critical findings in `run.md` as a divergence so fg-learn / fg-ask re-grilling can pick them up. Because a Dynamic Workflow takes no human input mid-run, the review runs autonomously and its results surface at the handoff for the human to see. (See `.forge/adr/0007-fg-run-conditional-code-review.md`.)
 
 ### 4. Record divergences in run.md, then mark execution complete
 
