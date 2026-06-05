@@ -130,7 +130,7 @@ forge의 모든 스킬은 파일 시스템을 통해 상태를 주고받는다:
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run (선택 메뉴) |
 | `.forge/plan.md` | fg-run (백로그에서 승격) | fg-run (실행 기준), fg-learn (회고 기준) |
 | `.forge/run.md` | fg-run | fg-learn (회고 재료) |
-| `.forge/STATUS.md` | fg-run (executed), fg-cleanup (done) | fg-learn, fg-cleanup (상태 검증) |
+| `.forge/STATUS.md` | fg-run (executed + `verified:` UAT 기록), fg-cleanup (done) | fg-learn (verified sealable일 때만 회고), fg-cleanup (검증 게이트 → 회고 게이트 순, ADR-0009) |
 | `.forge/executed/<slug>/` | fg-run (Run all 경로) | fg-learn, fg-cleanup (회고 대기) |
 | `.forge/done/<날짜-slug>/` | fg-cleanup (최종 봉인) | fg-ask (slug 충돌 검출), fg-run (완료 판별) |
 | `.forge/CONTEXT.md` | fg-ask (인라인 갱신) | fg-run, fg-learn, 모든 스킬 (참조) |

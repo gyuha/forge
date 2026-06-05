@@ -52,13 +52,14 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `.forge/plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준), fg-learn |
 | `.forge/run.md` | fg-run | fg-learn |
-| `.forge/STATUS.md` (활성 슬롯, `status: executed`) | fg-run(run.md 기록 직후 작성) | fg-run(상태 요약 보강)·fg-learn(회고 대기 확인)·fg-cleanup(`status: done`으로 마감) |
+| `.forge/STATUS.md` (활성 슬롯, `status: executed`, `verified: pending`) | fg-run(run.md 기록 직후 작성, 핸드오프 UAT로 `verified:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-cleanup(검증→회고 게이트 후 `status: done` 마감) |
 | `.forge/executed/<slug>/` (+`STATUS.md`, `status: executed`) | fg-run("모두 실행" park) | fg-learn(회고 대기), fg-cleanup(봉인) |
 | `.forge/done/<날짜-slug>/` (+`STATUS.md`, fg-cleanup이 `status: done`으로 마감) | fg-cleanup | fg-ask(slug 충돌 검출)·fg-run(완료 판별·상태 요약)·fg-learn(회고 대상 제외)·fg-cleanup(이중 봉인 방지) |
 
 - **활성 슬롯은 항상 1개** — 한 plan.md = 한 run.md = 한 봉인. 백로그는 미실행 대기열, `executed/`는 "실행됐으나 미회고"의 명시적 상태다. plan 첫 줄의 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자다(파일 이동에도 영속).
 - **활성 슬롯·백로그·executed가 모두 비어 있으면 = 진행 중 작업 없음.** fg-run는 빈 상태에서 실행하지 않는다(재실행 방지). fg-cleanup이 봉인하며 비운다.
-- **STATUS.md는 작업 파일들과 함께 이동하는 동반 마커다(이중 장부 아님).** 상태의 원천은 파일 위치이고 STATUS.md는 plan/run과 함께 활성 슬롯→`executed/`→`done/`을 따라 이동한다. fg-run가 `status: executed`(+`retro: pending`)로 만들고 fg-cleanup이 `status: done`(+`completed`/`retro`/`docs updated`)으로 마감한 뒤 plan/run과 함께 아카이브한다. 완료 판별 = `done/*/STATUS.md`의 `status: done`.
+- **STATUS.md는 작업 파일들과 함께 이동하는 동반 마커다(이중 장부 아님).** 상태의 원천은 파일 위치이고 STATUS.md는 plan/run과 함께 활성 슬롯→`executed/`→`done/`을 따라 이동한다. fg-run가 `status: executed`(+`verified: pending`+`retro: pending`)로 만들고 fg-cleanup이 `status: done`(+`completed`/`verified`/`retro`/`docs updated`)으로 마감한 뒤 plan/run과 함께 아카이브한다. 완료 판별 = `done/*/STATUS.md`의 `status: done`.
+- **봉인 전 검증 게이트(ADR-0009).** 루프 순서는 run → verify → learn → cleanup. fg-run 핸드오프가 plan 목표에 대고 UAT를 수행해 STATUS `verified:`를 기록한다 — **봉인 가능** `yes`/`skipped (사유)`/`n/a (사유)`, **차단** `pending`(미검증)/`failed (사유)`(검증했으나 깨짐). fg-cleanup은 **검증 게이트를 회고 게이트보다 먼저** 확인하고(no-seal-without-verification), 봉인 가능 값이 아니면 봉인하지 않는다. `pending`은 fg-run 검증 전용 재진입(재실행 없이 UAT만)으로, `failed`는 fg-run의 parked-failed 회수(executed/→active slot unpark)·fix-and-re-run 또는 fg-ask 재그릴로 라우팅 — fg-run이 unpark의 단일 소유자다. `failed`은 fresh re-run으로 봉인 가능 값에 재검증될 때만 봉인되며 waiver로 통과시키지 않는다. Run all은 작업별 UAT를 파킹 전 수행(sealable만 파킹, `failed`은 active slot에 남김). ADR-0009 이전 봉인 작업은 `verified: n/a (legacy pre-ADR-0009)`로 백필됐다.
 - **회고는 저-divergence 사소한 작업에 한해 건너뛸 수 있다(ADR-0002).** 기본값은 회고(fg-learn)다. run.md의 계획↔실제 차이가 없거나 미미할 때만 fg-run 핸드오프가 "회고 / 건너뛰기"를 명시 제시하고, 사용자가 건너뛰기를 고르면 STATUS.md의 `retro:` 필드에 `skipped (사유)`를 기록한다(회고 파일 없음). fg-cleanup의 봉인 가드는 회고 파일 존재 **또는** `retro: skipped`를 통과 조건으로 인정한다. divergence가 크면 건너뛰기를 제시하지 않는다. fg-ask는 plan에 `<!-- retro-hint: optional -->`(비구속 힌트)를 남길 수 있을 뿐, 자동 건너뛰기는 없다.
 - 재그릴링이 필요하면 fg-learn/fg-run가 **fg-ask**를 가리킨다(과거 별도 `fg-plan` 단계는 fg-ask로 통합됨).
 
@@ -85,6 +86,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 - **핸드오프**: 각 스킬은 끝에서 "방금 한 것 / 다음 단계 / 시작하는 법"을 **자연스러운 대화체**로 전한다(정해진 양식을 사무적으로 출력하지 않는다).
 - **언어**: 스킬 본문(`SKILL.md`)·형식 문서(`*-FORMAT.md`)는 **영문으로 작성**한다(grill-with-docs 원문을 그대로 옮긴 부분은 영문 verbatim 유지). 단 스킬이 **사용자에게 출력하는 언어는 사용자의 언어를 따른다** — 각 스킬에 "respond in the user's language" 지시를 명시하고, 산출 문서(plan·회고·CONTEXT·ADR 등 사용자 프로젝트에 남는 문서)도 사용자 언어로 쓴다.
 - **README 이중 언어 동기화**: `README.md`(영문)와 `README.ko.md`(한글)는 같은 내용의 번역 쌍이다. **`README.md`를 갱신하면 반드시 `README.ko.md`도 같은 변경으로 함께 갱신한다**(역방향도 동일). 한쪽만 고치면 두 문서가 어긋난다.
+- **흐름도는 텍스트로**: 스킬 문서(`SKILL.md`)에 흐름·상태 전이·분기를 넣을 때는 **Mermaid를 쓰지 말고 텍스트 흐름도로 작성한다**(`A → B → C`, 분기는 들여쓰기·화살표·조건 레이블로). 스킬 본문은 영문이므로 텍스트 흐름도도 영문으로 쓴다. 이유: 스킬은 에이전트가 읽고 실행하는 지시문이라 렌더링 없이 그대로 파싱되어야 하고, Mermaid 블록은 진단·diff·grep을 어렵게 한다. (이 규약은 스킬 문서 한정이며, 사용자 프로젝트에 생성되는 산출 문서에는 적용되지 않는다.)
 - **절제**: ADR·글로서리 용어는 바를 넘을 때만 승급. 회고에서 나온 모든 걸 영속 문서로 밀어 넣지 않는다.
 
 ## 배포 규칙

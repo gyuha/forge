@@ -96,7 +96,7 @@ repo/
     ├── backlog/<slug>.md      # ① fg-ask grilling output — queue of unexecuted plans
     ├── plan.md                # active slot: source of truth for the current cycle (promoted from the backlog by fg-run)
     ├── run.md                 # ② fg-run output = plan vs actual
-    ├── STATUS.md              # active slot: fg-run writes this on finish (status: executed, retro: pending) — retro field later becomes a path or "skipped"
+    ├── STATUS.md              # active slot: fg-run writes this on finish (status: executed, verified: pending, retro: pending) — verified becomes yes/skipped/n/a (sealable) or failed (blocks), retro becomes a path or "skipped"
     ├── executed/<slug>/       # awaiting retro after "Run all" (plan+run+STATUS, no retro yet)
     └── done/<date-slug>/      # ④ fg-cleanup seal archive (plan+run+STATUS, status: done)
 ```
@@ -116,6 +116,7 @@ repo/
 - If an input file is missing, the skill points to the prior step.
 - If the active slot, backlog, and awaiting-retro queue are all empty = no work in progress. `fg-run` does not run on an empty state (re-run guard). Completion is determined by `done/*/STATUS.md` (status: done).
 - The retro can be **skipped** for a trivial, low-divergence task. fg-run offers it as an explicit choice at the handoff — never automatic, and never offered when the result diverged significantly from the plan (that is exactly when there is something to learn). Skipping records `retro: skipped` in STATUS.md, which fg-cleanup accepts as satisfying its no-seal-without-retro guard; no retro file is written. Retro stays the default ([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)).
+- The work carries a **recorded verification decision before it can be sealed**. The loop order is run → verify → learn → cleanup: right after execution, fg-run's conversational handoff runs a UAT against the plan's goal and records the outcome in STATUS.md `verified:` — `yes` (a human confirmed it works), `n/a (reason)` (nothing runnable to verify, e.g. a docs-only change), or `skipped (reason)` (a deliberate, auditable waiver). Two states **block** sealing: `pending` (the UAT hasn't happened — initial value or an interrupted handoff) and `failed (reason)` (the UAT ran and the result doesn't achieve the goal — routes to fix-and-re-run or re-grill, never to seal). fg-cleanup will not seal while `verified:` is a blocking value (the **no-seal-without-verification guard**), so nothing lands in `done/` without a recorded *sealable* decision. Note `skipped` **still seals** — it is an explicit waiver, not a confirmation (the same restraint as retro-skip); the gate's guarantee is "no silent omission," not "every task confirmed working" ([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md)). Tasks sealed before ADR-0009 predate the field and carry `verified: n/a (legacy pre-ADR-0009)`; a missing `verified:` in `done/` history means legacy data, not a gate failure.
 
 ## The two pillars
 

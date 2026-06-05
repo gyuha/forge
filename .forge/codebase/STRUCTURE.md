@@ -224,11 +224,12 @@ description: "..."
 1. **fg-ask**: `.forge/backlog/<slug>.md` 생성 (미실행 계획)
 2. **fg-run**: `backlog/<slug>.md` → `.forge/plan.md` 승격 (활성 슬롯)
 3. **fg-run**: `.forge/run.md` 기록 (실행 결과)
-4. **fg-run**: `.forge/STATUS.md` 기록 (`status: executed`)
-5. **[Run all 경우]**: plan/run/STATUS → `.forge/executed/<slug>/` 주차 (활성 슬롯 비움)
-6. **fg-learn**: 회고 기록 → `.forge/retro/YYYY-MM-DD-<slug>.md`
-7. **fg-cleanup**: plan/run/STATUS → `.forge/done/YYYY-MM-DD-<slug>/` 이동
-8. **fg-cleanup**: `.forge/plan.md` 삭제 (활성 슬롯 비움, 재실행 방지)
+4. **fg-run**: `.forge/STATUS.md` 기록 (`status: executed`, `verified: pending`)
+5. **fg-run (verify)**: 핸드오프 UAT로 `verified:`를 `yes`/`skipped`/`n/a`(봉인 가능) 또는 `failed`(차단)로 기록 — 순서 run → verify → learn → cleanup (ADR-0009)
+6. **[Run all 경우]**: 각 작업 UAT 후(sealable만) plan/run/STATUS → `.forge/executed/<slug>/` 주차 (활성 슬롯 비움); `failed`이면 주차 안 하고 active slot에 남겨 fix-and-re-run
+7. **fg-learn**: (verified가 sealable일 때만) 회고 기록 → `.forge/retro/YYYY-MM-DD-<slug>.md`
+8. **fg-cleanup**: (검증 가드 통과 후) plan/run/STATUS → `.forge/done/YYYY-MM-DD-<slug>/` 이동
+9. **fg-cleanup**: `.forge/plan.md` 삭제 (활성 슬롯 비움, 재실행 방지)
 
 ### 영속 문서의 이름 규칙
 

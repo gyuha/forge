@@ -19,6 +19,11 @@ Also consult the completion markers **`.forge/done/*/STATUS.md`** before picking
 
 Besides the active slot, **`.forge/executed/<slug>/`** (work parked by fg-run "Run all" that is awaiting retro, each carrying a `STATUS.md` with `status: executed`) is also an input — in this case plan/run are read **inside each `executed/<slug>/` directory**, not the active slot (when parked, the active slot is empty). Work whose retro is already done (a `.forge/retro/*-<slug>.md` exists) **or was intentionally skipped** (its `STATUS.md` carries `retro: skipped` — a trivial, low-divergence task fg-run let the user skip) is dropped from the candidates: a skipped task has already declared it has nothing to fold into the docs, so do not re-offer it here. Among the remaining candidates, if two or more remain, first ask "which work should we retro first," and retro **each work separately and conversationally** — do not lump multiple works into one retro. Each work's slug is taken from the `<!-- forge-slug: ... -->` comment on the first line of the plan and used verbatim in the retro filename (`.forge/retro/YYYY-MM-DD-<slug>.md`) — fg-cleanup judges retro completion by this slug.
 
+**Verification gate (run → verify → learn).** Before retroing a candidate, read its `STATUS.md` `verified:` field. A retro folds learnings into permanent docs, so retroing work that was never confirmed to achieve its goal risks promoting conclusions drawn from a broken result. The field gates the retro:
+- **`pending` or missing** → the UAT never happened. **Do not run the normal retro yet** — route by location: an **active-slot** task (`run.md` present) goes back to **fg-run's verification-only resume** (it runs the UAT and sets `verified:` without re-executing the workflow); a **parked `executed/<slug>` task or an older run predating the gate** has no reachable fg-run handoff (active slot empty), so guide the user to confirm the UAT now (the same recovery fg-cleanup offers) and record the outcome in its STATUS before retroing.
+- **`failed`** → the UAT ran and the result is broken. **Do not retro it** — there is no stable result to fold into docs. Route to **fg-run**, which is the single owner of unparking a failed task: for a parked `executed/<slug>` task it moves the files back to the active slot before fix-and-re-run (fg-learn does not move them itself — fg-run loads only the active slot/backlog, never `executed/`; see fg-run's "Failed parked-task recovery"), or re-grill via fg-ask. The task returns for retro only once a fresh run re-verifies to a sealable value.
+- **`yes` / `skipped (<reason>)` / `n/a (<reason>)`** → proceed with the retro. `skipped`/`n/a` are recorded verification decisions and do not block it.
+
 If the input files are missing, point to the prior step. If `run.md` is missing (and `executed/` is also empty), execution hasn't finished yet, so tell them to run `fg-run` first. If even `plan.md` is missing, guide them through the order `fg-ask` → `fg-run`. If the active `.forge/` is empty, it means there's no work in progress, so recommend opening new work with `fg-ask` first.
 
 ## Behavior
@@ -59,24 +64,24 @@ In the "Doc updates" field of the retro log, record what was promoted to where (
 
 The following diagram shows the learning classification and re-grilling branch at a glance.
 
-```mermaid
-flowchart TD
-    A[Read run.md · plan.md<br/>active slot or executed/slug/] --> B{Diverged a lot<br/>from the plan?}
-    B -- Yes --> R[Guide fg-ask re-grilling<br/>recommended before wrapping up]
-    B -- No --> C[Retro questions<br/>conversational]
-    C --> D{Classify learning}
-    D -- Domain-specific term --> E[Promote to CONTEXT.md<br/>after human confirmation]
-    D -- Hard to reverse · puzzling · trade-off --> F[Add ADR<br/>only if all three conditions met]
-    D -- All other learnings --> G[.forge/retro retro log]
-    E --> G
-    F --> G
-    G --> H[Guide fg-cleanup<br/>+ follow-up work candidates]
-
-    style R fill:#f9d6d6,stroke:#c0392b
-    style E fill:#d6e9f9,stroke:#2980b9
-    style F fill:#d6e9f9,stroke:#2980b9
-    style G fill:#d6f9e0,stroke:#27ae60
-    style H fill:#fdf2d0,stroke:#d4a017
+```
+Read run.md · plan.md (active slot or executed/<slug>/)
+   │
+   ▼
+Diverged a lot from the plan?
+   │ yes ──▶ Guide fg-ask re-grilling (recommended before wrapping up)
+   │ no
+   ▼
+Retro questions (conversational)
+   ▼
+Classify each learning (promote only past the bar, after human confirmation):
+   • domain-specific term ──▶ CONTEXT.md
+   • hard-to-reverse · puzzling · trade-off (all three) ──▶ new ADR
+   • everything else ──▶ no promotion
+   ▼
+.forge/retro/ retro log   (every learning lands here, promoted or not)
+   ▼
+Guide fg-cleanup + surface follow-up candidates
 ```
 
 ## Next-flow guidance (handoff)

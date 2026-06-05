@@ -15,15 +15,25 @@ This skill is self-contained and standalone. It depends on no external skills: i
 
 Cleanup is cumbersome to undo, and once you empty the state, the trace of the active task moves into the archive. So before starting, look at two things.
 
-First, check whether there is actually a task to tidy up. The targets are the **active slot** (`.forge/plan.md`/`run.md`) and the **awaiting-retro queue** (`.forge/executed/<slug>/` — the tasks parked by fg-run "Run all"). If both are absent or empty, it means there is no task in progress. In that case there is nothing to tidy up, so guide the user to start with `fg-ask` to begin a new task, and stop.
+First, check whether there is actually a task to tidy up. The targets are the **active slot** (`.forge/plan.md`/`run.md`) and the **awaiting-retro queue** (`.forge/executed/<slug>/` — the tasks parked by fg-run "Run all"). Stop **only when both are absent/empty** — note that "Run all" deliberately empties the active slot while leaving tasks in `executed/`, so an empty active slot alone does **not** mean "no work": parked tasks are still cleanup targets. When both are empty, there is nothing to tidy up, so guide the user to start with `fg-ask` to begin a new task, and stop.
 
 Also consult the existing completion markers `.forge/done/*/STATUS.md`: if a marker with the same slug already exists, this task has already been tidied up — surface it instead of double-sealing, and disambiguate the new archive directory name (`<date>-<slug>-2`) only when the user confirms it really is a separate cycle.
 
-Next, confirm **whether the retro is done or was intentionally skipped**, on a per-task basis. Tidying up without a retro means whatever was learned in that loop is lost forever — this is exactly why forge keeps the retro as a formal step of the loop. The decision rule is slug matching: for each task, the first line of the plan `<!-- forge-slug: <slug> -->` either must have a corresponding retro (`.forge/retro/*-<slug>.md`), **or** its `STATUS.md` must carry `retro: skipped` (the retro was deliberately skipped for a trivial, low-divergence task — see fg-run's handoff). Either one satisfies the guard. Do not tidy up a task that has neither; instead guide "first run a retro with `fg-learn`" — when there are several tasks in `executed/`, clean up only the ones whose retro is done or skipped and leave the rest. This is the **no-seal-without-retro guard**. If the user explicitly chooses to skip the retro here at cleanup time, record it the same way — set `retro: skipped (<one-line reason>)` in the STATUS.md as you close it out, so the skip is auditable rather than silent.
+Next, confirm **the work was verified** (the **no-seal-without-verification guard**). This guard comes **before** the retro guard below, matching the loop order run → verify → learn → cleanup. Sealing with no verification decision at all lets a silently-unchecked task land in `done/`; the gate forces a *recorded* decision rather than silent omission. The task's `STATUS.md` `verified:` field must be one of the **sealable** values: `yes` (a human confirmed it works) / `n/a (<reason>)` (nothing runnable to verify) / `skipped (<reason>)` (a deliberate, auditable waiver — note this **still seals**: it is an explicit waiver, not a confirmation, the same restraint as retro-skip). fg-run records this at its handoff UAT — see ADR-0009. If `verified:` is a **blocking** value (`pending`, `failed`, or missing), do not seal yet — handle by case:
+- **`pending` or missing, active slot with `run.md`** → point the user to fg-run's **verification-only resume** (it runs the UAT and writes `verified:` without re-executing the workflow). Do this before any retro.
+- **`pending` or missing, a parked `executed/<slug>` task or an older run predating this guard** → there is no reachable fg-run handoff (the active slot is empty), so confirm it **here, now**: run the UAT against the plan's goal and record the outcome in the STATUS. If it passes, record a sealable value (`yes` / `skipped (<reason>)` / `n/a (<reason>)`) and continue. **If this cleanup-time UAT finds the work broken, record `failed (<reason>)`, stop the cleanup, and route to repair** (fg-run fix-and-re-run or fg-ask re-grill) — do not seal and do not waive it to a sealable value. This is the recovery path for parked/older tasks, and it can land on `failed` just like the fg-run handoff.
+- **`failed`** (whether the task arrived `failed`, or the cleanup-time UAT just above recorded `failed`) → the work is broken. **Never seal it, never waive it through** — do not convert it to `skipped`. Stop the cleanup and route it back to execution via **fg-run**, which is the single owner of unparking a failed task (it moves `executed/<slug>/{plan,run,STATUS}` back to the active slot, then fix-and-re-run — see fg-run's "Failed parked-task recovery"; or re-grill via fg-ask). fg-cleanup does not move it itself — it just hands off. It returns for sealing only once a fresh fix-and-re-run re-verifies it to a sealable value (`yes`/`n/a`).
+
+Then, confirm **whether the retro is done or was intentionally skipped**, on a per-task basis. Tidying up without a retro means whatever was learned in that loop is lost forever — this is exactly why forge keeps the retro as a formal step of the loop. The decision rule is slug matching: for each task, the first line of the plan `<!-- forge-slug: <slug> -->` either must have a corresponding retro (`.forge/retro/*-<slug>.md`), **or** its `STATUS.md` must carry `retro: skipped` (the retro was deliberately skipped for a trivial, low-divergence task — see fg-run's handoff). Either one satisfies the guard. Do not tidy up a task that has neither; instead guide "first run a retro with `fg-learn`" — when there are several tasks in `executed/`, clean up only the ones whose retro is done or skipped and leave the rest. This is the **no-seal-without-retro guard**. If the user explicitly chooses to skip the retro here at cleanup time, record it the same way — set `retro: skipped (<one-line reason>)` in the STATUS.md as you close it out, so the skip is auditable rather than silent.
 
 ```
-Active .forge empty? ── yes ──▶ "No task in progress. Start fresh with fg-ask" → stop
-        │ no
+Active slot AND executed/ both empty? ── yes ──▶ "No task in progress. Start fresh with fg-ask" → stop
+        │ no (active slot or a parked executed/ task exists)
+        ▼
+Verified? (sealable = yes/skipped/n/a)
+        │ pending/missing ──▶ active slot: "fg-run verification-only resume" · parked/legacy: "confirm UAT here, now" → stop or recover
+        │ failed ──▶ "fix-and-re-run or re-grill via fg-ask — never seal a failed task" → stop
+        │ sealable (yes/skipped/n/a recorded)
         ▼
 Retro done or skipped? ── no ──▶ "First run a retro with fg-learn" → stop
         │ yes (retro file exists, or STATUS retro: skipped)
@@ -37,7 +47,7 @@ Cleanup proceeds in the order archive → empty → notify → close the loop. T
 
 **1) Tidy up·archive.** Move the task being tidied up into `.forge/done/<date-slug>/` — for the active slot, move `.forge/plan.md`/`run.md` (and `.forge/STATUS.md`); for the awaiting-retro queue, move the whole `.forge/executed/<slug>/` directory (which already carries its `STATUS.md`). The slug is taken from the `forge-slug` comment on the first line of the plan and paired with the retro file under the same rule (`YYYY-MM-DD-slug`). The unit of cleanup is still one task — when there are several tasks in `executed/`, clean up each into its own separate `done/` directory.
 
-The status marker **`STATUS.md`** was already written by fg-run with `status: executed` (and `retro: pending`, or `retro: skipped (<reason>)` if the retro was skipped at the handoff). Cleanup does not create a new marker — it **closes out the existing one**: flip `status:` to `done` and fill in the `completed` / `retro` / `docs updated` fields, then archive it alongside `plan.md`/`run.md`. The `retro:` field becomes the retro path when a retro was done, or stays `skipped (<reason>)` when it was skipped. (If the STATUS.md is missing — e.g. an older run that predates this lifecycle — create it now for backward compatibility.) The closed-out content is minimal and fixed (written in the user's language):
+The status marker **`STATUS.md`** was already written by fg-run with `status: executed` (and `retro: pending`, or `retro: skipped (<reason>)` if the retro was skipped at the handoff). Cleanup does not create a new marker — it **closes out the existing one**: flip `status:` to `done` and fill in the `completed` / `verified` / `retro` / `docs updated` fields, then archive it alongside `plan.md`/`run.md`. The `verified:` field carries the UAT outcome fg-run recorded (`yes` / `skipped (<reason>)` / `n/a (<reason>)`); the `retro:` field becomes the retro path when a retro was done, or stays `skipped (<reason>)` when it was skipped. (If the STATUS.md is missing — e.g. an older run that predates this lifecycle — create it now for backward compatibility.) The closed-out content is minimal and fixed (written in the user's language):
 
 ```md
 # STATUS — {task title}
@@ -45,6 +55,7 @@ The status marker **`STATUS.md`** was already written by fg-run with `status: ex
 - status: done
 - executed: {YYYY-MM-DD}
 - completed: {YYYY-MM-DD}
+- verified: yes   # or: skipped (<reason>) / n/a (<reason>)
 - retro: .forge/retro/{YYYY-MM-DD}-{slug}.md   # or: skipped (<reason>)
 - docs updated: {CONTEXT.md terms / ADR-NNNN / none}
 ```
@@ -59,23 +70,32 @@ For reference, `.forge/` is gitignored, volatile state and is not tracked. The p
 
 **4) Close the loop.** If `fg-learn` left a follow-up, ask whether to start it as a **new task**. This is not resuming the task you just closed — that task is sealed — but opening a new loop starting from `fg-ask`. If there is no follow-up, finish here.
 
-```mermaid
-flowchart TD
-    A[Start cleanup] --> P{Active .forge empty?}
-    P -- yes --> PN[No task in progress<br/>guide to fg-ask] --> STOP1([stop])
-    P -- no --> R{Retro done<br/>or skipped?}
-    R -- no --> RN[guide to retro first<br/>with fg-learn] --> STOP2([stop])
-    R -- "yes (retro file<br/>or retro: skipped)" --> ARCH[Archive + close STATUS.md<br/>.forge/done/date-slug/]
-    ARCH --> CLEAR[Empty active .forge<br/>= block re-run]
-    CLEAR --> NOTI[Completion notice<br/>summary of updated docs]
-    NOTI --> LOOP{Follow-up exists?}
-    LOOP -- yes --> ASK[Propose starting<br/>fg-ask as a new task] --> STOP3([end])
-    LOOP -- no --> STOP4([end])
-
-    style ARCH fill:#cfe8cf,stroke:#2e7d32
-    style CLEAR fill:#ffe0b2,stroke:#e65100
-    style PN fill:#f8d7da,stroke:#c62828
-    style RN fill:#f8d7da,stroke:#c62828
+```
+Start cleanup
+   │
+   ▼
+Active slot AND executed/ both empty?
+   │ yes ──▶ "No task in progress" → guide to fg-ask → stop
+   │ no (active slot, or a parked executed/ task)
+   ▼
+Verified? (STATUS verified state)
+   │ pending/missing ──▶ active: fg-run verification-only resume · parked/legacy: confirm UAT here → stop or recover
+   │ failed ──▶ fix-and-re-run or re-grill via fg-ask (never seal a failed task) → stop
+   │ sealable (yes/skipped/n/a)
+   ▼
+Retro done or skipped?
+   │ no ──▶ guide to retro first with fg-learn → stop
+   │ yes (retro file exists, or retro: skipped)
+   ▼
+Archive + close STATUS.md → .forge/done/<date-slug>/
+   ▼
+Empty active .forge  (= block re-run)
+   ▼
+Completion notice (summary of updated docs)
+   ▼
+Follow-up exists?
+   │ yes ──▶ propose starting fg-ask as a new task → end
+   │ no  ──▶ end
 ```
 
 ## Wrap-up: guide the next flow

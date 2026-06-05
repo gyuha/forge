@@ -17,9 +17,9 @@ The second turn of the forge loop. It takes the `.forge/plan.md` that fg-ask ref
 
 A workflow spins up many subagents, so it burns a lot of tokens. Running the same plan twice by mistake is costly and has side effects (duplicate commits, duplicate migrations, etc.). So before entering execution, check the state first, and when the backlog holds several tasks, the user picks what to run.
 
-**1) Check the active slot.** If `.forge/plan.md` (the active slot) already exists, there is a task in progress — skip the backlog and go straight to the re-run guard below (only one task is active at a time).
+**1) Check the active slot.** If `.forge/plan.md` (the active slot) already exists, there is a task in progress — skip the backlog and go straight to step 4 below (only one task is active at a time). Step 4 first separates an **interrupted UAT** (verification-only resume, no re-execution) from a genuine **re-run** before doing anything destructive.
 
-**2) If the active slot is empty, scan the backlog.** Gather unfinished candidates from `.forge/backlog/*.md` (= plans with no matching slug seal in `.forge/done/` — a seal is a `done/<date-slug>/STATUS.md` marker with `status: done`, written when fg-cleanup archives the task). Before presenting anything, give the user a one-line status summary derived from the file layout: "done X (from `done/*/STATUS.md` with `status: done`) · awaiting retro Y (`executed/`, `status: executed`) · unexecuted Z (`backlog/`)" — so they see at a glance what has finished and what remains. Read each STATUS.md's `status` field to confirm the count (done = `done/*/STATUS.md` at `status: done`). Then, depending on the candidate count:
+**2) If the active slot is empty, FIRST check for a parked failure, THEN scan the backlog.** Before counting backlog candidates, scan `.forge/executed/*/STATUS.md` for `verified: failed` — a parked task whose UAT failed and is awaiting repair (fg-status/fg-learn/fg-cleanup all route such tasks here, and fg-run is the only stage that can recover them). **If one or more exists, surface it as the top recovery candidate ahead of any new backlog work** — a known-broken task shouldn't be stranded while new work starts. Offer to recover it now via the unpark procedure in step 5 (unpark → step 4's `verified: failed` branch → fix-and-re-run, or re-grill via fg-ask). Only when there is no failed parked task, or the user explicitly declines recovery to start something else, proceed to the backlog scan. Then gather unfinished candidates from `.forge/backlog/*.md` (= plans with no matching slug seal in `.forge/done/` — a seal is a `done/<date-slug>/STATUS.md` marker with `status: done`, written when fg-cleanup archives the task). Before presenting anything, give the user a one-line status summary derived from the file layout: "done X (from `done/*/STATUS.md` with `status: done`) · awaiting retro Y (`executed/`, `status: executed`) · unexecuted Z (`backlog/`)" — so they see at a glance what has finished and what remains. Read each STATUS.md's `status` field to confirm the count (done = `done/*/STATUS.md` at `status: done`). Then, depending on the candidate count:
 
 - **0** — There is no plan to execute. Point to fg-ask and stop (the stage that defines the task, grills it, and produces a plan). Do not guess a plan into existence and run it.
 - **1** — **No menu, no confirmation question: promote and run it right away.** Announce in one line what is being run ("Running the only unexecuted plan from fg-ask: <title>") and proceed — the orchestration-script approval in step 2 of the main body still gates the actual workflow, so this skips only the redundant pre-confirmation.
@@ -29,30 +29,35 @@ A workflow spins up many subagents, so it burns a lot of tokens. Running the sam
 
 **3) Promotion and ADR check.** Move (promote) the chosen backlog file to `.forge/plan.md` — from this point it is in the normal starting state of "active plan present, no run," and joins the main body below. Right before starting, check that the `.forge/adr/NNNN-*` referenced by the plan's "Source of truth" actually exists — if not, it is a stale-plan signal, so warn and ask once: "shall I supplement it via fg-ask, or proceed as is?" (this does not block).
 
-**4) Re-run guard.** **If `.forge/run.md` already exists**, this plan has run once. Before running it again, announce the duplicate run and get user confirmation. Distinguish whether the user wants to "continue/retry" or merely wants to see the results. Do not overwrite without confirmation. However, **if this is a re-run after plan.md was updated through an fg-ask re-grilling, this warning is the normal path** — once the user approves, proceed with the updated plan and write a fresh `run.md`.
+**4) Re-run guard — but first, the verification-resume check.** **If `.forge/run.md` already exists**, the plan has run once. Before treating this as a re-run, read STATUS `verified:`, because the two cases need opposite handling:
 
-```mermaid
-flowchart TD
-    A[fg-run start] --> S{Active slot<br/>.forge/plan.md present?}
-    S -- yes --> D{.forge/run.md already present?}
-    S -- no --> BL[Scan .forge/backlog/<br/>collect unfinished candidates]
-    BL --> N{Candidate count}
-    N -- 0 --> C[Stop execution<br/>point to fg-ask]
-    N -- 1 --> P[Run right away, no confirm<br/>Promote: backlog → plan.md<br/>+ verify ADR exists]
-    N -- 2+ --> M[AskUserQuestion guide dialog<br/>last: Run all]
-    M -- single choice --> P
-    M -- Run all --> ALL[Run-all procedure<br/>see section below]
-    P --> F
-    D -- yes --> E[Duplicate-run warning<br/>await user confirmation]
-    E -- re-run approved --> F
-    E -- cancel --> C
-    D -- no --> F[Normal start: build the workflow]
+- **`verified: pending` or missing** → the run finished but its handoff UAT was never completed (e.g. the session ended before verification). This is **not a re-run** — take the **verification-only resume**: read `plan.md`/`run.md`/`STATUS.md`, run the UAT against the plan's goal (see "Verify before handing off (UAT)"), write the outcome into STATUS `verified:`. **Then branch on that outcome**: a sealable result (`yes`/`skipped`/`n/a`) hands off to fg-learn; a `failed` result stops here and routes to fix-and-re-run or re-grill (it must **never** reach fg-learn). **Do not rebuild or re-execute the workflow** during the resume itself — no new subagents, no duplicate commits/migrations/side effects.
+- **`verified: failed`** → the UAT already ran and found the result broken. This is **not** a confirmation re-run: either apply a fix and then deliberately re-run (a genuine re-run — write a fresh `run.md` and re-verify), or re-grill via fg-ask to rework the plan. Do not silently re-execute, and do not treat it as an interrupted UAT to merely re-confirm.
+- **`verified:` is a sealable value** (`yes`/`skipped`/`n/a`) → the run was already verified, so this is a genuine duplicate-run request. Announce the duplicate run and get user confirmation. Distinguish whether the user wants to "continue/retry" or merely wants to see the results. Do not overwrite without confirmation. However, **if this is a re-run after plan.md was updated through an fg-ask re-grilling, this warning is the normal path** — once the user approves, proceed with the updated plan and write a fresh `run.md`.
 
-    style C fill:#f8d7da,stroke:#c0392b
-    style E fill:#fff3cd,stroke:#e0a800
-    style M fill:#d6e9f9,stroke:#2980b9
-    style ALL fill:#e8d6f9,stroke:#8e44ad
-    style F fill:#d4edda,stroke:#28a745
+**5) Failed parked-task recovery (unpark).** fg-run is the **single owner** of returning a `failed` task to execution, because it is the only stage that runs work — fg-learn and fg-cleanup both *block* `failed`, and fg-run otherwise reaches only the active slot/backlog, never `executed/`. So if a parked `.forge/executed/<slug>/STATUS.md` carries `verified: failed` (a Run-all task that failed its UAT, or one a cleanup/learn recovery marked failed), **unpark it before working on it**: ensure the active slot is free (only one active task at a time — resolve any active task first), move `executed/<slug>/{plan,run,STATUS}` → `.forge/{plan,run,STATUS}.md`, then enter step 4 above (its `verified: failed` branch routes to fix-and-re-run, or re-grill via fg-ask). This is the documented exit from a parked failure; fg-learn/fg-cleanup/fg-status point here for it.
+
+```
+fg-run start
+   │
+   ▼
+Active slot (.forge/plan.md) present?
+   │ yes ──▶ run.md present?
+   │            │ no  ──▶ Normal start: build the workflow
+   │            │ yes ──▶ read STATUS verified:  (re-run guard, step 4)
+   │                        • pending/missing ──▶ Verification-only resume (run UAT, set verified, NO re-execution)
+   │                        │                       └─ UAT outcome:  sealable (yes/skipped/n/a) ──▶ hand off to fg-learn
+   │                        │                                        failed ──▶ fix-and-re-run / re-grill (never fg-learn)
+   │                        • failed ──▶ fix-and-re-run, or re-grill via fg-ask (no silent re-exec)
+   │                        • sealable (yes/skipped/n/a) ──▶ Duplicate-run warning
+   │                                                           └─ approved ──▶ build workflow │ cancel ──▶ stop, point to fg-ask
+   │ no  ──▶ executed/ has a verified: failed task?  (step 2, before backlog)
+   │            │ yes ──▶ Unpark to active slot ──▶ step 4 failed branch (fix-and-re-run / re-grill)
+   │            │ no (or user declines) ──▶ Scan .forge/backlog/ → candidate count:
+   │                                          • 0  ──▶ stop, point to fg-ask
+   │                                          • 1  ──▶ promote backlog→plan.md (+ verify ADR exists) ──▶ build workflow
+   │                                          • 2+ ──▶ AskUserQuestion menu (last option: Run all)
+   │                                                     └─ single choice ──▶ build workflow │ Run all ──▶ Run-all procedure
 ```
 
 ## Behavior
@@ -86,23 +91,27 @@ Right after writing `run.md`, write a companion `STATUS.md` (in the user's langu
 slug: {slug}
 status: executed
 executed: {YYYY-MM-DD}
+verified: pending
 retro: pending
 ```
 
-The `retro:` field tracks the retro state of this task: `pending` at execution time, later either the retro path (`.forge/retro/YYYY-MM-DD-<slug>.md`, filled by fg-cleanup when sealing a retro'd task) or `skipped (<reason>)` when the retro was intentionally skipped (see the handoff below). fg-learn reads `status: executed` to confirm a parked task is awaiting retro, and skips a task already marked `retro: skipped`; fg-cleanup later flips `status` to `done` and archives plan/run/STATUS together, accepting either a retro file or `retro: skipped` as satisfying its no-seal-without-retro guard. (For the "Run all" path, the STATUS.md is written into the per-task `executed/<slug>/` folder — see that section.)
+The `retro:` field tracks the retro state of this task: `pending` at execution time, later either the retro path (`.forge/retro/YYYY-MM-DD-<slug>.md`, filled by fg-cleanup when sealing a retro'd task) or `skipped (<reason>)` when the retro was intentionally skipped (see the handoff below). fg-learn reads `status: executed` to confirm a parked task is awaiting retro, and skips a task already marked `retro: skipped`; fg-cleanup later flips `status` to `done` and archives plan/run/STATUS together, accepting either a retro file or `retro: skipped` as satisfying its no-seal-without-retro guard. (The "Run all" path writes this STATUS to the active slot during execution+UAT too, then moves it into the per-task `executed/<slug>/` folder only on a sealable outcome — see that section.)
 
-Flow: build the workflow → approve the script → background parallel execution → cross-verify against the plan → record `.forge/run.md` → write `.forge/STATUS.md` (status: executed)
+Flow: build the workflow → approve the script → background parallel execution → cross-verify against the plan → record `.forge/run.md` → write `.forge/STATUS.md` (status: executed) → **run the handoff UAT and set `verified:`** (see "Verify before handing off") → only then offer fg-learn
 
 ## "Run all" — execute-only batch
 
 If you pick "Run all" from the selection menu, the backlog's unfinished plans are **executed only, in sequence**. Retro and sealing are not auto-inserted — fg-learn is always conversational, and barreling past it just piles up un-retro'd heaps with nothing learned. Run all is not unattended automation; it is a declaration of "I'll do the execute stage in one batch."
 
 1. **Confirm the order.** Snapshot and freeze the current N unfinished candidates, and show the user the execution order once (default: **priority order** — `high → medium → low`, no marker = `medium`, ties by slug alphabetical, same as the selection menu) — "shall I run them in this order? If there are dependencies between tasks, reorder now."
-2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md` → write `STATUS.md` at `status: executed`) → without sealing, **move plan+run+STATUS to `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted. In this batch path write the `STATUS.md` directly into `.forge/executed/<slug>/` alongside plan+run (not into the active slot), since each task parks immediately.
+2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md` → write **`.forge/STATUS.md` (the active slot)** at `status: executed` → **UAT-verify the result against the plan's goal and record the outcome in `verified:`**, see "Verify before handing off (UAT)") → **branch on the UAT outcome**. **STATUS location is single and state-dependent**: during execution+UAT it always lives in the active slot (`.forge/STATUS.md`); it moves to `executed/` only on a sealable outcome.
+   - **sealable (`yes`/`skipped`/`n/a`)** → without sealing, **move plan+run+STATUS together from the active slot into `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted.
+   - **`failed`** → **do not park, and do not create an `executed/<slug>` entry.** Leave plan+run+STATUS in the **active slot** (STATUS is already there from the execution step, carrying `verified: failed`) and stop the batch (step 3), so fg-run's §4 re-entry reliably sees the active-slot `verified: failed` and routes to fix-and-re-run or re-grill. Parking a `failed` task would strand it — fg-learn and fg-cleanup both block `failed`, and an empty active slot puts it out of fg-run's reach.
+   - **Verification is part of finishing execute — it is not deferred like retro.** Run all defers only retro and sealing (memory can cool for reflection); but each task is UAT-verified before it parks, so a parked task never carries `verified: pending` or `failed` — only sealable outcomes get parked. For a docs-only task the outcome is `n/a (<reason>)`, which is quick and does not stall the batch.
    - `executed/` is the explicit expression of the intermediate state "executed but not yet retro'd." Putting an un-retro'd task into `done/` would bypass fg-cleanup's no-seal-without-retro guard, so never send it to `done/` before the retro.
    - Each task gets its own run. Do not merge several tasks into one run.
-3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-run's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state.
-4. **Handoff.** When everything is done, point: "I ran all N, and each has plan+run+STATUS (status: executed) in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
+3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-run's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state. **A `verified: failed` UAT counts as a failure here** (per step 2's branch): i stays in the active slot — not `executed/` — so fg-run's §4 re-entry can route it to fix-and-re-run or re-grill.
+4. **Handoff.** When everything is done, point: "I ran and verified all N, and each has plan+run+STATUS (status: executed, with `verified:` recorded) in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
 
 ## Constraints
 
@@ -111,9 +120,25 @@ If you pick "Run all" from the selection menu, the backlog's unfinished plans ar
 - **If the job will recur**, save the execution script as a `/command` (slash command) for reuse.
 - Environment requirements: research preview · Claude Code v2.1.154+ · paid plan.
 
+## Verify before handing off (UAT)
+
+After execution and before pointing to fg-learn, **verify the result actually works** — plan-verification (§3) confirmed "we built what the plan said"; this confirms "it actually achieves the goal." The Dynamic Workflow can't take human input mid-run, but this handoff is conversational, so do the UAT here: against the plan's **goal / Definition of Done**, show what to check and ask the human to confirm it works (or report what's off). Record the outcome in the active-slot `.forge/STATUS.md` `verified:` (the "Run all" path also writes to the active-slot STATUS during UAT, then moves plan/run/STATUS to `.forge/executed/<slug>/` only on a sealable outcome — see that section):
+
+Sealable outcomes:
+- **`yes`** — the human confirmed it works (or, in TDD mode, the slice tests pass and cover the criteria — passing tests are evidence for `yes`).
+- **`skipped (<reason>)`** — verifiable but the user chose to skip (a deliberate, auditable waiver).
+- **`n/a (<reason>)`** — nothing runnable to verify (e.g. a docs-only change — many of forge's own tasks).
+
+Non-sealing outcome:
+- **`failed (<reason>)`** — the UAT ran and the result does **not** achieve the goal. This is distinct from `pending` (which means the UAT never happened): `failed` records that verification was done and the work is broken. Write it so the state is durable and recovery is unambiguous — do not leave it as `pending` (that would look like an interrupted handoff) and do not paper over it with a `skipped` waiver. A `failed` task does not go to fg-learn or seal; route it to a fix-in-follow-up (then re-run → fresh `run.md` → re-verify) or re-grill via fg-ask. **A known-`failed` result has no waiver that seals it** — do not convert it to `skipped` to slip it through. It becomes sealable only when a fresh fix-and-re-run re-verifies it to `yes` or `n/a`.
+
+fg-cleanup will not seal unless `verified:` is one of the **sealable** outcomes (`yes`/`skipped`/`n/a`) — `pending` and `failed` both block (no-seal-without-verification guard).
+
 ## Next-flow handoff
 
-When execution finishes, convey the following three in a conversational tone. (Do not stamp out a form mechanically.)
+When execution finishes, convey the following in a conversational tone. (Do not stamp out a form mechanically.)
+
+**0. Verify first (mandatory gate).** Before offering the retro, complete the UAT above and record `verified:` (`yes`/`skipped`/`n/a`) in STATUS. **Do not route to fg-learn while `verified:` is still `pending`** — the loop order is run → verify → learn → cleanup. Only once `verified:` is set do you proceed to the three points below.
 
 1. **What I just did** — summarize in one line what the workflow changed, and that the divergences from the plan were written to `.forge/run.md`.
 2. **Next step** — next is fg-learn, the stage that folds the lessons surfaced in execution into permanent docs (CONTEXT.md, ADR, retro); right after execution is the right time, while memory is fresh.

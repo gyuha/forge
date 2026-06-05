@@ -68,7 +68,7 @@ fg-cleanup(④Cleanup·재실행 방지)
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run | 미실행 계획의 대기열. 여러 계획이 쌓일 수 있음 |
 | `.forge/plan.md` (활성 슬롯) | fg-run | fg-run, fg-learn | 현재 실행 중인 계획. 한 번에 하나만 존재 (활성 슬롯 불변성) |
 | `.forge/run.md` | fg-run | fg-learn, fg-cleanup | 실행 결과. 계획 vs 실제 차이 기록 |
-| `.forge/STATUS.md` (활성 슬롯) | fg-run | fg-learn, fg-cleanup | 상태 마커. `status: executed`, `retro: pending/skipped/<path>` 기록 |
+| `.forge/STATUS.md` (활성 슬롯) | fg-run | fg-learn, fg-cleanup | 상태 마커. `status: executed`, `verified: pending/yes/skipped/n/a/failed`, `retro: pending/skipped/<path>` 기록. `verified`는 봉인 게이트(ADR-0009): 봉인 가능 `yes`/`skipped`/`n/a`, 차단 `pending`/`failed` |
 | `.forge/executed/<slug>/` | fg-run (Run all) | fg-learn, fg-cleanup | "Run all" 배치 실행 시 각 작업을 임시 주차. plan/run/STATUS 동반 |
 | `.forge/done/<date-slug>/` | fg-cleanup | (아카이브) | 완료된 작업의 봉인 아카이브. plan/run/STATUS(`status: done`) 포함 |
 
@@ -117,9 +117,10 @@ fg-cleanup(④Cleanup·재실행 방지)
 
 ### fg-run의 재실행 방지 (re-run guard)
 
-1. **활성 슬롯 존재 확인**: `.forge/plan.md` 있으면 이미 진행 중
-2. **백로그 스캔**: `.forge/backlog/` 내 완료 판별 — 각 계획의 slug가 `.forge/done/*/STATUS.md` (`status: done`)에 매칭되면 완료로 간주
-3. **백로그 후보 개수에 따른 분기**:
+1. **활성 슬롯 존재 확인**: `.forge/plan.md` 있으면 이미 진행 중 → run.md가 있으면 `verified:`로 분기(re-run guard): `pending`/누락=검증 전용 재진입(재실행 없이 UAT), `failed`=fix-and-re-run/재그릴, sealable=중복 실행 경고
+2. **parked-failed 회수 (백로그 이전)**: 활성 슬롯이 비면, 백로그를 세기 전에 먼저 `.forge/executed/*/STATUS.md`의 `verified: failed`를 스캔. 있으면 새 백로그 작업보다 우선 — unpark(executed/→active slot) 후 fix-and-re-run. fg-run이 unpark의 단일 소유자(fg-learn/cleanup은 `failed` 차단, fg-run은 active slot/backlog만 도달)
+3. **백로그 스캔**: `.forge/backlog/` 내 완료 판별 — 각 계획의 slug가 `.forge/done/*/STATUS.md` (`status: done`)에 매칭되면 완료로 간주
+4. **백로그 후보 개수에 따른 분기**:
    - 0개: 실행할 계획 없음 → fg-ask 가리키고 중단
    - 1개: 바로 실행 (확인 질문 생략, 승격 후 실행)
    - 2개 이상: 선택 메뉴 표시 + "Run all" 옵션 제시
@@ -128,10 +129,11 @@ fg-cleanup(④Cleanup·재실행 방지)
 
 활성 슬롯을 비움으로써 구조적으로 방지:
 
-1. **활성 `.forge/` 확인**: plan.md/run.md/STATUS.md 없으면 진행 중 작업 없음 (멈춤)
-2. **회고 가드 확인**: 각 작업에 대해 retro 파일이 존재하거나 STATUS.md에 `retro: skipped`로 기록되어야 진행 (없으면 fg-learn 가리킴)
-3. **봉인·아카이빙**: plan/run/STATUS를 `.forge/done/<date-slug>/`로 이동
-4. **활성 상태 비우기**: 남겨진 임시 파일 확인 및 삭제. 이 시점에서 `.forge/plan.md` 사라짐 → fg-run이 다음에 실행할 계획이 없음
+1. **작업 존재 확인**: 활성 슬롯(plan.md/run.md/STATUS.md) **그리고** `.forge/executed/`(Run all 파킹 작업)이 **둘 다** 비었을 때만 진행 중 작업 없음으로 보고 멈춘다. Run all은 활성 슬롯을 비우면서 `executed/`에 작업을 남기므로, 활성 슬롯만 비었다고 "작업 없음"이 아니다 — 파킹 작업도 정리 대상
+2. **검증 가드 확인 (no-seal-without-verification, ADR-0009)**: STATUS.md `verified:`가 봉인 가능 값(`yes`/`skipped`/`n/a`)이어야 진행. `pending`/누락이면 fg-run 검증 전용 재진입(또는 parked/legacy는 봉인 시점 확인)으로, `failed`이면 수정·재실행/재그릴로 가리킴. **회고 가드보다 먼저** 검사(루프 순서 run→verify→learn→cleanup)
+3. **회고 가드 확인**: 각 작업에 대해 retro 파일이 존재하거나 STATUS.md에 `retro: skipped`로 기록되어야 진행 (없으면 fg-learn 가리킴)
+4. **봉인·아카이빙**: plan/run/STATUS를 `.forge/done/<date-slug>/`로 이동
+5. **활성 상태 비우기**: 남겨진 임시 파일 확인 및 삭제. 이 시점에서 `.forge/plan.md` 사라짐 → fg-run이 다음에 실행할 계획이 없음
 
 ## STATUS.md 상태 마커
 
@@ -143,6 +145,7 @@ slug: settlement-payout-split
 status: executed                    # executed → done (fg-cleanup이 변경)
 executed: 2026-06-04
 completed: —                        # fg-cleanup이 채움
+verified: pending                   # pending/failed=차단, yes/skipped/n/a=봉인 가능 (fg-run UAT 기록, ADR-0009)
 retro: pending                      # pending → .forge/retro/path or skipped
 docs updated: CONTEXT.md, ADR-0001  # fg-cleanup이 채움
 ```
@@ -150,7 +153,7 @@ docs updated: CONTEXT.md, ADR-0001  # fg-cleanup이 채움
 **역할**:
 - **원천**: 파일 위치가 상태의 진실의 원천. STATUS.md는 수반 마커일 뿐
 - **이동**: plan/run/STATUS는 함께 backlog → plan.md (활성) → executed/ 또는 done/로 이동
-- **조회**: fg-run은 `done/*/STATUS.md`를 읽어 완료된 작업을 판별. fg-cleanup은 `retro:` 필드로 회고 완료 여부 확인
+- **조회**: fg-run은 `done/*/STATUS.md`를 읽어 완료된 작업을 판별. fg-cleanup은 `verified:` 필드로 검증 게이트를, `retro:` 필드로 회고 완료 여부를 확인 (검증 → 회고 순)
 
 ## 회고 건너뛰기 (ADR-0002)
 
