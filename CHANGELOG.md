@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.3] - 2026-06-07
+
+### Fixed
+- README(양 언어) 헤더가 루프 밖 스킬을 `fg-map` 하나만 세어 표·본문과 모순되던 것을 정정 — "nine fg-* skills — four loop + five utilities(`fg-map`·`fg-quick`·`fg-status`·`fg-next`·`fg-tdd`)".
+
 ## [0.3.2] - 2026-06-07
 
 ### Added
