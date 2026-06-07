@@ -90,7 +90,7 @@ State the next step as a one-liner: `👉 Next: <skill> — <trigger>` (rendered
 
 ## Handoff
 
-There is no loop handoff — fg-status is self-contained and read-only. End with the `👉 Next` line so the user knows where they stand. If they want to act on it, they trigger the named skill themselves (or you ask once, then invoke only on agreement).
+There is no loop handoff — fg-status is self-contained and read-only. End with the `👉 Next` line so the user knows where they stand. If they want to act on it, they trigger the named skill themselves — or run `fg-next`, the acting sibling, which derives that same next step and runs it after one confirmation (or you ask once, then invoke only on agreement).
 
 ## Document impact
 

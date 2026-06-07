@@ -19,6 +19,7 @@ forge는 지금까지 **회고 완료**면 봉인했지(no-seal-without-retro), 
 - **새 루프 단계 없음** — code-review·TDD와 같은 이유로 fg-run/fg-cleanup에 흡수(4단계 보존).
 - **건너뛰기 허용(사유 기록)** — retro-skip과 동일한 절제·정직 패턴. 강제하지 않되 감사 가능.
 - **TDD 시너지** — tdd on이면 통과한 테스트가 `verified: yes`의 근거가 된다(중복 수작업 회피).
+- **증거-우선 `yes` (보강).** `yes`는 단순 통과 표시가 아니라 **어떻게 확인했는지를 한 줄 증거로 동반**한다(돌린 명령·관찰한 출력, 예: `yes (npm test → 42 passing)`) — `n/a (사유)`·`skipped (사유)`와 동형. "사람이 그렇다고 했다"에만 기대지 않고 실제로 무엇을 확인했는지를 남겨, superpowers `verification-before-completion`의 "증거 먼저, 주장은 그 위에서" 규율을 흡수한다. TDD 모드에선 통과한 슬라이스 테스트가 곧 그 한 줄 증거다. **트레이드오프**: 전면 명령-출력 덤프가 아니라 **한 줄 경량**을 택한다 — 덤프는 인플레이션·소음이 되고, 한 줄이면 "주장만 적힌 yes"를 막기에 충분하다. `n/a`·`skipped`·`failed`는 그대로다(`n/a`는 댈 증거가 없고, `skipped`는 사유가 핵심, `failed (사유)`는 이미 "어떻게 깨졌나"를 포함).
 
 ## Legacy(이전 봉인 작업)
 이 게이트 도입 전 `done/`에 봉인된 작업은 `verified:` 필드가 없다. 이들은 `verified: n/a (legacy pre-ADR-0009)`로 백필한다. 따라서 `done/` 이력에서 `verified:` 누락 = 게이트 실패가 아니라 legacy 데이터다(fg-status도 done의 `—`를 legacy로 해석). 활성/파킹 작업의 `pending`/누락과는 의미가 다르다.
