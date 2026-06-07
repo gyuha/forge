@@ -1,7 +1,7 @@
 # forge
 
 > A development loop that takes one task through a single cycle of **ask·plan → execute → retro → cleanup**.
-> A loop-style workflow plugin built from `fg-`-prefixed Claude Code skills — four that form the loop, plus the `fg-map` utility outside it.
+> A loop-style workflow plugin built from nine `fg-`-prefixed Claude Code skills — four that form the loop, plus five utilities outside it (`fg-map`, `fg-quick`, `fg-status`, `fg-next`, `fg-tdd`).
 
 [한국어](./README.ko.md)
 

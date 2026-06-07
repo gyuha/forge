@@ -1,7 +1,7 @@
 # forge
 
 > 작업 하나를 **질의·계획 → 실행 → 회고 → 정리**의 한 바퀴로 돌리는 개발 루프.
-> `fg-` 프리픽스 Claude Code 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 `fg-map`.
+> 9개의 `fg-` 프리픽스 Claude Code 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 5개(`fg-map`·`fg-quick`·`fg-status`·`fg-next`·`fg-tdd`).
 
 [English](./README.md)
 
