@@ -5,16 +5,18 @@ description: A lightweight lane outside the forge loop for trivial tasks (typo f
 
 # fg-quick — lightweight lane (outside the loop)
 
-This is **not** a stage of the forge loop. It is a side lane for genuinely small, low-risk tasks where the full loop (fg-ask → fg-run → fg-learn → fg-cleanup, with its plan/ADR/run/STATUS/retro artifacts) is pure ceremony. fg-quick keeps the one pillar that makes forge forge — **grilling is conversational** — but deliberately drops the formal-artifact pillar for trivial work, recording a single line to a log instead. See `.forge/adr/0003-fg-quick-lightweight-lane.md` for the decision and its trade-off.
+This is **not** a stage of the forge loop. It is a side lane for genuinely small, low-risk tasks where the full loop (fg-ask → fg-run → fg-learn → fg-done, with its plan/ADR/run/STATUS/retro artifacts) is pure ceremony. fg-quick keeps the one pillar that makes forge forge — **grilling is conversational** — but deliberately drops the formal-artifact pillar for trivial work, recording a single line to a log instead. See `.forge/adr/0003-fg-quick-lightweight-lane.md` for the decision and its trade-off.
 
 **Language**: This skill file is authored in English, but always converse with the user in the user's language. The LOG entry and any handoff are written in the user's language.
+
+**Forge root**: the `.forge/quick/LOG.md` path is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before logging (ADR-0011).
 
 ## What fg-quick is (and is not)
 
 - **It still grills** — but lightly. A question or two at most, and only when the codebase can't answer it. It is a live conversation, never a workflow (Pillar 1 holds).
 - **It produces no formal artifacts** — no ADR, no `.forge/backlog/` plan, no `.forge/plan.md` / `run.md` / `STATUS.md`, no retro. The only trace is one line in `.forge/quick/LOG.md`.
 - **It is isolated from the main loop.** fg-quick never reads or writes the formal active slot (`.forge/plan.md` / `run.md` / `STATUS.md`), the backlog, or `.forge/done/`. A formal task can be mid-flight and a quick task runs independently in its own lane.
-- **It is self-contained.** One invocation does grill → log → run → mark-done. There is no separate fg-cleanup to call afterward (there is no plan/STATUS to seal).
+- **It is self-contained.** One invocation does grill → log → run → mark-done. There is no separate fg-done to call afterward (there is no plan/STATUS to seal).
 - **Retro is skipped by definition.** Trivial tasks have nothing to fold into the docs. If something genuinely worth recording surfaces, that is the signal this was not a quick task — see the bail guard.
 
 ## Behavior
@@ -31,7 +33,7 @@ While clarifying, watch for signs the task is **not** trivial:
 - **multiple work slices** or real architectural shape,
 - anything touching **migrations, public contracts, auth, or data** in a non-obvious way.
 
-If any appears, **stop and bail to `fg-ask`**: tell the user "this isn't a quick task — it deserves the full loop (grilling → plan → run → retro → cleanup)," and point them to `fg-ask` (or offer to invoke it). Do not force a serious task through the quick lane — that is exactly what this guard prevents. Leave no quick-lane residue when you bail.
+If any appears, **stop and bail to `fg-ask`**: tell the user "this isn't a quick task — it deserves the full loop (grilling → plan → run → retro → done)," and point them to `fg-ask` (or offer to invoke it). Do not force a serious task through the quick lane — that is exactly what this guard prevents. Leave no quick-lane residue when you bail.
 
 ### 3. Record one line to the log
 

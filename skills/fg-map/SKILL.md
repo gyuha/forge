@@ -5,9 +5,11 @@ description: Maps the codebase with parallel subagents into structured documents
 
 # fg-map — codebase mapping (loop-side utility)
 
-This skill is **not a stage of the forge loop** (fg-ask → fg-run → fg-learn → fg-cleanup). It is an **on-demand utility** that produces one kind of the loop's permanent-doc fuel: a structured map of the codebase under `.forge/codebase/`. fg-ask reads that map before grilling, so it no longer has to re-explore the whole codebase each session — that re-exploration is where context rot comes from. Run fg-map when the codebase has changed enough that the map is stale; it is not something every task triggers.
+This skill is **not a stage of the forge loop** (fg-ask → fg-run → fg-learn → fg-done). It is an **on-demand utility** that produces one kind of the loop's permanent-doc fuel: a structured map of the codebase under `.forge/codebase/`. fg-ask reads that map before grilling, so it no longer has to re-explore the whole codebase each session — that re-exploration is where context rot comes from. Run fg-map when the codebase has changed enough that the map is stale; it is not something every task triggers.
 
 **Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project are written in the user's language. The document names and section headings below are canonical English names — keep the file names as-is (`STACK.md` etc.), but render the prose inside in the user's language.
+
+**Forge root**: `.forge/codebase/` is a deliberate **global exemption** from branch-root resolution (see `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` / ADR-0011): fg-map always writes, and fg-ask always reads, the top-level `.forge/codebase/` on every branch — never `.forge/branch/<branch>/codebase/`. Reason — the map is shared reference fuel; a branch-local map would leave freshly created branches with no map and break fg-ask's read. So every `.forge/codebase/...` path below is the literal top-level path, not resolved.
 
 ## What it produces — `.forge/codebase/` (7 documents)
 

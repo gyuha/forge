@@ -19,3 +19,13 @@ forge는 사람-게이팅이 핵심 철학이다: fg-status는 다음 단계를 
 - 기둥 #1(그릴링·회고는 대화)은 유지된다: all-mode는 회고 대화를 자동으로 *치지* 않는다. 저-div에서 비대화적 결정인 *skip*만 자동화하고, 대화가 필요한 고-div에서는 멈춘다.
 - 재실행-방지는 유지된다: 봉인이 활성 상태를 비우는 메커니즘은 그대로이고, all-mode는 시작 1회 확인으로 무인 진입을 게이팅한다.
 - fg-run "Run all"과의 관계: Run all은 execute-only(검증 후 `executed/` 파킹, 회고에서 멈춤)인 반면, all-mode는 그 상위집합으로 verify→(저-div skip)→cleanup→다음 작업 승격까지 몬다. 두 기능은 공존한다.
+
+## 개정 (2026-06-08) — 회고는 all-mode에서 항상 자동 skip
+
+위 "저-div 자동 skip / 고-div 멈춤"은 실사용에서 실패했다. **forge 자신을 고치는 작업은 거의 전부 고-divergence**라, all-mode가 사실상 매 작업의 회고에서 멈춰 "계속 진행"의 가치가 사라졌다(작업당 한 번꼴로 정지). 그래서 회고 정책을 바꾼다:
+
+- **all-mode는 divergence와 무관하게 회고를 항상 자동 skip하고 계속 진행한다.** halt 조건에서 "고-divergence 회고"를 **제거**한다. 멈춤은 `verified: failed` / 미검증(봉인 가능 값 미달) / 진짜 fork / 빈 상태 넷뿐.
+- **학습은 유실되지 않는다**: run.md의 "학습 후보"가 봉인 시 `done/<date-slug>/run.md`로 아카이브된다. all-mode가 버리는 것은 *자동 승급*(ADR/CONTEXT)뿐이고, 그건 원래 사람 판단이 필요한 일이라 자동화 대상이 아니었다. 승급이 필요하면 사람이 나중에 아카이브된 run.md를 보고 fg-learn으로 일괄 처리한다.
+- **기둥 #1 재해석**: "all-mode는 회고 대화를 자동으로 치지 않는다"는 유지된다 — 회고를 *자동 작성*하지도, ADR/CONTEXT로 *자동 승급*하지도 않는다. 비대화적 결정인 *skip*만 자동화한다(저-div든 고-div든). 즉 all-mode는 "회고 규율을 모멘텀과 맞바꾸는, 사용자가 명시적으로 택하는 차선"이다. 기본 `fg-next`(one-shot)와 정식 루프는 회고를 그대로 수행한다.
+- skip 기록: `retro: skipped (fg-next all 자동 진행 — 학습은 run.md, 승급은 추후 fg-learn)`. 침묵이 아니라 감사 가능하게 남긴다.
+

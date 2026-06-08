@@ -43,12 +43,12 @@ Documents are written in the user's language; the headings below are canonical E
 
 ## Splitting rule (one plan is never split mid-run; a big task may become several plans)
 
-**The state contract one plan.md = one run.md = one sealing (fg-cleanup) is invariant.** Do not split a *single* plan into phases run sequentially and accumulated into one run.md — that is incompatible with fg-run's re-run guard (a duplicate warning when run.md already exists). Whatever you write as one plan must be runnable end-to-end in one workflow.
+**The state contract one plan.md = one run.md = one sealing (fg-done) is invariant.** Do not split a *single* plan into phases run sequentially and accumulated into one run.md — that is incompatible with fg-run's re-run guard (a duplicate warning when run.md already exists). Whatever you write as one plan must be runnable end-to-end in one workflow.
 
 There are **two reasons to split a big task into multiple plans** (each a separate, independently-sealable plan in the backlog):
 
 1. **A mid-run human checkpoint** — a human check / decision must intervene before the next step can proceed. A Dynamic Workflow cannot take human input at runtime, so the check point is a task boundary. (We do not distinguish "simple go-ahead" from "major decision branch" — either way it must stop.)
-2. **Size / decomposition** — the agreed work is large enough that it naturally breaks into chunks each of which is **independently shippable, verifiable, and sealable** on its own. Don't force such work into one giant plan. This is a judgment call (not a slice-count threshold): if each chunk can stand as its own complete `execute → learn → cleanup` loop, make each chunk its own plan.
+2. **Size / decomposition** — the agreed work is large enough that it naturally breaks into chunks each of which is **independently shippable, verifiable, and sealable** on its own. Don't force such work into one giant plan. This is a judgment call (not a slice-count threshold): if each chunk can stand as its own complete `execute → learn → done` loop, make each chunk its own plan.
 
 ```
 Does the agreed work split into chunks that are each independently shippable & sealable,

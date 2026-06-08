@@ -33,34 +33,36 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 forge의 본질은 작업 하나를 한 바퀴 돌리는 4단계 루프다. 각 스킬은 **독립 실행**되며, 상태를 `.forge/` 파일로 주고받아 흐름을 잇는다.
 
 ```
-fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회고) → fg-cleanup(④Cleanup) → (새 작업) fg-ask
+fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회고) → fg-done(④완료) → (새 작업) fg-ask
 ```
 
 - **fg-ask** — grill-with-docs식 대화형 그릴링. 계획을 도메인·용어·결정에 대고 검증해 `.forge/backlog/<slug>.md`로 적재. **반드시 본 세션 대화로** 진행(워크플로우 밖).
 - **fg-run** — `.forge/plan.md`를 Claude Code Dynamic Workflow로 실행, 계획↔실제 차이를 `.forge/run.md`에 기록.
 - **fg-learn** — 학습을 분류해 영속 문서로 승급, `.forge/retro/`에 회고 남김. 항상 대화형.
-- **fg-cleanup** — "완료 선언"이 아니라 한 바퀴의 잔여물을 정리(tidy up)하는 단계: 회고 확인, `STATUS.md`를 `done`으로 마감, 작업을 `.forge/done/<날짜-slug>/`로 봉인하고 활성 `.forge/`를 비워 루프를 닫음 → **재실행 방지의 핵심 메커니즘**.
+- **fg-done** — 루프의 ④ 완료(봉인) 단계: 한 바퀴의 잔여물을 정리(tidy up)해 마감한다 — 회고 확인, `STATUS.md`를 `done`으로 마감, 작업을 `.forge/done/<날짜-slug>/`로 봉인하고 활성 `.forge/`를 비워 루프를 닫음 → **재실행 방지의 핵심 메커니즘**.
 
-**루프 밖 스킬(이 4단계에 속하지 않음):** `fg-map`(코드베이스 지도 유틸리티)·`fg-quick`(경량 차선)·`fg-status`(읽기 전용 상태 리포터 — `.forge/`를 조사해 현황+다음 단계를 출력, 아무것도 쓰지 않고 자동 실행 안 함)·`fg-next`(상태를 읽어 fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행하는 오케스트레이터 — 보고만 하고 멈추지 않음, fg-status는 보고만/fg-next는 행동까지. 기본은 one-shot이며 자체적으로는 아무것도 쓰지 않고 위임받은 스킬이 모든 쓰기를 함. `all` 모드(`fg-next all`)는 백로그가 빌 때까지 선형 기계적 단계를 자동 추천 진행하고 대화의 벽(실패/검증불가 UAT·고-div 회고·진짜 fork·빈 상태)에서 멈춤 — ADR-0010). 특히 **fg-quick**은 사소한 작업용으로, 그릴링은 유지(기둥 1)하되 형식 산출물(ADR·backlog plan.md·run.md·STATUS·done·회고)을 만들지 않고 `.forge/quick/LOG.md`에 한 줄만 기록한 뒤 직접 실행한다. **메인 루프의 활성 슬롯·backlog·done을 일절 건드리지 않아 상태 계약과 격리**되며, 비-trivial로 드러나면 fg-ask로 bail한다(상세·트레이드오프: `.forge/adr/0003-fg-quick-lightweight-lane.md`). 즉 기둥 2(문서=연료)를 trivial 작업에 한해 의도적으로 완화한 차선이다.
+**루프 밖 스킬(이 4단계에 속하지 않음):** `fg-map`(코드베이스 지도 유틸리티)·`fg-quick`(경량 차선)·`fg-status`(읽기 전용 상태 리포터 — `.forge/`를 조사해 현황+다음 단계를 출력, 아무것도 쓰지 않고 자동 실행 안 함)·`fg-next`(상태를 읽어 fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행하는 오케스트레이터 — 보고만 하고 멈추지 않음, fg-status는 보고만/fg-next는 행동까지. 기본은 one-shot이며 자체적으로는 아무것도 쓰지 않고 위임받은 스킬이 모든 쓰기를 함. `all` 모드(`fg-next all`)는 백로그가 빌 때까지 선형 기계적 단계를 자동 추천 진행하며 회고는 (divergence 무관) 항상 자동 skip하고 대화의 벽(실패/검증불가 UAT·진짜 fork·빈 상태)에서만 멈춤 — ADR-0010(개정 2026-06-08))·`fg-merge`(`git merge` 뒤 비-기본 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합하는 유틸리티 — ADR 번호 재부여+교차참조 갱신·retro 이동·CONTEXT 용어 병합·done 합침·브랜치 폴더 제거, 기계적 자동/진짜 충돌 시 대화, git 조작은 안 함 — ADR-0011)·`fg-cleanup`(오래된/대체된 ADR을 활성 결정 집합에서 은퇴시키는 유틸리티 — 후보 제시→사람 승인으로 `.forge/adr/retired/<NNNN>-slug.md`로 이동+supersede 마킹, 번호 불변·재사용 금지·삭제 안 함, fg-ask는 retired/를 정답소스로 안 읽음; 작업 봉인은 fg-done이지 이 스킬이 아님 — ADR-0012). 특히 **fg-quick**은 사소한 작업용으로, 그릴링은 유지(기둥 1)하되 형식 산출물(ADR·backlog plan.md·run.md·STATUS·done·회고)을 만들지 않고 `.forge/quick/LOG.md`에 한 줄만 기록한 뒤 직접 실행한다. **메인 루프의 활성 슬롯·backlog·done을 일절 건드리지 않아 상태 계약과 격리**되며, 비-trivial로 드러나면 fg-ask로 bail한다(상세·트레이드오프: `.forge/adr/0003-fg-quick-lightweight-lane.md`). 즉 기둥 2(문서=연료)를 trivial 작업에 한해 의도적으로 완화한 차선이다.
 
 ### 상태 계약 (`.forge/`의 휘발 상태 — git 미추적)
 
 스킬을 편집할 때 이 입출력 계약을 깨지 않아야 흐름이 이어진다. 입력 파일이 없으면 각 스킬은 앞 단계를 안내한다.
+
+**브랜치별 forge 루트 (ADR-0011).** 아래 표·설명의 모든 `.forge/...` 경로는 **해석된 forge 루트 기준**이다 — 기본 브랜치(`config.json`의 `defaultBranch`, 없으면 `main`)면 `.forge/`, 그 외 브랜치면 `.forge/branch/<branch>/`. 비-기본 브랜치의 루트는 **통째로 git 추적**된다(`.gitignore`가 `!.forge/branch/`로 화이트리스트). 경로가 브랜치별로 네임스페이스되어 두 브랜치가 같은 파일을 안 건드리므로 git merge 충돌이 없고, 브랜치 내용은 `git merge` 뒤 **fg-merge**가 `.forge/`에 통합한다(번호 재부여·retro 이동·CONTEXT 병합·폴더 제거). 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이며 모든 루프 스킬이 이를 참조한다(복붙 금지). 기본 브랜치의 휘발 상태는 종전대로 gitignored — 브랜치 루트만 추적되는 의도된 비대칭.
 
 | 파일 | 생산자 | 소비자 |
 | --- | --- | --- |
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `.forge/plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준), fg-learn |
 | `.forge/run.md` | fg-run | fg-learn |
-| `.forge/STATUS.md` (활성 슬롯, `status: executed`, `verified: pending`) | fg-run(run.md 기록 직후 작성, 핸드오프 UAT로 `verified:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-cleanup(검증→회고 게이트 후 `status: done` 마감) |
-| `.forge/executed/<slug>/` (+`STATUS.md`, `status: executed`) | fg-run("모두 실행" park) | fg-learn(회고 대기), fg-cleanup(봉인) |
-| `.forge/done/<날짜-slug>/` (+`STATUS.md`, fg-cleanup이 `status: done`으로 마감) | fg-cleanup | fg-ask(slug 충돌 검출)·fg-run(완료 판별·상태 요약)·fg-learn(회고 대상 제외)·fg-cleanup(이중 봉인 방지) |
+| `.forge/STATUS.md` (활성 슬롯, `status: executed`, `verified: pending`) | fg-run(run.md 기록 직후 작성, 핸드오프 UAT로 `verified:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-done(검증→회고 게이트 후 `status: done` 마감) |
+| `.forge/executed/<slug>/` (+`STATUS.md`, `status: executed`) | fg-run("모두 실행" park) | fg-learn(회고 대기), fg-done(봉인) |
+| `.forge/done/<날짜-slug>/` (+`STATUS.md`, fg-done이 `status: done`으로 마감) | fg-done | fg-ask(slug 충돌 검출)·fg-run(완료 판별·상태 요약)·fg-learn(회고 대상 제외)·fg-done(이중 봉인 방지) |
 
 - **활성 슬롯은 항상 1개** — 한 plan.md = 한 run.md = 한 봉인. 백로그는 미실행 대기열, `executed/`는 "실행됐으나 미회고"의 명시적 상태다. plan 첫 줄의 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자다(파일 이동에도 영속).
-- **활성 슬롯·백로그·executed가 모두 비어 있으면 = 진행 중 작업 없음.** fg-run는 빈 상태에서 실행하지 않는다(재실행 방지). fg-cleanup이 봉인하며 비운다.
-- **STATUS.md는 작업 파일들과 함께 이동하는 동반 마커다(이중 장부 아님).** 상태의 원천은 파일 위치이고 STATUS.md는 plan/run과 함께 활성 슬롯→`executed/`→`done/`을 따라 이동한다. fg-run가 `status: executed`(+`verified: pending`+`retro: pending`)로 만들고 fg-cleanup이 `status: done`(+`completed`/`verified`/`retro`/`docs updated`)으로 마감한 뒤 plan/run과 함께 아카이브한다. 완료 판별 = `done/*/STATUS.md`의 `status: done`.
-- **봉인 전 검증 게이트(ADR-0009).** 루프 순서는 run → verify → learn → cleanup. fg-run 핸드오프가 plan 목표에 대고 UAT를 수행해 STATUS `verified:`를 기록한다 — **봉인 가능** `yes`/`skipped (사유)`/`n/a (사유)`, **차단** `pending`(미검증)/`failed (사유)`(검증했으나 깨짐). fg-cleanup은 **검증 게이트를 회고 게이트보다 먼저** 확인하고(no-seal-without-verification), 봉인 가능 값이 아니면 봉인하지 않는다. `pending`은 fg-run 검증 전용 재진입(재실행 없이 UAT만)으로, `failed`는 fg-run의 parked-failed 회수(executed/→active slot unpark)·fix-and-re-run 또는 fg-ask 재그릴로 라우팅 — fg-run이 unpark의 단일 소유자다. `failed`은 fresh re-run으로 봉인 가능 값에 재검증될 때만 봉인되며 waiver로 통과시키지 않는다. Run all은 작업별 UAT를 파킹 전 수행(sealable만 파킹, `failed`은 active slot에 남김). ADR-0009 이전 봉인 작업은 `verified: n/a (legacy pre-ADR-0009)`로 백필됐다.
-- **회고는 저-divergence 사소한 작업에 한해 건너뛸 수 있다(ADR-0002).** 기본값은 회고(fg-learn)다. run.md의 계획↔실제 차이가 없거나 미미할 때만 fg-run 핸드오프가 "회고 / 건너뛰기"를 명시 제시하고, 사용자가 건너뛰기를 고르면 STATUS.md의 `retro:` 필드에 `skipped (사유)`를 기록한다(회고 파일 없음). fg-cleanup의 봉인 가드는 회고 파일 존재 **또는** `retro: skipped`를 통과 조건으로 인정한다. divergence가 크면 건너뛰기를 제시하지 않는다. fg-ask는 plan에 `<!-- retro-hint: optional -->`(비구속 힌트)를 남길 수 있을 뿐, 자동 건너뛰기는 없다.
+- **활성 슬롯·백로그·executed가 모두 비어 있으면 = 진행 중 작업 없음.** fg-run는 빈 상태에서 실행하지 않는다(재실행 방지). fg-done이 봉인하며 비운다.
+- **STATUS.md는 작업 파일들과 함께 이동하는 동반 마커다(이중 장부 아님).** 상태의 원천은 파일 위치이고 STATUS.md는 plan/run과 함께 활성 슬롯→`executed/`→`done/`을 따라 이동한다. fg-run가 `status: executed`(+`verified: pending`+`retro: pending`)로 만들고 fg-done이 `status: done`(+`completed`/`verified`/`retro`/`docs updated`)으로 마감한 뒤 plan/run과 함께 아카이브한다. 완료 판별 = `done/*/STATUS.md`의 `status: done`.
+- **봉인 전 검증 게이트(ADR-0009).** 루프 순서는 run → verify → learn → done. fg-run 핸드오프가 plan 목표에 대고 UAT를 수행해 STATUS `verified:`를 기록한다 — **봉인 가능** `yes`/`skipped (사유)`/`n/a (사유)`, **차단** `pending`(미검증)/`failed (사유)`(검증했으나 깨짐). fg-done은 **검증 게이트를 회고 게이트보다 먼저** 확인하고(no-seal-without-verification), 봉인 가능 값이 아니면 봉인하지 않는다. `pending`은 fg-run 검증 전용 재진입(재실행 없이 UAT만)으로, `failed`는 fg-run의 parked-failed 회수(executed/→active slot unpark)·fix-and-re-run 또는 fg-ask 재그릴로 라우팅 — fg-run이 unpark의 단일 소유자다. `failed`은 fresh re-run으로 봉인 가능 값에 재검증될 때만 봉인되며 waiver로 통과시키지 않는다. Run all은 작업별 UAT를 파킹 전 수행(sealable만 파킹, `failed`은 active slot에 남김). ADR-0009 이전 봉인 작업은 `verified: n/a (legacy pre-ADR-0009)`로 백필됐다.
+- **회고는 저-divergence 사소한 작업에 한해 건너뛸 수 있다(ADR-0002).** 기본값은 회고(fg-learn)다. run.md의 계획↔실제 차이가 없거나 미미할 때만 fg-run 핸드오프가 "회고 / 건너뛰기"를 명시 제시하고, 사용자가 건너뛰기를 고르면 STATUS.md의 `retro:` 필드에 `skipped (사유)`를 기록한다(회고 파일 없음). fg-done의 봉인 가드는 회고 파일 존재 **또는** `retro: skipped`를 통과 조건으로 인정한다. divergence가 크면 건너뛰기를 제시하지 않는다. fg-ask는 plan에 `<!-- retro-hint: optional -->`(비구속 힌트)를 남길 수 있을 뿐, 자동 건너뛰기는 없다.
 - 재그릴링이 필요하면 fg-learn/fg-run가 **fg-ask**를 가리킨다(과거 별도 `fg-plan` 단계는 fg-ask로 통합됨).
 
 ### 영속 문서 모델 (`.forge/` 내부, git 추적)
@@ -72,7 +74,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 - `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
 - `.forge/codebase/*.md` — fg-map(루프 밖 유틸리티)이 생성하는 코드베이스 지도(7문서). fg-ask가 그릴링 전 읽어 context rot을 줄인다.
 
-형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-run/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-cleanup 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
+형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-run/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-done 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
 
 ## 설계 원칙 (두 기둥)
 
@@ -113,11 +115,11 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 - 작업 트리에 배포와 무관한 변경이 섞여 있으면 멈추고 먼저 확인받는다(배포 커밋에 끼워 넣지 않는다).
 - 마지막 배포 이후 커밋이 하나도 없으면 배포할 것이 없다고 알리고 멈춘다.
 - **미커밋 변경이 곧 릴리스 내용이면**(커밋 0개인데 작업 트리에 그 릴리스의 기능 작업이 쌓여 있음) 먼저 그 작업을 별도 `feat` 커밋으로 묶은 뒤 릴리스 절차를 돈다(릴리스 커밋엔 CHANGELOG+버전 범프만). 이 리포의 정상 흐름이다.
-- **매니페스트의 두 description은 역할이 다르다.** `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→cleanup)를 정의하는 한 줄 태그라인이므로 루프 밖 유틸리티(fg-map류)는 넣지 않는다. `plugins[].description`(과 `plugin.json`의 `description`)은 전체 스킬 목록을 담는 설명이므로 루프 밖 스킬도 여기에 반영한다. 루프 밖 스킬을 metadata에 끼우면 루프 정의가 흐려진다.
+- **매니페스트의 두 description은 역할이 다르다.** `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→done)를 정의하는 한 줄 태그라인이므로 루프 밖 유틸리티(fg-map류)는 넣지 않는다. `plugins[].description`(과 `plugin.json`의 `description`)은 전체 스킬 목록을 담는 설명이므로 루프 밖 스킬도 여기에 반영한다. 루프 밖 스킬을 metadata에 끼우면 루프 정의가 흐려진다.
 
 ## 현재 상태의 알려진 불일치 (편집 전 인지할 것)
 
 여러 파일을 읽어야 드러나는, 의도적 반복 작업으로 생긴 어긋남:
 
 - **`skills/fg-ask/`는 grill-with-docs 원본의 자기완결 3파일**(`SKILL.md` + 형제 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`, 영문)이며, SKILL.md 본문은 영문 verbatim이고 forge 루프 연결(백로그 산출, fg-run 핸드오프, 회고 환류)은 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. 이 verbatim 본문과 Forge integration 섹션은 따로 움직이므로, 둘 중 하나만 고치면 계약이 깨진다.
-- **`forge-prd.md`는 옛 설계 초안**이다. 본문은 "스킬 5개"라 하면서 다이어그램은 4단계만 나열하고(fg-ask→fg-run→fg-learn→fg-complete), 마지막 단계를 현재의 `fg-cleanup`·④정리가 아닌 옛 이름 `fg-complete`·④완료로 가리킨다. 명세로 신뢰하지 말 것 — 실제는 `skills/`와 `README.md`가 기준.
+- **`forge-prd.md`는 옛 설계 초안**이다. 본문은 "스킬 5개"라 하면서 다이어그램은 4단계만 나열하고(fg-ask→fg-run→fg-learn→fg-complete), 마지막 단계를 현재의 `fg-done`·④정리가 아닌 옛 이름 `fg-complete`·④완료로 가리킨다. 명세로 신뢰하지 말 것 — 실제는 `skills/`와 `README.md`가 기준.
