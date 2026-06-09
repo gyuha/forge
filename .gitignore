@@ -13,3 +13,6 @@
 
 .planning/
 !.planning/codebase/
+
+# macOS 정크
+.DS_Store

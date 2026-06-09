@@ -122,4 +122,3 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 여러 파일을 읽어야 드러나는, 의도적 반복 작업으로 생긴 어긋남:
 
 - **`skills/fg-ask/`는 grill-with-docs 원본의 자기완결 3파일**(`SKILL.md` + 형제 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`, 영문)이며, SKILL.md 본문은 영문 verbatim이고 forge 루프 연결(백로그 산출, fg-run 핸드오프, 회고 환류)은 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. 이 verbatim 본문과 Forge integration 섹션은 따로 움직이므로, 둘 중 하나만 고치면 계약이 깨진다.
-- **`forge-prd.md`는 옛 설계 초안**이다. 본문은 "스킬 5개"라 하면서 다이어그램은 4단계만 나열하고(fg-ask→fg-run→fg-learn→fg-complete), 마지막 단계를 현재의 `fg-done`·④정리가 아닌 옛 이름 `fg-complete`·④완료로 가리킨다. 명세로 신뢰하지 말 것 — 실제는 `skills/`와 `README.md`가 기준.
