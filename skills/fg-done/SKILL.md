@@ -70,6 +70,8 @@ For reference, `.forge/` is gitignored, volatile state and is not tracked. The p
 
 **3) Completion notice.** Summarize at a glance what was finished, which persistent docs were updated (retro, ADR, CONTEXT, etc.), and where the archive was left. Make the wrap-up explicit so the user clearly recognizes that one loop is done.
 
+**3a) Codebase map check (conditional — offer, never auto-run).** After the notice, check two cheap signals: **(a)** does `.forge/codebase/` exist (the fg-map map that fg-ask reads as grilling fuel)? and **(b)** did this loop change project files the map describes — i.e. does `git status --short` show changes (modified *or* untracked) on paths **not** starting with `.forge/` (skills, `src/`, manifests, README, …)? If **both** are true, the map may now be stale, so offer **once**, in the user's language: *"이 작업이 `<changed project files>`를 바꿨고 `.forge/codebase/` 지도가 있습니다 — 지도가 stale할 수 있어요. 지금 `fg-map`을 돌릴까요?"* On agreement, invoke the `fg-map` skill; on decline, just finish. **This is an offer, never an auto-run** — fg-map fans out 4 subagents and is deliberately on-demand, so a human decides the cost (the same offer-not-auto restraint as deep-research, ADR-0006). If `.forge/codebase/` is absent, **or** the loop changed only `.forge/` docs (ADR/retro — not what the map describes), **say nothing and skip**. (The offer is a handoff pointer, not a dependency — fg-done still seals self-containedly. fg-map will stamp `last_mapped_commit=HEAD`, which may lag the still-uncommitted seal by one commit — harmless, since fg-ask's staleness warning only fires when the map is dozens of commits behind.)
+
 **4) Close the loop.** If `fg-learn` left a follow-up, ask whether to start it as a **new task**. This is not resuming the task you just closed — that task is sealed — but opening a new loop starting from `fg-ask`. If there is no follow-up, finish here.
 
 ```
@@ -95,6 +97,10 @@ Empty active .forge  (= block re-run)
    ▼
 Completion notice (summary of updated docs)
    ▼
+Codebase map stale?  (.forge/codebase/ exists AND non-.forge/ changes in git status)
+   │ yes ──▶ OFFER fg-map (y → invoke fg-map · n → continue) — never auto-run
+   │ no  ──▶ skip silently
+   ▼
 Follow-up exists?
    │ yes ──▶ propose starting fg-ask as a new task → end
    │ no  ──▶ end
@@ -107,6 +113,7 @@ When cleanup is done, convey the following three things naturally, in a conversa
 - **What you just did** — that you tidied up the task, archived it into `.forge/done/<date-slug>/` with STATUS.md marked done, and emptied the active state, plus a one-line summary of the docs this loop updated (retro, ADR, CONTEXT).
 - **Next step** — make it clear that, since the active state is empty, the same plan will never run again. If `fg-learn` left a follow-up, let them know it can be started as a new task.
 - **How to start** — if there is a follow-up, ask whether to start a new loop right away, and if the user agrees, invoke the `fg-ask` skill on the spot to open the grilling for the follow-up task. If they want to do it later, tell them the trigger — the utterances "forge ask" / "새 작업 시작", or `/forge:fg-ask`. If there is no follow-up, finish here.
+- **Codebase map** — if this loop changed project files (non-`.forge/` paths) and `.forge/codebase/` exists, **offer** to refresh the map with `fg-map` so the next fg-ask grills against a current map (step 3a above). It is an **offer, not an auto-run**; if the map is absent or the loop only touched `.forge/` docs, skip it silently.
 
 ## Document impact
 

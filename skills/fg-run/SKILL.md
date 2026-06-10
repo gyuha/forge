@@ -59,7 +59,7 @@ Active slot (.forge/plan.md) present?
    │                                          • 0  ──▶ stop, point to fg-ask
    │                                          • 1  ──▶ promote backlog→plan.md (+ verify ADR exists) ──▶ build workflow
    │                                          • 2+ ──▶ AskUserQuestion menu (last option: Run all)
-   │                                                     └─ single choice ──▶ build workflow │ Run all ──▶ Run-all procedure
+   │                                                     └─ single choice ──▶ build workflow │ Run all ──▶ Run-all procedure (RUN-ALL.md)
 ```
 
 ## Behavior
@@ -80,7 +80,7 @@ Once the orchestration script is ready, **get user approval first**. After appro
 
 `.forge/plan.md`, `CONTEXT.md`, and the ADRs in `.forge/adr/` are the source of truth. The workflow cross-verifies its output against this source of truth — it **judges each slice's "completion criterion" against the actual output** for satisfaction, rather than stopping at "it ran." This **plan-verification always runs** — it answers "did we build what the plan said," not "is the built code good." When the plan is in **TDD mode** (`tdd: on`), each slice's completion judgment additionally requires that its test exists and passes (see §1).
 
-**Conditional code review (quality, not just spec).** Plan-verification doesn't catch bugs/security/structure problems — so for changes that warrant it, add a **review phase** to the orchestration script (after implementation, before recording `run.md`). Gate it on risk/size: include it when the change touches **risky areas (auth, data mutations, public API/contracts, migrations)** or is sizable; **skip it for trivial, low-risk changes** (don't review a typo — same restraint as retro-skip). Compose the review with the **workflow's own adversarial-verify subagents** (core `Agent`/`Workflow` — no external dependency); if a richer code-review capability is available, you may use it, but never hard-depend on one. The review reads the diff for bugs, security holes, and structural problems. **Findings handling:** fix real issues inside the same workflow run and re-verify; record any remaining critical findings in `run.md` as a divergence so fg-learn / fg-ask re-grilling can pick them up. Because a Dynamic Workflow takes no human input mid-run, the review runs autonomously and its results surface at the handoff for the human to see. (See `.forge/adr/0007-fg-run-conditional-code-review.md`.)
+**Conditional code review (quality, not just spec).** For changes touching **risky areas (auth, data mutations, public API/contracts, migrations) or sizable** ones, add a **review phase** after implementation (before recording `run.md`); **skip trivial/low-risk changes** (same restraint as retro-skip). Compose it with the **workflow's own adversarial-verify subagents** (core `Agent`/`Workflow`, no external hard-dependency); fix real findings in-run and re-verify, and record any remaining critical findings in `run.md` as a divergence (it runs autonomously — no human input mid-run — surfacing at the handoff for fg-learn / re-grilling). Rationale + full procedure: `.forge/adr/0007-fg-run-conditional-code-review.md`.
 
 ### 4. Record divergences in run.md, then mark execution complete
 
@@ -103,17 +103,7 @@ Flow: build the workflow → approve the script → background parallel executio
 
 ## "Run all" — execute-only batch
 
-If you pick "Run all" from the selection menu, the backlog's unfinished plans are **executed only, in sequence**. Retro and sealing are not auto-inserted — fg-learn is always conversational, and barreling past it just piles up un-retro'd heaps with nothing learned. Run all is not unattended automation; it is a declaration of "I'll do the execute stage in one batch." (For the superset that also drives verify → retro-skip (always) → done → promote-next until the backlog is empty — halting only at the conversational walls — see `fg-next all`, the momentum mode in `../fg-next/SKILL.md` / ADR-0010.)
-
-1. **Confirm the order.** Snapshot and freeze the current N unfinished candidates, and show the user the execution order once (default: **priority order** — `high → medium → low`, no marker = `medium`, ties by slug alphabetical, same as the selection menu) — "shall I run them in this order? If there are dependencies between tasks, reorder now."
-2. **Per-task sequential execution.** For each task i: promote `backlog/<slug>.md` → `.forge/plan.md` → run the main body above exactly once (build the workflow → approve → cross-verify → record `run.md` → write **`.forge/STATUS.md` (the active slot)** at `status: executed` → **UAT-verify the result against the plan's goal and record the outcome in `verified:`**, see "Verify before handing off (UAT)") → **branch on the UAT outcome**. **STATUS location is single and state-dependent**: during execution+UAT it always lives in the active slot (`.forge/STATUS.md`); it moves to `executed/` only on a sealable outcome.
-   - **sealable (`yes`/`skipped`/`n/a`)** → without sealing, **move plan+run+STATUS together from the active slot into `.forge/executed/<slug>/` (park)** → the active slot is now empty so the next task can be promoted.
-   - **`failed`** → **do not park, and do not create an `executed/<slug>` entry.** Leave plan+run+STATUS in the **active slot** (STATUS is already there from the execution step, carrying `verified: failed`) and stop the batch (step 3), so fg-run's §4 re-entry reliably sees the active-slot `verified: failed` and routes to fix-and-re-run or re-grill. Parking a `failed` task would strand it — fg-learn and fg-done both block `failed`, and an empty active slot puts it out of fg-run's reach.
-   - **Verification is part of finishing execute — it is not deferred like retro.** Run all defers only retro and sealing (memory can cool for reflection); but each task is UAT-verified before it parks, so a parked task never carries `verified: pending` or `failed` — only sealable outcomes get parked. For a docs-only task the outcome is `n/a (<reason>)`, which is quick and does not stall the batch.
-   - `executed/` is the explicit expression of the intermediate state "executed but not yet retro'd." Putting an un-retro'd task into `done/` would bypass fg-done's no-seal-without-retro guard, so never send it to `done/` before the retro.
-   - Each task gets its own run. Do not merge several tasks into one run.
-3. **Failure/abort.** If task i fails, stop there — the i-1 already parked remain awaiting retro, and i's plan/run stay in the active slot so the next fg-run's re-run guard catches them. The not-yet-started ones stay in the backlog and reappear in the next menu. Partial progress is reflected honestly in the file state. **A `verified: failed` UAT counts as a failure here** (per step 2's branch): i stays in the active slot — not `executed/` — so fg-run's §4 re-entry can route it to fix-and-re-run or re-grill.
-4. **Handoff.** When everything is done, point: "I ran and verified all N, and each has plan+run+STATUS (status: executed, with `verified:` recorded) in `.forge/executed/` — now let's retro each one via fg-learn, which first?"
+If the user picks "Run all" from the selection menu, **read [`RUN-ALL.md`](./RUN-ALL.md) (skill-relative `./RUN-ALL.md`) and follow it** — the execute-only batch procedure: confirm/freeze the order → per-task sequential execute → UAT → park sealable into `executed/` / leave `failed` in the active slot → fail-stop → batch handoff. It is split into that file — loaded only when "Run all" is actually chosen — for token efficiency on the common path; **behavior is unchanged** from when it lived inline. Run all is **execute-only** (it stops at the retro, parking each task in `executed/`); for the momentum superset that also drives verify → retro-skip → seal → promote-next, see `fg-next all` (`../fg-next/SKILL.md` / ADR-0010).
 
 ## Constraints
 
@@ -160,7 +150,7 @@ Exception handling:
 
 - Creates `.forge/run.md` — the note of plan-vs-actual divergences (retro input). Lazy creation.
 - Creates `.forge/STATUS.md` (`status: executed`) right after `run.md` — a companion marker fg-learn/fg-done read; fg-done later flips it to `status: done` and archives it with plan/run.
-- On backlog promotion, moves `.forge/backlog/<slug>.md` → `.forge/plan.md`. On "Run all," creates per-task `.forge/executed/<slug>/{plan,run,STATUS}.md` (awaiting retro).
+- On backlog promotion, moves `.forge/backlog/<slug>.md` → `.forge/plan.md`. On "Run all" (procedure in `RUN-ALL.md`), creates per-task `.forge/executed/<slug>/{plan,run,STATUS}.md` (awaiting retro).
 - (Optional) a saved workflow `/command` if the job recurs.
 - Does not modify the `.forge/plan.md` it reads as input (the plan is fg-ask's property).
 
