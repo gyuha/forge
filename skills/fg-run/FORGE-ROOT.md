@@ -46,6 +46,4 @@ read/write <root>/plan.md, <root>/adr/, <root>/backlog/, …
 
 ## Integration
 
-A branch's forge content is integrated into `.forge/` by **`fg-merge`** (run *after* `git merge` brings the namespaced folder into the default branch), **not** by git. fg-merge renumbers the branch's incoming ADRs to the next free numbers in `.forge/adr/` (updating cross-references), moves retros, merges CONTEXT.md terms, folds in `done/` history, and removes the branch root. The global exemptions (`config.json`, `codebase/`) are not integrated — they were never branch-local.
-
-> **fg-merge is part 2 of this change and is not built yet** (this is part 1 — branch isolation). Until `fg-merge` ships, integration is manual: after `git merge`, a human moves the branch root's adr/retro/CONTEXT into `.forge/` and renumbers ADRs by hand. **Do not deploy branch isolation as a finished feature before fg-merge exists** (see ADR-0011 / the `branch-isolation-2of2` plan).
+A branch's forge content is integrated into `.forge/` by **`fg-merge`** (run *after* `git merge` brings the namespaced folder into the default branch), **not** by git. fg-merge renumbers the branch's incoming ADRs to the next free numbers in `.forge/adr/` (updating cross-references), moves retros, merges CONTEXT.md terms, folds in `done/` history, and removes the branch root. The global exemptions (`config.json`, `codebase/`) are not integrated — they were never branch-local. See `skills/fg-merge/SKILL.md`.

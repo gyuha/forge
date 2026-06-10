@@ -46,7 +46,7 @@ Before acting, append an entry to `.forge/quick/LOG.md` (create the directory an
 - 결과: pending
 ```
 
-`.forge/quick/` is volatile working state — it is **not** git-tracked (the repo's `.gitignore` excludes `.forge/*` and whitelists only the permanent docs, which `quick/` is not). The log is a local convenience record, not loop fuel.
+On the default branch, `.forge/quick/` is gitignored volatile state (the `.gitignore` whitelists only the permanent docs, which `quick/` is not); on a non-default branch it lives under the git-tracked `.forge/branch/<branch>/` root (ADR-0011). Either way the log is a local convenience record, not loop fuel.
 
 ### 4. Run it directly
 
@@ -62,5 +62,5 @@ Close conversationally (not a stamped form): one line on what you changed, and t
 
 ## Document impact
 
-- Appends one entry to `.forge/quick/LOG.md` (lazy creation; gitignored volatile state).
+- Appends one entry to `.forge/quick/LOG.md` (lazy creation; gitignored on the default branch, tracked under the branch root otherwise — ADR-0011).
 - Creates **no** ADR, plan, run, STATUS, retro, or `done/` archive, and does not touch the main loop's active slot.

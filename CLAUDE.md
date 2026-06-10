@@ -47,7 +47,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 
 스킬을 편집할 때 이 입출력 계약을 깨지 않아야 흐름이 이어진다. 입력 파일이 없으면 각 스킬은 앞 단계를 안내한다.
 
-**브랜치별 forge 루트 (ADR-0011).** 아래 표·설명의 모든 `.forge/...` 경로는 **해석된 forge 루트 기준**이다 — 기본 브랜치(`config.json`의 `defaultBranch`, 없으면 `main`)면 `.forge/`, 그 외 브랜치면 `.forge/branch/<branch>/`. 비-기본 브랜치의 루트는 **통째로 git 추적**된다(`.gitignore`가 `!.forge/branch/`로 화이트리스트). 경로가 브랜치별로 네임스페이스되어 두 브랜치가 같은 파일을 안 건드리므로 git merge 충돌이 없고, 브랜치 내용은 `git merge` 뒤 **fg-merge**가 `.forge/`에 통합한다(번호 재부여·retro 이동·CONTEXT 병합·폴더 제거). 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이며 모든 루프 스킬이 이를 참조한다(복붙 금지). 기본 브랜치의 휘발 상태는 종전대로 gitignored — 브랜치 루트만 추적되는 의도된 비대칭.
+**브랜치별 forge 루트 (ADR-0011).** 아래 표·설명의 모든 `.forge/...` 경로는 **해석된 forge 루트 기준**이다 — 기본 브랜치(`config.json`의 `defaultBranch`, 없으면 `main`)면 `.forge/`, 그 외 브랜치면 `.forge/branch/<branch>/`. 단 전역 예외 두 개(`.forge/config.json`·`.forge/codebase/`)는 모든 브랜치에서 항상 최상위 `.forge/`다. 비-기본 브랜치의 루트는 **통째로 git 추적**된다(`.gitignore`가 `!.forge/branch/`로 화이트리스트). 경로가 브랜치별로 네임스페이스되어 두 브랜치가 같은 파일을 안 건드리므로 git merge 충돌이 없고, 브랜치 내용은 `git merge` 뒤 **fg-merge**가 `.forge/`에 통합한다(번호 재부여·retro 이동·CONTEXT 병합·폴더 제거). 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이며 모든 루프 스킬이 이를 참조한다(복붙 금지). 기본 브랜치의 휘발 상태는 종전대로 gitignored — 브랜치 루트만 추적되는 의도된 비대칭.
 
 | 파일 | 생산자 | 소비자 |
 | --- | --- | --- |
