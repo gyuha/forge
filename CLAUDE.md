@@ -67,7 +67,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 
 ### 영속 문서 모델 (`.forge/` 내부, git 추적)
 
-휘발 상태와 같은 `.forge/` 지붕 아래 있지만, 이들은 **영속이며 루프의 "연료"**다. `.gitignore`가 `.forge/`를 기본 제외(`​.forge/*`)하되 이 영속 문서들만 화이트리스트로 되살려 추적한다(`!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/`). 즉 **위치는 `.forge/` 안, 구분은 git 추적 여부**다. 전부 **lazy 생성**(쓸 내용이 생길 때만).
+휘발 상태와 같은 `.forge/` 지붕 아래 있지만, 이들은 **영속이며 루프의 "연료"**다. `.gitignore`가 `.forge/`를 기본 제외(`​.forge/*`)하되 이 영속 문서들만 화이트리스트로 되살려 추적한다(`!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json`). 즉 **위치는 `.forge/` 안, 구분은 git 추적 여부**다. 전부 **lazy 생성**(쓸 내용이 생길 때만).
 
 - `.forge/CONTEXT.md` / 루트 `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신. **멀티 컨텍스트만 예외** — 컨텍스트별 `CONTEXT.md`는 코드 옆(`src/<context>/`)에, `CONTEXT-MAP.md`는 루트에 둔다(`.forge/` 통합 대상 아님). 단일 컨텍스트만 `.forge/CONTEXT.md`.
 - `.forge/adr/NNNN-slug.md` — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.

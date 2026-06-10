@@ -1,5 +1,7 @@
 # 2026-06-04 — fg-map 스킬 추가 (코드베이스 매핑으로 context rot 감소)
 
+> 이 작업의 휘발 plan/run/STATUS는 fg-done 봉인 없이 폐기되어 `.forge/done/` 항목이 없다 — 이 회고는 봉인 장부 밖의 orphan 기록이다(2026-06-04-fg-ask-adr-path-fix.md와 같은 관례).
+
 ## Plan vs actual
 - What went as planned:
   - 4슬라이스(S1 SKILL.md / S2 fg-ask 훅 / S3 매니페스트 / S4 README 영·한) 전부 완료. Dynamic Workflow 없이 본 세션 직접 처리 — 계획에서 합의된 방식대로(Markdown/JSON 편집, S1이 나머지의 전제).

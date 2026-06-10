@@ -24,7 +24,7 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering
 
-Scan `.forge/adr/` for the highest existing number and increment by one.
+Scan `.forge/adr/` for the highest existing number — **including `retired/`** — and increment by one. Retired ADR numbers are never reused (see fg-cleanup), so the active set may have gaps.
 
 ## When to offer an ADR
 

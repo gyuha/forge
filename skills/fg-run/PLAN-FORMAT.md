@@ -61,7 +61,7 @@ or does a human checkpoint sit mid-way?
 
 When you split by size into an ordered series, give each plan a **soft sequence hint**, not a hard dependency:
 
-- Slug encodes order: `<base>-1of3`, `<base>-2of3`, `<base>-3of3` (so the slug-alphabetical tiebreak naturally lines them up).
+- Slug encodes order for readability: `<base>-1of3`, `<base>-2of3`, `<base>-3of3`. Sequence order comes from the numeric N in the `part: N/M` marker, not slug alphabetical (which misorders 10+ parts: `-10of12` sorts before `-2of12`).
 - Add a `<!-- part: N/M -->` marker. fg-run shows part-plans in order, labels them `(part N/M)`, and recommends completing them one at a time in sequence — but it does **not** block a later part if an earlier one isn't sealed yet. The order is a recommendation, not a gate.
 - **Each part-plan must still be independently sealable** — one part = one plan = one workflow = one run = one seal. The `part` marker changes display/recommendation order only.
 

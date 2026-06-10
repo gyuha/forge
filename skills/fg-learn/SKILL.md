@@ -23,7 +23,7 @@ Besides the active slot, **`.forge/executed/<slug>/`** (work parked by fg-run "R
 
 **Verification gate (run → verify → learn).** Before retroing a candidate, read its `STATUS.md` `verified:` field. A retro folds learnings into permanent docs, so retroing work that was never confirmed to achieve its goal risks promoting conclusions drawn from a broken result. The field gates the retro:
 - **`pending` or missing** → the UAT never happened. **Do not run the normal retro yet** — route by location: an **active-slot** task (`run.md` present) goes back to **fg-run's verification-only resume** (it runs the UAT and sets `verified:` without re-executing the workflow); a **parked `executed/<slug>` task or an older run predating the gate** has no reachable fg-run handoff (active slot empty), so guide the user to confirm the UAT now (the same recovery fg-done offers) and record the outcome in its STATUS before retroing.
-- **`failed`** → the UAT ran and the result is broken. **Do not retro it** — there is no stable result to fold into docs. Route to **fg-run**, which is the single owner of unparking a failed task: for a parked `executed/<slug>` task it moves the files back to the active slot before fix-and-re-run (fg-learn does not move them itself — fg-run loads only the active slot/backlog, never `executed/`; see fg-run's "Failed parked-task recovery"), or re-grill via fg-ask. The task returns for retro only once a fresh run re-verifies to a sealable value.
+- **`failed`** → the UAT ran and the result is broken. **Do not retro it** — there is no stable result to fold into docs. Route to **fg-run**, which is the single owner of unparking a failed task: for a parked `executed/<slug>` task it moves the files back to the active slot before fix-and-re-run (fg-learn does not move them itself — fg-run executes only from the active slot, so it unparks the files first; see fg-run's "Failed parked-task recovery"), or re-grill via fg-ask. The task returns for retro only once a fresh run re-verifies to a sealable value.
 - **`yes` / `skipped (<reason>)` / `n/a (<reason>)`** → proceed with the retro. `skipped`/`n/a` are recorded verification decisions and do not block it.
 
 If the input files are missing, point to the prior step. If `run.md` is missing (and `executed/` is also empty), execution hasn't finished yet, so tell them to run `fg-run` first. If even `plan.md` is missing, guide them through the order `fg-ask` → `fg-run`. If the active `.forge/` is empty, it means there's no work in progress, so recommend opening new work with `fg-ask` first.
@@ -58,7 +58,7 @@ So learnings that don't clear the bar go to the retro log without hesitation. An
 
 ### 4. Write the docs
 
-- The retro log always lands in `.forge/retro/YYYY-MM-DD-slug.md` (one file per session, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
+- The retro log always lands in `.forge/retro/YYYY-MM-DD-slug.md` (one file per retro'd task, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
 - If you promote a term, reflect it into `CONTEXT.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md` (skill-relative path `../fg-ask/CONTEXT-FORMAT.md`).
 - If you promote a decision, add `.forge/adr/NNNN-slug.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
 
@@ -100,4 +100,4 @@ Exception — if execution diverged a lot from the plan, guide them that it's be
 
 - Creates `.forge/retro/YYYY-MM-DD-slug.md` (always, lazy).
 - When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/NNNN-slug.md` (after human confirmation).
-- `.forge/` is gitignored volatile state, so it is not tracked — the only persistent artifacts are the permanent docs above.
+- On the default branch the volatile loop state is gitignored; the retro/ADR/CONTEXT docs this skill writes are git-tracked via the `.gitignore` whitelist, and a non-default branch root is tracked whole (ADR-0011).

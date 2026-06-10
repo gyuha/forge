@@ -1,6 +1,6 @@
 # Retro Log Format
 
-> For `fg-learn` only. Retro logs are stored as per-session files at `.forge/retro/YYYY-MM-DD-slug.md`.
+> For `fg-learn` only. Retro logs are stored as per-task files at `.forge/retro/YYYY-MM-DD-slug.md` (one file per retro'd task; multiple tasks retro'd in one session each get their own slug-named file).
 
 Documents are written in the user's language; the headings below are canonical English names — render them in the user's language.
 

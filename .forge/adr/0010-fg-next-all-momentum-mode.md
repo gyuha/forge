@@ -29,3 +29,7 @@ forge는 사람-게이팅이 핵심 철학이다: fg-status는 다음 단계를 
 - **기둥 #1 재해석**: "all-mode는 회고 대화를 자동으로 치지 않는다"는 유지된다 — 회고를 *자동 작성*하지도, ADR/CONTEXT로 *자동 승급*하지도 않는다. 비대화적 결정인 *skip*만 자동화한다(저-div든 고-div든). 즉 all-mode는 "회고 규율을 모멘텀과 맞바꾸는, 사용자가 명시적으로 택하는 차선"이다. 기본 `fg-next`(one-shot)와 정식 루프는 회고를 그대로 수행한다.
 - skip 기록: `retro: skipped (fg-next all 자동 진행 — 학습은 run.md, 승급은 추후 fg-learn)`. 침묵이 아니라 감사 가능하게 남긴다.
 
+## 개정 (2026-06-11) — 기본 fg-next의 confirm-then-delegate 폐지 (맥락 갱신)
+
+위 맥락의 "fg-next 본체는 one-shot + confirm-then-delegate"는 이 ADR 작성 후 폐지됐다(커밋 2fc48f7): 기본 fg-next도 한 줄로 알린 뒤 **별도 확인 없이** 곧바로 위임·실행한다(`skills/fg-next/SKILL.md`가 정답 소스). 따라서 결정 1의 "confirm-then-delegate → 시작 1회 확인"은 역사적 서술로 읽는다 — 오늘의 all-mode 시작 1회 확인은 기준선 완화가 아니라 무인 다작업 주행의 진입 게이트다.
+

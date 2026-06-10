@@ -5,13 +5,13 @@ mapped: 2026-06-10
 
 # CONCERNS — 이 플러그인의 실제 취약점
 
-forge는 런타임 코드가 없는 Claude Code 플러그인이다 — Markdown 스킬(`skills/*/SKILL.md`)과 JSON 매니페스트(`.claude-plugin/*.json`)뿐이다. 따라서 "버그"는 컴파일 에러가 아니라 **설치 실패, 스킬 미탐색, 스킬 간 상태 계약 단절, 문서 드리프트** 형태로 나타난다. 컴파일러·테스트가 잡아주지 않으므로 전부 사람이 편집 규율로 막아야 한다. 아래는 각 항목을 **현재 작업 트리**(미커밋 수정 포함)에 대고 검증한 결과다.
+forge는 런타임 코드가 없는 Claude Code 플러그인이다 — Markdown 스킬(`skills/*/SKILL.md`)과 JSON 매니페스트(`.claude-plugin/*.json`)뿐이다. 따라서 "버그"는 컴파일 에러가 아니라 **설치 실패, 스킬 미탐색, 스킬 간 상태 계약 단절, 문서 드리프트** 형태로 나타난다. 컴파일러·테스트가 잡아주지 않으므로 전부 사람이 편집 규율로 막아야 한다. 아래는 각 항목을 **현재 작업 트리**에 대고 검증한 결과다.
 
 ---
 
-## 0. 현재 작업 트리에 미커밋·미푸시 수정이 쌓여 있다 — 설치본은 여전히 옛 버전
+## 0. 로컬 main이 origin보다 앞서 있다 — 설치본은 push 전까지 옛 버전
 
-지금 트리에는 9개 파일의 문서 드리프트 수정이 **커밋되지 않은 채** 있다(`CLAUDE.md`, `README.md`, `README.ko.md`, `skills/fg-ask/SKILL.md`, `skills/fg-done/SKILL.md`, `skills/fg-quick/SKILL.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-status/SKILL.md`, `skills/fg-tdd/SKILL.md`). 설치는 GitHub main을 당기므로, **push 전까지 설치된 플러그인은 수정 전 내용으로 동작한다** — 예: 설치본의 `skills/fg-done/SKILL.md`는 아직 `verified: yes`(evidence 없는 옛 형식)를 봉인 가능 값으로 안내한다. 이 수정들이 main에 올라가야 아래 8·10번의 "해소됨" 상태가 실제 사용자에게 반영된다.
+9개 파일의 문서 드리프트 수정은 커밋 `1aecebb`로 **커밋됐으나 아직 push되지 않았다**. 설치는 GitHub main을 당기므로, **push 전까지 설치된 플러그인은 수정 전 내용으로 동작한다** — 예: 설치본의 `skills/fg-done/SKILL.md`는 아직 `verified: yes`(evidence 없는 옛 형식)를 봉인 가능 값으로 안내한다. 이 커밋들이 origin/main에 올라가야 아래 8·10번의 "해소됨" 상태가 실제 사용자에게 반영된다.
 
 ---
 
@@ -70,7 +70,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 스킬들은 **독립 실행**되며 오직 `.forge/` 파일로 상태를 주고받는다. 이 계약을 깨는 편집은 컴파일 에러도 테스트 실패도 없이 흐름만 끊는다. 핵심 결합 지점:
 
 - **`<!-- forge-slug: ... -->` 식별자**: fg-ask가 plan 첫 줄에 심고, fg-learn(회고)·fg-done(봉인)이 같은 slug로 짝을 맞춘다. 마커 형식/위치를 바꾸면 짝 맞춤이 깨진다.
-- **`STATUS.md`의 `status:` / `verified:` / `retro:` 필드**: fg-run이 `status: executed`(+`verified: pending`+`retro: pending`)로 쓰고 fg-done이 `status: done`으로 마감한다. `verified:` 허용값 어휘는 현재 트리 기준 fg-run(`yes (<evidence>)` 형식, `skills/fg-run/SKILL.md:120`)·fg-done(`skills/fg-done/SKILL.md:24`)·fg-status(`skills/fg-status/SKILL.md:58,77–85`)·fg-next가 **일치함을 확인했다**(미커밋 수정으로 fg-done이 evidence 형식을 따라잡음). 이 필드명·허용값을 한 스킬에서만 바꾸면 게이트가 오작동한다.
+- **`STATUS.md`의 `status:` / `verified:` / `retro:` 필드**: fg-run이 `status: executed`(+`verified: pending`+`retro: pending`)로 쓰고 fg-done이 `status: done`으로 마감한다. `verified:` 허용값 어휘는 현재 트리 기준 fg-run(`yes (<evidence>)` 형식, `skills/fg-run/SKILL.md:120`)·fg-done(`skills/fg-done/SKILL.md:24`)·fg-status(`skills/fg-status/SKILL.md:58,77–85`)·fg-next가 **일치함을 확인했다**(커밋 `1aecebb`로 fg-done이 evidence 형식을 따라잡음). 이 필드명·허용값을 한 스킬에서만 바꾸면 게이트가 오작동한다.
 - **활성 슬롯 = 항상 1개**: 한 `plan.md` = 한 `run.md` = 한 봉인. failed 작업 unpark의 단일 소유자는 fg-run이다(ADR-0009). 다른 스킬이 활성 슬롯을 건드리도록 고치면 이 불변식이 깨진다.
 - **빈 상태 = 진행 중 작업 없음**: 활성 슬롯·백로그·`executed/`가 모두 비면 fg-run은 실행하지 않는다(재실행 방지). fg-done이 봉인하며 비운다.
 
@@ -80,7 +80,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 
 ## 6. README.md / README.ko.md 이중 언어 동기화 — 한쪽만 고치면 어긋난다
 
-`README.md`(영문)와 `README.ko.md`(한글)는 같은 내용의 번역 쌍이다. 현재 작업 트리의 미커밋 수정도 양쪽에 같은 변경(전역 예외 2개 문서화, fg-next 핸드오프 문구, 트리거 목록)이 나란히 들어가 **동기화가 유지되고 있음을 확인했다**. 그러나 자동 동기화 검사가 없어, 한쪽만 고치면 조용히 어긋난다. 스킬 개수(2번의 하드코딩 숫자)·루프 설명·트리거 목록을 바꿀 때 특히 위험하다.
+`README.md`(영문)와 `README.ko.md`(한글)는 같은 내용의 번역 쌍이다. 커밋 `1aecebb`의 수정도 양쪽에 같은 변경(전역 예외 2개 문서화, fg-next 핸드오프 문구, 트리거 목록)이 나란히 들어가 **동기화가 유지되고 있음을 확인했다**. 그러나 자동 동기화 검사가 없어, 한쪽만 고치면 조용히 어긋난다. 스킬 개수(2번의 하드코딩 숫자)·루프 설명·트리거 목록을 바꿀 때 특히 위험하다.
 
 ---
 
@@ -91,7 +91,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 1. JSON 파싱 유효성(위 node 한 줄) — 매니페스트 문법만 본다.
 2. **실제 설치 후 트리거** — `/plugin marketplace add` → `/plugin install` 후 직접 호출. 이 명령들은 interactive라 **에이전트가 실행 못 한다**.
 
-결과: 5번의 상태 계약 단절, 4번의 fg-ask 드리프트, 3번의 `name` 누락 같은 **의미적 깨짐은 어떤 자동 도구도 잡지 못한다.** 게다가 설치는 main을 당기므로 로컬 편집만으로는 진짜 동작 검증이 불가능하다(0번과 결합하면: 지금의 미커밋 수정도 push 전까지 검증 불가).
+결과: 5번의 상태 계약 단절, 4번의 fg-ask 드리프트, 3번의 `name` 누락 같은 **의미적 깨짐은 어떤 자동 도구도 잡지 못한다.** 게다가 설치는 main을 당기므로 로컬 편집만으로는 진짜 동작 검증이 불가능하다(0번과 결합하면: 커밋된 수정도 push 전까지 설치 검증 불가).
 
 ---
 
@@ -114,7 +114,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 - **기본 브랜치**의 휘발 상태(plan/run/STATUS/backlog/executed/done/quick)는 **gitignored**.
 - **비-기본 브랜치**의 루트(`.forge/branch/<branch>/`)는 `!.forge/branch/`로 **통째로 추적**된다.
 
-이 의도된 비대칭을 모르고 `.gitignore`를 "정리"하면 브랜치 상태가 추적에서 빠지거나(fg-merge가 통합할 게 사라짐) 기본 브랜치 휘발 상태가 커밋을 오염시킨다. fg-merge의 통합 동작(ADR 번호 재부여·교차참조 갱신·retro 이동·CONTEXT 병합·브랜치 폴더 제거)이 이 추적에 의존한다. `config.json`의 `defaultBranch`(없으면 `main`)가 루트 해석의 분기점이라, 이 값이 실제 기본 브랜치와 어긋나면 모든 경로 해석이 틀어진다. (전역 예외 2개가 `CLAUDE.md`·`README.md:107`·`README.ko.md`에도 문서화돼 정의-문서 불일치는 현재 트리에서 해소됐다 — 단 0번대로 미커밋.)
+이 의도된 비대칭을 모르고 `.gitignore`를 "정리"하면 브랜치 상태가 추적에서 빠지거나(fg-merge가 통합할 게 사라짐) 기본 브랜치 휘발 상태가 커밋을 오염시킨다. fg-merge의 통합 동작(ADR 번호 재부여·교차참조 갱신·retro 이동·CONTEXT 병합·브랜치 폴더 제거)이 이 추적에 의존한다. `config.json`의 `defaultBranch`(없으면 `main`)가 루트 해석의 분기점이라, 이 값이 실제 기본 브랜치와 어긋나면 모든 경로 해석이 틀어진다. (전역 예외 2개가 `CLAUDE.md`·`README.md:107`·`README.ko.md`에도 문서화돼 정의-문서 불일치는 해소됐다 — 단 0번대로 미푸시.)
 
 ---
 
@@ -135,14 +135,14 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 
 ---
 
-## 12. 해소된 과거 우려 (기록용 — 더 이상 활성 위험 아님, 단 0번대로 미커밋분 포함)
+## 12. 해소된 과거 우려 (기록용 — 더 이상 활성 위험 아님, 단 0번대로 미푸시분 포함)
 
 - **`forge-prd.md` stale 설계 초안** — 커밋 `0ecd826`에서 삭제됨(현재 트리에 없음 확인).
-- **`skills/fg-run/FORGE-ROOT.md`의 "fg-merge is not built yet" 경고 블록** — fg-merge가 실재(v0.4.0)하는데 남아 있던 stale 경고. 현재 트리에서 제거되고 `skills/fg-merge/SKILL.md` 참조로 대체됨(미커밋).
-- **fg-done의 `verified: yes` evidence 형식 불일치** — fg-run은 `yes (<evidence>)`를 기록하는데 fg-done은 evidence 없는 `yes`를 안내하던 어긋남. 현재 트리에서 fg-done도 `yes (<evidence>)`로 통일됨(미커밋).
-- **전역 예외 2개(`config.json`·`codebase/`) 미문서화** — `CLAUDE.md`·`README.md`·`README.ko.md`에 반영됨(미커밋).
-- **fg-ask·fg-quick·fg-done의 "`.forge/`는 gitignored" 단정** — ADR-0011 이후 브랜치 루트는 추적되므로 부정확했던 서술. 현재 트리에서 브랜치별 구분 서술로 수정됨(미커밋).
-- **fg-status 핸드오프의 fg-next 동작 서술(승인 후 실행)** — fg-next의 "별도 승인 없이 즉시 실행"과 어긋나던 문구. 현재 트리에서 일치하게 수정됨(미커밋).
+- **`skills/fg-run/FORGE-ROOT.md`의 "fg-merge is not built yet" 경고 블록** — fg-merge가 실재(v0.4.0)하는데 남아 있던 stale 경고. 제거되고 `skills/fg-merge/SKILL.md` 참조로 대체됨(커밋 `1aecebb`, 미푸시).
+- **fg-done의 `verified: yes` evidence 형식 불일치** — fg-run은 `yes (<evidence>)`를 기록하는데 fg-done은 evidence 없는 `yes`를 안내하던 어긋남. fg-done도 `yes (<evidence>)`로 통일됨(커밋 `1aecebb`, 미푸시).
+- **전역 예외 2개(`config.json`·`codebase/`) 미문서화** — `CLAUDE.md`·`README.md`·`README.ko.md`에 반영됨(커밋 `1aecebb`, 미푸시).
+- **fg-ask·fg-quick·fg-done의 "`.forge/`는 gitignored" 단정** — ADR-0011 이후 브랜치 루트는 추적되므로 부정확했던 서술. 브랜치별 구분 서술로 수정됨(커밋 `1aecebb`, 미푸시).
+- **fg-status 핸드오프의 fg-next 동작 서술(승인 후 실행)** — fg-next의 "별도 승인 없이 즉시 실행"과 어긋나던 문구. 일치하게 수정됨(커밋 `1aecebb`, 미푸시).
 
 ---
 
@@ -150,7 +150,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 
 | # | 우려 | 깨질 때 증상 | 자동 검출 |
 | --- | --- | --- | --- |
-| 0 | 미커밋·미푸시 수정 9파일 | 설치본이 수정 전 내용으로 동작 | `git status`로만 |
+| 0 | 커밋됨(`1aecebb`)·미푸시 수정 9파일 | 설치본이 수정 전 내용으로 동작 | `git status`로만 |
 | 1 | 버전 3곳 동기화 | 설치/업데이트 실패 | JSON 유효성만 (일치 검사 X) |
 | 3 | frontmatter `name` 누락 / fg-next description 1,038자 | 스킬 조용히 미탐색 / description 잘림 가능 | `awk '/^name:/'`로 누락만 |
 | 5 | 스킬 간 상태 계약 | 루프 흐름 단절, 재실행/봉인 실패 | **없음** |
