@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.4.3] - 2026-06-11
+
+### Changed
+- **브랜치 영속 연료 읽기 오버레이 (ADR-0011 개정).** 비-기본 브랜치의 그릴링 연료(CONTEXT.md·adr/·retro/) 읽기가 최상위 `.forge/` 베이스 위에 브랜치 루트를 오버레이한다(브랜치 우선) — 갓 만든 브랜치가 main의 용어·결정을 못 보던 실명 문제 해소. 쓰기·ADR 채번은 브랜치 루트 그대로(단일 정의: `skills/fg-run/FORGE-ROOT.md`).
+- **`fg-merge` 견고화** — ADR 재부여를 "전체 old→new 맵 선구축 → placeholder 일괄 치환, incoming 문서만" 으로 바꿔 순차 치환 캐스케이드/타깃 참조 오염 차단; 채번이 `retired/` 포함; 브랜치 backlog plan을 통합 목록에 추가(slug `-2`·task 번호 재부여)하고 halt 게이트를 진짜 in-flight 상태(active slot·executed/·pending quick 항목)로 축소; 통합 결과 커밋 리마인드 추가.
+- **`fg-done` 봉인 절차 견고화** — STATUS 마감을 이동 전에 수행(close-out-before-move)하고, 중단된 봉인(half-seal)을 빈 상태 선언 전에 감지·완결; 검증·회고 게이트의 per-task 평가 명시(Run-all fail-stop 혼합 상태에서 통과 작업은 계속 봉인).
+- **`fg-run` unpark 전제 구체화** — 활성 슬롯 점유 시 unpark하지 않고 대기, 슬롯이 비면 재진입 시 자동으로 최상위 회수 후보로 표면화.
+
+### Fixed
+- ADR 채번이 은퇴(`retired/`) 번호를 재사용할 수 있던 구멍(ADR-FORMAT·fg-merge 채번에 retired/ 포함, never-reuse 불변식 보존).
+- `skills/fg-run/FORGE-ROOT.md`의 stale "fg-merge is not built yet" 블록 제거(수동 통합 지시가 7개 스킬에 전파되던 문제).
+- README "모든 `.forge/...` 경로가 브랜치 루트로 해석" 과잉 진술에 전역 예외 2개(`config.json`·`codebase/`) 명시(README 양쪽·CLAUDE.md).
+- fg-done의 봉인 가능 값을 fg-run과 동일한 `yes (<evidence>)` 형식으로 정렬, STATUS.md 템플릿 모양 통일(생산자 fg-run의 plain `key: value` 기준).
+- fg-ask·fg-done·fg-quick·fg-learn의 "`.forge/` 통째 untracked" 단정을 브랜치별 서술로 한정.
+- Run-all failed 파킹 provenance 모순(fg-run — Run all은 failed를 파킹하지 않음), fg-learn의 "fg-run은 executed/를 안 읽음" 오서술, fg-status 3b 상태의 스킬·트리거 누락(retro 여부로 fg-learn/fg-done 분기) 등 상태 머신 서술 정합.
+- TDD 질문 조건 오서술(켜짐 여부와 무관하게 작업마다 질문, config는 기본 답) — fg-tdd·README 양쪽; fg-tdd config 키 2개(tdd·defaultBranch) 반영.
+- README mermaid의 유령 'chores' 엣지 제거, README.ko 누락 트리거 3건 보충, fg-next "verify→done 확장" 절 영문판 보강.
+- 회고 "per session" → "per task" 정정(RETRO-FORMAT·fg-learn), part-plan 정렬을 `part: N/M` 숫자 기준으로(10+ 파트 슬러그 오정렬), CLAUDE.md 화이트리스트에 `!.forge/config.json` 추가.
+- ADR-0010에 개정 노트(기본 fg-next의 confirm-then-delegate 폐지를 역사로 명시), 코드베이스 지도(`.forge/codebase/`) 갱신.
+
 ## [0.4.2] - 2026-06-10
 
 ### Changed
