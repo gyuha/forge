@@ -72,6 +72,8 @@ Prompt Claude to build a Dynamic Workflow. Put the `workflow` keyword in the pro
 
 **TDD mode.** If the active plan carries `<!-- tdd: on -->` (set by fg-ask from `.forge/config.json`; see PLAN-FORMAT.md), compose the workflow **test-first**: for each work slice, write a failing test that pins its completion criterion **before** the implementation, then implement until that test passes — and treat "the slice's test exists and passes" as part of its completion criterion in §3. Describe this test-first discipline in the orchestration script yourself; if a TDD capability is available (e.g. a `superpowers:test-driven-development` skill) you may lean on it, but never hard-depend on one. If `tdd` is `off` or absent, run normally — no behavior change.
 
+**Eco mode (delegated-agent model cap).** Read `eco` from the **top-level** `.forge/config.json` (a global exemption — never the branch root; treat as `off` if the file or key is absent). If `true`, **cap the model of the workflow/execution subagents at `sonnet`** when composing the workflow (e.g. `model: sonnet` on the agent calls): the cap only ever lowers — if the session model is already `sonnet` or lighter, let agents inherit it unchanged (a savings mode must never raise cost) — and an **explicit user model instruction always wins** over the cap. This tiers the loop as "strong = main session (design), normal = delegated execution" without touching the session model (which a skill cannot change). Toggle via the `fg-eco` utility; rationale and scope (fg-map excluded) in `.forge/adr/0014-fg-eco-subagent-model-tiering.md`. If `eco` is `false` or absent, no behavior change.
+
 ### 2. Script approval → parallel execution
 
 Once the orchestration script is ready, **get user approval first**. After approval, run it as background parallel subagents while this session keeps responding and receives progress. Observe progress with `/workflows`.
@@ -110,6 +112,7 @@ If the user picks "Run all" from the selection menu, **read [`RUN-ALL.md`](./RUN
 - **If a mid-run sign-off is needed**, that is a signal the task was actually two — split it into separate **tasks** (finish and seal everything up to the checkpoint as one loop, and open a new fg-ask for the rest as an fg-done follow-up). A Dynamic Workflow cannot take human input mid-runtime. Do not split one plan into phases and accumulate them into `run.md` — that conflicts with the re-run guard. Determine the split per the split rules in [PLAN-FORMAT.md](./PLAN-FORMAT.md).
 - **Estimate cost first.** For a big job, trial a small slice to gauge token cost before scaling to the whole. If the scale is small enough for a single agent, skip the workflow and just handle it directly — that is cheaper and faster.
 - **If the job will recur**, save the execution script as a `/command` (slash command) for reuse.
+- **Eco mode caps delegated agents only.** When `.forge/config.json` `eco` is on, workflow/execution subagents are capped at `sonnet` (see §1) — it never changes this session's model, never raises a tier, and yields to an explicit user model instruction.
 - Environment requirements: research preview · Claude Code v2.1.154+ · paid plan.
 
 ## Verify before handing off (UAT)

@@ -19,7 +19,7 @@ This is **not** a stage of the forge loop. It is a tiny on-demand utility that f
 
 ## The config file — `.forge/config.json`
 
-A git-tracked JSON settings file (lazily created on first write; `.gitignore` whitelists `!.forge/config.json`). It holds forge's persistent project settings — `tdd` (the key this skill manages) and, optionally, `defaultBranch` (read by branch-root resolution; see FORGE-ROOT.md / ADR-0011). Example of the lazily-created default:
+A git-tracked JSON settings file (lazily created on first write; `.gitignore` whitelists `!.forge/config.json`). It holds forge's persistent project settings — `tdd` (the key this skill manages) and, optionally, `defaultBranch` (read by branch-root resolution; see FORGE-ROOT.md / ADR-0011) and `eco` (the fg-eco delegated-model toggle; ADR-0014). Example of the lazily-created default:
 
 ```json
 {
