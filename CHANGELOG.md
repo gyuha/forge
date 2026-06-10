@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.2] - 2026-06-10
+
+### Changed
+- **`fg-run` — Run-all 절차를 `skills/fg-run/RUN-ALL.md`로 분리(progressive disclosure).** 흔한 호출 경로(1작업·단일선택)는 Run-all을 로드하지 않아 fg-run 본문이 ~12% 가벼워지고(28061→24579자), "Run all"을 실제로 고를 때만 그 파일을 참조 로드한다. **동작 불변** — 추출은 재배치일 뿐, rule census로 행동 규칙 19/19가 (SKILL ∪ RUN-ALL)에 보존됨을 입증.
+
+### Added
+- **`fg-done` — 봉인 후 codebase 지도 stale 감지 → `fg-map` 제안.** 작업이 `.forge/codebase/`가 서술하는 프로젝트 파일(`.forge/` 밖)을 바꿨고 지도가 존재하면, 봉인 wrap-up에서 `fg-map`을 **제안**한다(자동 실행 아님 — fg-map은 4-agent라 on-demand, ADR-0006의 offer-not-auto 선례). doc-only 작업이나 지도 부재 시엔 침묵. 봉인 가드·순서는 불변.
+
 ## [0.4.1] - 2026-06-09
 
 ### Added
