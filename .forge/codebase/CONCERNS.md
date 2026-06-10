@@ -1,194 +1,164 @@
 ---
-last_mapped_commit: 41c10d7cb477eddab9b7d0f1aa8bd23bbcf34d98
-mapped_date: 2026-06-09
+last_mapped_commit: 0472a519cbb8275564cdbaa30469f2d0c5472842
+mapped: 2026-06-10
 ---
 
-# Concerns — 알려진 취약점·위험 영역
+# CONCERNS — 이 플러그인의 실제 취약점
 
-forge의 산출물은 Markdown(`SKILL.md`·형식 문서)과 JSON(매니페스트)뿐이고 빌드·테스트·린트·CI가 없다. 따라서 위험은 "코드 버그"가 아니라 **수동 동기화 지점, 스킬 간 교차참조 발산, 단어/이름 과부하, 런타임 부재로 인한 검증 사각**의 형태로 나타난다. 아래 항목은 전부 기술부채가 아니라 **설계 의도의 비용**이며, 각각 실제 파일·ADR·회고에 근거한다. 예방책은 "제거"가 아니라 "의식화·검증"이다.
-
-## 1. 스킬 간 교차참조 밀도 — 한 곳을 고치면 흩어진 참조가 어긋난다
-
-**위치:** `skills/*/SKILL.md` 전반, 특히 `skills/fg-run/FORGE-ROOT.md`·`skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`·`skills/fg-run/PLAN-FORMAT.md`·`skills/fg-learn/RETRO-FORMAT.md`
-
-**상황:**
-- forge 루트 해석 규약(ADR-0011)은 **단 한 곳** `skills/fg-run/FORGE-ROOT.md`에 정의되고, **11개 스킬 전부**가 이를 참조한다(`fg-ask`·`fg-cleanup`·`fg-done`·`fg-learn`·`fg-map`·`fg-merge`·`fg-next`·`fg-quick`·`fg-run`·`fg-status`·`fg-tdd` 모두 `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` 류로 가리킴). 복붙 금지 원칙(CLAUDE.md)으로 single-definition을 지키는 대신, 이 한 파일의 의미가 바뀌면 11개 스킬의 동작이 동시에 영향받는다.
-- 형식 문서도 소유 스킬 디렉터리에만 두고 상대경로로 참조한다: `fg-done`·`fg-learn`·`fg-run`·`fg-cleanup`이 `fg-ask/ADR-FORMAT.md`·`fg-ask/CONTEXT-FORMAT.md`를, `fg-ask`가 `fg-run/PLAN-FORMAT.md`를, `fg-done`·`fg-learn`이 `fg-learn/RETRO-FORMAT.md`를 가리킨다.
-
-**발산 위험:**
-- 형식 문서나 FORGE-ROOT를 이동·개명하면 흩어진 참조 경로가 한 번에 깨지는데, 빌드가 없어 **컴파일 에러로 잡히지 않는다** — 설치해서 트리거해보기 전까지 드러나지 않는다.
-- `2026-06-04-fg-ask-adr-path-fix.md` 회고가 정확히 이 부류의 사고(verbatim 이식 시 경로/이름이 호스트 계약과 어긋남)를 기록했다.
-
-**예방책:** 형식 문서/FORGE-ROOT 수정 후 `grep -rno "fg-ask/[A-Z]*-FORMAT\|fg-run/PLAN-FORMAT\|fg-learn/RETRO-FORMAT\|fg-run/FORGE-ROOT" skills/` 로 모든 참조 경로 정합 확인.
+forge는 런타임 코드가 없는 Claude Code 플러그인이다 — Markdown 스킬(`skills/*/SKILL.md`)과 JSON 매니페스트(`.claude-plugin/*.json`)뿐이다. 따라서 "버그"는 컴파일 에러가 아니라 **설치 실패, 스킬 미탐색, 스킬 간 상태 계약 단절, 문서 드리프트** 형태로 나타난다. 컴파일러·테스트가 잡아주지 않으므로 전부 사람이 편집 규율로 막아야 한다. 아래는 각 항목을 **현재 작업 트리**(미커밋 수정 포함)에 대고 검증한 결과다.
 
 ---
 
-## 2. 런타임 부재로 인한 검증 게이트의 구조적 사각 (ADR-0009)
+## 0. 현재 작업 트리에 미커밋·미푸시 수정이 쌓여 있다 — 설치본은 여전히 옛 버전
 
-**위치:** `.forge/done/*/STATUS.md`의 `verified:` 필드, `.forge/adr/0009-verification-gate-before-seal.md`
-
-**상황:**
-- ADR-0009는 봉인 전 검증 게이트(run → verify → learn → done)를 강제한다. 그러나 forge 스킬은 **지시문 텍스트일 뿐 런타임이 없다** — `fg-*` 스킬을 편집하는 작업은 실행해서 동작을 검증할 대상이 없다.
-- 결과적으로 done STATUS의 `verified:` 값이 자주 `n/a`로 떨어진다. 실측: **16건이 `n/a (legacy pre-ADR-0009)`**(백필), 추가로 다수가 `n/a (런타임 없음 — 정적 검증만: grep/node로 name 자동탐색·JSON 유효·매니페스트 일관성)` 형태다.
-- "실제 동작" 검증은 main에 push 후 `/plugin install`로만 가능한데, 이는 interactive 명령이라 에이전트가 못 돌린다(CLAUDE.md 배포 규칙).
-
-**발산 위험:**
-- `n/a`가 관례가 되면 검증 게이트가 형식만 남고 실효를 잃는다. "정적 grep만 했는데 sealable"이 기본값이 되기 쉽다.
-
-**완화(이미 적용):**
-- ADR-0013이 이 통증의 정체를 명시한다 — "verifier 서브에이전트는 없는 런타임을 만들어내지 못한다." 사각을 실제로 메운 것은 **샌드박스 dogfood**다: `.forge/done/2026-06-09-fg-merge-lifecycle-e2e/`의 `verified: yes (샌드박스 e2e — A 기계적·B 충돌-멈춤·C 전제가드 전부 PASS …)`가 fg-merge 라이프사이클을 실제로 돌려 검증한 사례다.
-- `2026-06-07-evidence-first-uat.md` 회고가 "증거 우선 UAT"를 강화했다.
-
-**예방책:** 비-trivial 스킬 변경(특히 새 상태 계약)은 정적 grep을 넘어 샌드박스 dogfood로 검증. `n/a` 사유에 "왜 런타임이 없는지 + 정적으로 무엇을 실측했는지"를 항상 남긴다.
+지금 트리에는 9개 파일의 문서 드리프트 수정이 **커밋되지 않은 채** 있다(`CLAUDE.md`, `README.md`, `README.ko.md`, `skills/fg-ask/SKILL.md`, `skills/fg-done/SKILL.md`, `skills/fg-quick/SKILL.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-status/SKILL.md`, `skills/fg-tdd/SKILL.md`). 설치는 GitHub main을 당기므로, **push 전까지 설치된 플러그인은 수정 전 내용으로 동작한다** — 예: 설치본의 `skills/fg-done/SKILL.md`는 아직 `verified: yes`(evidence 없는 옛 형식)를 봉인 가능 값으로 안내한다. 이 수정들이 main에 올라가야 아래 8·10번의 "해소됨" 상태가 실제 사용자에게 반영된다.
 
 ---
 
-## 3. README.md ↔ README.ko.md 수동 동기화 부담
+## 1. 매니페스트 버전이 3곳에 흩어져 있다 — 어긋나면 설치 깨짐
 
-**위치:** `README.md`(영문, 140줄) ↔ `README.ko.md`(한글, 139줄)
+버전 문자열이 세 군데에 중복되며 **반드시 동기화**되어야 한다:
 
-**상황:**
-- CLAUDE.md: "README.md를 갱신하면 반드시 README.ko.md도 같은 변경으로 함께 갱신한다(역방향도 동일)." 두 문서는 번역 쌍이고, 자동 동기화 장치가 없다.
-- 현재 줄 수가 140 vs 139로 1줄 차이 — 정상 번역 차이일 수 있으나, **둘이 구조적으로 어긋났는지 자동으로 검출할 방법이 없다**.
+- `.claude-plugin/plugin.json` → `version` (현재 `0.4.2`)
+- `.claude-plugin/marketplace.json` → `metadata.version` (현재 `0.4.2`)
+- `.claude-plugin/marketplace.json` → `plugins[0].version` (현재 `0.4.2`)
 
-**발산 위험:**
-- 스킬 추가·이름 변경·상태 계약 변경 때마다 양쪽을 손대야 한다. 최근 변경(스킬 7→11개, `fg-complete→fg-cleanup→fg-done` 개명 사슬, ADR-0011 브랜치 격리, ④단계 단어 done화)은 전부 README 양쪽 동기화를 요구했다. 한쪽만 고치면 두 문서가 영구히 갈린다.
+세 값이 일치함은 확인했다. 그러나 검증 도구는 JSON 파싱 유효성뿐이고 **세 버전이 같은지는 어떤 도구도 검사하지 않는다**:
 
-**예방책:** README 변경 커밋은 항상 두 파일을 함께 touch. 배포 전 두 README의 섹션 목차가 일치하는지 육안 대조.
+```bash
+node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
+```
 
----
-
-## 4. "단계 단어 vs 스킬 이름" 과부하 — cleanup/done 충돌 (ADR-0012)
-
-**위치:** `skills/fg-cleanup/`, `skills/fg-done/`, ADR-0012, 두 스킬의 핸드오프 가드
-
-**상황:**
-- 봉인 ④단계 스킬은 `fg-complete → fg-cleanup → fg-done`으로 두 번 개명됐다. 비어난 `fg-cleanup` 이름에는 **완전히 다른 기능**(오래된 ADR 은퇴, 루프 밖 유틸리티)이 새로 들어왔다(ADR-0012).
-- ADR-0012의 2026-06-09 개정은 ④단계를 가리키는 *단어*까지 "cleanup/정리"에서 **"done/완료"**로 통일했다. 흐름 표기는 `ask·plan → execute → retro → done`. "cleanup"은 이제 `fg-cleanup`(ADR 은퇴) 전용 단어다.
-
-**발산 위험:**
-- **근육기억 역전 사고.** `forge cleanup` 트리거가 봉인이 아니라 ADR 은퇴로 라우팅된다. 사용자가 "정리"라고 치면 어느 쪽을 의도했는지 모호하다.
-- 문서를 편집할 때 "cleanup"이라는 단어가 봉인 단계를 가리키는 잔재가 남아 있으면 두 의미가 충돌한다.
-
-**완화(이미 적용):**
-- `skills/fg-cleanup/SKILL.md`에 명시적 가드: "this retires ADRs; sealing a task is fg-done … wanted to seal? → point to fg-done → stop." description에도 "sealing a finished task is fg-done, not this."
-- ADR-0012가 "개명 sweep은 살아있는 기능 문서만, 역사 기록(retro·done·CHANGELOG·옛 ADR 언급)은 불변"이라고 못박았다.
-
-**예방책:** 역사 문서(retro/done/CHANGELOG)에서 "fg-cleanup"이 봉인을 뜻하던 과거 언급은 고치지 말 것 — 고치면 역사가 왜곡된다. 신규 문서에서는 ④단계를 "done"으로만 표기.
+배포 후 원격 main의 세 버전 일치는 `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`로만 사후 확인 가능하다(`/plugin install`은 interactive라 에이전트가 못 돌린다).
 
 ---
 
-## 5. 서브에이전트 의도적 보류 (ADR-0013) — 재제안 압력
+## 2. 긴 설명이 두 벌 + 스킬 개수가 하드코딩 — 스킬 추가 시 4곳 이상을 손으로 맞춰야 한다
 
-**위치:** `.forge/adr/0013-defer-subagents-fg-map-and-stage-separation-suffice.md`
+설명 텍스트의 역할 분리는 현재 지켜지고 있다(검증됨):
 
-**상황:**
-- explorer/retro-analyzer/verifier 3종 서브에이전트 도입이 제안됐으나 **셋 다 보류**됐다. 근거: explorer는 fg-map과 중복, retro-analyzer가 겨냥한 컨텍스트 오염은 단계별 스킬 분리로 이미 완화, verifier는 ADR-0009의 진짜 통증(런타임 부재)을 못 고침.
+- `marketplace.json` → `metadata.description`: **루프 태그라인** — `ask·plan → execute → retro → done`만 정의. 루프 밖 유틸리티를 여기 넣으면 안 된다.
+- `plugin.json` → `description`과 `marketplace.json` → `plugins[0].description`: **전체 스킬 목록**을 담는 긴 설명. 단 이 둘은 **복사본이 아니라 서로 다르게 쓰인 두 벌의 긴 텍스트**다 — `plugins[0].description`은 "Eleven fg-* skills"로 시작해 루프 4단계를 스킬명 대신 단계명으로 서술하고, `plugin.json` 쪽은 11개 스킬명을 전부 직접 나열한다. 둘 다 현재 11개 스킬과 일치함을 확인했지만, 스킬을 추가/제거하면 **서로 다른 문장 구조의 두 텍스트를 따로 고쳐야 한다**.
 
-**발산 위험:**
-- "당연한 최적화"로 보여 누군가(또는 미래의 같은 분석)가 재제안하기 쉽다 — 이것이 ADR-0013이 명문화된 이유다.
-
-**예방책(이미 ADR에 내장):** 재검토는 **구체적·재현된 통증**이 생길 때 *해당하는 하나만* — 거대 run.md로 fg-learn 컨텍스트가 실제 압박받으면 retro-analyzer, UAT 출력이 수천 줄이면 verifier. 투기적 일반론으로는 다시 만들지 않는다. 재제안 전 ADR-0013을 먼저 읽을 것.
+추가 위험: 스킬 개수가 산문에 하드코딩돼 있다 — `marketplace.json`의 "Eleven … Seven more", `README.md:4`의 "eleven … seven utilities", `README.ko.md:4`의 "11개 … 7개". 12번째 스킬을 추가하면 **최소 4곳의 숫자**가 동시에 stale해진다. 자동 검출 없음.
 
 ---
 
-## 6. 회고 skip의 침식 위험 (ADR-0002)
+## 3. 스킬은 frontmatter `name`으로 자동 탐색된다 — 이름이 틀리면 조용히 사라진다
 
-**위치:** `.forge/done/*/STATUS.md`의 `retro:` 필드
+스킬 식별자는 **디렉터리명이 아니라 `SKILL.md` frontmatter의 `name`**이다. `plugin.json`에 `skills` 필드가 없어 `skills/`가 자동 탐색된다. 11개 스킬 모두 디렉터리명과 `name`이 일치함을 확인했다(`fg-ask`·`fg-cleanup`·`fg-done`·`fg-learn`·`fg-map`·`fg-merge`·`fg-next`·`fg-quick`·`fg-run`·`fg-status`·`fg-tdd`).
 
-**상황:**
-- ADR-0002는 저-divergence 사소한 작업에 한해 회고를 skip할 수 있게 했다. 실측 done STATUS에서 **다수가 `retro: skipped`**다 — 사유는 "divergence 없음 / 핵심은 ADR에 기록됨 / 사용자 판단 / fg-next all 자동 진행" 등으로 다양하다.
-- 특히 `2026-06-08-branch-isolation-2of2`는 **"고-divergence였으나 핵심 학습이 이미 승급됨"**으로 skip됐다. ADR-0002가 "divergence 크면 skip 미제시"라 한 원칙과 긴장 관계.
-- `fg-next all` 모드(ADR-0010)는 회고를 **항상 자동 skip**한다(`2026-06-09-fg-next-all-unattended-goal.md` 회고). 무인 진행이 늘면 skip이 기본값이 된다.
+위험: `name`을 빠뜨리거나 오타를 내면 그 스킬은 **에러 없이 그냥 탐색되지 않는다**. 배포 전 점검은 `awk '/^name:/' skills/*/SKILL.md`로 누락만 확인 가능하다(`CLAUDE.md` 배포 규칙에 명시).
 
-**발산 위험:**
-- 기둥 2("문서는 루프의 연료")가 침식된다 — skip이 관례가 되면 회고가 다음 계획의 출발점 역할을 못 한다. "핵심은 ADR/run.md에 있으니 회고 불요"는 회고와 ADR의 역할 혼동 신호이기도 하다.
-
-**예방책:** skip 사유에 "학습이 어디에 보존됐는지(run.md/ADR)"를 명시하고, `fg-next all`로 쌓인 skip은 추후 fg-learn으로 승급 검토. divergence가 크면 skip 게이트가 실제로 막는지 점검.
+추가 관찰: `skills/fg-next/SKILL.md`의 frontmatter `description`이 **1,038자**로, 흔히 문서화되는 스킬 description 권장 한도(약 1,024자)를 넘는다 [중간 — 한도 수치는 공식 문서 기준 확인 필요]. 현재 세션에서는 잘려 보이지 않으나, 한도 강제가 빡빡한 환경에서 잘리거나 거부될 수 있는 경계값이다. 나머지 10개는 325–673자로 여유 있다.
 
 ---
 
-## 7. 코드베이스 지도 자신의 staleness (바로 이 재생성)
+## 4. fg-ask는 grill-with-docs verbatim 본문 + 별도 Forge integration 섹션 — 따로 움직여 드리프트
 
-**위치:** `.forge/codebase/*.md`(STACK·INTEGRATIONS·ARCHITECTURE·STRUCTURE·CONVENTIONS·TESTING·CONCERNS 7문서)
+`skills/fg-ask/SKILL.md`(105줄)는 구조가 둘로 쪼개져 있다:
 
-**상황:**
-- fg-map이 생성하는 지도는 각 문서 frontmatter에 `last_mapped_commit`을 갖는다. fg-ask가 그릴링 전 이 지도를 읽어 context rot를 줄인다.
-- 그러나 지도는 **on-demand**라 코드가 바뀌어도 자동 갱신되지 않는다. 직전 매핑 이후 스킬이 7→11개로 늘고, `fg-complete→fg-cleanup→fg-done` 개명 사슬·ADR-0011/0012/0013 추가·`forge-prd.md` 제거가 있었다 — 옛 지도(특히 옛 CONCERNS.md가 가리키던 "forge-prd.md", "5→7 skills", "fg-complete")는 **이미 stale**했고 이 재생성이 그 부채를 갚는 행위다.
-- ADR-0011에서 codebase 지도는 **전역 예외**로 항상 최상위 `.forge/codebase/`에 둔다(브랜치-로컬 아님) — 갓 만든 브랜치의 지도가 비어 fg-ask가 못 읽는 것을 막기 위함. 즉 지도는 브랜치 간 공유되므로, 한 브랜치에서 stale해지면 모든 브랜치가 stale한 지도를 본다.
+- **본문(1–89줄)**: grill-with-docs 원본의 **영문 verbatim**. 자기완결 3파일 패턴(`SKILL.md` + 형제 `CONTEXT-FORMAT.md` / `ADR-FORMAT.md`)이며 손대지 않는 영역으로 취급된다.
+- **`## Forge integration (minimal)` 섹션(90줄~)**: forge 루프 연결 로직이 **여기에만** 산다 — 백로그 산출(`<!-- forge-slug: -->`·`<!-- task: N -->`·`<!-- tdd: -->`·`<!-- retro-hint: -->`·`<!-- priority: -->`·`<!-- part: N/M -->` 마커), 미봉인 선행 작업 알림, slug 충돌 검출, fg-run 핸드오프, 휘발/영속 추적 구분.
 
-**발산 위험:** 개명·구조 변경 후 fg-map을 다시 돌리지 않으면 fg-ask가 틀린 이름·없는 파일을 사실로 읽는다(예: 이번처럼 옛 CONCERNS.md가 제거된 forge-prd.md를 권위 문서로 서술).
-
-**예방책:** 스킬 추가·개명·상태 계약 변경 후 `fg-map` 재실행. fg-ask의 stale 경고가 실제 트리거되는지 확인.
+이 둘은 **독립적으로 움직인다.** 한쪽만 고치면 둘이 어긋나 상태 계약이 깨진다. `CLAUDE.md`가 "알려진 불일치"로 명시한 항목이다. 같은 패턴이 fg-run에도 새로 생겼다(8번 참조).
 
 ---
 
-## 8. .gitignore 화이트리스트의 정교함 — 영속/휘발 비대칭 (ADR-0011)
+## 5. 스킬 간 상태 계약 — 한 스킬을 고치면 `.forge/` 파일 핸드오프가 조용히 깨진다
 
-**위치:** `.gitignore`(`.forge/*` 제외 후 화이트리스트로 되살림)
+스킬들은 **독립 실행**되며 오직 `.forge/` 파일로 상태를 주고받는다. 이 계약을 깨는 편집은 컴파일 에러도 테스트 실패도 없이 흐름만 끊는다. 핵심 결합 지점:
 
-**상황:**
-- 현재 규칙: `.forge/*`로 전부 제외한 뒤 `!.forge/CONTEXT.md`·`!.forge/adr/`·`!.forge/retro/`·`!.forge/codebase/`·`!.forge/config.json`·`!.forge/branch/`만 추적으로 되살린다.
-- **의도된 비대칭(ADR-0011):** 기본 브랜치의 휘발 상태(plan/run/STATUS/backlog/executed/done)는 gitignored, 그러나 비-기본 브랜치의 forge 루트 `.forge/branch/<branch>/`는 **통째로 git 추적**된다. 즉 같은 종류의 파일(plan/run/STATUS)이 브랜치에 따라 추적/비추적이 갈린다.
+- **`<!-- forge-slug: ... -->` 식별자**: fg-ask가 plan 첫 줄에 심고, fg-learn(회고)·fg-done(봉인)이 같은 slug로 짝을 맞춘다. 마커 형식/위치를 바꾸면 짝 맞춤이 깨진다.
+- **`STATUS.md`의 `status:` / `verified:` / `retro:` 필드**: fg-run이 `status: executed`(+`verified: pending`+`retro: pending`)로 쓰고 fg-done이 `status: done`으로 마감한다. `verified:` 허용값 어휘는 현재 트리 기준 fg-run(`yes (<evidence>)` 형식, `skills/fg-run/SKILL.md:120`)·fg-done(`skills/fg-done/SKILL.md:24`)·fg-status(`skills/fg-status/SKILL.md:58,77–85`)·fg-next가 **일치함을 확인했다**(미커밋 수정으로 fg-done이 evidence 형식을 따라잡음). 이 필드명·허용값을 한 스킬에서만 바꾸면 게이트가 오작동한다.
+- **활성 슬롯 = 항상 1개**: 한 `plan.md` = 한 `run.md` = 한 봉인. failed 작업 unpark의 단일 소유자는 fg-run이다(ADR-0009). 다른 스킬이 활성 슬롯을 건드리도록 고치면 이 불변식이 깨진다.
+- **빈 상태 = 진행 중 작업 없음**: 활성 슬롯·백로그·`executed/`가 모두 비면 fg-run은 실행하지 않는다(재실행 방지). fg-done이 봉인하며 비운다.
 
-**발산 위험:**
-- 새 영속 문서 종류를 추가하면 화이트리스트에 `!` 줄을 빠뜨리기 쉽고, 그러면 조용히 untracked가 된다(에러 없음).
-- `.forge/branch/` 전체 추적은 plan/run/STATUS가 커밋·PR에 남는 비대칭을 감수한 것 — 이를 모르고 "왜 브랜치에선 휘발 상태가 커밋되지?"라는 혼란이 생길 수 있다.
-- 통합은 `git merge` 후 **fg-merge**가 별도로 돌아야 완성된다(2-트랙). git merge만 하고 fg-merge를 잊으면 `.forge/branch/<branch>/`가 main에 잔류한다.
-
-**예방책:** 새 영속 문서 추가 시 `.gitignore`에 `!` 줄 동반. 브랜치 작업 후 `git merge` → `fg-merge <branch>` 2단계를 한 묶음으로 기억.
+**fg-status는 이 상태 머신의 단일 정의**이고 fg-next가 재사용한다(ADR-0010). fg-status의 상태 판정을 바꾸면 fg-next의 다음-단계 도출도 같이 흔들린다.
 
 ---
 
-## 9. 매니페스트 3중 동기화 + description 역할 분화
+## 6. README.md / README.ko.md 이중 언어 동기화 — 한쪽만 고치면 어긋난다
 
-**위치:** `.claude-plugin/plugin.json`·`.claude-plugin/marketplace.json`
-
-**상황(검증 완료, 현재 0.4.1로 3곳 일치):**
-- 버전 3곳 동기화: `plugin.json` `version` / `marketplace.json` `metadata.version` / `plugins[0].version` — 현재 모두 `0.4.1`.
-- **description 역할 분화(CLAUDE.md 배포 규칙):**
-  - `marketplace.json` `metadata.description` = 루프(`ask·plan → execute → retro → done`)만 정의하는 한 줄 태그라인 → **루프 밖 유틸리티(fg-map·fg-quick·fg-status·fg-next·fg-tdd·fg-merge·fg-cleanup)는 넣지 않는다**. 현재 정합 ✓.
-  - `plugins[].description`·`plugin.json` `description` = 11개 스킬 전부 나열 → 루프 밖 스킬도 반영. 현재 "Eleven fg-* skills" / "Seven more sit outside the loop"로 정합 ✓.
-
-**발산 위험:**
-- 빌드/CI가 없어 버전 불일치·개수 불일치를 자동으로 못 잡는다. 스킬을 추가하면 두 description의 "Eleven"·"Seven more" 같은 **하드코딩된 개수 단어**까지 손으로 고쳐야 한다.
-- 루프 밖 스킬을 metadata.description에 끼우면 루프 정의가 흐려진다(`2026-06-04-fg-map-skill.md` 회고가 이 구분의 기원).
-
-**예방책:** 배포 전 `node -e "JSON.parse(...)"` JSON 유효성 + 3곳 버전 일치 확인. 스킬 개수 변경 시 두 description의 개수 단어 동기. `curl raw.githubusercontent.com/.../main/...`으로 원격 main 버전 실측(설치는 main을 당김).
+`README.md`(영문)와 `README.ko.md`(한글)는 같은 내용의 번역 쌍이다. 현재 작업 트리의 미커밋 수정도 양쪽에 같은 변경(전역 예외 2개 문서화, fg-next 핸드오프 문구, 트리거 목록)이 나란히 들어가 **동기화가 유지되고 있음을 확인했다**. 그러나 자동 동기화 검사가 없어, 한쪽만 고치면 조용히 어긋난다. 스킬 개수(2번의 하드코딩 숫자)·루프 설명·트리거 목록을 바꿀 때 특히 위험하다.
 
 ---
 
-## 10. fg-ask의 verbatim 분할 (grill-with-docs 원문 ↔ Forge 통합)
+## 7. 자동 테스트가 없다 — 깨진 상태 계약을 잡는 건 수동 설치+트리거뿐
 
-**위치:** `skills/fg-ask/SKILL.md`
+빌드·테스트·린트·CI가 전혀 없다(`package.json`·`Makefile`·CI 없음). 검증 수단은 둘뿐:
 
-**상황:**
-- `skills/fg-ask/SKILL.md`는 grill-with-docs 원문(Matt Pocock)을 **영문 그대로 이식**한 verbatim 본문과, forge 루프에 연결하는 "Forge integration" 글루(backlog 산출·retro 환류·codebase 지도 읽기·핸드오프)가 한 파일에 공존한다.
-- CLAUDE.md: "verbatim 본문과 Forge integration 섹션은 따로 움직이므로, 둘 중 하나만 고치면 계약이 깨진다."
+1. JSON 파싱 유효성(위 node 한 줄) — 매니페스트 문법만 본다.
+2. **실제 설치 후 트리거** — `/plugin marketplace add` → `/plugin install` 후 직접 호출. 이 명령들은 interactive라 **에이전트가 실행 못 한다**.
 
-**발산 위험:**
-- verbatim 본문을 수정하면 Forge integration의 참조(형식 문서 경로 등)가 어긋나고, Forge integration을 수정하면 원문 방법론과 불일치할 수 있다.
-- upstream 원문이 갱신되면 경로는 `.forge/` 계약에 정합하되 본문은 원문 유지 — 정합 누락이 쉽다(항목 1과 연결).
-
-**예방책:** 수정 전 분할 경계 확인. Forge integration 편집 후 형식 문서 경로 grep(항목 1의 grep). upstream 동기화 시 경로 정합이 되돌려지지 않게 diff 검증.
+결과: 5번의 상태 계약 단절, 4번의 fg-ask 드리프트, 3번의 `name` 누락 같은 **의미적 깨짐은 어떤 자동 도구도 잡지 못한다.** 게다가 설치는 main을 당기므로 로컬 편집만으로는 진짜 동작 검증이 불가능하다(0번과 결합하면: 지금의 미커밋 수정도 push 전까지 검증 불가).
 
 ---
 
-## 11. 빌드·테스트·CI 부재 — 검증은 전적으로 수동·설치 후
+## 8. 단일 정의 + 참조 원칙 — 복붙하면 갈라지고, 분리 파일은 새 드리프트 표면
 
-**위치:** 리포 전역 (package.json/Makefile/CI 없음)
+중복을 피하려 "단일 정의 + 참조"를 쓰는데, 지점이 늘었다:
 
-**상황:**
-- 유일한 자동 검증은 매니페스트 JSON 유효성 한 줄(`node -e "...JSON.parse..."`)과 `awk '/^name:/'`로 SKILL.md frontmatter `name` 누락 확인뿐이다. 단위 테스트가 없다.
-- 실동작 검증은 `/plugin marketplace add` → `/plugin install`로 설치해 트리거해보는 것뿐인데, 둘 다 interactive라 에이전트가 못 돌린다. 게다가 설치는 **GitHub 기본 브랜치(main)를 당긴다** — 로컬에서 검증할 수 없고 push 후에야 가능.
+- **`skills/fg-run/FORGE-ROOT.md`**: 브랜치별 forge 루트 해석의 **유일한 정의**(ADR-0011). 11개 스킬 전부가 참조함을 확인했다(`grep -l FORGE-ROOT skills/*/SKILL.md` → 11개). 전역 예외 2개(`.forge/config.json`·`.forge/codebase/`)도 이 파일이 정의하고, `skills/fg-tdd/SKILL.md:10`·`skills/fg-map/SKILL.md:12`가 각자 자기 예외를 다시 설명한다 — 예외 규칙을 바꾸면 **세 파일**이 함께 움직여야 한다. (과거 이 파일에 있던 "fg-merge not built yet" stale 경고 블록은 현재 트리에서 **제거됨** — 해소.)
+- **`skills/fg-run/RUN-ALL.md`** (v0.4.2 신설): fg-run의 "Run all" 절차를 progressive disclosure로 분리했다. fg-run의 행동 규칙이 이제 `SKILL.md`+`RUN-ALL.md` **두 파일에 걸쳐** 산다 — fg-ask의 verbatim/integration 분리(4번)와 같은 종류의 드리프트 표면이다. Run-all 관련 규칙(작업별 UAT 후 파킹, failed는 활성 슬롯 잔류)을 고칠 때 두 파일의 정합을 같이 봐야 한다.
+- **형식 문서 위치**: `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-learn/RETRO-FORMAT.md` 각 한 벌만 존재(검증됨). `PLAN-FORMAT.md`는 생산자가 fg-ask인데 소비자(fg-run) 디렉터리에 있다 — fg-ask 디렉터리가 verbatim 영역이라서다. 이 비대칭을 모르고 fg-ask 쪽에 plan 형식을 새로 쓰면 정의가 둘로 갈라진다. 루트 `references/`는 폐지됐다.
 
-**발산 위험:**
-- 스킬 frontmatter `name` 오타·매니페스트 깨짐·경로 참조 어긋남이 모두 **설치 실패 또는 스킬 미탐색**으로만 드러나며, 그 시점은 push 후다.
-
-**예방책:** 편집 후 항상 JSON 유효성 + `name:` frontmatter 존재를 grep으로 실측. 비-trivial 변경은 샌드박스 dogfood(항목 2)로 보강.
+부수 관찰(경미): `skills/fg-run/FORGE-ROOT.md:3`은 "every loop skill"이라며 루프 밖 스킬(fg-status·fg-next·fg-quick)까지 괄호 안에 나열한다 — 동작 위험은 없지만 "루프 스킬" 용어가 느슨하게 쓰인 지점.
 
 ---
 
-## 참고: 의도적 설계, 비용이지 부채가 아님
+## 9. 브랜치별 forge 루트 — gitignore 화이트리스트 비대칭이 미묘하다 (ADR-0011)
 
-위 11항목은 forge의 두 기둥(대화형 그릴링·문서=연료)과 4단계 루프(`ask·plan → execute → retro → done`)를 지키기 위한 **불가피한 비용**이다. 빌드 시스템이 없는 것조차 "산출물이 Markdown/JSON뿐"이라는 설계의 귀결이다. 따라서 대응은 제거가 아니라 **의식화·grep 검증·샌드박스 dogfood**다.
+`.gitignore`가 `.forge/*`를 기본 제외하되 화이트리스트로 되살린다(`!.forge/CONTEXT.md`·`!.forge/adr/`·`!.forge/retro/`·`!.forge/codebase/`·`!.forge/config.json`·`!.forge/branch/`). 핵심 비대칭:
+
+- **기본 브랜치**의 휘발 상태(plan/run/STATUS/backlog/executed/done/quick)는 **gitignored**.
+- **비-기본 브랜치**의 루트(`.forge/branch/<branch>/`)는 `!.forge/branch/`로 **통째로 추적**된다.
+
+이 의도된 비대칭을 모르고 `.gitignore`를 "정리"하면 브랜치 상태가 추적에서 빠지거나(fg-merge가 통합할 게 사라짐) 기본 브랜치 휘발 상태가 커밋을 오염시킨다. fg-merge의 통합 동작(ADR 번호 재부여·교차참조 갱신·retro 이동·CONTEXT 병합·브랜치 폴더 제거)이 이 추적에 의존한다. `config.json`의 `defaultBranch`(없으면 `main`)가 루트 해석의 분기점이라, 이 값이 실제 기본 브랜치와 어긋나면 모든 경로 해석이 틀어진다. (전역 예외 2개가 `CLAUDE.md`·`README.md:107`·`README.ko.md`에도 문서화돼 정의-문서 불일치는 현재 트리에서 해소됐다 — 단 0번대로 미커밋.)
+
+---
+
+## 10. 회고/검증 게이트의 분기 규율 — 한 스킬만 고치면 봉인이 새거나 막힌다
+
+루프 순서는 `run → verify → learn → done`이며 두 게이트가 봉인을 지킨다:
+
+- **검증 게이트(ADR-0009)**: fg-done이 **검증을 회고보다 먼저** 확인한다(no-seal-without-verification). 봉인 가능 값은 `yes (<evidence>)`/`skipped (<reason>)`/`n/a (<reason>)`, 차단 값은 `pending`/`failed`/누락. `pending`→fg-run 검증 전용 재진입, `failed`→fg-run unpark·fix-and-re-run 또는 fg-ask 재그릴. **`failed`는 waiver로 통과 금지** — fresh re-run 재검증만 인정(`skills/fg-done/SKILL.md:27` 부근에 명시). 파킹/구버전 작업의 `pending`은 fg-done이 봉인 시점에 직접 UAT로 회수한다.
+- **회고 게이트(ADR-0002)**: 기본은 회고. 저-divergence 작업만 fg-run 핸드오프가 "건너뛰기"를 제시하고, 선택 시 `retro: skipped (<reason>)` 기록. fg-done은 회고 파일 존재 **또는** `retro: skipped`를 통과로 인정.
+
+위험: 이 규율이 fg-run·fg-done·fg-learn·fg-status·fg-next에 분산돼 있어, 한 스킬에서만 게이트 조건을 바꾸면 **봉인이 새거나(미검증 작업이 done 됨) 영원히 막힌다.** ADR-0009 이전 작업은 `verified: n/a (legacy pre-ADR-0009)`로 백필됐고, fg-status는 `done/`의 `verified:` 누락을 "legacy"로 읽도록 명시한다(`skills/fg-status/SKILL.md:58`) — 이 레거시 처리를 빠뜨리면 옛 작업 판정이 틀어진다. `fg-next all`은 회고를 항상 자동 skip하므로(ADR-0010) 게이트 어휘 변경 시 fg-next의 벽 판정(`skills/fg-next/SKILL.md:81`)도 같이 봐야 한다.
+
+---
+
+## 11. 스킬 본문 비대화 — 컨텍스트 비용이 계속 자란다
+
+`skills/fg-run/SKILL.md`는 RUN-ALL 분리(v0.4.2, 28,061→24,579자) 후에도 **24.6KB로 최대**이고, `skills/fg-done/SKILL.md`(16.0KB)·`skills/fg-ask/SKILL.md`(15.7KB)·`skills/fg-next/SKILL.md`(15.0KB)가 뒤따른다. 스킬 본문은 트리거 시 통째로 컨텍스트에 들어가므로, 게이트·복구 경로가 추가될 때마다 본문이 자라는 추세가 이어지면 progressive disclosure 분리(RUN-ALL 방식)가 더 필요해진다 — 그리고 그 분리는 8번의 드리프트 표면을 하나씩 늘린다. 구조적 트레이드오프이며 자동 감시 없음.
+
+---
+
+## 12. 해소된 과거 우려 (기록용 — 더 이상 활성 위험 아님, 단 0번대로 미커밋분 포함)
+
+- **`forge-prd.md` stale 설계 초안** — 커밋 `0ecd826`에서 삭제됨(현재 트리에 없음 확인).
+- **`skills/fg-run/FORGE-ROOT.md`의 "fg-merge is not built yet" 경고 블록** — fg-merge가 실재(v0.4.0)하는데 남아 있던 stale 경고. 현재 트리에서 제거되고 `skills/fg-merge/SKILL.md` 참조로 대체됨(미커밋).
+- **fg-done의 `verified: yes` evidence 형식 불일치** — fg-run은 `yes (<evidence>)`를 기록하는데 fg-done은 evidence 없는 `yes`를 안내하던 어긋남. 현재 트리에서 fg-done도 `yes (<evidence>)`로 통일됨(미커밋).
+- **전역 예외 2개(`config.json`·`codebase/`) 미문서화** — `CLAUDE.md`·`README.md`·`README.ko.md`에 반영됨(미커밋).
+- **fg-ask·fg-quick·fg-done의 "`.forge/`는 gitignored" 단정** — ADR-0011 이후 브랜치 루트는 추적되므로 부정확했던 서술. 현재 트리에서 브랜치별 구분 서술로 수정됨(미커밋).
+- **fg-status 핸드오프의 fg-next 동작 서술(승인 후 실행)** — fg-next의 "별도 승인 없이 즉시 실행"과 어긋나던 문구. 현재 트리에서 일치하게 수정됨(미커밋).
+
+---
+
+## 우선순위 요약
+
+| # | 우려 | 깨질 때 증상 | 자동 검출 |
+| --- | --- | --- | --- |
+| 0 | 미커밋·미푸시 수정 9파일 | 설치본이 수정 전 내용으로 동작 | `git status`로만 |
+| 1 | 버전 3곳 동기화 | 설치/업데이트 실패 | JSON 유효성만 (일치 검사 X) |
+| 3 | frontmatter `name` 누락 / fg-next description 1,038자 | 스킬 조용히 미탐색 / description 잘림 가능 | `awk '/^name:/'`로 누락만 |
+| 5 | 스킬 간 상태 계약 | 루프 흐름 단절, 재실행/봉인 실패 | **없음** |
+| 4·8 | fg-ask·fg-run 이중 파일 드리프트, 단일 정의 복붙 | 핸드오프/Run-all/루트 해석 분기 | **없음** |
+| 10 | 검증/회고 게이트 분산 규율 | 봉인 누수/봉인 불가 | **없음** |
+| 2 | 긴 설명 2벌 + 개수 하드코딩 4곳 | 매니페스트·README 스킬 목록 stale | **없음** |
+| 6 | README 이중 언어 동기화 | 두 문서 어긋남 | **없음** |
+| 9 | gitignore 화이트리스트 비대칭 | 브랜치 상태 추적 누락/오염 | **없음** |
+| 11 | 스킬 본문 비대화 | 컨텍스트 비용 증가 → 분리 → 드리프트 표면 증가 | **없음** |
+
+**관통하는 진실**: 대부분이 자동 검출 불가다. 이 플러그인의 안전망은 컴파일러도 테스트도 아닌 **편집 규율(`CLAUDE.md`)과 사람의 설치-트리거 검증**뿐이다. 관련 결정: `.forge/adr/0002`(회고 스킵)·`0009`(검증 게이트)·`0010`(fg-next all)·`0011`(브랜치 루트)·`0012`(fg-cleanup)·`0013`(서브에이전트 보류).
