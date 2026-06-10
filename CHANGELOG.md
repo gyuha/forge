@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.4] - 2026-06-11
+
+### Added
+- **신규 `fg-eco` 스킬 — 위임 서브에이전트 모델 티어링 토글(루프 밖, 12번째 스킬).** `.forge/config.json`의 `eco` 키를 켜고 끈다(`fg-eco on|off`, 인자 없으면 상태 표시+켜기/끄기 선택). 켜면 `fg-run`이 Dynamic Workflow/실행 서브에이전트 모델을 **sonnet으로 캡** — 내리기만 하고(티어 업그레이드 금지) 사용자의 명시적 모델 지시가 우선하며, 메인 세션 모델은 건드리지 않는다(스킬은 세션 모델을 바꿀 수 없음 — 설계·완료는 사용자가 고른 모델 그대로, 강력=메인 세션·일반=위임 실행의 2단 구조). fg-map은 의도적으로 범위 밖(지도 품질=그릴링 연료) ([ADR-0014](./.forge/adr/0014-fg-eco-subagent-model-tiering.md)).
+
+### Changed
+- README 양쪽의 `.forge/` 디렉터리 트리에 누락 항목 보충: `config.json`(영속 — 3키 `tdd`·`eco`·`defaultBranch`, 전역)·`quick/LOG.md`(휘발). fg-tdd·FORGE-ROOT의 config 키 서술도 3키 체제로 갱신.
+
 ## [0.4.3] - 2026-06-11
 
 ### Changed
