@@ -7,7 +7,7 @@ description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/ba
 
 The second turn of the forge loop. It takes the `.forge/plan.md` that fg-ask refined and applies it to real code/changes as a Claude Code Dynamic Workflow. This is the stage where large jobs — migrations, full audits, mass refactors — that need many subagents working in parallel run in the background, and their results are verified against the plan.
 
-**Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per [FORGE-ROOT.md](./FORGE-ROOT.md) in this directory before reading or writing state (ADR-0011).
 
@@ -135,19 +135,17 @@ When execution finishes, convey the following in a conversational tone. (Do not 
 
 **0. Verify first (mandatory gate).** Before offering the retro, complete the UAT above and record `verified:` (`yes`/`skipped`/`n/a`) in STATUS. **Do not route to fg-learn while `verified:` is still `pending`** — the loop order is run → verify → learn → done. Only once `verified:` is set do you proceed to the three points below.
 
-1. **What I just did** — summarize in one line what the workflow changed, and that the divergences from the plan were written to `.forge/run.md`.
-2. **Next step** — next is fg-learn, the stage that folds the lessons surfaced in execution into permanent docs (CONTEXT.md, ADR, retro); right after execution is the right time, while memory is fresh.
-3. **How to start** — ask whether to go straight into the retro, and if the user agrees, invoke the `fg-learn` skill right there to continue. If they'd rather do it later, give the trigger — "forge learn" / "회고" utterance, or `/forge:fg-learn`.
+**What I just did** — one line on what the workflow changed, and that the plan-vs-actual divergences were written to `.forge/run.md`.
 
-**Retro is the default. The skip path is offered only when the run had no or negligible divergence** (plan ≈ actual in `run.md`). In that low-divergence case, present an explicit choice at the handoff — never auto-skip:
-- **Retro via fg-learn** (default) — fold the lessons into the docs.
-- **Skip the retro** — for a trivial task with nothing to learn. Record `retro: skipped (<one-line reason>)` in `.forge/STATUS.md` and point straight to fg-done; no retro file is created. fg-done accepts this marker as satisfying its no-seal-without-retro guard.
+**Then present a 3-way choice (this is the one loop handoff that offers an explicit menu — the others just state the next step; see ADR-0015).** Frame it as a choice, in the user's language:
 
-If the plan carries a `<!-- retro-hint: optional -->` marker comment (fg-ask flagged it as likely-trivial; see PLAN-FORMAT.md), lead with the skip option — but still ask; the hint is not binding. If there is no such hint, lead with the retro.
+1. **Retro (회고)** — the default. Invoke `fg-learn` to fold the lessons into the docs (sealing follows via fg-done). Use `AskUserQuestion` or a plain conversational choice — not a stamped form.
+2. **Finish now (바로 종료)** — skip the retro and seal in one step: record `retro: skipped (<one-line reason>)` in `.forge/STATUS.md`, then **invoke `fg-done` right here** to seal and close the loop. **Offered only when the run had no or negligible divergence** (plan ≈ actual in `run.md`) — the same restraint as the retro-skip guard (ADR-0002).
+3. **Stop here (프롬프트로 나가기)** — do nothing more now; the work stays executed (verified, un-retro'd, unsealed) and the user resumes later with `fg-learn`/`fg-done` or `fg-next`.
 
-Exception handling:
-- If the result diverged greatly from the plan, **do not offer the skip** — recommend **re-grilling via fg-ask** (refining the plan again) before going to fg-learn. Significant divergence is exactly the signal that there is something to learn.
-- For odd jobs that crept in mid-run, point the user to handle them directly on the spot rather than cramming them into the workflow.
+**Divergence exception.** If the result diverged greatly from the plan, **do not offer "Finish now"** — significant divergence is exactly when there is something to learn. Offer Retro (recommended) or re-grilling via `fg-ask`, plus the Stop option. If the plan carries `<!-- retro-hint: optional -->` (fg-ask flagged it likely-trivial; see PLAN-FORMAT.md), lead with "Finish now" — but still present the choice; the hint is not binding.
+
+**Under fg-next.** This menu is for the manual path; fg-run cannot detect its caller, so it just presents the menu and fg-next (as orchestrator) resolves it. `fg-next all` drives through automatically (auto-skip retro → seal, ADR-0010); one-shot `fg-next` surfaces the menu (one step, then hands back). For an odd job that crept in mid-run, point the user to handle it directly rather than cramming it into the workflow.
 
 ## Document impact
 

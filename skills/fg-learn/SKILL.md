@@ -7,7 +7,7 @@ description: After execution, classify learnings and promote them to CONTEXT.md,
 
 This is the third turn of the forge loop. It classifies the learnings gained during execution, routes them to the right doc, and surfaces the next inquiry. The reason to run a retro is simple — if you don't write down what you learned during execution right then, the next person (or future you) hits the same wall again. But if you push every learning into permanent docs, the docs get polluted with noise. So the core of this skill is **classification and promotion discipline**.
 
-**Language**: This skill file is authored in English, but always converse with the user in the user's language. All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or writing state (ADR-0011).
 
@@ -92,7 +92,7 @@ When the retro is done, deliver the following at the end in natural conversation
 
 - **What you just did** — you left a retro at `.forge/retro/...`, and summarize in one line what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
 - **Next step** — it's time to tidy up this work. Guide them that they can seal the work with `fg-done`, and if any follow-up work candidates surfaced during the retro, present them too. But if more retro-awaiting work remains in `.forge/executed/`, recommend **retroing the next work first** over sealing — it's better to batch retros while memory is fresh.
-- **How to start** — ask whether to go straight into tidying up, and if the user agrees, call the `fg-done` skill right there to continue. If they want to do it later, tell them the trigger — the utterance "작업 완료" / "봉인", or `/forge:fg-done`.
+- **How to start** — **state** it and stop; do **not** ask "shall I seal now?" or auto-invoke fg-done (chaining is `fg-next`'s job — ADR-0015). Next is fg-done to seal; give the trigger — "작업 완료" / "봉인" / `/forge:fg-done`, or `fg-next`.
 
 Exception — if execution diverged a lot from the plan, guide them that it's better to re-grill with `fg-ask` before going straight to wrapping up. Sealing while the plan and the actual are too far apart blurs the starting point of the next work.
 

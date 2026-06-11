@@ -28,7 +28,7 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 
 ## Overall flow
 
-When one skill finishes, it guides the way to the next (what was done, what comes next, how to start), asks whether to continue right away, and invokes the next skill on the spot if the user agrees. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads — retiring stale decisions into `.forge/adr/retired/` (which `fg-ask` does not read) so grilling runs on a cleaner active set.
+When one skill finishes, it **states** the way to the next (what was done, what comes next, how to start) and stops — it does not ask "shall I continue?"; chaining into the next stage is `fg-next`'s job. The one exception is `fg-run`'s end, which offers an explicit three-way choice — retro / finish now (skip + seal) / stop here ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md)). After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads — retiring stale decisions into `.forge/adr/retired/` (which `fg-ask` does not read) so grilling runs on a cleaner active set.
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done

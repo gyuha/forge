@@ -7,7 +7,7 @@ description: A read-only status reporter for the forge loop. Surveys .forge/ and
 
 This is **not** a stage of the forge loop. It is a read-only dashboard: run it any time to see what has been worked on and what to do next. It **writes nothing** — no plan/run/STATUS/backlog/done/retro/adr/quick is ever created or modified — and it **never auto-runs** the next step; it only reports and points.
 
-**Language**: This skill file is authored in English, but always converse with the user in the user's language. The status report and the next-step line are written in the user's language.
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The status report and the next-step line are written in the user's language.
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading state (ADR-0011). (fg-status only reports on the resolved root's branch; it does not survey other branches' roots.)
 
@@ -88,7 +88,7 @@ Determine the one next step from the file layout, in this priority order:
 4. **Active slot empty, but `backlog/` has unexecuted plans** → **fg-run** (it promotes from the backlog), or **fg-ask** to refine first. Trigger: "forge run" / "계획 실행".
 5. **Everything empty (active + backlog + executed)** → no work in progress → **fg-ask** to start a new task. Trigger: "forge ask" / "새 작업 시작".
 
-State the next step as a one-liner: `👉 Next: <skill> — <trigger>` (rendered in the user's language). You **may ask** whether to continue into it, but do not invoke it automatically — fg-status's job is to inform, not to act.
+State the next step as a one-liner: `👉 Next: <skill> — <trigger>` (rendered in the user's language). Do **not** ask whether to proceed and do **not** invoke it — informing is fg-status's job; acting on the next step is `fg-next`'s (ADR-0015).
 
 ## Handoff
 
