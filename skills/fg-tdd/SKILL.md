@@ -9,7 +9,7 @@ This is **not** a stage of the forge loop. It is a tiny on-demand utility that f
 
 **`.forge/config.json` is a deliberate global exemption from branch-root resolution** (see `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` / ADR-0011): it is always the top-level `.forge/config.json` on every branch, never `.forge/branch/<branch>/config.json`. Reason — it holds `defaultBranch`, which the root-resolution rule itself must read before it can resolve anything, and `tdd` is a project-wide setting. So fg-tdd writes the global path as-is; do not "fix" it to resolve the branch root.
 
-**Language**: This skill file is authored in English, but always converse with the user in the user's language.
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
 
 ## What it does
 

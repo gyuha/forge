@@ -13,7 +13,7 @@ This is **not** a stage of the forge loop. It is a tiny on-demand utility that f
 
 **`.forge/config.json` is a deliberate global exemption from branch-root resolution** (see `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` / ADR-0011): always read/write the top-level `.forge/config.json` on every branch, never `.forge/branch/<branch>/config.json`.
 
-**Language**: This skill file is authored in English, but always converse with the user in the user's language.
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
 
 ## What it does
 

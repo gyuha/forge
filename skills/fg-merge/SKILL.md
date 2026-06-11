@@ -7,7 +7,7 @@ description: Integrates a non-default branch's forge content (`.forge/branch/<br
 
 This is **not** a stage of the forge loop. It is the integration step for branch isolation (ADR-0011): when a feature branch has been run with its forge state under `.forge/branch/<branch>/` (a git-tracked, namespaced mini-root — see `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md`), fg-merge folds that branch's permanent forge docs into the default-branch `.forge/`.
 
-**Language**: This skill file is authored in English, but always converse with the user in the user's language. The integration summary and any conflict question are written in the user's language.
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The integration summary and any conflict question are written in the user's language.
 
 ## Precondition: git merge first, fg-merge second
 
