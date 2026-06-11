@@ -70,7 +70,7 @@ Before driving, snapshot and **freeze** the current backlog order (priority `hig
 
 Repeat: derive the next step (**via fg-status's state machine, exactly as in section 1 — never reimplemented**), then act:
 
-- **Linear mechanical step** → auto-progress with the recommended answer: run a plan, record an `n/a`/auto-verified `yes` outcome, **always auto-skip the retro** (record `retro: skipped (fg-next all 자동 진행 — 학습은 run.md, 승급은 추후 fg-learn)`; the learnings stay in the archived run.md and promotion is deferred to a later human fg-learn), run the done stage to seal, promote the next backlog task. No question asked.
+- **Linear mechanical step** → auto-progress with the recommended answer: run a plan, record an `n/a`/auto-verified `yes` outcome, **always auto-skip the retro** (record `retro: skipped (fg-next all 자동 진행 — 학습은 run.md, 승급은 추후 fg-learn)`; the learnings stay in the archived run.md and promotion is deferred to a later human fg-learn — **the write itself happens inside the delegated done stage**: fg-done records the `retro: skipped` into STATUS via its cleanup-time skip path as it closes out the seal, consistent with "fg-next writes nothing itself"; ADR-0015 amended), run the done stage to seal, promote the next backlog task. No question asked.
 - **Halt condition** → stop the drive, report where it stopped, why, and the trigger to resume. Resume is **stateless**: the human resolves the wall, then re-issues `fg-next all` to keep draining.
 
 ### Halt conditions (hand back to the human)
@@ -117,7 +117,7 @@ fg-run's "Run all" is **execute-only** — it runs the backlog, UAT-verifies, pa
 
 ## Handoff
 
-fg-next's handoff **is** the step it invoked — once it delegates, the invoked skill's own next-flow handoff takes over (fg-run ends in its 3-way handoff menu — ADR-0015; fg-learn points to fg-done, and so on). fg-next adds nothing after that; it does not re-derive or chain. If the user wants the following step too, they say "forge next" again (or follow the skill's own handoff prompt).
+fg-next's handoff **is** the step it invoked — once it delegates, the invoked skill's own next-flow handoff takes over (fg-run ends in its 4-way handoff menu — ADR-0015 amended; fg-learn points to fg-done, and so on). fg-next adds nothing after that; it does not re-derive or chain. If the user wants the following step too, they say "forge next" again (or follow the skill's own handoff prompt).
 
 fg-next proceeds by default — it does not wait for permission. Only if the user explicitly says "just tell me, don't act" (or similar) do you fall back to fg-status behavior: state the next step and its trigger, write nothing, and stop.
 

@@ -133,17 +133,20 @@ fg-done will not seal unless `verified:` is one of the **sealable** outcomes (`y
 
 When execution finishes, convey the following in a conversational tone. (Do not stamp out a form mechanically.)
 
-**0. Verify first (mandatory gate).** Before offering the retro, complete the UAT above and record `verified:` (`yes`/`skipped`/`n/a`) in STATUS. **Do not route to fg-learn while `verified:` is still `pending`** — the loop order is run → verify → learn → done. Only once `verified:` is set do you proceed to the three points below.
+**0. Verify first (mandatory gate).** Before offering the retro, complete the UAT above and record `verified:` (`yes`/`skipped`/`n/a`) in STATUS. **Do not route to fg-learn while `verified:` is still `pending`** — the loop order is run → verify → learn → done. Only once `verified:` is set do you proceed below.
 
 **What I just did** — one line on what the workflow changed, and that the plan-vs-actual divergences were written to `.forge/run.md`.
 
-**Then present a 3-way choice (this is the one loop handoff that offers an explicit menu — the others just state the next step; see ADR-0015).** Frame it as a choice, in the user's language:
+**Then present a 4-way choice (this is the one loop handoff that offers an explicit menu — the others just state the next step; see ADR-0015, amended 2026-06-11).** Frame it as a choice, in the user's language:
 
-1. **Retro (회고)** — the default. Invoke `fg-learn` to fold the lessons into the docs (sealing follows via fg-done). Use `AskUserQuestion` or a plain conversational choice — not a stamped form.
-2. **Finish now (바로 종료)** — skip the retro and seal in one step: record `retro: skipped (<one-line reason>)` in `.forge/STATUS.md`, then **invoke `fg-done` right here** to seal and close the loop. **Offered only when the run had no or negligible divergence** (plan ≈ actual in `run.md`) — the same restraint as the retro-skip guard (ADR-0002).
-3. **Stop here (프롬프트로 나가기)** — do nothing more now; the work stays executed (verified, un-retro'd, unsealed) and the user resumes later with `fg-learn`/`fg-done` or `fg-next`.
+1. **Retro then seal (회고 후 봉인까지)** — the default lead. Conduct the retro **conversationally as usual** by invoking `fg-learn`; when the retro completes, **invoke `fg-done` right there** to seal and close the loop. The inline fg-done call is not chaining — it is the execution of an end the user explicitly chose from this menu (the same exception logic as "Finish now"). Offered regardless of divergence (the retro still happens, so the high-divergence recommendation is satisfied). **Escape hatch — the pre-commitment is a default, not a lock**: if the retro surfaces a re-grill recommendation (fg-learn's high-divergence exception — plan and actual too far apart, fg-ask re-grilling advised), **abort the auto-seal** and fall back to stating the fg-done trigger instead; never seal a state that shouldn't be sealed because of a menu promise.
+2. **Retro only (회고만)** — invoke `fg-learn`, then stop after the retro (fg-learn's own handoff states fg-done). For when the user wants to review the promoted docs before sealing.
+3. **Finish now (바로 종료)** — skip the retro and seal in one step: record `retro: skipped (<one-line reason>)` in `.forge/STATUS.md`, then **invoke `fg-done` right here** to seal and close the loop. **Offered only when the run had no or negligible divergence** (plan ≈ actual in `run.md`) — the same restraint as the retro-skip guard (ADR-0002).
+4. **Stop here (프롬프트로 나가기)** — do nothing more now; the work stays executed (verified, un-retro'd, unsealed) and the user resumes later with `fg-learn`/`fg-done` or `fg-next`.
 
-**Divergence exception.** If the result diverged greatly from the plan, **do not offer "Finish now"** — significant divergence is exactly when there is something to learn. Offer Retro (recommended) or re-grilling via `fg-ask`, plus the Stop option. If the plan carries `<!-- retro-hint: optional -->` (fg-ask flagged it likely-trivial; see PLAN-FORMAT.md), lead with "Finish now" — but still present the choice; the hint is not binding.
+Use `AskUserQuestion` or a plain conversational choice — not a stamped form. The four options fit `AskUserQuestion`'s option limit exactly.
+
+**Divergence exception.** If the result diverged greatly from the plan, **drop only "Finish now" (option 3)** — significant divergence is exactly when there is something to learn, so the skip path closes while options 1/2/4 stay (both retro paths satisfy the recommendation; mention that re-grilling via `fg-ask` may follow the retro). If the plan carries `<!-- retro-hint: optional -->` (fg-ask flagged it likely-trivial; see PLAN-FORMAT.md), lead with "Finish now" — but still present the choice; the hint is not binding.
 
 **Under fg-next.** This menu is for the manual path; fg-run cannot detect its caller, so it just presents the menu and fg-next (as orchestrator) resolves it. `fg-next all` drives through automatically (auto-skip retro → seal, ADR-0010); one-shot `fg-next` surfaces the menu (one step, then hands back). For an odd job that crept in mid-run, point the user to handle it directly rather than cramming it into the workflow.
 
