@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.6] - 2026-06-11
+
+### Fixed
+- **3차 정합 감사 — v0.4.5 변경분 드리프트 8건 수정.** 병렬 5 에이전트 감사(47건 점검)로 발견: CLAUDE.md의 fg-tdd 전체 누락 보충 · README 양판 `.forge/` 트리에 `adr/retired/` 줄 추가 · fg-status 상태머신 case 3(파킹 작업) sealable 분기에 회고 완료→fg-done 라우팅 추가 및 작업 테이블 Retro 열에 "회고 파일 존재+`pending` = 정상 pre-seal `O`" 규칙 추가 · fg-learn에 "STATUS `retro:` 필드는 건드리지 않음(fg-done이 봉인 시 채움)" 계약 명시 · fg-next 핸드오프의 ADR-0015 이전 stale 문구 교체.
+
+### Added
+- **fg-done 영속 문서 커밋 상기.** 봉인 완료 통지에서 이 루프가 갱신한 git 추적 영속 문서(retro·ADR·CONTEXT)가 미커밋이면 한 줄로 커밋을 상기(상기만, git 실행 금지 — fg-merge와 동일 절제).
+
+### Changed
+- 코드베이스 지도(`.forge/codebase/`) 전체 리프레시 — 12스킬 체제·ADR-0015 핸드오프·감사 open concerns 반영.
+
 ## [0.4.5] - 2026-06-11
 
 ### Changed
