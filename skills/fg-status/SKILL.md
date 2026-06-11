@@ -56,7 +56,7 @@ No. | Date | Task | Stage | Verify | Retro
   | `done/` (sealed) | `done` |
 
 - **Verify (O/~/—/✗)** — from the STATUS `verified:` field: `yes` → `O`; `skipped`/`n/a` → `~` (sealable waiver / not-applicable, not a positive confirmation); `pending` / missing / not yet reached → `—`; `failed` → `✗` (UAT ran, result broken — blocks seal). A `—` on a task that already has a `run.md` means the UAT is still owed; a `✗` means it needs fixing or re-grilling (see the next-step machine below). On a sealed `done/` task a `—` means **legacy** (sealed before ADR-0009, no `verified:` field) — not an in-flight pending; render it `—` (or note "legacy") and don't treat it as a gate violation.
-- **Retro (O/X)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; `skipped` → `X`; anything else (pending / not yet reached) → `—`.
+- **Retro (O/X)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; **a matching `.forge/retro/*-<slug>.md` file exists while STATUS still reads `pending` (normal pre-seal state — fg-done fills the field at seal; see the next-step machine) → `O`**; `skipped` → `X`; anything else (pending with no retro file / not yet reached) → `—`.
 
 Example (No. is the stable `task:` number; `—` for plans created before task numbering):
 
@@ -82,9 +82,9 @@ Determine the one next step from the file layout, in this priority order:
 3. **Active slot empty, but `executed/` has parked tasks** → branch each parked task on its `STATUS.md` `verified:` first (same precedence as the active slot — verify before retro):
    - `verified: failed` → **fix-and-re-run or re-grill**, **not** retro. Routes to **fg-run**, which unparks this `executed/<slug>` task into the active slot before fix-and-re-run (see fg-run's "Failed parked-task recovery"), or fg-ask re-grill. Trigger: "forge run" / "forge ask".
    - `verified: pending` or missing → **verification recovery**. Run all verifies each task before parking, so new tasks won't sit here; an older run predating the gate can. It has no active `run.md`, so fg-run's verification-only resume can't reach it — route by retro state: if its retro is still owed (`retro: pending`, no retro file) → **fg-learn**, whose verification gate confirms the UAT first and records it in STATUS before retroing (Trigger: "forge learn" / `/forge:fg-learn`); if the retro is done or `retro: skipped` → **fg-done**, which confirms the UAT at seal time (Trigger: "작업 완료" / `/forge:fg-done`). Flag this so the user isn't surprised by the guard.
-   - `verified:` sealable (`yes`/`skipped`/`n/a`) → **fg-learn** (retro the awaiting ones). Trigger: "forge learn".
+   - `verified:` sealable (`yes`/`skipped`/`n/a`) → branch on retro state, same priority rule as the active-slot case: if a matching `.forge/retro/*-<slug>.md` exists **or** `STATUS.md` reads `retro: skipped` → **fg-done** (seal — STATUS stays `retro: pending` until fg-done closes it, so a present retro file means ready-to-seal, not retro-again). Trigger: "작업 완료" / `/forge:fg-done`. Else → **fg-learn** (retro the awaiting ones). Trigger: "forge learn".
 
-   When several are parked, report each task's state; the single next step is the highest-priority unmet one (failed → pending → retro).
+   When several are parked, report each task's state; the single next step is the highest-priority unmet one (failed → pending → retro → seal).
 4. **Active slot empty, but `backlog/` has unexecuted plans** → **fg-run** (it promotes from the backlog), or **fg-ask** to refine first. Trigger: "forge run" / "계획 실행".
 5. **Everything empty (active + backlog + executed)** → no work in progress → **fg-ask** to start a new task. Trigger: "forge ask" / "새 작업 시작".
 

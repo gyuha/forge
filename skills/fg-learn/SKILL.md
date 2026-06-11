@@ -100,4 +100,5 @@ Exception — if execution diverged a lot from the plan, guide them that it's be
 
 - Creates `.forge/retro/YYYY-MM-DD-slug.md` (always, lazy).
 - When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/NNNN-slug.md` (after human confirmation).
+- **Does NOT touch the STATUS.md `retro:` field** — it stays `pending` until fg-done fills in the retro path at seal time; retro completion is judged by the retro file's existence (slug match), not by the STATUS field (see fg-status's state machine and fg-done's close-out). The only STATUS write this skill may make is the `verified:` field of a parked/legacy task during the verification-gate recovery (never `status:` or `retro:`).
 - On the default branch the volatile loop state is gitignored; the retro/ADR/CONTEXT docs this skill writes are git-tracked via the `.gitignore` whitelist, and a non-default branch root is tracked whole (ADR-0011).

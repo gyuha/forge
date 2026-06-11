@@ -96,6 +96,7 @@ repo/
     │                          # ── permanent docs (git-tracked via whitelist) ──
     ├── CONTEXT.md             # glossary (single-context)
     ├── adr/0001-*.md          # architecture decisions
+    ├── adr/retired/           # retired/superseded ADRs (moved by fg-cleanup)
     ├── retro/YYYY-MM-DD-*.md  # retro log
     ├── codebase/*.md          # codebase map from fg-map
     ├── config.json            # project settings (tdd · eco · defaultBranch) — global, never branch-resolved
