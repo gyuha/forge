@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.7] - 2026-06-12
+
+### Changed
+- **fg-run 단일작업 핸드오프 메뉴 4지화 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md) 개정).** "회고 후 봉인까지"(회고 대화 정상 수행 → 종료 시 fg-done 인라인 봉인, 회고 중 재그릴 권고 시 자동 봉인 중단)를 선두 기본 옵션으로 추가 — divergence 무관 제시. 기존 3지(회고만 / 바로 종료=skip+봉인[저-divergence 한정] / 프롬프트로 나가기)는 유지.
+- **Run-all 배치 핸드오프 진술형 통일.** "어느 것부터?"는 fg-learn 소유 질문이라 중복 제거하고 다음 단계 통지만 남김. RUN-ALL.md 헤더의 "Behavior is unchanged" 선언을 개정 표기로 갱신, fg-next all의 `retro: skipped` 기록 주체를 fg-done cleanup-time 경로로 명시. "3지/three-way" 서술 전수 동기화(CLAUDE.md·README 양판·fg-next).
+
+### Added
+- **docs/forge-vs-loop-engineering.md** — Addy Osmani의 Loop Engineering(2026)과 forge의 대응 검토 문서. 6개 프리미티브 중 5개와 경고 전부의 제도화를 대응표로 정리, 유일한 갭(Automations)은 미도입 결정 기록.
+
 ## [0.4.6] - 2026-06-11
 
 ### Fixed
