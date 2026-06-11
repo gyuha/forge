@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.5] - 2026-06-11
+
+### Changed
+- **루프 핸드오프 전환을 진술형으로 통일 — 체이닝은 fg-next 전담 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md)).** 각 스킬 끝의 "진행할까요?" 전환 허락 질문을 걷어내고 다음 단계·트리거를 알린 뒤 멈추도록 바꿨다(드리프트 교정 — CLAUDE.md 규약은 원래 "전한다"였다). 예외는 분기가 가장 많은 `fg-run` 종료뿐 — 3지 명시 메뉴(회고 / 바로 종료=skip+봉인 / 프롬프트로 나가기, "바로 종료"는 저-divergence에서만)를 유지한다. `fg-ask`·`fg-learn`·`fg-done`·`fg-status` 핸드오프를 진술형으로, `fg-ask`의 실행모드 질문(워크플로우 vs 직접)을 제거(fg-run이 자체 결정), README 양쪽 "Overall flow" 서술을 함께 갱신.
+- **전 스킬 `Language` 지시문 강화.** "always converse in the user's language"를, 사용자에게 출력하는 모든 메시지(질문·메뉴·상태/다음단계·핸드오프)를 사용자 언어로 쓰고 이 파일의 영문을 그대로 복창(mirror)하지 말 것으로 13개 스킬 전부 명문화.
+
 ## [0.4.4] - 2026-06-11
 
 ### Added
