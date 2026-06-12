@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.8] - 2026-06-12
+
+### Added
+- **신규 `fg-loop` 스킬 — goal 주도 한정 재계획 루프(루프 밖, 13번째 스킬) ([ADR-0016](./.forge/adr/0016-fg-loop-goal-driven-bounded-replan.md)).** 기초 질의(대화)로 기계 검증 가능한 정지 조건("AI가 만족됐다고 생각함"은 불인정)·승인된 fix-forward 재계획 범위·상한(기본 3라운드)을 `.forge/loop.md`에 못 박고 초기 백로그를 적재한 뒤, 체크 전부 통과까지 run→UAT→회고 자동 skip→봉인을 주행한다. 실패 체크에 직접 추적되는 fix-forward plan만 범위·상한 내 자동 생성(`<!-- generated-by: fg-loop -->` 마커, 단조 task 번호 유지), `verified: failed`는 벽 대신 자동 fix-forward 케이스. 벽(검증불가 UAT·진짜 fork·상한 소진·같은 체크 2연속 무진전)에서 멈춰 사람에게 환원, goal 충족 시 요약 보고 후 loop.md 삭제 — 기둥 1의 의도적·경계 있는 완화(fg-quick의 기둥 2 완화와 동형 선례).
+
+### Changed
+- **fg-status에 goal loop 가시성 추가** — survey에 `loop.md`, 리포트에 Loop 섹션 한 줄, 상태머신에 최우선 0번 분기(loop.md 존재 → fg-loop 재개 안내).
+- 매니페스트 2벌·README 양판·CLAUDE.md를 13스킬 체제(루프 밖 유틸 9개)로 동기.
+- 코드베이스 지도(`.forge/codebase/`) 전체 리프레시 — 13스킬·fg-loop 상태 표면(loop.md)·ADR-0016·TDD 검증-선행 해석 반영.
+
 ## [0.4.7] - 2026-06-12
 
 ### Changed
