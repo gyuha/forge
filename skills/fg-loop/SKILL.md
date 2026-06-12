@@ -32,19 +32,23 @@ Conducted as a conversation in this session, one question at a time, reusing fg-
    ## Authorized replan scope
    - {what fg-loop may auto-generate without re-grilling — fix-forward tasks directly traceable to a failing check above}
    - {explicit exclusions, if discussed}
+
+   ## Tasks
+   - {slug of every plan this loop owns — the initial-inquiry plans now, each generated fix-forward plan appended at generation time}
    ```
 
    - **Every check must be agent-runnable** (grep/test/build/JSON — same shapes as fg-run's aggressive UAT). If the user's goal can't be pinned to runnable checks, say so and either sharpen it together or route to the formal loop (fg-ask) — do **not** start a drive on a vague goal.
    - **The replan scope is the user's pre-authorization** — the bound that makes auto-planning legitimate. Default scope when the user has no preference: "fix-forward tasks directly traceable to a failing stop-condition check, nothing else."
    - **`replan-cap`** defaults to **3** rounds; the user may set another value here.
+   - **The `## Tasks` section is the loop's membership list** — the slugs of every plan this loop owns. Record the initial-inquiry plans here at creation, and append each generated fix-forward plan's slug at generation time (§3). The drive promotes **member slugs only**, so backlog plans grilled by fg-ask while the loop is halted at a wall are never swept into the unattended drive.
 
 2. **The initial backlog** — decompose the goal into initial task plans and load them into `.forge/backlog/` in PLAN-FORMAT (`../fg-run/PLAN-FORMAT.md`), with `forge-slug`, monotonic `task:` numbers, and the usual markers, exactly as fg-ask would. (TDD question, slug-collision check, and splitting rules all apply as in fg-ask.)
 
-If a `.forge/loop.md` already exists when fg-loop is invoked, this is a **resume**: skip the inquiry, report the loop's state (goal · round/cap · check status), and re-enter the drive below. Resume is stateless — same pattern as `fg-next all`.
+If a `.forge/loop.md` already exists when fg-loop is invoked, this is a **resume**: skip the inquiry, report the loop's state (goal · round/cap · check status), and re-enter the drive below — under the same `## Tasks` membership filter (non-member backlog plans accumulated while the loop was halted stay untouched; report them in one line). A pre-membership `loop.md` with no `## Tasks` section gets one added at resume (ask the user once which backlog slugs belong to the loop — don't guess). Resume is stateless — same pattern as `fg-next all`.
 
 ## 2. The drive
 
-Drive one task loop at a time, reusing `fg-next all`'s machinery **by reference** (`../fg-next/SKILL.md` "all mode" — do not duplicate its rules here): promote the next backlog task, execute it via fg-run, attempt the UAT aggressively, **always auto-skip the retro** (recorded by the done stage as `retro: skipped (fg-loop 자동 진행 — 학습은 run.md, 승급은 추후 fg-learn)` — same write-attribution as fg-next all), seal via fg-done, and continue. All per-task writes happen inside the delegated skills; fg-loop itself writes only `loop.md` and the plans it generates (see §3) — this is the one deliberate difference from fg-next, which writes nothing.
+Drive one task loop at a time, reusing `fg-next all`'s machinery **by reference** (`../fg-next/SKILL.md` "all mode" — do not duplicate its rules here): promote the next backlog task **listed in `loop.md`'s `## Tasks` section** (membership filter — a backlog plan not on the list is **not** the loop's to run: leave it untouched and mention it in one status line; it belongs to the formal loop), execute it via fg-run, attempt the UAT aggressively, **always auto-skip the retro** (recorded by the done stage as `retro: skipped (fg-loop 자동 진행 — 학습은 run.md, 승급은 추후 fg-learn)` — same write-attribution as fg-next all), seal via fg-done, and continue. All per-task writes happen inside the delegated skills; fg-loop itself writes only `loop.md` and the plans it generates (see §3) — this is the one deliberate difference from fg-next, which writes nothing.
 
 **After each seal, and whenever the backlog empties, run the stop-condition checks** and update their boxes in `loop.md`:
 
@@ -59,7 +63,7 @@ Two situations produce new work without a human conversation, both bounded by `l
 - **A task's UAT comes back `verified: failed`** — in fg-next all this is a hard wall; **in fg-loop it is the automated case**: generate a fix-forward task directly traceable to the failing check, leave the failed task to fg-run's normal failed-handling (fix-and-re-run → fresh run.md → re-verify), and continue. Never seal a `failed` result — ADR-0009 is untouched.
 - **Backlog empty + stop-condition checks failing** — increment `replan-round` in `loop.md`; if it now exceeds `replan-cap`, halt (wall). Otherwise generate fix-forward task(s), one per failing check cluster, **strictly inside the authorized replan scope**.
 
-Every generated plan is a normal plan: PLAN-FORMAT, `forge-slug`, next monotonic `task:` number (ADR-0005), plus a `<!-- generated-by: fg-loop -->` marker so fg-status and the audit trail show its origin. A generated plan whose need turns out to exceed the authorized scope is **not** generated — that is a wall (genuine fork), not a judgment call to make alone.
+Every generated plan is a normal plan: PLAN-FORMAT, `forge-slug`, next monotonic `task:` number (ADR-0005), plus a `<!-- generated-by: fg-loop -->` marker so fg-status and the audit trail show its origin (fg-status renders it as a `(loop)` origin tag) — and **append its slug to `loop.md`'s `## Tasks` section at generation time** (membership, §1/§2). A generated plan whose need turns out to exceed the authorized scope is **not** generated — that is a wall (genuine fork), not a judgment call to make alone.
 
 **No-progress early abort:** if the **same check** fails after **2 consecutive** fix-forward attempts with no observable progress, stop before the cap — repeating a failing approach unattended is exactly the failure mode Osmani warns about. Report what was tried and halt.
 

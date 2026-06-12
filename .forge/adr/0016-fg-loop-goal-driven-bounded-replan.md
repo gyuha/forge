@@ -25,3 +25,11 @@ Addy Osmani의 Loop Engineering 검토(`docs/forge-vs-loop-engineering.md`)에�
 - forge의 차선이 셋이 된다: 정식 루프(회고 대화 포함) / fg-next all(회고 skip, 백로그 소진) / **fg-loop(회고 skip + goal 수렴, 한정 재계획)**. fg-quick은 별도(trivial 전용).
 - 기둥 1의 문장은 "그릴링·회고는 대화"에서 변하지 않는다 — fg-loop가 자동화하는 것은 *사전 승인된 범위 안의 fix-forward 계획*뿐이고, 범위 승인 자체가 기초 질의(대화)의 산출물이다.
 - 무인 루프의 실패 모드(영원히 돌기 / 미검증 조기 종료)는 각각 상한·무진전 중단과 기계 검증 정지 조건이 막는다.
+
+## 개정 (2026-06-12) — `## Tasks` 멤버십 목록 (무필터 백로그 주행 차단)
+
+초판의 드라이브는 "promote the next backlog task"로 백로그 소속을 가리지 않았다. 루프가 벽에서 멈춘 사이 fg-ask가 적재한 **비소속 plan이 재개 시 자동 주행에 휩쓸리고 회고 자동 skip까지 따라붙는** 격차가 코드베이스 매핑(CONCERNS #4)에서 확인됐다.
+
+**결정**: loop.md에 `## Tasks` 절(멤버십 목록)을 신설한다. 기초 질의가 적재한 plan과 이후 생성되는 fix-forward plan의 slug를 등재하고, 드라이브(최초·재개 모두)는 **목록의 slug만 승격**한다. 비소속 backlog plan은 건드리지 않고 한 줄 보고만. `<!-- generated-by: fg-loop -->` 마커는 파일 단위 출처 표기로 유지하며 fg-status가 `(loop)` 태그로 표시한다(주변 계약 동기: fg-ask 벽 경고·fg-merge in-flight halt·fg-next all 주행 양보·CLAUDE.md 상태 계약 표).
+
+**기각 대안**: 마커 단독 필터(기초 질의 plan은 대화 산출물이라 "generated"가 의미상 거짓 + loop.md가 자기 작업 집합을 모름) · 재개 시 비소속 발견을 무조건 벽 처리(백로그에 뭔가 쌓일 때마다 루프 정지 — momentum 차선의 존재 이유 훼손).

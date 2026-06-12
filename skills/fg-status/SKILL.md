@@ -47,7 +47,7 @@ No. | Date | Task | Stage | Verify | Retro
 
 - **No.** — the task's **stable task number**, read from its `<!-- task: N -->` marker (assigned by fg-ask at creation; see PLAN-FORMAT.md). It never changes across buckets, so the same task shows the same number everywhere. A plan created before this feature has no marker — show `—`. This is the number fg-run accepts for selection ("run #7"). It is an identifier, not a position — the table's row order is still set by `priority`/`part`/recency, but the No. value is the fixed task number, not a row index.
 - **Date** — the task's date. For `done/`, the directory's `YYYY-MM-DD`. For active/executed, the STATUS `executed:` date. For a fresh backlog item, `—`.
-- **Task** — the task slug (or its one-line title).
+- **Task** — the task slug (or its one-line title). If the plan carries a `<!-- generated-by: fg-loop -->` marker (a fix-forward plan fg-loop auto-generated — see `../fg-loop/SKILL.md` §3), append a `(loop)` origin tag after the slug so auto-generated work is distinguishable from human-grilled work at a glance.
 - **Stage (current stage only — not the full pipeline)** — the single stage the task currently sits at, mapped from its bucket:
 
   | Bucket | Stage |
