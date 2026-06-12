@@ -1,84 +1,83 @@
 ---
-last_mapped_commit: b45521cd5fc2f536cc212e559af52c3939a5b0a5
+last_mapped_commit: 382c3f8346ae5b8b68abbb5a2dabe2ab52a80d62
 mapped: 2026-06-12
 ---
 
 # STACK
 
-forge에는 전통적 의미의 "기술 스택"이 없다. 런타임 코드·빌드·테스트·린트 시스템이 전부 부재하고(`package.json`·`Makefile`·lockfile·CI 워크플로 없음 — 루트 확인 완료), 산출물은 전부 **Markdown 문서**와 **JSON 매니페스트**다. 따라서 이 문서의 "스택"은 곧 **Claude Code 플러그인 패키징 포맷**이다: 어떤 파일이 어떤 규약으로 배치되면 Claude Code가 이 리포를 플러그인이자 마켓플레이스로 인식하는가. 현재 버전은 **v0.4.7** — 작업 트리에는 v0.4.7 릴리스 직후의 미커밋 변경(신규 13번째 스킬 `skills/fg-loop/`, `.forge/adr/0016-fg-loop-goal-driven-bounded-replan.md`, 매니페스트·README·CLAUDE.md 갱신)이 포함되며, 본 지도는 그 작업 트리 상태를 기준으로 작성됐다.
+forge에는 전통적 의미의 "기술 스택"이 없다. 런타임 코드·빌드·테스트·린트 시스템이 전부 부재하고(`package.json`·`Makefile`·lockfile·CI 워크플로 없음 — 루트 확인 완료), 산출물은 전부 **Markdown 문서**와 **JSON 매니페스트**다. 따라서 이 문서의 "스택"은 곧 **Claude Code 플러그인 패키징 포맷**이다: 어떤 파일이 어떤 규약으로 배치되면 Claude Code가 이 리포를 플러그인이자 마켓플레이스로 인식하는가. 매니페스트 버전은 **v0.4.8**이며, HEAD(`382c3f8`)는 v0.4.8 릴리스 커밋(`f4d6674`) 이후 한 커밋(fg-learn 일괄 승급 모드 + loop.md 멤버십)을 더 담고 있다 — 즉 미배포 변경이 1커밋 존재한다.
 
 ## Languages & Formats
 
-- **Markdown** — 모든 스킬 본문(`skills/*/SKILL.md`)과 형식·참조 문서(`*-FORMAT.md`, `FORGE-ROOT.md`, `RUN-ALL.md`). 스킬은 에이전트(Claude)가 읽고 따르는 자연어 지시문이므로 컴파일 대상이 아니다. 스킬 본문은 영문, 사용자 출력·산출 문서는 사용자 언어(각 SKILL.md에 Language 지시문 명문화). 흐름도는 Mermaid 금지·텍스트 흐름도만(`CLAUDE.md` 규약 — 렌더링 없이 파싱·diff·grep 가능해야 함).
-- **JSON** — 매니페스트 2개(`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`)와 사용자 프로젝트의 런타임 설정(`.forge/config.json`).
-- **YAML frontmatter** — 각 `SKILL.md` 머리의 `name`/`description`(스킬 자동 탐색·트리거의 원천), 그리고 `.forge/codebase/*.md`의 `last_mapped_commit` 신선도 스탬프.
+- **Markdown** — 모든 스킬 본문(`skills/*/SKILL.md`)과 형식·참조 문서(`*-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-run/RUN-ALL.md`). 스킬은 에이전트(Claude)가 읽고 따르는 자연어 지시문이므로 컴파일 대상이 아니다. 스킬 본문은 영문, 사용자 출력·산출 문서는 사용자 언어(각 SKILL.md에 Language 지시 명문화). 스킬 문서의 흐름도는 Mermaid 금지·텍스트 흐름도만(`CLAUDE.md` 규약 — 렌더링 없이 파싱·diff·grep 가능해야 함).
+- **JSON** — 매니페스트 2개(`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`)와 사용자 프로젝트 쪽 런타임 설정(`.forge/config.json`).
+- **YAML frontmatter** — 각 `SKILL.md` 머리의 `name`/`description`(스킬 자동 탐색·트리거 매칭의 원천), 그리고 `.forge/codebase/*.md`의 `last_mapped_commit` 신선도 스탬프.
 
-## Runtime — Claude Code 플러그인 시스템
+## Runtime — Claude Code 플러그인 호스트
 
 - **런타임은 Claude Code 자체**다. forge는 독립 프로세스를 갖지 않는다. "실행" = 사용자가 트리거 문구를 말하면 Claude가 해당 `SKILL.md`를 따라 행동하는 것.
-- **버전 요구사항은 명시적으로 고정되어 있지 않다.** `plugin.json`에 엔진/버전 제약 필드가 없고 README에도 최소 버전이 없다. 대신 호스트 기능 의존이 암묵적 요구사항이다: 스킬 자동 탐색, `Agent` 도구(서브에이전트), Dynamic Workflow, `AskUserQuestion`, `${CLAUDE_PLUGIN_ROOT}` 환경 변수. `skills/fg-map/SKILL.md`는 "forge is Claude Code only — the `Agent` tool is always available"이라 명기하고 비-Agent 폴백을 두지 않는다.
-- **셸 의존**: `git`(브랜치 판별 `git rev-parse --abbrev-ref HEAD` — `skills/fg-run/FORGE-ROOT.md`, 커밋 sha 스탬프, fg-map의 커밋 제안)과 `node`(매니페스트 JSON 검증 한 줄 — 아래). Node는 빌드 도구가 아니라 일회성 파서다.
+- **호스트 버전 요구사항은 명시적으로 고정되어 있지 않다.** `plugin.json`에 엔진/버전 제약 필드가 없고 `README.md`에도 최소 버전이 없다. 대신 호스트 기능 의존이 암묵적 요구사항이다: 스킬 자동 탐색, `Agent` 도구(서브에이전트 fan-out), Dynamic Workflow, `AskUserQuestion`, `Skill` 도구(fg-next의 위임 호출), `${CLAUDE_PLUGIN_ROOT}` 환경 변수, (선택적으로) `/goal`·`/workflows` 슬래시 명령. `skills/fg-map/SKILL.md`는 "forge is Claude Code only — the `Agent` tool is always available"이라 명기하고 비-Agent 폴백을 두지 않는다.
+- **셸 의존**: `git`(브랜치 판별 `git rev-parse --abbrev-ref HEAD` — `skills/fg-run/FORGE-ROOT.md`; fg-map의 HEAD sha 스탬프; fg-done의 stale-map 감지 `git status --short`)과 `node`(매니페스트 JSON 검증 한 줄 — 아래). Node는 빌드 도구가 아니라 일회성 JSON 파서다.
 
 ## Skills Inventory — 13개 (`skills/<dir>/SKILL.md`)
 
-스킬 식별자는 디렉터리명이 아니라 frontmatter `name`이다(현재 13개 모두 디렉터리명과 일치 — `awk '/^name:/'`로 전수 확인). 루프 4단계 + 루프 밖 유틸리티/오케스트레이터 9개:
+스킬 식별자는 디렉터리명이 아니라 frontmatter `name`이다(현재 13개 모두 디렉터리명과 일치). 루프 4단계 + 루프 밖 9개:
 
 | 스킬 | 역할 | 본문 줄수 | 동반 문서 |
 | --- | --- | --- | --- |
-| `fg-ask` | 루프 ① 질의·그릴링 (진입점, 항상 대화) | 105 | `CONTEXT-FORMAT.md`(60), `ADR-FORMAT.md`(47) — grill-with-docs verbatim |
-| `fg-run` | 루프 ② 실행 (Dynamic Workflow) | 161 | `PLAN-FORMAT.md`(68), `FORGE-ROOT.md`(53, 브랜치 루트 해석 단일 정의), `RUN-ALL.md`(15, Run-all 절차 — progressive disclosure로 분리) |
-| `fg-learn` | 루프 ③ 회고 (항상 대화) | 104 | `RETRO-FORMAT.md`(47) |
-| `fg-done` | 루프 ④ 봉인·재실행 방지 | 126 | — |
-| `fg-map` | 코드베이스 지도 (4 병렬 서브에이전트 → `.forge/codebase/` 7문서) | 93 | — |
-| `fg-quick` | trivial 작업 경량 차선 (형식 산출물 없음, `.forge/quick/LOG.md` 한 줄) | 66 | — |
-| `fg-status` | 읽기 전용 상태 리포터 (아무것도 안 씀; `.forge/loop.md` 상태도 보고) | 102 | — |
-| `fg-next` | 다음 단계 도출+실행 오케스트레이터 (`all` 모드 포함) | 126 | — |
-| `fg-loop` | **신규 v0.4.7+** — 목표 수렴 드라이브: 기계 검증 가능 정지 조건·재계획 범위·상한(기본 3)을 `.forge/loop.md`에 박고 run→UAT→retro auto-skip→seal을 조건 충족까지 반복, 상한 내 fix-forward plan 자동 생성(ADR-0016) | 117 | — |
-| `fg-tdd` | `config.json`의 `tdd` 토글 | 47 | — |
-| `fg-eco` | `config.json`의 `eco` 토글 (위임 에이전트 sonnet 캡) | 51 | — |
-| `fg-merge` | 브랜치 forge 루트(`.forge/branch/<branch>/`) 통합 | 84 | — |
-| `fg-cleanup` | ADR 은퇴 (`.forge/adr/retired/`) | 63 | — |
+| `fg-ask` | 루프 ① 질의·그릴링 (진입점, 항상 대화) | 106 | `CONTEXT-FORMAT.md`(60), `ADR-FORMAT.md`(47) — grill-with-docs verbatim |
+| `fg-run` | 루프 ② 실행 (Dynamic Workflow) | 161 | `PLAN-FORMAT.md`(68), `FORGE-ROOT.md`(53, 브랜치 루트 해석 단일 정의), `RUN-ALL.md`(15, Run-all 절차 — progressive disclosure 분리) |
+| `fg-learn` | 루프 ③ 회고 (항상 대화) | 114 | `RETRO-FORMAT.md`(47) |
+| `fg-done` | 루프 ④ 완료·봉인·재실행 방지 | 126 | — |
+| `fg-map` | 코드베이스 지도 유틸리티 (4 병렬 서브에이전트) | 93 | — |
+| `fg-quick` | 경량 차선 (형식 산출물 없음) | 66 | — |
+| `fg-status` | 읽기 전용 상태 리포터 + 상태 머신 | 102 | — |
+| `fg-next` | 다음 단계 도출·실행 오케스트레이터 (`all` 모드 포함) | 128 | — |
+| `fg-loop` | goal 주도 한정 재계획 루프 (`.forge/loop.md` 계약) | 121 | — |
+| `fg-tdd` | TDD 모드 토글 (`config.json`의 `tdd`) | 47 | — |
+| `fg-eco` | 위임 모델 티어링 토글 (`config.json`의 `eco`) | 51 | — |
+| `fg-merge` | 브랜치 forge 콘텐츠 통합 유틸리티 | 84 | — |
+| `fg-cleanup` | ADR 은퇴 유틸리티 | 63 | — |
 
-**형식 문서 단일 소유 규약**: 형식 정의는 소유 스킬 디렉터리에 한 벌만 존재하고, 타 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<file>`(스킬 상대 `../fg-run/FORGE-ROOT.md` 등)로 참조한다(복사 금지, 루트 `references/` 폐지됨). 예: plan 형식의 생산자는 fg-ask지만 `PLAN-FORMAT.md`는 소비자인 `skills/fg-run/`에 있다(fg-ask 디렉터리는 verbatim 영역). 신규 `fg-loop`도 자체 형식 문서 없이 `../fg-run/PLAN-FORMAT.md`·`../fg-next/SKILL.md`를 참조-재사용한다.
+형식 문서는 한 벌만 존재하며 소유 스킬 디렉터리에 둔다 — 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(또는 상대경로 `../fg-run/PLAN-FORMAT.md` 등)로 참조하고 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다(`CLAUDE.md`).
 
-## Manifest 구조 — `.claude-plugin/`
+## 매니페스트 구조 (`.claude-plugin/`)
 
-리포 루트 = 플러그인 루트 = 마켓플레이스(단일 리포 이중 역할).
+단일 리포 = 플러그인 + 마켓플레이스(harness 패턴). 리포 루트가 곧 플러그인 루트다.
 
-- **`.claude-plugin/plugin.json`** — 플러그인 매니페스트. `name: "forge"`, `version: "0.4.7"`, `description`(전체 13 스킬 목록 — fg-loop 포함으로 갱신됨), `author`/`homepage`/`repository`/`license`/`keywords`. `skills` 필드는 없음 — `skills/`가 자동 탐색되므로 생략.
-- **`.claude-plugin/marketplace.json`** — 마켓플레이스 등록. `metadata.description`(루프만 정의하는 한 줄 태그라인 — 루프 밖 유틸리티는 안 넣음), `metadata.version`, `plugins[0]`: `source: "./"`(루트가 곧 플러그인), `version`, `description`("Thirteen fg-* skills..." — 전체 스킬 카탈로그), `category: "workflow"`, `tags`.
-- **버전은 3곳 동기**: `plugin.json`의 `version` + `marketplace.json`의 `metadata.version` + `plugins[0].version`. 현재 작업 트리에서 3곳 모두 `0.4.7`로 일치(단, 이 매니페스트 변경은 아직 미커밋 — 설치는 GitHub main을 당기므로 push 전엔 사용자에게 도달하지 않음). 배포 시 셋을 함께 범프한다(`CLAUDE.md` 배포 규칙).
-- **두 description의 역할 차이**: `metadata.description`은 루프 정의 태그라인, `plugins[].description`·`plugin.json`의 `description`은 전체 스킬 카탈로그. 스킬 추가/변경 시 둘 다 갱신해야 한다(fg-loop 추가 시에도 둘 다 갱신됨).
+- **`.claude-plugin/plugin.json`** — 플러그인 매니페스트. 필드: `name`("forge"), `description`(전체 13스킬 카탈로그를 담은 장문), `version`("0.4.8"), `author`, `homepage`/`repository`(`https://github.com/gyuha/forge`), `license`("MIT"), `keywords`. **`skills` 필드 없음** — `skills/<dir>/SKILL.md` 자동 탐색에 의존.
+- **`.claude-plugin/marketplace.json`** — 이 리포를 마켓플레이스로 등록. `name`/`owner`, `metadata.description`(루프 ask·plan → execute → retro → done을 정의하는 한 줄 태그라인 — 루프 밖 유틸리티는 여기 넣지 않음), `metadata.version`("0.4.8"), `plugins[0]`: `source: "./"`(루트가 곧 플러그인), `description`(전체 스킬 카탈로그), `version`("0.4.8"), `category`("workflow"), `tags`.
 
-## Config Surface — `.forge/config.json` (사용자 프로젝트 측)
+**동기화 규칙 (어기면 어긋남):**
 
-git 추적되는 프로젝트 전역 설정 파일. **lazy 생성** — 첫 토글 때 만들어진다(이 리포 자체의 `.forge/`에는 현재 존재하지 않음). **브랜치 루트 해석의 전역 예외**: 어느 브랜치에서든 항상 최상위 `.forge/config.json`이다(`skills/fg-run/FORGE-ROOT.md` — `defaultBranch`를 읽어야 해석이 시작되므로 브랜치-로컬이면 부트스트랩 역설).
+1. **버전 3곳 동시 범프** — `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`. 현재 셋 다 `0.4.8`로 일치 확인.
+2. **두 카탈로그 description 동행** — `plugin.json`의 `description`과 `marketplace.json`의 `plugins[0].description`은 같은 전체-스킬 설명의 쌍이다. 스킬 추가/변경 시 둘 다 갱신. 단 `metadata.description`은 루프 태그라인이므로 루프 밖 스킬을 넣지 않는다(`CLAUDE.md` 배포 규칙).
+3. (매니페스트는 아니지만 같은 규칙) `README.md`와 `README.ko.md`는 번역 쌍 — 한쪽 갱신 시 반드시 양쪽.
 
-| 키 | 쓰는 스킬 | 읽는 스킬 | 의미 |
+## Dependencies
+
+- **패키지 의존성 0개.** npm/pip 류 의존 없음. 유일한 "의존"은 호스트(Claude Code)의 플러그인 시스템과 셸의 `git`·`node`.
+- 외부 스킬 연계는 전부 **소프트**(있으면 활용, 없으면 자체 수행): deep-research 능력(`skills/fg-ask/SKILL.md`, ADR-0006), `superpowers:test-driven-development`(`skills/fg-run/SKILL.md` TDD 모드). 하드 의존은 의도적으로 없다.
+
+## Configuration Surfaces — `.forge/config.json`
+
+사용자 프로젝트에 lazy 생성되는 단일 전역 설정 파일(git 추적 — `.gitignore`가 `!.forge/config.json` 화이트리스트). **브랜치 루트 해석의 전역 예외**로, 어느 브랜치에서든 항상 최상위 `.forge/config.json`이다(branch-local이면 `defaultBranch`를 읽기 위한 부트스트랩 역설 — `skills/fg-run/FORGE-ROOT.md`). 이 리포 자체에는 현재 이 파일이 존재하지 않는다(전 키 기본값 적용).
+
+| 키 | 쓰는 쪽 | 읽는 쪽 | 의미 / 기본값 |
 | --- | --- | --- | --- |
-| `tdd` (bool, 기본 `false`) | `fg-tdd` | `fg-ask`(작업별 질문의 기본값 → plan에 `<!-- tdd: on\|off -->` 기록), `fg-run`(마커 on이면 test-first 실행) | 프로젝트 TDD 기본값 |
-| `eco` (bool, 기본 `false`) | `fg-eco` | `fg-run`(워크플로 빌드 시 위임 서브에이전트를 `sonnet`으로 캡 — 내리기만, 명시적 사용자 지시 우선; ADR-0014) | 위임 모델 티어링 |
-| `defaultBranch` (string, 기본 `"main"`) | (수동) | `FORGE-ROOT.md` 해석 규칙(모든 루프 스킬) | forge 루트 분기 기준 브랜치 |
+| `defaultBranch` | (수동 편집) | 모든 루프 스킬의 루트 해석(`FORGE-ROOT.md`) | 기본 브랜치명. 없으면 `"main"`. 현재 브랜치 ≠ 이 값이면 forge 루트가 `.forge/branch/<branch>/` |
+| `tdd` | `fg-tdd`(`on`/`off`) | `fg-ask`(작업별 질문의 기본 답) → plan의 `<!-- tdd: on -->` 마커 → `fg-run`(test-first 실행) | TDD 모드 기본값. 없으면 `false` |
+| `eco` | `fg-eco`(`on`/`off`) | `fg-run`(Dynamic Workflow 구성 시) | `true`면 위임 워크플로 서브에이전트 모델을 `sonnet`으로 캡 — 내리기만, 세션 모델 불변, 명시적 사용자 지시 우선(ADR-0014). 없으면 `false` |
 
-쓰기 규칙: 기존 키 보존(read → set → write back), JSON 유효성 유지. 참고로 fg-loop의 상태 파일 `.forge/loop.md`는 config가 아니라 **휘발 상태**다(`.gitignore`의 `.forge/*` 기본 제외에 자동 포함).
+## Validation Tooling — 빌드/테스트/CI 없음
 
-## .gitignore 화이트리스트 패턴
+검증 수단은 아래가 전부다(`CLAUDE.md`):
 
-`.gitignore`가 `.forge/`를 기본 제외(`​.forge/*`)하되 영속 문서만 화이트리스트로 되살린다: `!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json` · `!.forge/branch/`(비-기본 브랜치 forge 루트는 통째로 추적 — ADR-0011). 휘발 상태(plan/run/STATUS/backlog/executed/done/quick/loop.md)는 제외된다. 그 외 `.claude/worktrees`, `.planning/`(단 `!.planning/codebase/`), `.DS_Store`도 제외.
+```bash
+# 매니페스트 JSON 유효성 — 편집 후 필수 (깨지면 설치 실패)
+node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
+```
 
-## Validation Tooling — 테스트·CI 없음
-
-- **유일한 자동 검증**은 매니페스트 JSON 파싱 한 줄(`CLAUDE.md` 정의):
-  ```bash
-  node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
-  ```
-- **단위 테스트·CI 부재.** 실제 동작 테스트는 설치 후 트리거뿐(`/plugin marketplace add gyuha/forge` → `/plugin install forge@forge`). 설치는 GitHub `main`을 당기므로 설치 테스트 전제는 main push.
-- 배포 후 에이전트가 할 수 있는 검증: `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 버전 3곳 확인 + `awk '/^name:/'`로 `skills/*/SKILL.md` frontmatter `name` 누락 확인.
-
-## 부속 파일
-
-- `README.md` ↔ `README.ko.md` — 동일 내용의 번역 쌍(한쪽 갱신 시 반드시 함께 갱신하는 동기 규약). fg-loop 반영분이 현재 미커밋 변경에 포함.
-- `CHANGELOG.md` — Keep a Changelog 약식, 최신 섹션 `[0.4.7] - 2026-06-12`.
-- `CLAUDE.md` — 리포 작업 규약(배포 절차, 스킬 편집 규약, 상태 계약 요약).
-- `docs/forge-vs-loop-engineering.md` — Loop Engineering 대응 검토 문서(git 미추적 신규 디렉터리).
-- `.forge/` — 이 리포 자신도 forge 루프를 사용한다(dogfooding): `adr/`(0001~0016, 0016은 fg-loop 결정 — 미커밋), `retro/`(`2026-06-12-add-fg-loop.md` 포함), `codebase/`(본 지도), `backlog/`·`done/`·`quick/`(휘발).
+- **단위 테스트 없음.** 실제 동작 테스트는 설치해서 트리거해보는 것뿐: `/plugin marketplace add gyuha/forge`(또는 로컬 경로) → `/plugin install forge@forge`. 설치는 GitHub `main`을 당기므로 설치 테스트 전제는 main push.
+- `/plugin ...` 명령은 interactive라 에이전트가 직접 실행 불가. 에이전트 측 검증은 `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 버전 3곳 확인 + `awk '/^name:/' skills/*/SKILL.md`로 frontmatter `name` 누락 확인.
+- 배포 절차: `CHANGELOG.md 작성 → 버전 3곳 범프 → JSON 검증 → commit(chore(release): vX.Y.Z) → main push`.
