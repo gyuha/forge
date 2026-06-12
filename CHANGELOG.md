@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.9] - 2026-06-12
+
+### Added
+- **fg-learn 일괄 승급 모드(Batch promotion mode).** fg-next all·fg-loop·fg-run의 회고 skip 경로가 약속해 온 "추후 fg-learn 일괄 승급"의 수신 구현. 명시 진입 전용("일괄 승급"/"batch promotion")으로 봉인된 `retro: skipped` 작업을 후보로 재허용하고(기본 경로의 배제 규칙은 예외 교차참조와 함께 유지), 승급 바를 넘는 학습만 개별 retro 파일로 작성하며, 승급 시 봉인 STATUS의 `retro:`를 사후 정정한다.
+
+### Changed
+- **fg-loop `## Tasks` 멤버십 목록(ADR-0016 개정).** loop.md에 루프 소속 slug를 등재하고 드라이브·재개가 멤버만 승격 — 벽에 멈춘 사이 fg-ask가 적재한 비소속 plan의 무필터 자동 주행을 차단. 주변 계약 동기화: fg-ask 벽 경고(1b)·fg-merge in-flight halt에 branch loop.md·fg-status `(loop)` 출처 태그(generated-by 마커의 첫 소비자)·fg-next all의 loop.md 주행 양보·CLAUDE.md 상태 계약 표 loop.md 행.
+- **fg-loop /goal 페어링 능동 제시 + 턴 연속성.** 기초 질의 종료·재개 시점에 붙여넣기용 `/goal` 한 줄을 능동 제시(멈춤 허용 = goal-met·벽·스크립트 승인뿐, `verified: failed`는 fix-forward 계속), 드라이브에 "봉인 사이에 턴을 끝내지 않는다" 명시 — "한 사이클 후 중단" 증상 대응.
+
+### Fixed
+- **marketplace.json 스킬 카탈로그 정합.** plugins description의 루프 4스테이지에 스킬명 병기(`fg-learn`·`fg-done`이 이름으로 누락돼 plugin.json과 어긋나 있던 것 교정).
+
 ## [0.4.8] - 2026-06-12
 
 ### Added
