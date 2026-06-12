@@ -20,6 +20,7 @@ Read these from `.forge/` (skip silently what doesn't exist):
 - **Awaiting retro** — `.forge/executed/<slug>/` (parked by fg-run "Run all", each with `STATUS.md` at `status: executed`).
 - **Done (history)** — `.forge/done/*/STATUS.md` (`status: done`; note each one's `retro:` = path or `skipped`).
 - **Quick lane** — `.forge/quick/LOG.md` (entries written by fg-quick).
+- **Goal loop** — `.forge/loop.md` (the goal contract written by fg-loop: one-line goal, `replan-round`/`replan-cap`, stop-condition check states).
 - **Supporting (counts only)** — `.forge/retro/` and `.forge/adr/` file counts.
 
 ## What it prints
@@ -31,6 +32,7 @@ Report in the user's language (the section labels below are canonical English �
 - **Awaiting retro (executed/)** — list each parked task. (Or "none".)
 - **Done** — count + the most recent few (date-slug · `retro: done`/`skipped`). Summary, not a full dump.
 - **Quick lane (quick/LOG)** — count + the most recent few entries. Summary.
+- **Goal loop (loop.md)** — one line: goal · round N/cap · checks passing/failing. (Omit the section when no `loop.md` exists.)
 - **👉 Next step** — the single next step and how to trigger it (see below).
 
 Keep it scannable. Don't paste full file contents — titles, slugs, and one-line states only.
@@ -73,6 +75,7 @@ The table derives purely from file location + the STATUS `verified:`/`retro:` fi
 
 Determine the one next step from the file layout, in this priority order:
 
+0. **`.forge/loop.md` exists** (a goal loop is in flight — fg-loop drives whole task loops itself) → the next step is resuming **fg-loop**, which re-derives per-task state internally and continues toward its stop condition (or reports the wall it halted at). Trigger: "forge loop" / `/forge:fg-loop`. Still report the underlying task states below for visibility.
 1. **Active `run.md` exists** (a plan has run) — apply in this order (run → verify → learn → done, ADR-0009):
    - `STATUS.md` `verified: failed` → **the UAT ran and the result is broken** — fix it then re-run, or re-grill the plan. Routes to **fg-run** (fix-and-re-run) or fg-ask (re-grill), **not** fg-learn/fg-done. Trigger: "forge run" / `/forge:fg-run` (or "forge ask"). Highest priority — a failed result blocks both retro and seal.
    - `STATUS.md` `verified: pending` or missing → **verification is owed first** — the plan ran but its UAT was never completed. Re-entering fg-run takes its **verification-only resume** (it runs the UAT and writes `verified:` *without* re-executing the workflow — see fg-run step 4), which precedes retro. Trigger: "forge run" / `/forge:fg-run`. Do not route past this to fg-learn.
