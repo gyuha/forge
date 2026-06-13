@@ -1,6 +1,6 @@
 ---
 name: fg-loop
-description: Goal-driven momentum loop with bounded replan (ADR-0016). An initial conversational inquiry pins a machine-verifiable stop condition, a pre-authorized fix-forward replan scope, and a replan cap (default 3 rounds) into .forge/loop.md, then loads the initial backlog and drives tasks run → UAT → auto-skip retro → seal until the stop-condition checks pass — auto-generating fix-forward tasks for failing checks within the cap. Halts at the walls (unverifiable UAT, genuine design fork, cap exhausted, no progress) and hands back to the human. An on-demand orchestrator outside the loop. Use in contexts like 'forge loop', '루프 시작', '조건 충족까지 반복', 'goal loop'.
+description: Goal-driven momentum loop with bounded replan (ADR-0016). An initial conversational inquiry pins a machine-verifiable stop condition, a pre-authorized fix-forward replan scope, and a replan cap (default 3 rounds) into .forge/loop.md, then loads the initial backlog and drives tasks unattended (run → UAT → auto-skip retro → seal) — auto-selecting the recommended/default at every soft decision point and never pausing to ask the user — until the stop-condition checks pass, auto-generating fix-forward tasks for failing checks within the cap. Halts only at the walls (unverifiable UAT, genuine design fork, cap exhausted, no progress) and hands back to the human. An on-demand orchestrator outside the loop. Use in contexts like 'forge loop', '루프 시작', '조건 충족까지 반복', 'goal loop'.
 ---
 
 # fg-loop — goal-driven loop with bounded replan (outside the loop)
@@ -9,13 +9,21 @@ This is **not** a stage of the forge loop. It is a goal-driven orchestrator: one
 
 **This deliberately relaxes pillar #1 within bounds** (the precedent is fg-quick relaxing pillar #2 for trivial work — ADR-0003): fg-loop may create plans without a per-plan grilling conversation, but **only** inside the replan scope the user pre-authorized during the initial inquiry, and **never** past the cap or the walls. "The AI thinks it's done" is **not** a stop condition — only the recorded checks are.
 
+## Autonomy contract — the whole point of this lane (ADR-0016 rev. 2026-06-13)
+
+Once the goal contract is pinned, the drive runs **unattended to completion**. It does **not** pause to ask the user for preferences or confirmations. At every *soft* decision point — one that carries a recommended or default option (a delegated skill's handoff menu, the TDD question, a slug-collision prompt, any "retro vs. skip" choice, "which task first") — **auto-select the recommended/default and proceed silently**; never turn such a choice into a question to the user. Retro is always auto-skipped (§2); where fg-run's single-task handoff would otherwise surface its four-option menu, the drive takes the skip-retro-and-seal path without prompting.
+
+The drive's **only** legitimate stops are the four correctness walls (§4) and a workflow-script approval the harness physically requires to continue. **None of these is a "preference with a recommendation"**: each is a genuine block where proceeding alone would be *wrong*, not merely unconfirmed — a silently-sealed unverifiable UAT would violate ADR-0009; a genuine design fork is consequential and the human's to make. So "don't ask the user" and "halt at the walls" are **not** in tension — the walls are precisely the points where there is no recommendation to auto-pick.
+
+Keep the **initial inquiry (§1) lean**: ask only what is needed to pin the machine-verifiable checks, the replan scope, and the cap. Take the documented defaults for everything else — TDD per `.forge/config.json`, the default replan scope, cap 3, auto-decompose into tasks — rather than grilling each sub-decision. The human judgment this lane preserves is *pinning the stop condition up front*, not approving each step toward it.
+
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — inquiry questions, status lines, halt reports, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** Documents it writes into the user's project (loop.md, generated plans) are written in the user's language.
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or writing state (ADR-0011).
 
 ## 1. Initial inquiry (conversational — outside any workflow)
 
-Conducted as a conversation in this session, one question at a time, reusing fg-ask's grilling method (`../fg-ask/SKILL.md`) — this is where the human judgment happens, up front. It must produce two outputs before any driving starts:
+Conducted as a conversation in this session, one question at a time, reusing fg-ask's grilling method (`../fg-ask/SKILL.md`) — this is where the human judgment happens, up front. **Keep it lean** (see Autonomy contract above): ask only what pins the checks, the replan scope, and the cap; default everything else rather than grilling each sub-decision. It must produce two outputs before any driving starts:
 
 1. **The goal contract → `.forge/loop.md`** (volatile state, owned by fg-loop; auto-gitignored on the default branch by the existing `.forge/*` pattern):
 
