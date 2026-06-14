@@ -18,6 +18,23 @@
 
 set -u
 
+# --- cwd from session JSON (stdin) -------------------------------------------
+# Claude Code feeds the statusLine command the session JSON on stdin. The host
+# may run that command from a directory other than the project, so resolve the
+# project dir from the JSON's "cwd" (or workspace.current_dir) and cd into it,
+# making the .forge/ read below correct regardless of the shell's cwd. This is
+# the one place the fragment parses JSON — kept jq-free (defensive sed), with a
+# $PWD fallback so a no-stdin / no-cwd invocation still works (ADR-0017).
+# Read stdin only when it is piped (not a tty), so an interactive run never blocks.
+if [ ! -t 0 ]; then
+  input="$(cat 2>/dev/null || true)"
+  if [ -n "${input:-}" ]; then
+    cwd="$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    [ -z "$cwd" ] && cwd="$(printf '%s' "$input" | sed -n 's/.*"current_dir"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    [ -n "$cwd" ] && [ -d "$cwd" ] && cd "$cwd" 2>/dev/null || true
+  fi
+fi
+
 # --- Resolve forge root (ADR-0011 / FORGE-ROOT.md) ---------------------------
 branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 

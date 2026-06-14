@@ -28,7 +28,11 @@ assert() {
 mktmp() { mktemp -d "${TMPDIR:-/tmp}/fgsl.XXXXXX"; }
 
 # Run the script with the given dir as cwd, capture stdout (trailing newline stripped).
-run_in() { ( cd "$1" && bash "$SCRIPT" ); }
+# No stdin (</dev/null) — exercises the "$PWD fallback" path when no session JSON is piped.
+run_in() { ( cd "$1" && bash "$SCRIPT" </dev/null ); }
+
+# Run from cwd $1 with JSON $2 piped on stdin — exercises the cwd-from-stdin path.
+run_in_json() { ( cd "$1" && printf '%s' "$2" | bash "$SCRIPT" ); }
 
 write() { mkdir -p "$(dirname "$1")"; printf '%s\n' "$2" > "$1"; }
 
@@ -143,6 +147,32 @@ if command -v git >/dev/null 2>&1; then
 else
   printf '  skip git branch-root case (git not found)\n'
 fi
+
+# --- Case: cwd from stdin JSON ("cwd") redirects which .forge/ is read --------
+# State lives in dir A; the script is invoked from an unrelated dir B with a
+# session JSON whose "cwd" points at A. It must read A's state, not B's (empty).
+a=$(mktmp); b=$(mktmp)
+write "$a/.forge/plan.md" "<!-- forge-slug: cwd-task -->"
+assert "stdin-cwd-redirects" "⚒ cwd-task:run" "$(run_in_json "$b" "{\"cwd\":\"$a\",\"model\":{\"display_name\":\"x\"}}")"
+rm -rf "$a" "$b"
+
+# --- Case: cwd falls back to workspace.current_dir when no top-level "cwd" -----
+a=$(mktmp); b=$(mktmp)
+write "$a/.forge/plan.md" "<!-- forge-slug: ws-task -->"
+assert "stdin-workspace-current-dir" "⚒ ws-task:run" "$(run_in_json "$b" "{\"workspace\":{\"current_dir\":\"$a\"}}")"
+rm -rf "$a" "$b"
+
+# --- Case: stdin JSON without any cwd -> falls back to $PWD -------------------
+a=$(mktmp)
+write "$a/.forge/plan.md" "<!-- forge-slug: pwd-task -->"
+assert "stdin-no-cwd-uses-pwd" "⚒ pwd-task:run" "$(run_in_json "$a" "{\"model\":{\"display_name\":\"x\"}}")"
+rm -rf "$a"
+
+# --- Case: stdin cwd points at a nonexistent dir -> falls back to $PWD --------
+a=$(mktmp)
+write "$a/.forge/plan.md" "<!-- forge-slug: missing-cwd -->"
+assert "stdin-cwd-nonexistent-falls-back" "⚒ missing-cwd:run" "$(run_in_json "$a" "{\"cwd\":\"/no/such/dir/xyz123\"}")"
+rm -rf "$a"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

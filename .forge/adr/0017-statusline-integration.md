@@ -19,3 +19,13 @@ forge는 실행 코드가 한 줄도 없는 리포다(전부 Markdown/JSON, 빌�
 - forge에 **첫 실행 코드(bash)와 첫 테스트 인프라**(fixture 기반 bash 테스트)가 생긴다 — 두 기둥(문서=연료, no-code)의 의도적·경계 있는 예외다(fg-quick의 기둥 2 완화와 동형 선례).
 - forge 상태 머신이 **두 곳**에 존재하게 된다: fg-status(정본·다음 단계)와 이 스크립트(얇은 표시본). 단계 매핑(bucket→stage)이 바뀌면 양쪽을 같이 고쳐야 한다.
 - 스크립트 업데이트는 사용자가 `fg-statusline`을 재실행해야 안정 경로에 반영된다(자동 아님).
+
+## 개정 (2026-06-14) — 강건성 재설계
+
+초기 구현이 사용자 환경에서 **statusline 전체가 공백**이 되는 장애를 냈다(claude-hud까지 사라짐). 원인 진단과 함께 다음을 결정했다(핵심 결정 — thin reader + 설정 시 복사 — 은 불변, 메커니즘만 강건화):
+
+- **`settings.json`의 `statusLine.command`는 절대경로로 쓴다 — `~`(tilde) 금지.** statusLine 명령은 호스트가 tilde를 확장한다는 보장이 없어, 리터럴 `~/.claude/...`가 해석 실패 시 래핑된 원본까지 포함해 **전체 statusline이 조용히 공백**이 된다(유력 장애 원인). 기존에 작동하던 statusline(claude-hud·powerline)이 모두 절대경로/인라인이었던 것과 일치시킨다. `$HOME`/`$CLAUDE_CONFIG_DIR`을 설정 시점에 풀어 절대경로를 기록한다.
+- **fragment가 stdin 세션 JSON의 `cwd`를 파싱한다(`workspace.current_dir` → `$PWD` 폴백).** 원래 "무파싱/jq-free, cwd는 셸 작업디렉터리 가정"이었던 설계의 **의도적·부분적 반전**이다 — 호스트가 프로젝트 밖에서 statusLine을 실행하면 active여도 영원히 공백이던 문제를 없앤다. 여전히 jq는 안 쓴다(방어적 `sed` 추출). 인터랙티브 실행에서 블록되지 않도록 stdin이 tty가 아닐 때만 읽는다.
+- **합성 래퍼는 committed generic 스크립트(`scripts/forge-statusline-wrapper.sh`) + 원본 보존 파일(`forge-statusline-orig.sh`)로 한다.** 원본 명령을 별도 파일에 verbatim 저장하므로 래퍼 자체엔 설치별 치환이 없어 fragment처럼 복사만 하면 된다(중첩 따옴표 escaping 회피). 래퍼는 같은 JSON을 원본과 fragment **양쪽에 stdin으로 흘려** cwd 해석을 일치시키고, 원본을 먼저 출력한 뒤 fragment를 별도 줄로 덧붙인다. SKILL.md의 과거 "inline 임베드" 서술은 이 구현에 맞춰 정정했다.
+- **테스트가 늘었다**: fragment에 stdin-cwd 케이스 추가(`forge-statusline.test.sh`), 래퍼 동반 테스트 신설(`forge-statusline-wrapper.test.sh` — 원본 보존·forge 행 추가·idle 무행·stdin 재공급).
+- statusLine 설정은 **Claude Code 재시작 후** 적용된다 — 설정 직후 같은 세션에서 판단하면 안 된다(SKILL.md Notes·Handoff에 명시).

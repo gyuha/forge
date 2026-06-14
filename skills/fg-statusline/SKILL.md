@@ -16,11 +16,12 @@ Claude Code's statusLine is configured **only** in `settings.json` (`statusLine`
 Two facts shape the setup:
 
 - **Only ONE statusLine exists, and there is no stacking.** If you already run another statusline, forge cannot be "added" alongside it — it must be **composed in**. This skill wraps your existing command so forge shows as an extra row.
-- **Plugin install paths change on every update** (`~/.claude/plugins/cache/<hash>/`), and `${CLAUDE_PLUGIN_ROOT}` is **not** available to the statusLine shell. So the script must be **copied to a stable path** the settings can reference — `~/.claude/forge-statusline.sh`. The fragment is generic (it reads the current project's `.forge/` by cwd), so one global copy serves every project.
+- **Plugin install paths change on every update** (`~/.claude/plugins/cache/<hash>/`), and `${CLAUDE_PLUGIN_ROOT}` is **not** available to the statusLine shell. So the scripts must be **copied to stable paths** the settings can reference under the Claude config dir (`~/.claude/` by default). The fragment reads the current project's `.forge/` (from the session JSON's `cwd`, see below), so one global copy serves every project.
+- **Reference the scripts by ABSOLUTE path in `settings.json`, never `~`.** The statusLine `command` is not guaranteed to undergo tilde expansion by the host, so a literal `~/.claude/...` can fail to resolve and silently blank the **entire** statusline (including any wrapped original). Resolve `$HOME` (or `$CLAUDE_CONFIG_DIR`) at setup time and write the full absolute path. This matches what working statuslines (claude-hud, powerline scripts) already do. See ADR-0017.
 
 ## What the fragment prints
 
-The script (run from a project directory) prints a single line, or nothing when idle. Precedence — one segment only:
+The script reads the session JSON on stdin and resolves the project directory from its `cwd` (falling back to `workspace.current_dir`, then to `$PWD` when no JSON/cwd is piped — e.g. an interactive run), `cd`s there, and prints a single line, or nothing when idle. Resolving cwd from stdin (rather than assuming the shell's cwd is the project) is why it shows the right project even when the host runs the statusLine from elsewhere. Precedence — one segment only:
 
 ```
 ⚒ [🔁 rN/cap ] <slug>:<stage> [flag]    active slot   (stage: run | learn)
@@ -39,11 +40,16 @@ This stage mapping is the **thin display twin** of `skills/fg-status/SKILL.md`'s
 
 ## Setup procedure
 
-Run these steps in conversation (the skill runs in the main session, so it can read files, show diffs, and ask for confirmation). Resolve the script source from `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` (available here, in the skill context — *not* in the statusLine shell later).
+Run these steps in conversation (the skill runs in the main session, so it can read files, show diffs, and ask for confirmation). The script sources live at `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` (the fragment) and `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-wrapper.sh` (the composition wrapper) — both available here, in the skill context, *not* in the statusLine shell later. Let `CFG` be the Claude config dir (`$CLAUDE_CONFIG_DIR` if set, else `$HOME/.claude`); resolve it to an **absolute path** now, because every `settings.json` reference must be absolute (no `~`).
 
-### 1. Install the fragment script to a stable path
+### 1. Install the scripts to stable paths
 
-Copy `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` → `~/.claude/forge-statusline.sh` and `chmod +x` it. This is also exactly what a **refresh** does — re-running the skill after a forge update re-copies the latest script. (Do this every run, idempotently.)
+Copy both scripts and `chmod +x` them (idempotent — a **refresh** after a forge update is just re-running this):
+
+- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` → `<CFG>/forge-statusline.sh`
+- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-wrapper.sh` → `<CFG>/forge-statusline-wrapper.sh`
+
+Both are generic (no per-install substitution) — the wrapper finds the fragment and the preserved original by fixed paths under `CFG`, so one global copy of each serves every project.
 
 ### 2. Find the settings file and the existing statusLine
 
@@ -51,60 +57,57 @@ Decide which `settings.json` to edit. Prefer the file that **already** defines a
 
 Branch on what you find:
 
-- **No existing `statusLine`** → set forge as the sole statusline directly:
+- **No existing `statusLine`** → set forge as the sole statusline directly, by **absolute path** (the fragment reads cwd from the session JSON on stdin, so it works as the sole command):
   ```json
-  "statusLine": { "type": "command", "command": "~/.claude/forge-statusline.sh" }
+  "statusLine": { "type": "command", "command": "<CFG>/forge-statusline.sh" }
   ```
-  Confirm the one-line change with the user, then write it.
+  (`<CFG>` resolved, e.g. `/Users/you/.claude/forge-statusline.sh`.) Confirm the one-line change with the user, then write it.
 
 - **An existing `statusLine.command` that is NOT already a forge wrapper** → this is the auto-wrap case (below). Preserve it.
 
-- **An existing forge wrapper** (its command points to `~/.claude/forge-statusline-wrapper.sh`, or otherwise references `forge-statusline`) → already wired. Do **not** wrap again (guard against double-wrapping). Step 1 already refreshed the fragment; just report that it's up to date and stop.
+- **An existing forge wrapper** (its command references `forge-statusline-wrapper.sh` / `forge-statusline`) → already wired. Do **not** wrap again (guard against double-wrapping). Step 1 already refreshed the scripts; if the command still uses a `~` path, rewrite it to the absolute path (the one fix worth applying), then report it's up to date and stop.
 
 ### 3. Auto-wrap the existing statusLine
 
-Generate a wrapper script `~/.claude/forge-statusline-wrapper.sh` that feeds the session JSON (stdin) to the **original** command, prints its output, then appends the forge fragment as a **separate row below** — only when the fragment is non-empty (so idle adds no blank row):
+The wrapper script is already installed (step 1) and is **generic** — it runs whatever command is preserved in `<CFG>/forge-statusline-orig.sh`, then appends the forge fragment as a separate row below (only when non-empty, so idle adds no blank row), feeding the same session JSON to both so each resolves cwd identically. So wrapping is just two writes:
 
-```bash
-#!/usr/bin/env bash
-# Generated by forge fg-statusline. Restore by setting statusLine.command back to:
-# original: <ORIGINAL_COMMAND>
-input=$(cat)
-orig_out=$(printf '%s' "$input" | <ORIGINAL_COMMAND_INVOCATION>)
-forge_out=$(bash "$HOME/.claude/forge-statusline.sh")
-printf '%s\n' "$orig_out"
-[ -n "$forge_out" ] && printf '%s\n' "$forge_out"
-```
+1. **Preserve the original command** into `<CFG>/forge-statusline-orig.sh` so the wrapper can invoke it. Write the user's current `statusLine.command` verbatim into a small script — this sidesteps all quote-escaping (the original may contain nested quotes):
+   ```bash
+   #!/usr/bin/env bash
+   # Your original (pre-forge) statusline command, preserved verbatim by fg-statusline.
+   <ORIGINAL_COMMAND>
+   ```
+   `<ORIGINAL_COMMAND>` is the original command exactly as it appeared in `settings.json` (it already receives the session JSON on stdin, since the wrapper pipes stdin into this file). `chmod +x` it.
+2. **Point settings.json at the wrapper, by absolute path:**
+   ```json
+   "statusLine": { "type": "command", "command": "<CFG>/forge-statusline-wrapper.sh" }
+   ```
 
-- `<ORIGINAL_COMMAND_INVOCATION>` — embed the user's original command so it still receives the JSON on stdin. If the original is a script path, invoke it directly (`/path/to/orig` or `bash /path/to/orig`); if it's an inline shell snippet, wrap it as `bash -c '<inline>'`. Keep the original verbatim in the `# original:` comment so the user can restore by hand.
-- `chmod +x` the wrapper, then point settings.json at it:
-  ```json
-  "statusLine": { "type": "command", "command": "~/.claude/forge-statusline-wrapper.sh" }
-  ```
-- **Before writing**, show the user the before → after of `statusLine.command` (and the generated wrapper) and get explicit confirmation — this edits their settings. Preserve all other settings keys and keep the JSON valid.
+**Before writing**, show the user the before → after of `statusLine.command` and the preserved original, and get explicit confirmation — this edits their settings. Preserve all other settings keys and keep the JSON valid.
 
 Procedure flow:
 
 ```
-copy fragment → ~/.claude/forge-statusline.sh (chmod +x)   [refresh: re-copy]
+copy fragment + wrapper → <CFG>/  (chmod +x, absolute paths)   [refresh: re-copy both]
    ↓
 locate settings.json + read existing statusLine
-   ├── none                → set command = forge-statusline.sh        (confirm, write)
-   ├── already forge-wrap  → refreshed in step 1; report & stop
-   └── other command       → generate forge-statusline-wrapper.sh embedding the original
-                              → show before/after → confirm → command = wrapper
+   ├── none                → set command = <CFG>/forge-statusline.sh (absolute)   (confirm, write)
+   ├── already forge-wrap  → refreshed in step 1; fix ~→absolute if needed; report & stop
+   └── other command       → write original verbatim into <CFG>/forge-statusline-orig.sh
+                              → show before/after → confirm → command = <CFG>/forge-statusline-wrapper.sh
 ```
 
 ## Notes & assumptions
 
-- **cwd assumption.** The fragment reads `.forge/` relative to the statusLine shell's working directory, assuming it is the project directory (it does not parse the stdin JSON's `cwd`). If a host runs the statusLine from a different directory, the wrapper can be extended to extract `cwd` from the captured `$input` and `cd` into it before calling the fragment — note this to the user only if their statusline shows nothing in a known-active project.
-- **Refresh on update.** Because the script is copied (not referenced in place), a forge plugin update does not change `~/.claude/forge-statusline.sh` automatically — re-run `fg-statusline` to refresh it. The fragment rarely changes, so this is infrequent.
+- **cwd resolution.** The fragment resolves the project directory from the session JSON's `cwd` (then `workspace.current_dir`, then `$PWD`) and `cd`s there before reading `.forge/`, so it shows the right project even when the host runs the statusLine from a different directory. In the wrapper case, the wrapper feeds the same JSON to the fragment on stdin so this resolution still applies. It stays jq-free (defensive `sed` extraction) — the one place the fragment parses JSON.
+- **Refresh on update.** Because the scripts are copied (not referenced in place), a forge plugin update does not change `<CFG>/forge-statusline.sh` / `forge-statusline-wrapper.sh` automatically — re-run `fg-statusline` to refresh them. They rarely change, so this is infrequent.
+- **Takes effect on restart.** Claude Code loads the `statusLine` config at session start — after setup, fully quit and relaunch Claude Code before judging whether it works. A `~`-path command that silently failed is the classic "nothing shows" cause; this setup writes absolute paths to avoid it.
 - **Trust & disabling.** statusLine runs only in a trusted workspace and is suppressed if `disableAllHooks` is set — that is host behavior, not forge's.
 
 ## Handoff
 
-State in one line what was done (installed / refreshed / already-wired) and that it takes effect on the next statusline refresh. There is no loop next-step — fg-statusline is a side utility. Mention how to restore (point at the `# original:` line in the wrapper) and that re-running refreshes the script.
+State in one line what was done (installed / refreshed / already-wired) and that it takes effect **after a full Claude Code restart** (the config loads at session start). There is no loop next-step — fg-statusline is a side utility. Mention how to restore (set `statusLine.command` back to the command preserved in `<CFG>/forge-statusline-orig.sh`) and that re-running refreshes the scripts.
 
 ## Document impact
 
-- Writes **outside** the forge state tree: `~/.claude/forge-statusline.sh` (the fragment), optionally `~/.claude/forge-statusline-wrapper.sh` (the composition wrapper), and the `statusLine` key in the chosen `settings.json`. It touches **no** `.forge/` loop state (active slot, backlog, executed, done) and writes nothing git-tracked in the project.
+- Writes **outside** the forge state tree, under the Claude config dir (`<CFG>` = `$CLAUDE_CONFIG_DIR` or `~/.claude`): `<CFG>/forge-statusline.sh` (the fragment, copied) and `<CFG>/forge-statusline-wrapper.sh` (the composition wrapper, copied); when wrapping, `<CFG>/forge-statusline-orig.sh` (the preserved original command); and the `statusLine` key (an **absolute-path** command) in the chosen `settings.json`. It touches **no** `.forge/` loop state (active slot, backlog, executed, done) and writes nothing git-tracked in the project.
