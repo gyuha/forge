@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.12] - 2026-06-14
+
+### Added
+- **fg-adversarial-review — 회고 전 선택적 적대적 리뷰 스킬(루프 밖, ADR-0018).** fg-run↔fg-learn 사이에서 "결과가 틀렸다고 가정하고 증거를 찾는" 적대적 자세로 6개 렌즈(실패 지점·숨은 가정·요구사항 오해·보안/성능/데이터 손실·예상 못한 오용·약하거나 미검증된 근거)를 dynamic workflow 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록하고 수정 필요 건은 사람 승인 후 fix-forward plan으로 만들어 fg-run 재실행. 검증(UAT)과 별개·비-게이트라 봉인을 막지 않고(STATUS `reviewed:`는 기록용), fg-next all·fg-loop 무인 주행에선 회고처럼 항상 skip. ADR-0007(자동 코드리뷰)과 보완 관계로 cross-ref. 인접 5개 스킬(fg-run 핸드오프 포인터·fg-learn retro 승급·fg-done 아카이브·fg-next/fg-loop skip) 연결, 상태 계약에 `.forge/review.md` 추가. 스킬 14→15, 매니페스트 두 description·CLAUDE.md·README 양쪽 동기.
+
+### Fixed
+- **fg-statusline 강건 재설계(ADR-0017 개정).** "fg-statusline 실행 후 statusline 전체(claude-hud 포함)가 공백" 장애 수정 — (1) settings command `~`(tilde)→절대경로(유력 root cause: 호스트가 tilde 미확장 시 래핑된 원본까지 전체 statusline 공백), (2) fragment가 stdin 세션 JSON의 cwd를 파싱(`workspace.current_dir`→`$PWD` 폴백, jq-free)해 호스트가 프로젝트 밖에서 실행해도 정상, (3) 합성 래퍼를 committed generic 스크립트(`scripts/forge-statusline-wrapper.sh`)+원본 보존 파일(`forge-statusline-orig.sh`)로 정리하고 SKILL.md의 "inline 임베드" 서술 정정. 테스트 추가(fragment stdin-cwd 케이스 + 래퍼 동반 테스트, 총 24 green).
+
 ## [0.4.11] - 2026-06-14
 
 ### Added
