@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.11] - 2026-06-14
+
+### Added
+- **fg-statusline — forge 진행 상태 statusline 통합(ADR-0017).** `.forge/`를 읽어 한 줄 진행 상태(활성 작업 `slug:stage`+검증 플래그 / `📝 awaiting retro` / `📋 queued` / goal 루프 `🔁 rN/cap` / idle 빈출력)를 출력하는 자기완결 bash 조각 `scripts/forge-statusline.sh`와, 이를 `~/.claude/`로 복사한 뒤 기존 statusLine을 자동 래핑(아래 별도 줄)하도록 settings.json을 와이어링하는 설정 유틸리티 `skills/fg-statusline/SKILL.md`(루프 밖). 브랜치 루트 해석(ADR-0011) 재현, bash+git만 의존. Claude Code는 statusLine이 하나뿐이라 교체가 아닌 합성 — 기존 출력 보존. forge 최초의 실행 코드·테스트 인프라(fixture 기반 bash 하니스 15케이스, TDD)로, 두 기둥의 경계 있는 예외(ADR-0017). 스킬 13→14, 매니페스트 두 description·README 양쪽 동기.
+
+### Changed
+- **코드베이스 맵 전체 리프레시.** `.forge/codebase/` 7문서를 fg-statusline 도입(첫 실행 코드·테스트, 새 `scripts/` 디렉터리, 스킬 14개) 반영해 재매핑.
+
 ## [0.4.10] - 2026-06-13
 
 ### Changed
