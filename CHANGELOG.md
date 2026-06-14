@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.13] - 2026-06-15
+
+### Fixed
+- **Codex 적대적 리뷰 findings 2건 수정.** (1) **[high]** `fg-adversarial-review`가 parked `executed/<slug>` 작업을 리뷰할 때 findings를 항상 활성 슬롯 `.forge/review.md`·STATUS에 기록해 엉뚱한 작업에 붙거나 아카이브에 안 따라가던 결함 → **활성 슬롯 전용**으로 좁혀 제거(ADR-0018 개정, parked는 fg-run unpark 후 리뷰, per-task `review.md` 경로는 기각). (2) **[medium]** `scripts/forge-statusline-wrapper.sh`가 동반 파일을 런타임 `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`로 찾아 custom config dir(그 변수 미export) 환경에서 statusline 전체가 공백되던 결함 → 래퍼 **자기 스크립트 위치(`BASH_SOURCE`)** 해석으로 제거(ADR-0017 개정, generic wrapper 설계 유지). custom config dir 회귀 테스트 추가(`forge-statusline-wrapper.test.sh` — wrapper 7/0, fragment 19/0).
+
 ## [0.4.12] - 2026-06-14
 
 ### Added
