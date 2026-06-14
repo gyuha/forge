@@ -122,7 +122,7 @@ A turn boundary mid-drive (most often an fg-run workflow script approval) ends t
 ### Relationship to the other lanes
 
 - **`fg-next all`** drains the human-grilled backlog and halts at empty state and at `verified: failed`; it never creates work. fg-loop is the goal-converging superset: it re-checks a goal at empty state and may generate bounded fix-forward work, and `failed` is its automated case.
-- **The formal loop / one-shot `fg-next`** keep the retro conversation; fg-loop always auto-skips retros (learnings preserved in archived run.md, promoted later by a human fg-learn).
+- **The formal loop / one-shot `fg-next`** keep the retro conversation; fg-loop always auto-skips retros (learnings preserved in archived run.md, promoted later by a human fg-learn). The optional adversarial review (`fg-adversarial-review`, ADR-0018) is likewise **never** run in the drive — it needs a human to judge which findings are real and worth fixing.
 
 ## Handoff
 

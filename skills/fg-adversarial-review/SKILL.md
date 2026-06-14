@@ -1,0 +1,116 @@
+---
+name: fg-adversarial-review
+description: Optional adversarial review that runs after fg-run and before fg-learn — a reviewer deliberately takes the attacker/contrarian/failure-seeking stance and assumes the result is WRONG, then hunts for evidence. It fans out the six lenses (where it fails, hidden assumptions, misread requirements, security/performance/data-loss, unexpected misuse, weak/unverified decisions) as parallel subagents in a Dynamic Workflow, records findings to .forge/review.md, and on your approval turns fix-needed findings into a new fix-forward backlog plan so you can run fg-run again. An on-demand utility OUTSIDE the loop (the 4-stage loop is unchanged) — optional, never a seal gate, always auto-skipped in fg-next all / fg-loop unattended drives. Use in contexts like 'forge adversarial review', 'adversarial review', '적대적 리뷰', '이 결과 공격적으로 검토', '허점 찾아줘', 'red team this'. See ADR-0018.
+---
+
+# fg-adversarial-review — optional adversarial review (outside the loop)
+
+This is **not** a stage of the forge loop. It is an on-demand utility (like fg-map / fg-status) that sits **between fg-run and fg-learn**: after a plan has run and its UAT has set `verified:`, you may optionally run an adversarial review **before** the retro. The 4-stage loop shape (ask → run → learn → done) is unchanged — this is a side utility, not a fifth stage (ADR-0007 rejected a formal stage here; ADR-0018 reintroduces it as an outside-the-loop option instead).
+
+Its stance is deliberately hostile: the reviewer takes the position of the **attacker, the contrarian, the user who triggers failure**, and starts from **"assume this result is wrong, and find the evidence."** It is not a quality pat-down (that is ADR-0007's automatic code review inside the fg-run workflow); it is a deep, skeptical attempt to *break* the work.
+
+**Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, findings, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (the review notes, any fix-forward plan, handoff messages) are written in the user's language.
+
+**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or writing state (ADR-0011).
+
+## When to run
+
+Run it after fg-run has executed a plan (an active-slot `run.md` exists, or a parked `executed/<slug>/`), when you want a hostile second look before sealing. It is **purely optional** — skipping it never blocks the seal (the seal gates are `verified:` and the retro, never `reviewed:`).
+
+If there is nothing to review (no `run.md` in the active slot and nothing parked in `executed/`), say so in one line and point to fg-run — do not invent a review target.
+
+## Inputs (what it reviews)
+
+Read these as the review target:
+
+- **`.forge/plan.md`** — the intent, requirements, and design (the standard the work is judged against).
+- **`.forge/run.md`** — plan-vs-actual divergences (where the executor already noticed friction).
+- **The current working-tree changes** — `git diff` (tracked) **plus untracked files**. forge does not force commits, so right after fg-run the work is usually uncommitted; this diff is the actual artifact to attack. (For a parked `executed/<slug>` task whose changes were already committed, fall back to the plan's work scope.)
+- **Source of truth** — `.forge/CONTEXT.md` and the plan's referenced `.forge/adr/*` — the basis for judging "misread requirements" (a finding that the work contradicts a documented term or decision is far stronger than a vague worry).
+
+## The six lenses
+
+Each lens is an independent angle of attack. They are the dimensions of the fan-out below — one (or more) subagent per lens, each blind to the others so it surfaces what a single pass would miss:
+
+1. **Where it fails** — if this design fails, where? Construct concrete failure scenarios.
+2. **Hidden assumptions** — what did the author take for granted (environment, inputs, ordering, scale)?
+3. **Misread requirements** — does the result diverge from what the plan / CONTEXT / ADRs actually asked for?
+4. **Security · performance · data loss** — exploitable input, injection, unbounded cost, destructive or irreversible operations.
+5. **Unexpected misuse** — what happens when a user uses it in a way nobody intended?
+6. **Weak / unverified decisions** — which choices rest on thin or untested grounds?
+
+The default posture for every lens: **assume the artifact is wrong and produce the evidence.** A lens that finds nothing real reports "no finding" — do not manufacture findings to fill a quota (restraint discipline, same as the retro promotion bar).
+
+## Behavior
+
+### 1. Gather inputs and build the adversarial workflow
+
+Collect the inputs above, then build a **Dynamic Workflow** that fans the six lenses out as parallel subagents. Adversarial review needs no human input mid-run (it is analysis, not grilling — so it does **not** violate pillar #1), which is exactly why a workflow fits: independent lenses in parallel are more thorough than one sequential pass (the Workflow tool's `dimensions → find → adversarially-verify` pattern).
+
+- **Compose with the workflow's own subagents** (core `Agent`/`Workflow`) — **no external hard dependency.** If a review capability (e.g. a `code-review` skill, or specialized reviewer subagents) is available you may lean on it as optional reinforcement, but never hard-depend on one (ADR-0007 portability principle).
+- **Per lens**, the subagent attacks the artifact from that angle and returns structured findings: `{lens, title, severity (critical/major/minor), evidence, where (file:line), suggested fix, fix-needed (bool)}`.
+- **Optionally add an adversarial-verify pass** — a second wave of skeptics that tries to *refute* each surfaced finding, so plausible-but-wrong findings are dropped before they reach the human (the Workflow adversarial-verify pattern). Scale this to how thorough the user asked for.
+- **Get script approval first** (same as fg-run), then run it in the background; observe with `/workflows`.
+
+### 2. Record findings to .forge/review.md
+
+When the workflow finishes, write the consolidated findings to **`.forge/review.md`** (volatile, in the active slot next to plan.md/run.md — written in the user's language). Carry the plan's `<!-- forge-slug: <slug> -->` on the first line so it pairs with the task. Structure: a one-line verdict (N findings, M fix-needed, by severity), then the findings grouped by lens with severity / evidence / where / suggested fix each. This file travels with the task: fg-done archives it into `done/<date-slug>/` at seal, and fg-learn reads it as retro-promotion input.
+
+Also record a `reviewed:` marker in the active-slot `.forge/STATUS.md` — **for the record only, never a seal gate**: `reviewed: .forge/review.md (N findings, M→fix-forward)` (or `reviewed: skipped (<reason>)` if the review was deliberately abandoned). Do not touch `verified:` or `retro:` — those remain the only gates.
+
+### 3. Handoff — present findings, route fixes
+
+Because the workflow can't take human input mid-run, the judgment happens here, conversationally. Present the findings and let the human decide each fix-needed one. Route by nature (reusing the existing fix loop — ADR-0009 routing, but driven from review findings):
+
+- **Code-level defects** (security, performance, bugs in the implementation) → a **fix-forward** plan: on the human's approval, write a new `.forge/backlog/<slug>-fix.md` (or a descriptive slug) carrying `<!-- generated-by: fg-adversarial-review -->` and a fresh **monotonic** `<!-- task: N -->` (scan all `task:` markers across backlog/active/executed/done, max+1 — same rule as fg-ask / fg-loop fix-forward, ADR-0016). fg-run picks it up next. The original task can still seal independently.
+- **Design / requirement defects** (the plan itself was wrong, a requirement was misread) → this is not a code fix; point to **fg-ask** to re-grill the plan. A fix-forward plan can't paper over a wrong premise.
+- **Accepted / minor** → no action; the findings stay in `.forge/review.md` and feed the retro (fg-learn promotes anything worth keeping).
+
+**Plan generation is human-approved, never automatic** — the workflow outputs findings; turning a finding into a backlog plan happens here, after the human confirms (forge's human-confirmation discipline). Do not auto-create fix-forward plans without sign-off.
+
+### 4. Then point back to the loop
+
+The adversarial review is done; the loop resumes where it was. State (do not ask) the next step:
+
+- If a fix-forward plan was created → it waits in the backlog; **fg-run** will run it.
+- For the original task → it is still at "verified, un-retro'd" — **fg-learn** to retro (the review findings are now retro fuel), then **fg-done** to seal. Give the triggers.
+
+Do not chain into the next skill yourself (chaining is `fg-next`'s job — ADR-0015); state the trigger and stop.
+
+```
+fg-adversarial-review
+   │
+   ▼
+run.md present (active slot) or executed/<slug> parked?
+   │ no  ──▶ "nothing to review" → point to fg-run → stop
+   │ yes
+   ▼
+Gather inputs (plan · run.md · git diff+untracked · CONTEXT/ADR)
+   ▼
+Build Dynamic Workflow: 6 lenses fan out in parallel (+ optional adversarial-verify)
+   ▼  (script approval → background run)
+Consolidate findings → .forge/review.md  (+ STATUS reviewed:, record-only)
+   ▼
+Handoff (conversational — workflow took no human input mid-run):
+   • code defect      ──▶ (human approves) new fix-forward backlog plan (generated-by marker, monotonic task) ──▶ fg-run
+   • design/req defect ──▶ point to fg-ask (re-grill — a wrong premise can't be patched)
+   • accepted/minor   ──▶ stays in review.md → retro fuel
+   ▼
+Point back: fix-forward → fg-run · original task → fg-learn → fg-done  (state triggers, don't chain)
+```
+
+## Automatic mode — always skipped
+
+`fg-next all` (ADR-0010) and `fg-loop` (ADR-0016) drive tasks unattended and **never run this review** — they skip it the same way they auto-skip the retro. The reason: an adversarial review's value is the human judging which findings are real and which deserve a fix, and an unattended drive cannot make that call. So the drives go straight `run → verify → (auto-skip retro) → seal`, and the review remains a thing a human invokes deliberately on a task they want to scrutinize.
+
+## Portability
+
+The review is composed from the workflow's own `Agent`/`Workflow` subagents, so it has **no external hard dependency** — it works in any environment that runs forge. External review skills, if present, are optional reinforcement only (ADR-0007 principle). Never block the review on a specific external skill being installed.
+
+## Document impact
+
+- Creates `.forge/review.md` — consolidated adversarial findings (volatile, active slot; archived into `done/<date-slug>/` by fg-done at seal, read by fg-learn as retro fuel). Lazy creation.
+- Records `reviewed:` in the active-slot `.forge/STATUS.md` — **record-only, not a seal gate** (the gates stay `verified:` and the retro).
+- On the human's approval, creates a fix-forward `.forge/backlog/<slug>-fix.md` (`<!-- generated-by: fg-adversarial-review -->`, monotonic `task:`) — picked up by fg-run.
+- Does **not** modify `.forge/plan.md` or `.forge/run.md` (the review reads them; it does not rewrite the task's record).
+- On the default branch the volatile files (`review.md`, STATUS, backlog plan) are gitignored; on a non-default branch the branch root is tracked whole (ADR-0011).
