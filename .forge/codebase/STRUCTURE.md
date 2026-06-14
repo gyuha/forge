@@ -1,114 +1,128 @@
 ---
-last_mapped_commit: d3c47b5bdc859af54e741f0524f9ed8ce2b61483
+last_mapped_commit: b3b267b7da443c3fbb0ca093c4fc4221a70ef7ab
 mapped: 2026-06-14
 ---
 
-# forge 디렉터리 구조
+# Structure
 
-## 최상위 레이아웃
+forge는 단일 리포가 곧 **플러그인 + 마켓플레이스**다(`harness` 플러그인과 동일 패턴: 리포 루트 = 플러그인 루트 = 마켓플레이스). 빌드 시스템·package.json·Makefile·CI가 없다. 산출물은 전부 Markdown과 JSON이다.
+
+## Top-level layout
 
 ```
 forge/
-├── .claude-plugin/
-│   ├── plugin.json          # 플러그인 매니페스트 (skills/ 자동 탐색, skills 필드 생략)
-│   └── marketplace.json     # 이 리포를 마켓플레이스로 등록 (plugins[].source = "./")
-├── skills/                  # fg-* 스킬 14개 (각 디렉터리에 SKILL.md)
-├── scripts/                 # 신규 — forge 최초의 실행 코드
-│   ├── forge-statusline.sh        # statusline 조각 스크립트 (bash, 실행 권한)
-│   └── forge-statusline.test.sh   # fixture 기반 bash 테스트
-├── .forge/                  # forge 자신의 루프 상태 (도그푸딩)
-├── README.md / README.ko.md # 영문/한글 번역 쌍 (동기화 필수)
-├── CHANGELOG.md
-└── CLAUDE.md
+├── .claude-plugin/          매니페스트 (플러그인 + 마켓플레이스)
+│   ├── plugin.json          플러그인 매니페스트 (skills/ 자동 탐색 → skills 필드 생략 가능)
+│   └── marketplace.json     이 리포를 마켓플레이스로 등록 (plugins[].source = "./")
+├── skills/                  fg-* 워크플로우 스킬 (15개) — skills/<name>/SKILL.md 자동 탐색
+├── scripts/                 statusline용 bash 스크립트 + 테스트
+├── .forge/                  휘발 상태 + 영속 문서 (자기 자신의 forge 루프 상태)
+├── docs/                    부가 산문 문서 (forge-vs-loop-engineering.md)
+├── README.md                영문 (사용자용)
+├── README.ko.md             한글 (README.md의 번역 쌍 — 함께 갱신 필수)
+├── CLAUDE.md                Claude Code 작업 지침 (이 리포의 단일 권위 문서)
+├── CHANGELOG.md             Keep a Changelog 약식
+└── .gitignore               .forge/ 기본 제외 + 영속 문서/branch 화이트리스트
 ```
 
-리포 루트가 곧 플러그인 루트이자 마켓플레이스다(`harness` 플러그인과 동일 패턴). `marketplace.json`의 `plugins[].source`는 `"./"`.
+## `.claude-plugin/` — manifests
 
-## skills/ — fg-* 스킬 14개
-
-이번에 `fg-statusline` 추가로 13개 → **14개**가 됐다. 디렉터리 목록(`skills/`):
-
-```
-fg-ask  fg-cleanup  fg-done  fg-eco  fg-learn  fg-loop  fg-map
-fg-merge  fg-next  fg-quick  fg-run  fg-status  fg-statusline  fg-tdd
-```
-
-스킬 식별자는 디렉터리명이 아니라 `SKILL.md` frontmatter의 `name` 필드다(현재는 디렉터리명과 일치). `plugin.json`이 `skills/`를 자동 탐색하므로 매니페스트에 스킬 경로를 나열하지 않는다.
-
-### 형식 문서를 곁들인 스킬 (소유 = 형식 정의처)
-
-대부분 스킬은 `SKILL.md` 단일 파일이지만, 일부는 형식 정의(`*-FORMAT.md`)나 공유 규칙 문서를 동반한다. 형식 정의는 **한 벌만** 존재하며 소유 스킬 디렉터리에 둔다:
-
-- `skills/fg-ask/` — `SKILL.md` + `CONTEXT-FORMAT.md` + `ADR-FORMAT.md` (grill-with-docs 원본의 자기완결 3파일, 영문 verbatim)
-- `skills/fg-run/` — `SKILL.md` + `PLAN-FORMAT.md`(plan 형식·분할 규칙) + `RUN-ALL.md`(배치 실행 규약) + `FORGE-ROOT.md`(브랜치별 루트 해석 규칙의 단일 정의처)
-- `skills/fg-learn/` — `SKILL.md` + `RETRO-FORMAT.md`
-- 나머지(`fg-done`·`fg-statusline`·루프 밖 유틸리티 등) — `SKILL.md` 단일 파일
-
-다른 스킬은 이 형식·규칙 문서를 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
-
-**PLAN-FORMAT.md 위치 주의:** plan.md의 생산자는 fg-ask지만 fg-ask 디렉터리는 grill-with-docs verbatim 영역이라, 형식 정의는 소비자 쪽인 `skills/fg-run/`에 둔다.
-
-**FORGE-ROOT.md는 fg-run 소유의 공유 규칙** — 브랜치별 forge 루트 해석(ADR-0011)을 단 한 곳에 정의하고, 모든 루프 스킬(fg-ask·fg-run·fg-learn·fg-done·fg-status·fg-next·fg-quick)이 참조한다. (statusline 스크립트는 셸이라 이를 참조 못 해 로직을 자체 복제한다.)
-
-## scripts/ — 신규 실행 코드
-
-forge 최초로 실제 실행되는 코드가 들어간 디렉터리(ADR-0017). 빌드·CI 없는 리포의 예외다.
-
-- `scripts/forge-statusline.sh` — statusline 조각. bash+git만 의존(node·jq 없음). cwd 기준 forge 루트를 풀어 `.forge/` 상태를 직접 읽고 한 줄 출력. JSON 파싱 없이 `sed`로 `key: value` 줄을 읽는다. `chmod +x`. `fg-statusline` 스킬이 이를 `~/.claude/forge-statusline.sh`로 복사해 설치(`${CLAUDE_PLUGIN_ROOT}`가 statusLine 셸에 없고 플러그인 경로가 업데이트마다 바뀌므로 안정 경로 복사가 필요).
-- `scripts/forge-statusline.test.sh` — fixture 기반 테스트. 임시 디렉터리에 가짜 `.forge/` 상태를 만들고 스크립트를 그 cwd로 실행해 출력 한 줄을 기대값과 비교. `bash scripts/forge-statusline.test.sh`로 실행, 전부 통과 시 exit 0.
-
-## .forge/ — forge 자신의 루프 상태 (도그푸딩)
-
-forge 리포가 자기 자신의 워크플로우를 사용한다. 현재 실재하는 하위 디렉터리:
-
-```
-.forge/
-├── adr/                  # 0001~0017 + retired/ (영속, git 추적)
-├── backlog/              # 미실행 plan 대기열 (휘발, gitignored)
-├── branch/               # 비-기본 브랜치 forge 루트 (git 추적, ADR-0011)
-├── codebase/             # fg-map 지도 (영속, git 추적 — 이 문서 포함)
-├── done/                 # 봉인된 작업 (휘발, gitignored)
-├── quick/                # fg-quick LOG.md (gitignored)
-└── retro/                # 세션 회고 (영속, git 추적)
-```
-
-휘발 상태(`backlog`/`plan.md`/`run.md`/`STATUS.md`/`executed/`/`done/`/`loop.md`/`quick/`)는 gitignored. 영속 문서(`adr/`·`retro/`·`codebase/`·`CONTEXT.md`·`config.json`)와 `branch/`만 `.gitignore` 화이트리스트로 추적.
-
-## 명명 규약
-
-- **스킬 디렉터리/식별자**: `fg-<단어>` (예: `fg-ask`, `fg-statusline`). 식별자의 정본은 `SKILL.md` frontmatter `name`.
-- **형식 문서**: `<TYPE>-FORMAT.md` (대문자, 예: `PLAN-FORMAT.md`). 공유 규칙은 `<TYPE>.md`(예: `FORGE-ROOT.md`·`RUN-ALL.md`). 전부 영문.
-- **ADR**: `NNNN-slug.md` (4자리 제로패딩 순번 + 케밥 slug, 예: `0017-statusline-integration.md`). 번호 단조 증가, 재사용 금지. 은퇴 ADR은 `.forge/adr/retired/<NNNN>-slug.md`로 이동(번호 불변).
-- **회고**: `YYYY-MM-DD-slug.md` (`.forge/retro/`).
-- **봉인 작업**: `.forge/done/<날짜-slug>/` 디렉터리 (plan/run/STATUS 동반).
-- **백로그/plan slug**: plan 첫 줄 `<!-- forge-slug: ... -->` 주석이 짝 맞춤 식별자(파일 이동에도 영속).
-- **statusline 설치 경로**: `~/.claude/forge-statusline.sh`(조각), `~/.claude/forge-statusline-wrapper.sh`(auto-wrap 래퍼).
-
-## 매니페스트 동기화 규칙
-
-스킬 개수·설명을 바꿀 땐 `plugin.json`과 `marketplace.json`을 함께 갱신(둘 다 사람이 읽는 설명을 담음). 버전은 3곳 동기: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`(현재 0.4.10).
-
-**두 description의 역할 차이:** `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→done)를 정의하는 태그라인이므로 루프 밖 유틸리티는 넣지 않는다. `plugins[].description`(과 `plugin.json`의 `description`)은 전체 스킬 목록을 담으므로 루프 밖 스킬(fg-statusline 포함)도 반영한다.
-
-`README.md`(영문)와 `README.ko.md`(한글)는 번역 쌍 — 한쪽 갱신 시 반드시 다른 쪽도 같은 변경으로 동기화.
-
-## 언어 규약
-
-- 스킬 본문(`SKILL.md`)·형식 문서(`*-FORMAT.md`)는 **영문**으로 작성(grill-with-docs verbatim 부분은 영문 유지).
-- 스킬이 **사용자에게 출력하는 언어는 사용자 언어**를 따른다(각 스킬에 "respond in the user's language" 명시). 산출 문서(plan·회고·CONTEXT·ADR 등)도 사용자 언어.
-- 스킬 문서의 흐름도는 **Mermaid 금지, 텍스트 흐름도**(`A → B → C`)로 — 에이전트가 렌더링 없이 파싱·grep·diff 해야 하므로. (사용자 프로젝트 산출 문서에는 미적용.)
-
-## 검증 방법 (빌드·테스트·린트 시스템 없음)
-
+매니페스트 JSON이 깨지면 설치가 실패하므로 편집 후 반드시 유효성을 확인한다:
 ```bash
-# 매니페스트 JSON 유효성
 node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
-
-# statusline 스크립트 테스트 (신규)
-bash scripts/forge-statusline.test.sh
-
-# 스킬 frontmatter name 누락 확인 (자동 탐색 대상)
-awk '/^name:/' skills/*/SKILL.md
 ```
 
-실제 동작 테스트는 설치 후 트리거해보는 것뿐(단위 테스트는 statusline 스크립트 한정). 설치는 GitHub 기본 브랜치(main)를 당기므로, 설치 테스트하려면 main에 push돼 있어야 한다.
+- `.claude-plugin/plugin.json` — 플러그인 매니페스트. `version`, `description`(전체 스킬 목록 담음). `skills/`가 자동 탐색되므로 `skills` 필드는 생략.
+- `.claude-plugin/marketplace.json` — `metadata.description`(루프 정의 태그라인 — 루프 밖 유틸리티는 넣지 않음)·`metadata.version`·`plugins[0]`(`source: "./"`, `description`, `version`).
+
+**버전은 3곳을 동기 갱신**: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`. 현재 모두 `0.4.12`.
+
+**두 description의 역할 차이** — `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→done)를 정의하는 한 줄 태그라인이라 루프 밖 유틸리티를 넣지 않는다. `plugins[].description`과 `plugin.json`의 `description`은 전체 15개 스킬 목록을 담으므로 루프 밖 스킬도 반영한다.
+
+## `skills/` — the 15 skills
+
+스킬은 `skills/<name>/SKILL.md`로 자동 탐색된다. **스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name`**이다(현재 모든 디렉터리에서 디렉터리명 == frontmatter name으로 일치). SKILL.md 본문·형식 문서(`*-FORMAT.md`)는 **영문**으로 작성하되, 스킬이 **사용자에게 출력하는 언어는 사용자 언어**를 따른다.
+
+루프 4단계:
+
+| 디렉터리 | frontmatter name | 역할 | 부속 파일 |
+| --- | --- | --- | --- |
+| `skills/fg-ask/` | `fg-ask` | ①그릴링·계획 적재 (루프 진입점) | `CONTEXT-FORMAT.md`, `ADR-FORMAT.md` |
+| `skills/fg-run/` | `fg-run` | ②Dynamic Workflow 실행 + UAT | `PLAN-FORMAT.md`, `FORGE-ROOT.md`, `RUN-ALL.md` |
+| `skills/fg-learn/` | `fg-learn` | ③회고·문서 승급 | `RETRO-FORMAT.md` |
+| `skills/fg-done/` | `fg-done` | ④봉인·재실행 가드 | (없음) |
+
+루프 밖 11개(모두 `SKILL.md` 단일 파일, 부속 파일 없음):
+
+| 디렉터리 | frontmatter name | 역할 |
+| --- | --- | --- |
+| `skills/fg-map/` | `fg-map` | 코드베이스 → `.forge/codebase/` 매핑 (이 문서 생성) |
+| `skills/fg-quick/` | `fg-quick` | trivial 작업 경량 차선 (형식 산출물 없음) |
+| `skills/fg-status/` | `fg-status` | 읽기 전용 상태 리포터 |
+| `skills/fg-next/` | `fg-next` | 다음 단계 도출·실행 오케스트레이터 (+`all` 모드) |
+| `skills/fg-loop/` | `fg-loop` | goal 주도 한정 재계획 무인 루프 |
+| `skills/fg-adversarial-review/` | `fg-adversarial-review` | 선택적 적대적 리뷰 (run↔learn 사이) |
+| `skills/fg-merge/` | `fg-merge` | 브랜치 forge 루트 통합 |
+| `skills/fg-cleanup/` | `fg-cleanup` | 오래된 ADR 은퇴 |
+| `skills/fg-tdd/` | `fg-tdd` | TDD 모드 토글 (`config.json`) |
+| `skills/fg-eco/` | `fg-eco` | 위임 모델 티어링 토글 (`config.json`) |
+| `skills/fg-statusline/` | `fg-statusline` | statusline 설치·연결 |
+
+### Format docs ownership
+
+형식 정의는 한 벌만 존재하며 **소유 스킬 디렉터리**에 둔다. 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다(루트 `references/` 디렉터리는 폐지).
+
+- `skills/fg-ask/CONTEXT-FORMAT.md` — CONTEXT.md(글로서리) 형식. grill-with-docs 원본 verbatim.
+- `skills/fg-ask/ADR-FORMAT.md` — ADR 형식. grill-with-docs 원본 verbatim.
+- `skills/fg-run/PLAN-FORMAT.md` — plan.md 형식 + 분할 규칙. 생산자는 fg-ask지만 fg-ask 디렉터리가 verbatim 영역이라 소비자(fg-run) 쪽에 둠.
+- `skills/fg-run/FORGE-ROOT.md` — 브랜치별 forge 루트 해석 규칙의 단일 정의(ADR-0011). 모든 루프 스킬이 참조.
+- `skills/fg-run/RUN-ALL.md` — Run all 배치 실행 규약.
+- `skills/fg-learn/RETRO-FORMAT.md` — 회고 형식.
+
+알려진 불일치(편집 전 인지): `skills/fg-ask/`는 grill-with-docs 원본의 자기완결 영문 verbatim 본문이고, forge 루프 연결은 SKILL.md 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. 둘 중 하나만 고치면 계약이 깨진다.
+
+## `scripts/` — statusline
+
+fg-statusline이 설치하는 자기완결 bash 조각과 그 테스트.
+
+- `scripts/forge-statusline.sh` — `.forge/`를 읽어 루프 진행 상태 한 줄 출력.
+- `scripts/forge-statusline.test.sh` — 위 스크립트 테스트.
+- `scripts/forge-statusline-wrapper.sh` — 기존 statusLine을 래핑해 forge 행을 추가(Claude Code는 statusLine 하나만 허용 → 대체 안 하고 래핑; ADR-0017).
+- `scripts/forge-statusline-wrapper.test.sh` — 래퍼 테스트.
+
+## `.forge/` — state + persistent docs
+
+이 리포는 자기 자신의 forge 루프를 돌린다. `.gitignore`가 `.forge/*`를 기본 제외하되 영속 문서만 화이트리스트로 추적한다.
+
+영속(git 추적):
+- `.forge/adr/NNNN-slug.md` — 아키텍처 결정. 현재 `0001`~`0018`.
+  - `.forge/adr/retired/` — fg-cleanup이 은퇴시킨 ADR(번호 불변, 삭제 안 함).
+- `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그(현재 23개).
+- `.forge/codebase/*.md` — fg-map 생성 코드베이스 지도(이 문서가 그 일부).
+- `.forge/config.json` — `defaultBranch`·`tdd`·`eco` 등 프로젝트 전역 설정(전역 예외: 항상 최상위, 브랜치 무관).
+- `.forge/CONTEXT.md` — 도메인 글로서리(lazy 생성, 현재 미존재).
+
+휘발(git 미추적, lazy 생성):
+- `.forge/backlog/<slug>.md` — fg-ask가 적재한 미실행 대기 plan.
+- `.forge/plan.md` · `.forge/run.md` · `.forge/review.md` · `.forge/STATUS.md` — 활성 슬롯(항상 1개).
+- `.forge/executed/<slug>/` — 실행됐으나 미회고.
+- `.forge/done/<날짜-slug>/` — 봉인 완료 작업 아카이브.
+- `.forge/loop.md` — fg-loop의 goal 계약.
+- `.forge/quick/LOG.md` — fg-quick 한 줄 로그.
+
+브랜치별(ADR-0011): 비-기본 브랜치는 위 휘발+영속이 통째로 `.forge/branch/<branch>/` 아래로 이동하며 **git 추적**된다(`.gitignore`가 `!.forge/branch/`로 화이트리스트). 단 `.forge/config.json`·`.forge/codebase/`는 예외로 항상 최상위.
+
+## Naming conventions
+
+- **스킬 식별자 = frontmatter `name`**, 디렉터리명 아님(둘이 일치하도록 유지하는 게 관례).
+- **ADR** — `NNNN-slug.md`(4자리 0패딩, 단조 증가, 번호 재사용 금지).
+- **회고** — `YYYY-MM-DD-slug.md`.
+- **done 아카이브** — `done/<날짜-slug>/`.
+- **plan 식별자** — plan 첫 줄 `<!-- forge-slug: <slug> -->`(회고·봉인 짝 맞춤). fix-forward plan은 `<!-- generated-by: ... -->` 마커 + 단조 `<!-- task: N -->`.
+- **버전** — `vX.Y.Z`, 릴리스 커밋은 `chore(release): vX.Y.Z`.
+
+## Verification (no test/build system)
+
+- 매니페스트 JSON 유효성 — 위 node 한 줄.
+- 스킬 frontmatter `name` 누락 검사 — `for f in skills/*/SKILL.md; do awk '/^name:/' "$f"; done`.
+- 실제 동작 — 설치해서 트리거해보는 것뿐(단위 테스트 없음). statusline 스크립트만 `*.test.sh` 보유.
