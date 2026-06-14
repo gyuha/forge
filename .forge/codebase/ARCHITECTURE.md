@@ -1,11 +1,11 @@
 ---
-last_mapped_commit: b3b267b7da443c3fbb0ca093c4fc4221a70ef7ab
+last_mapped_commit: 74d8c840911bb14b4600e1618d678af158d1ce69
 mapped: 2026-06-14
 ---
 
 # Architecture
 
-forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러그인**이다. 산출물은 전부 Markdown(`SKILL.md`, `*-FORMAT.md`)과 JSON(매니페스트)이며, 빌드·테스트·린트·CI 시스템이 없다. "아키텍처"는 곧 스킬들이 `.forge/` 파일을 통해 상태를 주고받는 **데이터 흐름 계약**이다. 이 문서는 그 계약과 설계 원칙을 기록한다(도메인 용어 정의는 `CONTEXT.md` 소관 — 여기 없음).
+forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러그인**이다. 산출물은 전부 Markdown(`SKILL.md`, `*-FORMAT.md`)과 JSON(매니페스트)이며, 빌드·테스트·린트·CI 시스템이 없다(예외: statusline용 bash 스크립트와 그 `*.test.sh`). "아키텍처"는 곧 스킬들이 `.forge/` 파일을 통해 상태를 주고받는 **데이터 흐름 계약**이다. 이 문서는 그 계약과 설계 원칙을 기록한다(도메인 용어 정의는 `CONTEXT.md` 소관 — 여기 없음).
 
 ## The forge loop (4-stage core)
 
@@ -43,7 +43,7 @@ fg-ask → backlog/<slug>.md 적재
 - **fg-status** (`skills/fg-status/SKILL.md`) — 읽기 전용 상태 리포터. `.forge/`를 조사해 현황+다음 단계를 출력하고 아무것도 쓰지 않으며 다음 단계를 자동 실행하지 않는다.
 - **fg-next** (`skills/fg-next/SKILL.md`) — fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행하는 오케스트레이터. 기본 one-shot, 자체적으로는 아무것도 쓰지 않음(위임 스킬이 모든 쓰기). `all` 모드는 백로그가 빌 때까지 선형 기계 단계를 자동 추천 진행하며 회고는 항상 자동 skip, 대화의 벽에서만 멈춘다(ADR-0010).
 - **fg-loop** (`skills/fg-loop/SKILL.md`) — goal 주도 한정 재계획 루프. 기초 질의로 기계 검증 가능한 정지 체크·승인된 fix-forward 재계획 범위·상한(기본 3라운드)을 `.forge/loop.md`에 못 박고 초기 백로그를 적재한 뒤, 체크 전부 통과까지 run→UAT→회고 자동 skip→봉인을 무인 주행. `## Tasks` 멤버십 목록에 등재된 slug만 승격(ADR-0016).
-- **fg-adversarial-review** (`skills/fg-adversarial-review/SKILL.md`) — fg-run과 fg-learn 사이 선택적 적대적 리뷰. "결과가 틀렸다고 가정하고 증거를 찾는" 자세로 6개 렌즈(실패 지점·숨은 가정·요구사항 오해·보안/성능/데이터 손실·예상 못한 오용·약한 근거)를 Dynamic Workflow 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록. 사람 승인 시 fix-needed를 fix-forward plan으로 만들어 재실행. 선택적이며 봉인 게이트가 아니고 무인 주행에선 항상 자동 skip(ADR-0018, ADR-0007과 보완 관계).
+- **fg-adversarial-review** (`skills/fg-adversarial-review/SKILL.md`) — fg-run과 fg-learn 사이 선택적 적대적 리뷰. "결과가 틀렸다고 가정하고 증거를 찾는" 자세로 6개 렌즈(실패 지점·숨은 가정·요구사항 오해·보안/성능/데이터 손실·예상 못한 오용·약한 근거)를 Dynamic Workflow 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록. **리뷰 대상은 활성 슬롯 작업 전용**(parked `executed/<slug>/`는 대상 아님 — 원하면 fg-run unpark로 활성 슬롯에 올린 뒤 리뷰). 사람 승인 시 fix-needed를 fix-forward plan으로 만들어 재실행. 선택적이며 봉인 게이트가 아니고 무인 주행에선 항상 자동 skip(ADR-0018, ADR-0007과 보완 관계).
 - **fg-merge** (`skills/fg-merge/SKILL.md`) — `git merge` 뒤 비-기본 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합(ADR 번호 재부여·교차참조 갱신·retro 이동·CONTEXT 병합·done 합침·브랜치 폴더 제거). git 조작은 안 함(ADR-0011).
 - **fg-cleanup** (`skills/fg-cleanup/SKILL.md`) — 오래된/대체된 ADR을 활성 결정 집합에서 은퇴(`.forge/adr/retired/<NNNN>-slug.md`로 이동, supersede 마킹). 번호 불변·재사용 금지·삭제 안 함. fg-ask는 retired/를 정답소스로 안 읽음(ADR-0012).
 - **fg-tdd** (`skills/fg-tdd/SKILL.md`) — 영속 TDD 모드 토글(`.forge/config.json`의 `tdd`). fg-ask가 작업마다 기본 답으로 묻고, plan의 `<!-- tdd: on -->`이면 fg-run이 test-first 실행(ADR-0008).
@@ -59,7 +59,7 @@ fg-ask → backlog/<slug>.md 적재
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `.forge/plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준), fg-learn, fg-adversarial-review |
 | `.forge/run.md` | fg-run | fg-learn, fg-adversarial-review |
-| `.forge/review.md` (활성 슬롯, 선택적) | fg-adversarial-review | fg-learn(retro 승급), fg-done(봉인 시 done/ 아카이브) |
+| `.forge/review.md` (활성 슬롯 전용, 선택적) | fg-adversarial-review | fg-learn(retro 승급), fg-done(봉인 시 done/ 아카이브) |
 | `.forge/STATUS.md` (활성 슬롯, `status: executed`, `verified: pending`) | fg-run(run.md 직후 작성, 핸드오프 UAT로 `verified:` 기록) | fg-run(검증 재진입)·fg-learn(통과 시 회고)·fg-done(검증→회고 게이트 후 `status: done` 마감) |
 | `.forge/executed/<slug>/` (+`STATUS.md`) | fg-run("모두 실행" park) | fg-learn(회고 대기), fg-done(봉인) |
 | `.forge/done/<날짜-slug>/` (+`STATUS.md`, `status: done`) | fg-done | fg-ask(slug 충돌)·fg-run(완료 판별)·fg-learn(회고 제외)·fg-done(이중 봉인 방지) |
@@ -70,6 +70,7 @@ fg-ask → backlog/<slug>.md 적재
 - **활성 슬롯은 항상 1개** — 한 plan.md = 한 run.md = 한 봉인. 백로그는 미실행 대기열, `executed/`는 "실행됐으나 미회고"의 명시 상태. plan 첫 줄 `<!-- forge-slug: ... -->`가 회고·봉인 짝 맞춤 식별자(파일 이동에도 영속).
 - **활성 슬롯·백로그·executed가 모두 비면 = 진행 중 작업 없음.** fg-run은 빈 상태에서 실행 안 함(재실행 방지). fg-done이 봉인하며 비운다.
 - **STATUS.md는 동반 마커**(이중 장부 아님). 상태 원천은 파일 위치이고 STATUS.md는 plan/run과 함께 활성 슬롯→`executed/`→`done/`을 따라 이동. 완료 판별 = `done/*/STATUS.md`의 `status: done`.
+- **`.forge/review.md`는 활성 슬롯 전용 휘발 파일이다.** parked `executed/<slug>/`에는 review.md를 두지 않는다(per-task `executed/<slug>/review.md` 저장은 기각 — ADR-0018). findings 저장처를 활성 슬롯 한 작업에 모호함 없이 묶기 위함. 봉인 시 fg-done이 done/으로 아카이브.
 
 ### Seal gates: verify → learn → done (ADR-0009)
 
@@ -88,7 +89,7 @@ run → STATUS verified:?
    └── failed ──────────────▶ fg-run unpark fix-and-re-run | fg-ask 재그릴
 ```
 
-`reviewed:` 필드(fg-adversarial-review가 기록)는 **봉인 게이트가 아니다** — 기록용일 뿐. 게이트는 `verified:`와 회고 둘뿐.
+**`reviewed:` 필드(fg-adversarial-review가 활성 슬롯 STATUS.md에 기록)는 봉인 게이트가 아니다 — 기록용일 뿐.** 게이트는 `verified:`와 회고 둘뿐. `reviewed:` 값은 `.forge/review.md (N findings, M→fix-forward)` 또는 `skipped (사유)` 또는 없음.
 
 ### Retro skip (ADR-0002)
 

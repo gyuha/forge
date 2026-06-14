@@ -1,11 +1,11 @@
 ---
-last_mapped_commit: b3b267b7da443c3fbb0ca093c4fc4221a70ef7ab
+last_mapped_commit: 74d8c840911bb14b4600e1618d678af158d1ce69
 mapped: 2026-06-14
 ---
 
 # Structure
 
-forge는 단일 리포가 곧 **플러그인 + 마켓플레이스**다(`harness` 플러그인과 동일 패턴: 리포 루트 = 플러그인 루트 = 마켓플레이스). 빌드 시스템·package.json·Makefile·CI가 없다. 산출물은 전부 Markdown과 JSON이다.
+forge는 단일 리포가 곧 **플러그인 + 마켓플레이스**다(`harness` 플러그인과 동일 패턴: 리포 루트 = 플러그인 루트 = 마켓플레이스). 빌드 시스템·package.json·Makefile·CI가 없다. 산출물은 거의 전부 Markdown과 JSON이며, 유일한 실행 코드는 `scripts/`의 statusline용 bash 스크립트다.
 
 ## Top-level layout
 
@@ -15,7 +15,7 @@ forge/
 │   ├── plugin.json          플러그인 매니페스트 (skills/ 자동 탐색 → skills 필드 생략 가능)
 │   └── marketplace.json     이 리포를 마켓플레이스로 등록 (plugins[].source = "./")
 ├── skills/                  fg-* 워크플로우 스킬 (15개) — skills/<name>/SKILL.md 자동 탐색
-├── scripts/                 statusline용 bash 스크립트 + 테스트
+├── scripts/                 statusline용 bash 스크립트 + 테스트 (4개)
 ├── .forge/                  휘발 상태 + 영속 문서 (자기 자신의 forge 루프 상태)
 ├── docs/                    부가 산문 문서 (forge-vs-loop-engineering.md)
 ├── README.md                영문 (사용자용)
@@ -61,7 +61,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 | `skills/fg-status/` | `fg-status` | 읽기 전용 상태 리포터 |
 | `skills/fg-next/` | `fg-next` | 다음 단계 도출·실행 오케스트레이터 (+`all` 모드) |
 | `skills/fg-loop/` | `fg-loop` | goal 주도 한정 재계획 무인 루프 |
-| `skills/fg-adversarial-review/` | `fg-adversarial-review` | 선택적 적대적 리뷰 (run↔learn 사이) |
+| `skills/fg-adversarial-review/` | `fg-adversarial-review` | 선택적 적대적 리뷰 (run↔learn 사이, 활성 슬롯 전용) |
 | `skills/fg-merge/` | `fg-merge` | 브랜치 forge 루트 통합 |
 | `skills/fg-cleanup/` | `fg-cleanup` | 오래된 ADR 은퇴 |
 | `skills/fg-tdd/` | `fg-tdd` | TDD 모드 토글 (`config.json`) |
@@ -81,14 +81,16 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 
 알려진 불일치(편집 전 인지): `skills/fg-ask/`는 grill-with-docs 원본의 자기완결 영문 verbatim 본문이고, forge 루프 연결은 SKILL.md 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. 둘 중 하나만 고치면 계약이 깨진다.
 
-## `scripts/` — statusline
+## `scripts/` — statusline (forge의 유일한 실행 코드)
 
-fg-statusline이 설치하는 자기완결 bash 조각과 그 테스트.
+fg-statusline이 설치하는 자기완결 bash 스크립트와 그 테스트. forge에서 유일하게 실행되는 코드이며 fixture 기반 bash 테스트를 갖는다(ADR-0017 — 두 기둥의 의도적·경계 있는 예외).
 
-- `scripts/forge-statusline.sh` — `.forge/`를 읽어 루프 진행 상태 한 줄 출력.
-- `scripts/forge-statusline.test.sh` — 위 스크립트 테스트.
-- `scripts/forge-statusline-wrapper.sh` — 기존 statusLine을 래핑해 forge 행을 추가(Claude Code는 statusLine 하나만 허용 → 대체 안 하고 래핑; ADR-0017).
-- `scripts/forge-statusline-wrapper.test.sh` — 래퍼 테스트.
+- `scripts/forge-statusline.sh` — `.forge/`를 읽어 루프 진행 상태 한 줄 출력(stdin 세션 JSON의 `cwd`를 jq 없이 방어적 `sed`로 파싱; stdin이 tty가 아닐 때만 읽음).
+- `scripts/forge-statusline.test.sh` — 위 fragment 테스트(stdin-cwd 케이스 포함).
+- `scripts/forge-statusline-wrapper.sh` — 기존 statusLine을 래핑해 forge 행을 추가(Claude Code는 statusLine 하나만 허용 → 대체 안 하고 합성). 원본 명령은 별도 파일 `forge-statusline-orig.sh`에 verbatim 보존. 같은 JSON을 원본과 fragment 양쪽 stdin으로 흘리고, 원본을 먼저 출력한 뒤 fragment를 별도 행으로(비어 있지 않을 때만) 붙인다. **동반 파일(`forge-statusline-orig.sh`·`forge-statusline.sh`)을 자기 스크립트 위치(`$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)`)에서 해석한다 — 런타임 `CLAUDE_CONFIG_DIR`에 의존하지 않음**(statusLine 프로세스가 그 변수를 export 안 하는 custom config dir 환경에서 동반 파일을 못 찾아 전체 statusline이 조용히 공백이 되는 결함 제거; ADR-0017 개정 2026-06-14). 동반 파일은 래퍼와 같은 디렉터리에 복사되므로 자기 위치 해석이 항상 옳다.
+- `scripts/forge-statusline-wrapper.test.sh` — 래퍼 테스트(원본 보존·forge 행 추가·idle 무행·stdin 재공급·custom config dir/`CLAUDE_CONFIG_DIR` 미설정 회귀).
+
+설치 시 `settings.json`의 `statusLine.command`는 **절대경로**로 기록한다(`~`/`$CLAUDE_CONFIG_DIR` 금지 — 호스트의 tilde 확장 미보장으로 전체 statusline이 공백이 되는 장애 회피; ADR-0017).
 
 ## `.forge/` — state + persistent docs
 
@@ -97,15 +99,15 @@ fg-statusline이 설치하는 자기완결 bash 조각과 그 테스트.
 영속(git 추적):
 - `.forge/adr/NNNN-slug.md` — 아키텍처 결정. 현재 `0001`~`0018`.
   - `.forge/adr/retired/` — fg-cleanup이 은퇴시킨 ADR(번호 불변, 삭제 안 함).
-- `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그(현재 23개).
+- `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그.
 - `.forge/codebase/*.md` — fg-map 생성 코드베이스 지도(이 문서가 그 일부).
 - `.forge/config.json` — `defaultBranch`·`tdd`·`eco` 등 프로젝트 전역 설정(전역 예외: 항상 최상위, 브랜치 무관).
 - `.forge/CONTEXT.md` — 도메인 글로서리(lazy 생성, 현재 미존재).
 
 휘발(git 미추적, lazy 생성):
 - `.forge/backlog/<slug>.md` — fg-ask가 적재한 미실행 대기 plan.
-- `.forge/plan.md` · `.forge/run.md` · `.forge/review.md` · `.forge/STATUS.md` — 활성 슬롯(항상 1개).
-- `.forge/executed/<slug>/` — 실행됐으나 미회고.
+- `.forge/plan.md` · `.forge/run.md` · `.forge/review.md` · `.forge/STATUS.md` — 활성 슬롯(항상 1개). `review.md`는 활성 슬롯 전용(fg-adversarial-review 생성, 선택적).
+- `.forge/executed/<slug>/` — 실행됐으나 미회고(여기엔 review.md를 두지 않음).
 - `.forge/done/<날짜-slug>/` — 봉인 완료 작업 아카이브.
 - `.forge/loop.md` — fg-loop의 goal 계약.
 - `.forge/quick/LOG.md` — fg-quick 한 줄 로그.
@@ -125,4 +127,4 @@ fg-statusline이 설치하는 자기완결 bash 조각과 그 테스트.
 
 - 매니페스트 JSON 유효성 — 위 node 한 줄.
 - 스킬 frontmatter `name` 누락 검사 — `for f in skills/*/SKILL.md; do awk '/^name:/' "$f"; done`.
-- 실제 동작 — 설치해서 트리거해보는 것뿐(단위 테스트 없음). statusline 스크립트만 `*.test.sh` 보유.
+- statusline 스크립트만 `*.test.sh` 보유(fixture 기반). 그 외 실제 동작은 설치해서 트리거해보는 것뿐(단위 테스트 없음).
