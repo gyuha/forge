@@ -1,89 +1,65 @@
 ---
-last_mapped_commit: 382c3f8346ae5b8b68abbb5a2dabe2ab52a80d62
-mapped: 2026-06-12
+last_mapped_commit: d3c47b5bdc859af54e741f0524f9ed8ce2b61483
+mapped: 2026-06-14
 ---
 
-# INTEGRATIONS
+# INTEGRATIONS — 외부 통합 / API / 데이터 / 인증
 
-forge는 **데이터베이스·외부 HTTP API·인증 공급자·웹훅을 일절 사용하지 않는다.** 네트워크 호출 코드 자체가 없다. 외부 접점은 셋뿐이다: (1) 설치·배포 경로로서의 **GitHub**, (2) 호스트인 **Claude Code의 플러그인·스킬·에이전트 메커니즘**, (3) 상태 경계로서의 **로컬 git**.
+## 요약: 외부 통합은 사실상 없다
 
-## GitHub — 설치 원천 (installs pull main)
+forge는 외부 서비스와 통신하지 않는다. 단도직입적으로:
 
-- 원격: `origin = https://github.com/gyuha/forge.git`.
-- 설치: Claude Code 세션에서 `/plugin marketplace add gyuha/forge` → `/plugin install forge@forge`(`README.md` Install 섹션). 로컬 경로 추가(`/plugin marketplace add /path/to/forge`)도 동일 매니페스트로 동작.
-- **설치는 GitHub 기본 브랜치(`main`)를 당긴다** — 따라서 "배포"의 정의가 `main` push다(`CLAUDE.md` 배포 규칙: CHANGELOG → 버전 3곳 범프 → JSON 검증 → commit → push). push 전의 변경은 어떤 사용자에게도 도달하지 않는다. 현재 HEAD(`382c3f8`)는 v0.4.8 릴리스 뒤 1커밋이 더 있고 작업 브랜치는 `loop`(비-기본)이다 — main에 닿기 전까지 미배포.
-- `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행할 수 없다(사용자가 직접). 에이전트 측 배포 검증은 `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 main의 버전 3곳 확인 + `awk '/^name:/' skills/*/SKILL.md`로 frontmatter `name` 누락 확인뿐.
+- **외부 API 호출 없음.** HTTP 클라이언트·SDK·`fetch`·`curl` 호출이 런타임 코드에 없다(배포 절차의 `curl raw.githubusercontent.com`은 사람이 손으로 도는 검증 단계일 뿐 플러그인 동작이 아니다).
+- **데이터베이스 없음.** DB 드라이버·ORM·연결 문자열·스키마 마이그레이션이 없다. forge의 "상태"는 전부 로컬 파일시스템의 `.forge/` 디렉터리(Markdown + 가끔 JSON)다.
+- **인증·시크릿 없음.** API 키·토큰·OAuth·환경변수 기반 자격증명을 읽거나 저장하는 코드가 없다. 매니페스트의 author 이메일(`nicegyuha@gmail.com`)은 메타데이터일 뿐이다.
+- **웹훅 없음.** 인바운드/아웃바운드 웹훅 엔드포인트, 콜백 URL, 이벤트 수신기가 없다.
+- **메시지 큐·캐시·스토리지 서비스 없음.**
 
-## Claude Code 플러그인·마켓플레이스 메커니즘
+forge는 자기완결적이다. 모든 동작은 로컬 파일 읽기/쓰기 + git 호출(브랜치 판별·머지 안내) + Claude Code 호스트 기능 호출로 끝난다. 외부로 나가는 네트워크 트래픽은 플러그인 마켓플레이스 설치(호스트가 GitHub `main`을 당기는 것)뿐이며, 이는 플러그인 코드가 아니라 Claude Code 설치 메커니즘이다.
 
-- 단일 리포가 플러그인이자 마켓플레이스다: `.claude-plugin/marketplace.json`의 `plugins[0].source: "./"`가 리포 루트를 플러그인 루트로 가리킨다.
-- **스킬 자동 탐색** — Claude Code가 `skills/<dir>/SKILL.md`를 자동 발견하고 frontmatter `name`을 식별자로 등록한다(`plugin.json`에 `skills` 필드 없음; 현재 13개 모두 `name` = 디렉터리명). 트리거는 frontmatter `description`에 박힌 문구들("forge run", "forge loop", "다음 단계", "어디까지 했지" 등)을 Claude가 매칭하는 방식 — description이 곧 라우팅 테이블이다.
-- **`${CLAUDE_PLUGIN_ROOT}`** — 호스트가 주입하는 플러그인 설치 경로. 스킬 간 형식 문서 참조가 전부 이를 경유한다(예: `skills/fg-next/SKILL.md`가 `${CLAUDE_PLUGIN_ROOT}/skills/fg-status/SKILL.md`를, `skills/fg-ask/SKILL.md`가 `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md`를 참조; 상대경로 `../fg-run/PLAN-FORMAT.md` 병기). forge가 호스트로부터 받는 유일한 런타임 입력에 가깝다.
+## 무엇과 통합하는가 — Claude Code 호스트 기능
 
-## 호스트(harness) 기능 사용 지점
+forge가 의존하는 "통합"은 전부 자신을 실행하는 **Claude Code 호스트의 내장 기능**이다. 외부 시스템이 아니라 호스트가 제공하는 능력에 올라타는 것이다.
 
-### Dynamic Workflow — fg-run의 실행 엔진 (`skills/fg-run/SKILL.md`)
+### 1. 플러그인 / 스킬 자동 탐색
 
-- 프롬프트에 `workflow` 키워드(또는 effort `ultracode`)를 넣어 Dynamic Workflow를 빌드시킨다. `.forge/plan.md`의 Work slices가 작업 단위이고, `depends:` 마커에 따라 직렬 웨이브/병렬 묶음을 짠다.
-- 오케스트레이션 스크립트는 **사용자 승인 후** 백그라운드 병렬 서브에이전트로 실행되며, 진행은 `/workflows`로 관찰한다.
-- **워크플로는 실행 중 인간 입력을 못 받는다** — 설계 기둥 1(그릴링을 워크플로에 안 넣음)의 근거이자, 중간 사인오프가 필요하면 작업을 둘로 쪼개는 규칙(`PLAN-FORMAT.md` 분할 규칙)의 근거.
-- 조건부 코드 리뷰(위험·대형 변경 시)는 **워크플로 자체의 adversarial-verify 서브에이전트**로 구성 — 외부 스킬·플러그인 하드 의존 없음(ADR-0007). TDD 모드도 `superpowers:test-driven-development` 같은 외부 스킬에 "있으면 활용하되 의존하지 않는" 소프트 연계.
+Claude Code 플러그인 시스템이 forge를 로드하고, `skills/<name>/SKILL.md`를 frontmatter `name`으로 자동 탐색한다. forge 자체가 마켓플레이스(`.claude-plugin/marketplace.json`, `source: "./"`)이기도 하다. 설치 시 호스트가 GitHub 기본 브랜치(`main`)를 당긴다.
 
-### Agent 도구 fan-out — fg-map (`skills/fg-map/SKILL.md`)
+### 2. Agent 도구 (병렬 서브에이전트)
 
-- `Agent` 도구 + `run_in_background: true`로 **4개 병렬 서브에이전트**(tech/arch/quality/concerns)를 한 메시지에 발사. 각 에이전트가 `.forge/codebase/` 문서를 **직접 쓰고** 오케스트레이터는 확인(경로+줄수)만 받는다 — context rot 방지의 핵심.
-- 비-Agent 폴백 없음: "forge is Claude Code only, so the `Agent` tool is always available". `--paths` 증분 모드·순차 폴백도 의도적으로 없다.
-- 각 에이전트 프롬프트에 `git rev-parse HEAD` sha를 넘겨 frontmatter `last_mapped_commit`으로 스탬프 — fg-ask의 stale 판정 근거.
+`fg-map`과 `fg-run`이 호스트의 Agent/서브에이전트 기능에 의존한다.
+- **fg-map** — 병렬 서브에이전트를 띄워 코드베이스를 분석하고 `.forge/codebase/` 문서(7종)를 채운다(이 문서를 생성한 메커니즘과 동일).
+- **fg-eco** — 켜지면 `fg-run`이 위임하는 워크플로우 서브에이전트의 모델을 sonnet으로 캡한다(내리기만, 세션 모델 불변 — ADR-0014). 즉 호스트의 서브에이전트 모델 선택 기능에 올라탄다.
 
-### AskUserQuestion — 대화형 분기
+### 3. Dynamic Workflow (실행 엔진)
 
-- `skills/fg-run/SKILL.md`: 미실행 plan 2+개일 때 선택 메뉴(priority 정렬, 마지막 옵션 "Run all"), 단일작업 종료 시 4지 핸드오프 메뉴("The four options fit `AskUserQuestion`'s option limit exactly").
-- `skills/fg-eco/SKILL.md`: 무인자 호출 시 현재 상태 보고 후 on/off/유지 선택 제시.
+`fg-run`이 `.forge/plan.md`를 Claude Code **Dynamic Workflow**로 실행한다. 이것이 forge 루프의 실행 단계를 구동하는 핵심 호스트 기능이다. 설계 원칙상 그릴링(fg-ask)은 절대 워크플로우 안에 넣지 않는다(워크플로우는 실행 중 사용자 입력을 못 받기 때문) — 호스트 기능의 제약이 forge 아키텍처를 직접 형성한다.
 
-### `/goal` 페어링 — 무인 주행 (fg-next all · fg-loop)
+### 4. statusLine (NEW)
 
-- `/goal`은 harness의 세션 스코프 Stop hook(조건 충족까지 정지 차단). `skills/fg-next/SKILL.md` "Unattended to completion — pairing with /goal" 섹션이 원 정의이고 `skills/fg-loop/SKILL.md`가 이를 참조한다.
-- **스킬은 `/goal`을 스스로 설정할 수 없다** — 사용자가 직접 타이핑하는 슬래시 명령. fg-loop는 조건 문구를 "stop only when the stop-condition checks all pass, OR a wall is hit"로 쓰라고 못 박는다(벽을 넘는 강제 주행 방지). 안전 벽과 기본 one-shot 동작은 `/goal` 유무와 무관하게 불변.
+`fg-statusline` 스킬이 호스트의 **statusLine** 설정에 통합한다 — 이것이 forge가 새로 올라탄 호스트 기능이다.
+- statusLine은 `settings.json`의 `statusLine` 키로만 설정되며 플러그인이 직접 등록할 수 없다. 그래서 forge는 실제 bash 스크립트(`scripts/forge-statusline.sh`)를 `~/.claude/forge-statusline.sh`로 복사하고 settings에 배선한다.
+- 호스트는 statusLine 명령을 **비대화형 셸**로 실행하며 세션 JSON을 stdin으로 넘긴다. 명령은 forge 스킬을 호출할 수 없으므로 스크립트가 `.forge/`를 직접 읽는다.
+- statusLine은 단 하나만 존재(스태킹 불가)하므로, 기존 statusLine이 있으면 wrapper(`~/.claude/forge-statusline-wrapper.sh`)로 감싸 forge를 별도 행으로 추가한다(ADR-0017).
+- `${CLAUDE_PLUGIN_ROOT}`는 statusLine 셸에서 사용 불가(설치 경로가 업데이트마다 바뀜)하므로 스크립트를 안정 경로로 복사하는 우회가 필요하다.
 
-### Skill 도구 — fg-next의 위임 호출
+### 5. MCP (Model Context Protocol)
 
-- `skills/fg-next/SKILL.md`: 다음 단계를 도출하면 한 줄 알림 후 **같은 턴에 Skill 도구로 해당 스킬을 호출**한다(보고만 하는 fg-status와의 차별점). 자체 쓰기는 0 — 모든 쓰기는 위임받은 스킬 내부에서.
+forge **자체는 MCP 서버를 정의하거나 의존하지 않는다.** 매니페스트(`plugin.json`)에 `mcpServers` 필드가 없고, 스킬 본문도 특정 MCP 도구를 요구하지 않는다. 호스트 환경에 MCP 서버가 떠 있을 수는 있으나(예: 이 세션에 Context7·Playwright 등이 보임) 그것은 사용자 환경의 일이지 forge가 패키징하거나 요구하는 의존이 아니다. forge가 MCP와 "통합"한다고 말할 근거는 없다.
 
-### 소프트(비-하드) 외부 능력
+### 6. settings.json (호스트 설정 파일)
 
-- deep-research: `skills/fg-ask/SKILL.md` — 리포 밖 지식이 필요할 때만, 제안 후 동의 시 실행, 없으면 조용히 생략(ADR-0006).
-- fg-done의 stale-map 제안: `.forge/codebase/` 존재 + 프로젝트 파일 변경 시 fg-map 실행을 **제안만**(자동 실행 금지 — deep-research와 같은 절제).
+`fg-statusline`이 `statusLine` 키를 쓰고, `fg-tdd`/`fg-eco`는 forge 자체 설정(`.forge/config.json`)을 토글한다. 전자는 호스트 설정 파일을 직접 편집하는 유일한 스킬이다(프로젝트 `.claude/settings.json` 우선, 없으면 사용자 `~/.claude/settings.json`).
 
-## 로컬 git 통합 지점
+## 시스템 도구 의존 (외부 서비스 아님)
 
-### `.gitignore` 화이트리스트 — 휘발/영속 경계
+엄밀히 "통합"은 아니지만 forge가 호출하는 외부 바이너리:
 
-`/Users/gyuha/workspace/forge/.gitignore`가 `.forge/*`를 기본 제외하되 영속 문서만 되살린다:
+- **git** — 브랜치 판별(`forge-statusline.sh`의 `git rev-parse`), 머지 후 통합 안내(`fg-merge`는 git을 직접 돌리지 않고 사용자가 `git merge`한 뒤 `.forge/branch/`를 통합). 브랜치별 forge 루트(ADR-0011)의 토대.
+- **bash / 표준 POSIX 유틸** — statusline 스크립트·테스트가 `sed`/`find`/`ls`/`wc`/`mktemp` 사용.
 
-```
-.forge/*
-!.forge/CONTEXT.md
-!.forge/adr/
-!.forge/retro/
-!.forge/codebase/
-!.forge/config.json
-!.forge/branch/
-```
+이들은 로컬 CLI 도구이며 네트워크 서비스가 아니다.
 
-휘발 상태(plan/run/STATUS/backlog/executed/done/loop.md/quick)는 기본 브랜치에서 git 미추적, 영속 문서(CONTEXT/adr/retro/codebase/config)는 추적. **위치는 같은 `.forge/` 지붕 아래, 구분은 git 추적 여부**다.
+## 결론
 
-### 브랜치 루트 추적 (ADR-0011, 단일 정의 `skills/fg-run/FORGE-ROOT.md`)
-
-- 루트 해석: 현재 브랜치(`git rev-parse --abbrev-ref HEAD`) == `defaultBranch`(`.forge/config.json`, 없으면 `main`) → `.forge/`; 그 외 → `.forge/branch/<branch>/`; detached HEAD/비-git → `.forge/` + 한 줄 경고.
-- **비-기본 브랜치 루트는 통째로 git 추적**(`!.forge/branch/` 화이트리스트 — 휘발 유형 파일 포함). 경로가 브랜치별 네임스페이스라 두 브랜치가 같은 파일을 안 써서 `git merge` 충돌이 없다. 기본 브랜치 휘발 상태만 gitignored인 **의도된 비대칭**. 브랜치 forge 상태는 코드처럼 브랜치에 커밋해야 fg-merge가 통합할 수 있다.
-- 전역 예외 2개는 항상 최상위: `.forge/config.json`(부트스트랩 역설 방지), `.forge/codebase/`(공유 참조 연료). 비-기본 브랜치에서 영속 연료(`CONTEXT.md`·`adr/`·`retro/`)의 **읽기는 최상위+브랜치 루트 overlay**(브랜치 우선), 쓰기는 브랜치 루트 전용.
-- 통합은 git이 아니라 **fg-merge**(`skills/fg-merge/SKILL.md`): 사용자가 `git merge`를 먼저 하면 fg-merge가 브랜치의 ADR을 다음 빈 번호로 재부여(교차참조 갱신)·retro 이동·CONTEXT 용어 병합·done 합침·브랜치 폴더 제거. **git 조작은 일절 안 함**, 진짜 충돌(용어 재정의·ADR 모순)에서만 멈추고 질문.
-
-### 스킬이 실행하는 git 명령
-
-| 명령 | 사용처 | 목적 |
-| --- | --- | --- |
-| `git rev-parse --abbrev-ref HEAD` | 모든 루프 스킬(`FORGE-ROOT.md` 경유) | forge 루트 해석 |
-| `git rev-parse HEAD` | `skills/fg-map/SKILL.md` | `last_mapped_commit` 신선도 스탬프 |
-| `git status --short` | `skills/fg-done/SKILL.md` | 루프가 프로젝트 파일을 바꿨는지 → stale-map 제안 트리거 |
-| `git merge` (사용자 수행, 스킬 아님) | fg-merge 전제 조건 | 브랜치 forge 폴더를 기본 브랜치로 반입 |
+통합 관점에서 forge의 표면적은 **호스트 안쪽으로만** 향한다 — Claude Code의 플러그인/스킬 시스템, Agent 서브에이전트, Dynamic Workflow, statusLine, settings.json. **바깥(인터넷·DB·서드파티 API)으로 향하는 통합은 0이다.** 보안·시크릿·네트워크 검토 대상이 본질적으로 없다는 뜻이며, 이는 의도된 설계다(로컬 파일 + 호스트 기능만으로 자기완결).
