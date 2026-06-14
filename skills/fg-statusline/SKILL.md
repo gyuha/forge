@@ -49,7 +49,7 @@ Copy both scripts and `chmod +x` them (idempotent — a **refresh** after a forg
 - `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` → `<CFG>/forge-statusline.sh`
 - `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-wrapper.sh` → `<CFG>/forge-statusline-wrapper.sh`
 
-Both are generic (no per-install substitution) — the wrapper finds the fragment and the preserved original by fixed paths under `CFG`, so one global copy of each serves every project.
+Both are generic (no per-install substitution) — the wrapper finds the fragment and the preserved original **in its own install directory**, resolved at runtime from the wrapper's own script path (`BASH_SOURCE`), **not** from `$CLAUDE_CONFIG_DIR`. The statusLine process may not export that env var, and depending on it would silently blank the whole statusline in a custom config-dir setup (ADR-0017). Since the companions are copied next to the wrapper (all three land in `CFG`), one global copy of each serves every project.
 
 ### 2. Find the settings file and the existing statusLine
 

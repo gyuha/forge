@@ -13,6 +13,7 @@ ADR-0007은 "run↔learn 사이 새 루프 단계(fg-review)"를 4단계 루프�
 
 - **워크플로우로 실행**: 적대적 리뷰는 사용자 입력이 필요 없는 자동 분석이라 기둥 1("그릴링만 워크플로우 밖")에 걸리지 않는다. 6개 렌즈를 **dynamic workflow의 렌즈별 서브에이전트로 병렬 팬아웃**(Workflow의 dimensions→find→adversarially-verify 패턴)해 한 패스보다 철저히 검토한다. 단 워크플로우 실행 중 사람 입력 불가 → findings 판단·수정 승인은 워크플로우 후 핸드오프에서(ADR-0007과 동일 제약).
 - **입력**: `plan.md`(의도·요구사항·설계), `run.md`(계획↔실제), **현재 작업 트리의 uncommitted 변경**(`git diff` + untracked — forge는 커밋을 강제하지 않아 fg-run 직후엔 보통 미커밋), 정답 기준(`CONTEXT.md`·관련 ADR — 요구사항 오해 판정 근거).
+- **대상 범위는 활성 슬롯 작업 전용 (개정 2026-06-14, Codex 적대적 리뷰 지적 반영).** parked `executed/<slug>`(Run-all 회고 대기분)는 리뷰 대상이 아니다 — 원하면 fg-run unpark로 활성 슬롯에 올린 뒤 리뷰. findings 저장처(활성 슬롯 `review.md`·STATUS `reviewed:`)를 한 작업으로 모호함 없이 묶기 위함이다. per-task `executed/<slug>/review.md` 저장은 fg-learn/fg-done에 분기를 더하는 드문 케이스라 기각(초기 SKILL.md가 parked 입력을 허용하면서 기록은 활성 슬롯에 하던 불일치를 이로써 제거).
 - **검증과 별개·비-게이트**: 순서는 `run → verify(UAT) → [적대적 리뷰(선택)] → learn → done`. UAT(`verified:`)는 봉인 필수 게이트로 불변, 적대적 리뷰는 순수 선택이라 봉인을 막지 않는다.
 - **findings 처리**: 휘발 `.forge/review.md`(활성 슬롯 동반)에 구조화 기록. STATUS.md에 기록용 `reviewed:` 필드(`<경로> (N findings, M→fix-forward)` / `skipped` / 없음) — 봉인 게이트 아님. 학습 가치는 fg-learn이 retro로 승급, fg-done이 봉인 시 review.md를 done/으로 아카이브.
 - **수정 라우팅**: findings가 수정을 요구하면 fg-loop(ADR-0016) fix-forward와 동형으로 **새 backlog plan**(`<!-- generated-by: fg-adversarial-review -->` 마커, 단조 task 번호)을 사람 승인 후 생성 → fg-run이 실행. 원 작업은 그대로 봉인 가능, 수정은 별도 사이클.

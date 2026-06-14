@@ -15,9 +15,11 @@ Its stance is deliberately hostile: the reviewer takes the position of the **att
 
 ## When to run
 
-Run it after fg-run has executed a plan (an active-slot `run.md` exists, or a parked `executed/<slug>/`), when you want a hostile second look before sealing. It is **purely optional** — skipping it never blocks the seal (the seal gates are `verified:` and the retro, never `reviewed:`).
+Run it after fg-run has executed a plan — i.e. the **active slot** holds a `run.md` — when you want a hostile second look before sealing. It is **purely optional** — skipping it never blocks the seal (the seal gates are `verified:` and the retro, never `reviewed:`).
 
-If there is nothing to review (no `run.md` in the active slot and nothing parked in `executed/`), say so in one line and point to fg-run — do not invent a review target.
+**The review targets the active slot only.** This keeps findings storage unambiguous: they always belong to the one task in the active slot. A task parked in `executed/<slug>/` (Run-all work awaiting retro) is **not** a review target — if you want to adversarially review one, recover it to the active slot first via fg-run's unpark, then run this. (Supporting per-task `executed/<slug>/review.md` storage was considered and rejected — it would add fg-learn/fg-done branching for a rare case; ADR-0018.)
+
+If there is no `run.md` in the active slot, there is nothing to review — say so in one line and point to fg-run — do not invent a review target.
 
 ## Inputs (what it reviews)
 
@@ -25,7 +27,7 @@ Read these as the review target:
 
 - **`.forge/plan.md`** — the intent, requirements, and design (the standard the work is judged against).
 - **`.forge/run.md`** — plan-vs-actual divergences (where the executor already noticed friction).
-- **The current working-tree changes** — `git diff` (tracked) **plus untracked files**. forge does not force commits, so right after fg-run the work is usually uncommitted; this diff is the actual artifact to attack. (For a parked `executed/<slug>` task whose changes were already committed, fall back to the plan's work scope.)
+- **The current working-tree changes** — `git diff` (tracked) **plus untracked files**. forge does not force commits, so right after fg-run the work is usually uncommitted; this diff is the actual artifact to attack. (If the work was already committed, fall back to the most recent commit(s) for this task, or the plan's work scope.)
 - **Source of truth** — `.forge/CONTEXT.md` and the plan's referenced `.forge/adr/*` — the basis for judging "misread requirements" (a finding that the work contradicts a documented term or decision is far stronger than a vague worry).
 
 ## The six lenses
@@ -81,8 +83,8 @@ Do not chain into the next skill yourself (chaining is `fg-next`'s job — ADR-0
 fg-adversarial-review
    │
    ▼
-run.md present (active slot) or executed/<slug> parked?
-   │ no  ──▶ "nothing to review" → point to fg-run → stop
+active-slot run.md present?
+   │ no  ──▶ "nothing to review" → point to fg-run (parked task → unpark first) → stop
    │ yes
    ▼
 Gather inputs (plan · run.md · git diff+untracked · CONTEXT/ADR)

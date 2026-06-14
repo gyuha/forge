@@ -7,17 +7,21 @@
 # its output, then appends the forge progress fragment as a separate row below
 # — only when the fragment is non-empty, so an idle forge adds no blank row.
 #
-# It is fully generic (no per-install substitution): the original-command file
-# and the fragment both live at fixed paths under the Claude config dir, so
-# fg-statusline simply COPIES this file (like the fragment) and writes your
-# original command into forge-statusline-orig.sh. See ADR-0017.
+# It is fully generic (no per-install substitution): the companion files
+# (forge-statusline-orig.sh and forge-statusline.sh) live in the SAME directory
+# as this wrapper, so fg-statusline simply COPIES this file (like the fragment)
+# and writes your original command into forge-statusline-orig.sh. See ADR-0017.
 #
 # To RESTORE your original-only statusline: set settings.json statusLine.command
-# back to the command preserved in <claude-config-dir>/forge-statusline-orig.sh.
+# back to the command preserved in <install-dir>/forge-statusline-orig.sh.
 
 set -u
 
-CLAUDE_DIR="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+# Resolve companions from this script's OWN install directory, not from
+# $CLAUDE_CONFIG_DIR — the statusLine process may not export that env var, and a
+# runtime dependence on it would silently blank the whole statusline in a custom
+# config-dir setup (ADR-0017). The companions are copied next to this wrapper.
+CLAUDE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Capture the session JSON once, then feed the SAME bytes to both commands so
 # each resolves the project cwd identically.
