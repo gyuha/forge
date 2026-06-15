@@ -1,6 +1,12 @@
 # Changelog
 
-## [0.4.13] - 2026-06-15
+## [0.4.14] - 2026-06-15
+
+### Added
+- **fg-doctor — 상태·문서 무결성 health check(루프 밖, ADR-0019).** harness engineering(walkinglabs/learn-harness-engineering)의 `init.sh` health check를 forge에 적용한 루프 밖 읽기 전용 유틸리티. forge의 상태 계약은 손편집 Markdown이라 조용히 깨질 수 있는데(고아 `run.md`·STATUS 필드 손상·slug 페어링 불일치·half-sealed `done/`·매니페스트 버전 drift·README 이중언어 어긋남·CLAUDE.md 스킬 목록 누락) 이를 능동 검증하는 메커니즘이 없었다. fg-doctor가 `.forge/` 상태 계약(6항목)과 문서/매니페스트 정합(7항목)을 검사해 위반을 severity(error/warning/info)·actionable 수정 안내와 함께 보고한다. 검출·보고 전용(자동 수정 안 함)·on-demand(자동 호출 안 함)·읽기 전용. 검사 group별 FORGE-ROOT 처리(group A 휘발=branch root, B13 ADR=top-level+branch 오버레이). fg-status는 "어디까지 했나", fg-doctor는 "상태가 건강한가" — 책임 분리. 스킬 15→16(루프 밖 11→12).
+
+### Fixed
+- **CLAUDE.md의 fg-statusline 누락 보완.** 루프 밖 스킬 목록에 fg-statusline(ADR-0017)이 빠져 있던 것을 fg-doctor 추가와 함께 보완 — 이제 16개 스킬 전부 CLAUDE.md에 등재(fg-doctor의 CLAUDE.md 스킬 목록 완전성 검사로 입증).
 
 ### Fixed
 - **Codex 적대적 리뷰 findings 2건 수정.** (1) **[high]** `fg-adversarial-review`가 parked `executed/<slug>` 작업을 리뷰할 때 findings를 항상 활성 슬롯 `.forge/review.md`·STATUS에 기록해 엉뚱한 작업에 붙거나 아카이브에 안 따라가던 결함 → **활성 슬롯 전용**으로 좁혀 제거(ADR-0018 개정, parked는 fg-run unpark 후 리뷰, per-task `review.md` 경로는 기각). (2) **[medium]** `scripts/forge-statusline-wrapper.sh`가 동반 파일을 런타임 `${CLAUDE_CONFIG_DIR:-$HOME/.claude}`로 찾아 custom config dir(그 변수 미export) 환경에서 statusline 전체가 공백되던 결함 → 래퍼 **자기 스크립트 위치(`BASH_SOURCE`)** 해석으로 제거(ADR-0017 개정, generic wrapper 설계 유지). custom config dir 회귀 테스트 추가(`forge-statusline-wrapper.test.sh` — wrapper 7/0, fragment 19/0).
