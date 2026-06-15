@@ -20,6 +20,8 @@ It **writes nothing** and **never auto-fixes** — it surveys, classifies each f
 
 Explore with read-only tools (Read, Grep, Glob, Bash) and report. Do **not** edit any file. Work through the two check groups below, collect findings, then print the report. Each check names what to read and what counts as a violation.
 
+**STATUS field format — match both forms.** STATUS.md fields appear in two shapes across history: recent files use plain `field: value` (e.g. `status: done`), while **legacy `done/` files (sealed before ~2026-06-12) use a dash list — `- field: value`** (e.g. `- status: done`). Every STATUS check that reads a field (A2, A3, A4, A6) MUST accept both — match the field name allowing an optional leading `- `, e.g. `grep -E '^[[:space:]]*-?[[:space:]]*status:[[:space:]]*done'`, never a strict `^status:`. A strict plain-only pattern falsely flags every legacy `done/` as half-sealed (A4) or missing-field (A2) — that is a checker bug, not a real violation.
+
 ## Check group A — state-contract integrity (`.forge/`)
 
 1. **Active-slot single & no orphans.** `.forge/plan.md` is 0 or 1 file. If `.forge/run.md` or `.forge/STATUS.md` exists, `.forge/plan.md` must also exist (an orphaned `run.md`/`STATUS.md` with no plan is a violation — **error**). Read the slot files' presence.
