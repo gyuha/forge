@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 74d8c840911bb14b4600e1618d678af158d1ce69
-mapped: 2026-06-14
+last_mapped_commit: 415041c8bf7ed6eca4f330cb1045acd946becfd7
+mapped: 2026-06-15
 ---
 
 # Architecture
@@ -36,11 +36,12 @@ fg-ask → backlog/<slug>.md 적재
 
 ## Outside-the-loop utilities
 
-이 4단계에 속하지 않는 11개 스킬. 루프 모양을 바꾸지 않고 보조한다.
+이 4단계에 속하지 않는 12개 스킬. 루프 모양을 바꾸지 않고 보조한다.
 
 - **fg-map** (`skills/fg-map/SKILL.md`) — 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`의 구조화 문서로 매핑(이 문서를 생성하는 스킬). 그릴링이 코드 재탐색 대신 지도를 읽게 해 context rot을 줄인다.
 - **fg-quick** (`skills/fg-quick/SKILL.md`) — trivial 작업용 경량 차선. 그릴링은 유지(기둥 1)하되 형식 산출물을 만들지 않고 `.forge/quick/LOG.md`에 한 줄만 기록한 뒤 직접 실행. 메인 루프의 활성 슬롯·backlog·done을 일절 안 건드린다. 비-trivial로 드러나면 fg-ask로 bail(ADR-0003).
-- **fg-status** (`skills/fg-status/SKILL.md`) — 읽기 전용 상태 리포터. `.forge/`를 조사해 현황+다음 단계를 출력하고 아무것도 쓰지 않으며 다음 단계를 자동 실행하지 않는다.
+- **fg-status** (`skills/fg-status/SKILL.md`) — 읽기 전용 상태 리포터. `.forge/`를 조사해 현황+다음 단계("어디까지 했나")를 출력하고 아무것도 쓰지 않으며 다음 단계를 자동 실행하지 않는다.
+- **fg-doctor** (`skills/fg-doctor/SKILL.md`) — 읽기 전용 무결성 health check. `.forge/` 상태 계약과 영속 문서/매니페스트 정합을 검사해 위반을 severity(error/warning/info)와 항목별 actionable 수정 안내와 함께 보고한다("상태가 건강한가"). 손으로 편집되는 Markdown이 조용히 깨지는 부류(고아 run.md·STATUS 필드 손상·slug 페어링 불일치·half-sealed done/·매니페스트 버전 3곳 drift·README 이중언어 어긋남·CLAUDE.md 스킬 목록 누락)를 잡는다. **아무것도 쓰지 않고 자동 수정·자동 실행을 하지 않으며**, 수정은 사람이 fg-quick(trivial)/fg-ask(non-trivial)로. forge의 `init.sh` health check 대응물(ADR-0019).
 - **fg-next** (`skills/fg-next/SKILL.md`) — fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행하는 오케스트레이터. 기본 one-shot, 자체적으로는 아무것도 쓰지 않음(위임 스킬이 모든 쓰기). `all` 모드는 백로그가 빌 때까지 선형 기계 단계를 자동 추천 진행하며 회고는 항상 자동 skip, 대화의 벽에서만 멈춘다(ADR-0010).
 - **fg-loop** (`skills/fg-loop/SKILL.md`) — goal 주도 한정 재계획 루프. 기초 질의로 기계 검증 가능한 정지 체크·승인된 fix-forward 재계획 범위·상한(기본 3라운드)을 `.forge/loop.md`에 못 박고 초기 백로그를 적재한 뒤, 체크 전부 통과까지 run→UAT→회고 자동 skip→봉인을 무인 주행. `## Tasks` 멤버십 목록에 등재된 slug만 승격(ADR-0016).
 - **fg-adversarial-review** (`skills/fg-adversarial-review/SKILL.md`) — fg-run과 fg-learn 사이 선택적 적대적 리뷰. "결과가 틀렸다고 가정하고 증거를 찾는" 자세로 6개 렌즈(실패 지점·숨은 가정·요구사항 오해·보안/성능/데이터 손실·예상 못한 오용·약한 근거)를 Dynamic Workflow 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록. **리뷰 대상은 활성 슬롯 작업 전용**(parked `executed/<slug>/`는 대상 아님 — 원하면 fg-run unpark로 활성 슬롯에 올린 뒤 리뷰). 사람 승인 시 fix-needed를 fix-forward plan으로 만들어 재실행. 선택적이며 봉인 게이트가 아니고 무인 주행에선 항상 자동 skip(ADR-0018, ADR-0007과 보완 관계).
@@ -49,6 +50,8 @@ fg-ask → backlog/<slug>.md 적재
 - **fg-tdd** (`skills/fg-tdd/SKILL.md`) — 영속 TDD 모드 토글(`.forge/config.json`의 `tdd`). fg-ask가 작업마다 기본 답으로 묻고, plan의 `<!-- tdd: on -->`이면 fg-run이 test-first 실행(ADR-0008).
 - **fg-eco** (`skills/fg-eco/SKILL.md`) — 위임 모델 티어링 토글(`.forge/config.json`의 `eco`). 켜면 fg-run이 위임 워크플로우 서브에이전트를 sonnet으로 캡(내리기만, 세션 모델 불변; ADR-0014).
 - **fg-statusline** (`skills/fg-statusline/SKILL.md`) — 자기완결 bash 조각 스크립트(`scripts/forge-statusline.sh`)를 설치하고 `settings.json`에 연결해 statusline에 루프 진행 상태(활성 작업·단계, goal-loop 인디케이터, 백로그 수) 한 줄을 표시. Claude Code는 statusLine을 하나만 허용하므로 기존 statusLine을 대체하지 않고 자동 래핑(`scripts/forge-statusline-wrapper.sh`)해 추가 행으로 붙인다(ADR-0017).
+
+**상태를 읽는 스킬은 둘이며 관심사가 다르다(ADR-0019).** fg-status는 *"어디까지 했나"*(진행 상황 + 다음 단계)를, fg-doctor는 *"상태가 건강한가"*(무결성 위반)를 답한다. 둘 다 읽기 전용이지만 fg-status는 진행을 보고하고 fg-doctor는 손상을 검출한다 — 섞으면 단일 책임이 흐려지므로 의도적으로 분리했다. 다만 `.forge/` 상태 계약을 바꾸면 양쪽의 검사/보고를 함께 고려해야 한다.
 
 ## State contract (volatile `.forge/` state — git-untracked)
 
@@ -65,6 +68,8 @@ fg-ask → backlog/<slug>.md 적재
 | `.forge/done/<날짜-slug>/` (+`STATUS.md`, `status: done`) | fg-done | fg-ask(slug 충돌)·fg-run(완료 판별)·fg-learn(회고 제외)·fg-done(이중 봉인 방지) |
 | `.forge/loop.md` (goal 계약) | fg-loop | fg-loop(재개·멤버십 필터)·fg-status·fg-ask(벽 경고)·fg-next(all 양보)·fg-merge(in-flight halt) |
 | `.forge/quick/LOG.md` | fg-quick | (없음 — 한 줄 로그) |
+
+위 휘발 상태 + 아래 영속 문서/매니페스트는 모두 **fg-doctor의 무결성 검사 대상**이다(읽기만, 수정 안 함 — ADR-0019).
 
 핵심 불변식:
 - **활성 슬롯은 항상 1개** — 한 plan.md = 한 run.md = 한 봉인. 백로그는 미실행 대기열, `executed/`는 "실행됐으나 미회고"의 명시 상태. plan 첫 줄 `<!-- forge-slug: ... -->`가 회고·봉인 짝 맞춤 식별자(파일 이동에도 영속).
@@ -100,7 +105,7 @@ run → STATUS verified:?
 휘발 상태와 같은 `.forge/` 지붕 아래 있지만 이들은 **영속이며 루프의 "연료"**다. `.gitignore`가 `.forge/*`를 기본 제외하되 영속 문서만 화이트리스트로 되살려 추적한다(`!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json` · `!.forge/branch/`). 구분은 위치가 아니라 git 추적 여부. 전부 lazy 생성.
 
 - **`.forge/CONTEXT.md`** / 루트 `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신. 멀티 컨텍스트만 예외(컨텍스트별 `CONTEXT.md`는 `src/<context>/`에, `CONTEXT-MAP.md`는 루트에).
-- **`.forge/adr/NNNN-slug.md`** — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만. 현재 활성 ADR은 `0001`~`0018`(`.forge/adr/`), 은퇴 ADR은 `.forge/adr/retired/`.
+- **`.forge/adr/NNNN-slug.md`** — 아키텍처 결정. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만. 현재 활성 ADR은 `0001`~`0019`(`.forge/adr/`), 은퇴 ADR은 `.forge/adr/retired/`.
 - **`.forge/retro/YYYY-MM-DD-slug.md`** — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
 - **`.forge/codebase/*.md`** — fg-map이 생성하는 코드베이스 지도. fg-ask가 그릴링 전 읽어 context rot을 줄인다(이 문서가 그 일부).
 
@@ -115,6 +120,7 @@ run → STATUS verified:?
 - **추적 비대칭** — 기본 브랜치의 휘발 상태는 gitignored, 비-기본 브랜치의 루트는 통째로 git 추적(`.gitignore`가 `!.forge/branch/`로 화이트리스트). 경로가 브랜치별 네임스페이스되어 두 브랜치가 같은 파일을 안 건드리므로 머지 충돌이 없다.
 - **읽기 오버레이** — 비-기본 브랜치에서 영속 그릴링 연료(`CONTEXT.md`·`adr/`·`retro/`) 읽기는 브랜치 루트를 최상위 `.forge/` 위에 오버레이(둘 다 읽고 브랜치가 충돌 시 우선). 쓰기는 브랜치 루트에만. ADR 번호는 브랜치 루트 `max+1`(fg-merge가 통합 시 재부여).
 - **통합** — `git merge` 뒤 fg-merge가 `.forge/`에 통합(git 조작 없음).
+- **fg-doctor의 그룹별 루트 적용** — fg-doctor는 FORGE-ROOT를 검사 그룹마다 다르게 적용한다(ADR-0019). (a) 휘발 상태 검사(그룹 A)는 **해석된 브랜치 루트만** 읽는다 — 휘발 상태는 브랜치-로컬이라 다른 브랜치 슬롯을 검사하면 틀린다. (b) 영속 문서 ADR 무결성 검사(그룹 B13)는 비-기본 브랜치에서 **FORGE-ROOT 읽기 오버레이**(최상위 + 브랜치 루트, 충돌 시 브랜치 우선)를 읽는다 — 브랜치 루트만 보면 브랜치 ADR이 최상위 ADR을 참조한 교차참조를 거짓으로 dangling 처리한다. (c) 리포 루트 검사(매니페스트·README·CLAUDE.md·`skills/`)는 브랜치 무관이다.
 
 ## Design principles (two pillars)
 
@@ -127,5 +133,6 @@ run → STATUS verified:?
 
 - **새 작업 시작** → `fg-ask`(루프 진입점). trivial이면 `fg-quick`.
 - **상태 모름·콜드 재진입** → `fg-next`("다음 것 그냥 해줘") 또는 읽기 전용 `fg-status`.
+- **상태 무결성 점검** → `fg-doctor`(읽기 전용 health check, 수정은 fg-quick/fg-ask로).
 - **goal 충족까지 무인 주행** → `fg-loop`.
 - **설치** — `/plugin marketplace add gyuha/forge` → `/plugin install forge@forge`. 설치는 GitHub 기본 브랜치(main)를 당기므로 설치 테스트하려면 main에 push되어 있어야 한다.

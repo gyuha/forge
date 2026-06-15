@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 74d8c840911bb14b4600e1618d678af158d1ce69
-mapped: 2026-06-14
+last_mapped_commit: 415041c8bf7ed6eca4f330cb1045acd946becfd7
+mapped: 2026-06-15
 ---
 
 # Structure
@@ -14,7 +14,7 @@ forge/
 ├── .claude-plugin/          매니페스트 (플러그인 + 마켓플레이스)
 │   ├── plugin.json          플러그인 매니페스트 (skills/ 자동 탐색 → skills 필드 생략 가능)
 │   └── marketplace.json     이 리포를 마켓플레이스로 등록 (plugins[].source = "./")
-├── skills/                  fg-* 워크플로우 스킬 (15개) — skills/<name>/SKILL.md 자동 탐색
+├── skills/                  fg-* 워크플로우 스킬 (16개) — skills/<name>/SKILL.md 자동 탐색
 ├── scripts/                 statusline용 bash 스크립트 + 테스트 (4개)
 ├── .forge/                  휘발 상태 + 영속 문서 (자기 자신의 forge 루프 상태)
 ├── docs/                    부가 산문 문서 (forge-vs-loop-engineering.md)
@@ -35,11 +35,11 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 - `.claude-plugin/plugin.json` — 플러그인 매니페스트. `version`, `description`(전체 스킬 목록 담음). `skills/`가 자동 탐색되므로 `skills` 필드는 생략.
 - `.claude-plugin/marketplace.json` — `metadata.description`(루프 정의 태그라인 — 루프 밖 유틸리티는 넣지 않음)·`metadata.version`·`plugins[0]`(`source: "./"`, `description`, `version`).
 
-**버전은 3곳을 동기 갱신**: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`. 현재 모두 `0.4.12`.
+**버전은 3곳을 동기 갱신**: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`. 현재 모두 `0.4.13`.
 
-**두 description의 역할 차이** — `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→done)를 정의하는 한 줄 태그라인이라 루프 밖 유틸리티를 넣지 않는다. `plugins[].description`과 `plugin.json`의 `description`은 전체 15개 스킬 목록을 담으므로 루프 밖 스킬도 반영한다.
+**두 description의 역할 차이** — `marketplace.json`의 `metadata.description`은 루프(ask→execute→retro→done)를 정의하는 한 줄 태그라인이라 루프 밖 유틸리티를 넣지 않는다. `plugins[].description`과 `plugin.json`의 `description`은 전체 16개 스킬 목록을 담으므로 루프 밖 스킬도 반영한다.
 
-## `skills/` — the 15 skills
+## `skills/` — the 16 skills
 
 스킬은 `skills/<name>/SKILL.md`로 자동 탐색된다. **스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name`**이다(현재 모든 디렉터리에서 디렉터리명 == frontmatter name으로 일치). SKILL.md 본문·형식 문서(`*-FORMAT.md`)는 **영문**으로 작성하되, 스킬이 **사용자에게 출력하는 언어는 사용자 언어**를 따른다.
 
@@ -52,13 +52,14 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 | `skills/fg-learn/` | `fg-learn` | ③회고·문서 승급 | `RETRO-FORMAT.md` |
 | `skills/fg-done/` | `fg-done` | ④봉인·재실행 가드 | (없음) |
 
-루프 밖 11개(모두 `SKILL.md` 단일 파일, 부속 파일 없음):
+루프 밖 12개(모두 `SKILL.md` 단일 파일, 부속 파일 없음):
 
 | 디렉터리 | frontmatter name | 역할 |
 | --- | --- | --- |
 | `skills/fg-map/` | `fg-map` | 코드베이스 → `.forge/codebase/` 매핑 (이 문서 생성) |
 | `skills/fg-quick/` | `fg-quick` | trivial 작업 경량 차선 (형식 산출물 없음) |
-| `skills/fg-status/` | `fg-status` | 읽기 전용 상태 리포터 |
+| `skills/fg-status/` | `fg-status` | 읽기 전용 상태 리포터 ("어디까지 했나" — 진행+다음 단계) |
+| `skills/fg-doctor/` | `fg-doctor` | 읽기 전용 무결성 health check ("상태가 건강한가" — 위반 검출·보고, ADR-0019) |
 | `skills/fg-next/` | `fg-next` | 다음 단계 도출·실행 오케스트레이터 (+`all` 모드) |
 | `skills/fg-loop/` | `fg-loop` | goal 주도 한정 재계획 무인 루프 |
 | `skills/fg-adversarial-review/` | `fg-adversarial-review` | 선택적 적대적 리뷰 (run↔learn 사이, 활성 슬롯 전용) |
@@ -75,7 +76,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 - `skills/fg-ask/CONTEXT-FORMAT.md` — CONTEXT.md(글로서리) 형식. grill-with-docs 원본 verbatim.
 - `skills/fg-ask/ADR-FORMAT.md` — ADR 형식. grill-with-docs 원본 verbatim.
 - `skills/fg-run/PLAN-FORMAT.md` — plan.md 형식 + 분할 규칙. 생산자는 fg-ask지만 fg-ask 디렉터리가 verbatim 영역이라 소비자(fg-run) 쪽에 둠.
-- `skills/fg-run/FORGE-ROOT.md` — 브랜치별 forge 루트 해석 규칙의 단일 정의(ADR-0011). 모든 루프 스킬이 참조.
+- `skills/fg-run/FORGE-ROOT.md` — 브랜치별 forge 루트 해석 규칙의 단일 정의(ADR-0011). 모든 루프 스킬 + fg-doctor가 참조.
 - `skills/fg-run/RUN-ALL.md` — Run all 배치 실행 규약.
 - `skills/fg-learn/RETRO-FORMAT.md` — 회고 형식.
 
@@ -97,7 +98,7 @@ fg-statusline이 설치하는 자기완결 bash 스크립트와 그 테스트. f
 이 리포는 자기 자신의 forge 루프를 돌린다. `.gitignore`가 `.forge/*`를 기본 제외하되 영속 문서만 화이트리스트로 추적한다.
 
 영속(git 추적):
-- `.forge/adr/NNNN-slug.md` — 아키텍처 결정. 현재 `0001`~`0018`.
+- `.forge/adr/NNNN-slug.md` — 아키텍처 결정. 현재 `0001`~`0019`.
   - `.forge/adr/retired/` — fg-cleanup이 은퇴시킨 ADR(번호 불변, 삭제 안 함).
 - `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그.
 - `.forge/codebase/*.md` — fg-map 생성 코드베이스 지도(이 문서가 그 일부).
@@ -128,3 +129,4 @@ fg-statusline이 설치하는 자기완결 bash 스크립트와 그 테스트. f
 - 매니페스트 JSON 유효성 — 위 node 한 줄.
 - 스킬 frontmatter `name` 누락 검사 — `for f in skills/*/SKILL.md; do awk '/^name:/' "$f"; done`.
 - statusline 스크립트만 `*.test.sh` 보유(fixture 기반). 그 외 실제 동작은 설치해서 트리거해보는 것뿐(단위 테스트 없음).
+- **상태·문서 무결성 검사** — `fg-doctor`(읽기 전용 스킬)가 위 전부와 매니페스트 버전 sync·README 이중언어·CLAUDE.md 스킬 목록 완전성을 on-demand로 검사·보고한다(ADR-0019).
