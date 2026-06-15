@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.16] - 2026-06-15
+
+### Added
+- **fg-doctor에 retro 페어링 정합 검사 추가.** A3(Slug pairing)을 확장해 "retro 파일 존재 ↔ STATUS `retro:` 필드" 정합을 검출한다 — (a) `retro:`가 경로인데 파일 없음 → error, (b) `done/` STATUS가 `retro: pending` → warning(봉인 close-out 누락), (c) active/executed에서 retro 파일 존재 + `retro: pending`은 정상(pre-seal). 상태 판정 규칙이 fg-status·fg-learn·fg-done 3곳에 중복 서술돼 드리프트 시 흐름이 꼬일 위험을, fg-doctor가 능동 검출하도록 예방(ADR-0019 범위 내).
+
 ## [0.4.15] - 2026-06-15
 
 ### Fixed
