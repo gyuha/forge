@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.17] - 2026-06-15
+
+### Fixed
+- **fg-doctor의 legacy STATUS 대시 형식 오탐 수정.** A2/A4 등 STATUS 검사가 평문 `status:`만 가정해, legacy `done/`의 대시 리스트 형식(`- status:`)을 읽지 못하고 done/ 31개를 half-sealed로 오탐했다(첫 실전 dogfooding에서 노출). "How it runs"에 STATUS 필드가 `field:`(평문)·`- field:`(대시) 두 형식으로 존재하며 전 STATUS 검사(A2/A3/A4/A6)가 optional `- ` prefix를 허용해야 함을 명시 — 오탐 제거.
+
 ## [0.4.16] - 2026-06-15
 
 ### Added
