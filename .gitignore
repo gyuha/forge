@@ -14,5 +14,7 @@
 .planning/
 !.planning/codebase/
 
+.omx
+
 # macOS 정크
 .DS_Store
