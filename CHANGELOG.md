@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.19] - 2026-06-18
+
+### Added
+- **fg-drop 신설 (17번째 스킬, 루프 밖 유틸리티) — 미완 작업 폐기 차선.** 봉인 안 된 작업(backlog plan·활성 슬롯·`executed/` 회고 대기·멈춘 goal `loop.md`)을 항목별 위험도와 함께 제시(≤4 체크박스/≥5 번호 텍스트 목록)한 뒤, 별도 후속 질문으로 **하드 삭제(기본·흔적 없음)** 또는 **`.forge/dropped/` 보관**을 고르게 하고, 불가역 삭제 전 확인 게이트에서 "이미 실행된 작업의 바뀐 코드는 되돌리지 않음"을 경고한다. forge 상태만 지우고 git·코드는 안 건드린다. goal 루프는 통째로만 drop하고 멤버 task는 개별 제외. `.forge/dropped/`는 휘발(gitignore)이라 fg-doctor는 관용·fg-status는 무시 (ADR-0021).
+
+### Changed
+- **README를 골격만 남기고 상세를 `docs/`로 분리.** `docs/skills.md`(스킬별 상세)·`docs/state-contract.md`(상태 계약) 신설, README.md 148→85·README.ko.md 147→84줄로 슬림화, 이중언어 동기 유지.
+- fg-doctor가 `.forge/dropped/` 버킷을 관용(고아·half-sealed 오탐 안 함).
+- 매니페스트 스킬 카운트 "Sixteen→Seventeen / Twelve→Thirteen more" 갱신.
+
 ## [0.4.18] - 2026-06-16
 
 ### Changed
