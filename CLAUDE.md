@@ -106,11 +106,16 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
    ```
 
    파일이 없으면 `# Changelog` 헤더와 함께 새로 만든다(lazy 생성).
-2. **버전 범프** — 기본은 **patch**. 사용자가 "배포 minor" / "배포 major"라고 지정하면 그에 따른다. 버전은 **3곳을 반드시 동기 갱신**한다: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`.
-3. **검증** — 매니페스트 JSON 유효성 확인(위 node 한 줄).
-4. **commit & push** — `chore(release): vX.Y.Z` 형식으로 커밋하고 `main`에 push한다(설치는 main을 당기므로 push까지가 배포다).
+2. **README·docs 갱신 (이번 릴리스 작업 내용 반영)** — 이번 릴리스에 담긴 변경에 맞춰 사용자 문서를 동기화한다:
+   - **`README.md`** — 스킬 카탈로그·개수·역할·흐름 등 바뀐 내용을 반영하고, **반드시 `README.ko.md`도 같은 변경으로 함께 갱신**한다(이중언어 동기 — 위 "README 이중 언어 동기화" 규약).
+   - **`docs/`** — 변경과 관련된 문서를 갱신한다: 스킬 추가·변경이면 `docs/skills.md`, 상태 계약·디렉터리·게이트 변경이면 `docs/state-contract.md`, 그 외 해당 문서(`docs/forge-vs-loop-engineering.md` 등).
+   - 이 갱신은 **기능 작업의 일부이므로 `feat` 커밋에 포함**한다(릴리스 커밋은 아래 CHANGELOG+버전 범프만 — step 5). 미커밋 변경이 곧 릴리스 내용인 정상 흐름(아래 불릿)에서는 README·docs 갱신도 그 feat 커밋에 함께 들어간다.
+   - 바뀐 게 사용자 문서에 영향이 없으면(예: 내부 리팩터만) 이 단계는 건너뛴다 — 억지로 만들지 않는다.
+3. **버전 범프** — 기본은 **patch**. 사용자가 "배포 minor" / "배포 major"라고 지정하면 그에 따른다. 버전은 **3곳을 반드시 동기 갱신**한다: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`과 `plugins[0].version`.
+4. **검증** — 매니페스트 JSON 유효성 확인(위 node 한 줄). README 이중언어·docs 갱신이 빠진 게 없는지도 함께 점검한다(필요하면 `fg-doctor`).
+5. **commit & push** — `chore(release): vX.Y.Z` 형식으로 커밋하고 `main`에 push한다(설치는 main을 당기므로 push까지가 배포다).
 
-절차 흐름: `CHANGELOG.md 작성 → 버전 3곳 범프 → JSON 검증 → commit → push`
+절차 흐름: `CHANGELOG.md 작성 → README(이중언어)·docs 갱신 → 버전 3곳 범프 → JSON 검증 → commit → push`
 
 **배포 후 "설치 테스트":** `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행 못 한다(사용자가 직접 침). 에이전트가 검증할 수 있는 건 설치 전제뿐 — `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 main의 버전 3곳을, `awk '/^name:/'`로 `skills/*/SKILL.md`의 frontmatter `name`(자동 탐색 대상) 누락 여부를 확인한다.
 

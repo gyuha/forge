@@ -57,3 +57,11 @@ Addy Osmani의 Loop Engineering 검토(`docs/forge-vs-loop-engineering.md`)에�
 **결정**: `loop.md`에 **`## Check progress` 원장**(체크별 result·`×N` 연속 무진전 횟수·last-evidence·tried slug)과 상단 **`wall:` 필드**(멈춤 정확 원인)를 추가한다. fg-loop은 매 stop-condition 실행 후 원장을 갱신하고, no-progress 벽은 in-session 기억이 아니라 **원장의 `×N ≥ 2`**로 판정하며, 벽에서 `wall:`을 채운다. fg-status는 이 필드들을 읽어 "왜 멈췄는지"(어느 체크·몇 회 무진전·증거)를 보고하므로 맨 "fg-loop 재개" 반복이 사라진다.
 
 **불변**: 드라이브 순서·cap·replan 범위·walls 집합·ADR-0009는 그대로. 이번 변경은 기존 no-progress 벽이 stateless 재개에서 *실제로 작동하도록* 필요한 상태를 영속화하는 additive 보강이다(로직 신설 아님).
+
+## 개정 (2026-06-18, 2차) — Reflexion: 실패 언어화 → 다음 fix-forward에 주입
+
+[How to build a Claude loop](https://gaodalie.substack.com/p/how-to-build-a-claude-loop-engineering)의 Reflexion 패턴(실패를 자연어로 언어화해 다음 시도에 사용)을 fg-loop에 도입한다. 동기: 직전 개정의 `## Check progress` 원장은 무진전을 `×N`으로 *세기만* 할 뿐, 실패한 fix-forward의 "왜 실패했고 다음엔 무엇을 다르게"를 보존·주입하지 않아, 다음 fix-forward가 같은 접근을 반복하다 벽에 부딪혔다(반복 정체 모드). 참고 글의 나머지 기법(worktree 병렬·cron·MCP 커넥터·Generator/Evaluator/Planner 3역할·별도 SKILL.md/loop_system.md)은 forge가 이미 갖췄거나(파일 메모리·stop+cap·진행추적·UAT·docs 연료) 순차·오케스트레이션 전용 개념에서 벗어나므로 **의도적으로 배제**하고 Reflexion 하나만 차용한다.
+
+**결정**: `## Check progress` 원장의 각 체크에 **`reflection:` 한 줄**(왜 직전 접근이 evidence를 못 움직였나 + 다음엔 무엇을 *다르게*)을 추가한다. fix-forward 생성은 그 체크의 `tried`+`reflection`을 먼저 읽고 **이미 시도한 접근의 반복이 아닌 다른 접근**의 plan을 만든다(첫 실패엔 reflection 없음 → 평소대로; 2번째 시도부터 작동; `verified: failed` fix-forward에도 적용). no-progress 벽 임계값(×2 unchanged-evidence)은 불변이나 의미가 격상된다 — "같은 접근 반복"이 아니라 "서로 다른 접근들이 모두 무진전"; 벽 보고에 reflection을 포함한다. reflection이 "범위 밖 수정이 필요"로 결론나면 cap 소진 전 **fork 벽 조기 발동**.
+
+**경계(불변)**: `reflection`은 loop.md에 사는 **드라이브 내 휘발 작업기억** — goal 충족 시 loop.md와 함께 삭제되며 **회고(retro)가 아니다.** 영속 학습 승급은 종전대로 run.md → 사람 fg-learn(ADR-0010 불변). 임계값·cap·authorized replan 범위·walls 집합·ADR-0009도 전부 불변 — Reflexion은 범위 내 fix-forward의 *질*을 높일 뿐 권한을 넓히지 않는다.
