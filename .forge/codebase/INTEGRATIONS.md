@@ -1,47 +1,50 @@
 ---
-last_mapped_commit: b3b267b7da443c3fbb0ca093c4fc4221a70ef7ab
-mapped: 2026-06-14
+last_mapped_commit: 54877b368a1025c44da1e1ca669880c2f955ac45
+mapped: 2026-06-18
 ---
 
-# INTEGRATIONS
+# INTEGRATIONS.md — forge의 외부 접점
 
-forge의 외부 접점은 세 가지뿐이다: 호스트인 **Claude Code**, 배포·설치 경로인 **GitHub 기반 플러그인 마켓플레이스**, 그리고 상태 경로 해석과 스크립트가 쓰는 **git**이다. 데이터베이스·인증 공급자·웹훅·외부 API·메시지 큐 같은 통합은 **존재하지 않는다**(매핑 시점 기준 확인). forge는 자기 리포의 파일시스템(`.forge/`)과 호스트만 읽고 쓴다.
+forge는 외부 시스템과의 통합이 거의 없는 자기완결 플러그인이다. 네트워크 API 호출, 데이터베이스, 외부 서비스, MCP 서버 의존이 **하나도 없다**. 실제 외부 접점은 Claude Code 호스트 자체와의 인터페이스뿐이다. 아래가 전부이며, 빈약해 보인다면 그것이 정확한 현실이다 — 패딩하지 않았다.
 
-## Claude Code (host integration)
+## 1. Claude Code 플러그인/마켓플레이스 설치 메커니즘 (GitHub main을 당김)
 
-forge는 Claude Code 플러그인이며, 호스트와 세 가지 방식으로 맞물린다.
+forge는 Claude Code 플러그인 시스템에 두 매니페스트로 등록된다.
 
-- **스킬 자동 탐색** — 호스트가 `skills/<name>/SKILL.md`를 자동 탐색해 로드한다. 스킬 식별자는 디렉터리명이 아니라 **frontmatter의 `name` 필드**다. 매니페스트의 `skills` 필드는 생략 가능(자동 탐색이 처리). 배포 후 확인 항목 중 하나가 `awk '/^name:/'`로 frontmatter `name` 누락 여부를 보는 것이다.
-- **Dynamic Workflows** — `fg-run`이 정제된 plan을 Claude Code Dynamic Workflow로 실행한다. 워크플로우는 실행 중 사용자 입력을 못 받으므로 그릴링(fg-ask)은 절대 워크플로우 안에 넣지 않고 본 세션 대화로 진행한다(설계 기둥 1). `fg-loop`·`fg-next all`·`fg-adversarial-review`도 위임 서브에이전트/워크플로우 패턴을 쓴다.
-- **statusLine 통합** — `settings.json`의 `statusLine` 키로만 설정되는 호스트 기능이다(ADR-0017). 플러그인은 statusLine을 등록할 수 없고, statusLine 명령은 세션 JSON을 stdin으로 받아 텍스트를 출력하는 비대화형 셸 명령이라 스킬을 호출할 수 없다. 그래서 `fg-statusline` 스킬이 `scripts/forge-statusline.sh`(fragment)와 `scripts/forge-statusline-wrapper.sh`(합성 래퍼)를 Claude config 디렉터리(`$CLAUDE_CONFIG_DIR` 또는 `~/.claude`)의 안정적 절대 경로로 복사하고 `settings.json`을 그리로 가리키게 한다. 호스트가 statusLine을 하나만 허용하므로 기존 statusline은 대체하지 않고 원본을 `<CFG>/forge-statusline-orig.sh`로 보존한 뒤 래퍼가 그 출력 아래 forge 행을 덧붙인다. `${CLAUDE_PLUGIN_ROOT}`는 statusLine 셸에서 사용 불가(설치 경로가 업데이트마다 바뀜)하고 `~` 틸드 확장도 보장되지 않으므로, 설정에는 반드시 절대 경로를 쓴다. statusLine은 신뢰된 워크스페이스에서만 돌고 `disableAllHooks` 시 억제된다 — 호스트 동작이지 forge 통제가 아니다.
+- `.claude-plugin/marketplace.json` — `/plugin marketplace add gyuha/forge`로 이 리포를 마켓플레이스로 등록.
+- `.claude-plugin/plugin.json` — `/plugin install forge@forge`로 플러그인 설치.
 
-`fg-statusline`이 읽는 세션 JSON의 필드는 `cwd`(없으면 `workspace.current_dir`, 그것도 없으면 `$PWD` fallback)다. fragment는 이 값으로 프로젝트 디렉터리를 해석해 `cd`한 뒤 `.forge/`를 읽으므로, 호스트가 다른 디렉터리에서 statusLine을 실행해도 올바른 프로젝트를 표시한다.
+설치는 **GitHub 기본 브랜치(`main`)를 당긴다**. 따라서 설치/업데이트 테스트를 하려면 변경이 `main`에 push돼 있어야 한다(배포 = push까지). `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행할 수 없고, 에이전트가 검증 가능한 것은 설치 전제뿐이다 — `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`로 원격 `main`의 버전 3곳을 확인한다. 설치 경로는 업데이트마다 바뀐다(`~/.claude/plugins/cache/<hash>/`).
 
-## GitHub-based marketplace / install flow
+## 2. `${CLAUDE_PLUGIN_ROOT}` 참조 (스킬 간 형식 문서 공유)
 
-배포·설치 경로 전체가 GitHub에 묶여 있다.
+스킬 본문은 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 환경변수로 설치 위치를 해석해 형식 문서를 참조한다. 17개 SKILL.md 전부가 이 변수를 사용한다(`grep -rl CLAUDE_PLUGIN_ROOT skills/` 결과 = 전 스킬). 용례는 소유 스킬의 형식 문서를 가리키는 것이다 — 예: `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/PLAN-FORMAT.md`·`FORGE-ROOT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-learn/RETRO-FORMAT.md`. 형식 정의는 한 벌만 두고 복사하지 않는 단일 출처 원칙의 구현이다.
 
-- **마켓플레이스 등록** — `/plugin marketplace add gyuha/forge`(또는 로컬 경로). `.claude-plugin/marketplace.json`이 이 리포를 마켓플레이스로 선언하고 `plugins[].source = "./"`로 루트를 플러그인으로 가리킨다.
-- **설치는 main 브랜치를 당긴다** — `/plugin install forge@forge`는 GitHub 기본 브랜치(main)를 가져온다. 따라서 설치 테스트를 하려면 변경이 main에 push되어 있어야 한다("배포"의 마지막 단계가 main push인 이유).
-- **배포 검증 접점** — `/plugin install`·`/plugin marketplace update`는 대화형이라 에이전트가 실행 못 한다. 에이전트가 검증 가능한 것은 원격 상태뿐: `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 main의 버전 세 곳을 확인한다(GitHub raw 콘텐츠 엔드포인트가 유일한 네트워크 호출 접점).
+**중요한 제약**: `${CLAUDE_PLUGIN_ROOT}`는 스킬이 실행되는 메인 세션 컨텍스트에서만 가용하다. statusLine 셸에는 주입되지 않으므로(아래 3) statusline 스크립트는 이 변수를 쓸 수 없다.
 
-리포 메타데이터상 homepage·repository는 `https://github.com/gyuha/forge`다.
+## 3. settings.json 와이어링 (fg-statusline)
 
-## git
+`fg-statusline`이 유일하게 `settings.json`을 건드리는 스킬이다(`grep -rl settings.json skills/` = `fg-statusline`만). Claude Code의 statusLine은 플러그인이 등록할 수 없고 오직 `settings.json`의 `statusLine` 키로만 설정되며, 그 command는 세션 JSON을 stdin으로 받아 텍스트를 찍는 비-interactive 셸 명령이다(스킬을 호출할 수 없음). 그래서 forge는 실제 bash 스크립트를 출하한다.
 
-git은 두 곳에서 직접 쓰인다.
+- `scripts/forge-statusline.sh` — `.forge/`를 직접 읽어 한 줄 진행 상태를 찍는 display-only 조각(ADR-0017). fg-status의 다음-단계 우선순위 머신을 재현하지 않는다.
+- `scripts/forge-statusline-wrapper.sh` — 기존 statusLine을 보존하며 forge 조각을 별도 줄로 합성하는 래퍼.
 
-- **브랜치별 forge 루트 해석(ADR-0011)** — 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이고 모든 루프 스킬이 이를 참조한다(복붙 금지). `git rev-parse --abbrev-ref HEAD`로 현재 브랜치를 얻어, 기본 브랜치(`config.json`의 `defaultBranch`, 없으면 `main`)면 루트가 `.forge/`, 그 외면 `.forge/branch/<branch>/`다. detached HEAD나 비-git 리포면 `.forge/`로 fallback. `forge-statusline.sh`도 이 규칙을 자체 구현(`git rev-parse` + `sed`로 `defaultBranch` 추출)해 표시 대상 루트를 정한다.
-- **브랜치 통합** — `fg-merge`는 git을 직접 호출하지 **않는다**. 사용자가 먼저 `git merge`로 비-기본 브랜치의 네임스페이스 폴더를 기본 브랜치로 가져온 뒤, fg-merge가 `.forge/branch/<branch>/`를 `.forge/`로 통합한다(ADR 번호 재부여·retro 이동·CONTEXT 병합·done 합침·폴더 제거). git 조작은 사람 몫, forge는 파일 통합만.
+설치 동작(fg-statusline이 대화형으로 수행):
 
-배포 절차(commit & push)도 git/GitHub 접점이지만 이는 운영 흐름이지 코드 통합이 아니다.
+1. 두 스크립트를 안정 경로(`$CLAUDE_CONFIG_DIR` 또는 `~/.claude`, 이하 `<CFG>`)로 복사하고 `chmod +x`. 플러그인 캐시 경로가 업데이트마다 바뀌고 `${CLAUDE_PLUGIN_ROOT}`가 statusLine 셸에 없기 때문에 in-place 참조가 아니라 복사한다.
+2. `settings.json`의 `statusLine.command`를 **절대경로**로 기록(`~` 금지 — 호스트가 tilde 확장을 보장하지 않아 전체 statusline이 조용히 비는 클래식 실패 원인).
+3. statusLine은 하나뿐이라 기존 것을 교체하지 않고, 원본 command를 `<CFG>/forge-statusline-orig.sh`에 verbatim 보존한 뒤 래퍼를 가리켜 forge를 별도 줄로 래핑(ADR-0017).
 
-## Explicitly absent integrations
+스크립트는 stdin의 세션 JSON에서 `cwd`(없으면 `workspace.current_dir`, 그래도 없으면 `$PWD`)를 파싱해 프로젝트 디렉터리로 `cd`한 뒤 해석된 forge 루트(ADR-0011 브랜치 해석)를 읽는다. 적용은 Claude Code 재시작 후. 이 출력은 `.forge/` 루프 상태 밖, Claude 설정 디렉터리에만 쓴다.
 
-다음은 매핑 시점 기준 **존재하지 않는다**(있는 척 지어내지 않기 위해 명시):
+## 4. fg-status ↔ 결정적 상태 스크립트
 
-- 데이터베이스 없음 — 상태는 전부 `.forge/` 안의 평문 Markdown/JSON 파일.
-- 인증 공급자·OAuth·시크릿 관리 없음.
-- 웹훅·이벤트 콜백·메시지 큐 없음.
-- 외부 서비스 API 클라이언트 없음(GitHub raw fetch는 배포 검증용 read-only이고, 코드가 아니라 사람/curl이 친다).
-- 텔레메트리·분석·로깅 백엔드 없음.
+`fg-status`(와 fg-next)는 `scripts/forge-status.sh`를 호출해 `.forge/` 상태를 결정적으로 조사한다(ADR-0020). 이는 외부 통합이 아니라 리포 내부 스크립트 의존이지만, 셸 스크립트가 스킬 동작의 일부라는 점에서 기록한다. statusline 스크립트와 마찬가지로 `jq` 없이 동작한다.
+
+## 5. MCP / 외부 서비스
+
+**없다.** 스킬·스크립트 어디에도 MCP 서버 의존이나 외부 API 호출이 없다(`grep -ril mcp skills/`는 `docs/forge-vs-loop-engineering.md`의 산문 언급 한 건만 — 통합 아님). forge는 Claude Code의 Dynamic Workflow·서브에이전트 기능 위에서 동작하지만, 그것은 호스트가 제공하는 실행 기제이지 forge가 와이어링하는 외부 통합이 아니다.
+
+## 요약
+
+실질 외부 접점은 (1) GitHub `main` 기반 플러그인 설치, (2) 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 경로 참조, (3) fg-statusline의 `settings.json` 와이어링 셋뿐이다. 네트워크·DB·서드파티·MCP 의존은 0이다.
