@@ -7,6 +7,29 @@
 
 Planning happens as grill-with-docs-style conversational grilling, execution runs as a Claude Code Dynamic Workflow, the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log), and the done step tidies up the cycle's leftovers — seals the task so the same task never runs twice.
 
+## Quick start — you mostly only need three
+
+Seventeen skills look like a lot, but day to day you drive with **three**:
+
+```
+/fg-ask   →   /fg-run   →   /fg-next
+ (plan)       (execute)     (auto-continue: verify → retro/seal)
+```
+
+- **`/fg-ask`** — start *every* task here. It grills the plan with you, one question at a time.
+- **`/fg-run`** — runs the plan.
+- **`/fg-next`** — does the *one next step* for you (verify → retro or seal). Run it again to keep moving.
+
+**Even shorter** — plan once, then let it drive itself to completion:
+
+```
+/fg-ask   →   /fg-next all     (execute → verify → seal, looped until it needs you)
+```
+
+When you lose track: **`/fg-status`** just *shows* where you are; **`/fg-next`** just *does* the next thing. Tiny one-off change (typo, version bump)? **`/fg-quick`**. To ship the result: type **`배포` (deploy)**.
+
+Everything else in the catalog below is optional scaffolding — reach for it only when a specific need comes up. If you remember just one line: **`/fg-ask` then keep calling `/fg-next` (or `/fg-next all`).**
+
 ## Skill catalog
 
 The four loop stages, then the thirteen utilities outside the loop:
