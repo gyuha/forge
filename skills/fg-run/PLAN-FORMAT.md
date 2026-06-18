@@ -45,6 +45,8 @@ Documents are written in the user's language; the headings below are canonical E
 
 **The state contract one plan.md = one run.md = one sealing (fg-done) is invariant.** Do not split a *single* plan into phases run sequentially and accumulated into one run.md — that is incompatible with fg-run's re-run guard (a duplicate warning when run.md already exists). Whatever you write as one plan must be runnable end-to-end in one workflow.
 
+**This rule applies at refine time too, not only at first grilling.** When fg-ask adds a requirement to a *pending* plan (one in the backlog, or the active slot with no `run.md` yet — see fg-ask's "Refine a pending plan vs. new task"), the same judgment runs: fold a small cohesive addition into the plan, but if the addition makes the work large/decomposable, recommend splitting per the rules below; if it is an entirely different concern, it is a separate new plan, not a split.
+
 There are **two reasons to split a big task into multiple plans** (each a separate, independently-sealable plan in the backlog):
 
 1. **A mid-run human checkpoint** — a human check / decision must intervene before the next step can proceed. A Dynamic Workflow cannot take human input at runtime, so the check point is a task boundary. (We do not distinguish "simple go-ahead" from "major decision branch" — either way it must stop.)
