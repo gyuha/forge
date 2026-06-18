@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.21] - 2026-06-18
+
+### Changed
+- **fg-loop에 Reflexion 도입 (ADR-0016 2026-06-18 2차 개정).** `loop.md`의 `## Check progress` 원장에 체크별 `reflection`(왜 실패했고 다음엔 무엇을 *다르게*)을 추가하고, fix-forward 생성이 그 체크의 `tried`+`reflection`을 먼저 읽어 **반복이 아닌 다른 접근**을 취하도록 강제했다. no-progress 벽 보고에 reflection을 포함하고(임계값 `×2`는 불변, 의미는 "다양한 시도 소진"으로 격상), reflection이 범위 밖 수정을 요구하면 cap 소진 전 fork 벽을 조기 발동한다. `fg-status`는 halted-loop 보고에 reflection을 surface해 "왜 멈췄는지"를 보여준다(맨 "fg-loop 재개" 반복 제거). 참고 글에서 Reflexion만 차용하고 worktree·cron·MCP·역할 분리는 개념 이탈로 배제. `reflection`은 드라이브 내 휘발 작업기억이지 회고가 아니다(영속 승급은 run.md → fg-learn, ADR-0010 불변).
+- **배포 규칙 갱신 (CLAUDE.md).** "배포" 절차에 **README(이중언어)·`docs/` 갱신** 단계를 추가 — 릴리스 작업 내용을 사용자 문서에 반영한 뒤 버전을 올린다(feat 커밋 포함, 릴리스 커밋은 CHANGELOG+버전만).
+
 ## [0.4.20] - 2026-06-18
 
 ### Added
