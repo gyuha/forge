@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.22] - 2026-06-19
+
+### Added
+- **README "빠른 시작(Quick start)" 섹션.** 17개 스킬이 많아 보이는 진입 장벽을 낮추기 위해, 평소 쓰는 핵심 흐름만 카탈로그 앞에 간결히 제시: `/fg-ask → /fg-run → /fg-next` (또는 더 짧게 `/fg-ask → /fg-next all`), 길 잃으면 `/fg-status`·`/fg-next`, 사소한 건 `/fg-quick`, 출하는 `배포`. 나머지는 "선택적 보조"로 명시. 영문 `README.md`·한글 `README.ko.md` 동기.
+
 ## [0.4.21] - 2026-06-18
 
 ### Changed
