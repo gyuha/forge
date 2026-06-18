@@ -32,10 +32,15 @@ Conducted as a conversation in this session, one question at a time, reusing fg-
    started: {YYYY-MM-DD}
    replan-round: 0
    replan-cap: 3
+   wall: {none | no-progress (C1) | cap-exhausted | unverifiable-uat (C2) | fork (<reason>)}
 
    ## Stop-condition checks (ALL must pass)
    - [ ] C1. {agent-runnable check — a command + expected outcome, e.g. `grep -c X file` ≥ 1, tests green, JSON parses}
    - [ ] C2. {...}
+
+   ## Check progress (updated after EVERY stop-condition run — drives the no-progress wall & fg-status)
+   - C1: fail ×2 · last-evidence: "grep -c X file → 0 (unchanged since round 1)" · tried: fix-c1-1of1, fix-c1b-1of1
+   - C2: pass · last-evidence: "tests → 42 passing"
 
    ## Authorized replan scope
    - {what fg-loop may auto-generate without re-grilling — fix-forward tasks directly traceable to a failing check above}
@@ -44,6 +49,8 @@ Conducted as a conversation in this session, one question at a time, reusing fg-
    ## Tasks
    - {slug of every plan this loop owns — the initial-inquiry plans now, each generated fix-forward plan appended at generation time}
    ```
+
+   The **`## Check progress` ledger and the `wall:` field are load-bearing, not decorative** — fg-loop is *stateless across resumes*, so without them a re-triggered drive cannot tell that a check already failed twice with no change, and would keep generating near-identical fix-forward tasks up to the cap (the "keeps proposing the same task with no progress" failure mode). After **every** stop-condition run, update each check's line: its result (`pass`/`fail`), the **consecutive no-progress count** (`×N` — increment when a check is still failing AND its evidence is unchanged from the prior round; reset to 0/“×1” on any observable change or pass), the `last-evidence` (the command output you actually observed), and append the `tried:` slug when a fix-forward was generated for it. The no-progress wall (§ below) reads `×N ≥ 2`; on any halt, set `wall:` to the precise cause so fg-status/resume report *why* (never a bare "resume fg-loop"). `started` is stamped by the human at creation (skills can't read the clock) or left as a literal placeholder.
 
    - **Every check must be agent-runnable** (grep/test/build/JSON — same shapes as fg-run's aggressive UAT). If the user's goal can't be pinned to runnable checks, say so and either sharpen it together or route to the formal loop (fg-ask) — do **not** start a drive on a vague goal.
    - **The replan scope is the user's pre-authorization** — the bound that makes auto-planning legitimate. Default scope when the user has no preference: "fix-forward tasks directly traceable to a failing stop-condition check, nothing else."
@@ -64,7 +71,7 @@ Drive one task loop at a time, reusing `fg-next all`'s machinery **by reference*
 
 **This continuation is reliably enforced only by `/goal`.** Without it engaged, the skill's text alone cannot stop the model from yielding the turn after a delegated fg-run/fg-done handoff *states* its next step (ADR-0015) — so the drive pauses after a cycle. **That pause is the honest fallback (§1), not a contract violation:** re-triggering `forge loop` resumes statelessly. With `/goal` active, the Stop hook blocks that yield and the drive runs unattended to a wall or goal-met. So §1 presents `/goal` as the operating premise, not an optional aside.
 
-**After each seal, and whenever the backlog empties, run the stop-condition checks** and update their boxes in `loop.md`:
+**After each seal, and whenever the backlog empties, run the stop-condition checks** and update both their checkboxes AND the **`## Check progress` ledger** in `loop.md` (each check's result, its consecutive no-progress count `×N`, the `last-evidence` you observed, and any `tried:` slug). This persisted ledger is what makes the no-progress wall and fg-status work across a stateless resume — update it every run:
 
 - **All checks pass** → the goal is met. Report a summary (tasks sealed, rounds used, check evidence), **delete `loop.md`**, and stop. The loop is closed.
 - **Backlog still has tasks** → keep driving.
@@ -79,7 +86,7 @@ Two situations produce new work without a human conversation, both bounded by `l
 
 Every generated plan is a normal plan: PLAN-FORMAT, `forge-slug`, next monotonic `task:` number (ADR-0005), plus a `<!-- generated-by: fg-loop -->` marker so fg-status and the audit trail show its origin (fg-status renders it as a `(loop)` origin tag) — and **append its slug to `loop.md`'s `## Tasks` section at generation time** (membership, §1/§2). A generated plan whose need turns out to exceed the authorized scope is **not** generated — that is a wall (genuine fork), not a judgment call to make alone.
 
-**No-progress early abort:** if the **same check** fails after **2 consecutive** fix-forward attempts with no observable progress, stop before the cap — repeating a failing approach unattended is exactly the failure mode Osmani warns about. Report what was tried and halt.
+**No-progress early abort:** if the **same check** fails after **2 consecutive** fix-forward attempts with no observable progress, stop before the cap — repeating a failing approach unattended is exactly the failure mode Osmani warns about. **Detect this from the persisted `## Check progress` ledger (`×N ≥ 2`), not from in-session memory** — fg-loop resumes statelessly, so a fresh resume must read the prior no-progress count from `loop.md` or it would never trip this wall and would keep re-proposing near-identical fix-forwards up to the cap. Report what was tried (the `tried:` slugs and `last-evidence`) and halt.
 
 ## 4. Walls and termination
 
@@ -90,7 +97,7 @@ Halt the drive, report where/why/how-to-resume (in the user's language), at any 
 3. **Replan cap exhausted** (`replan-round` > `replan-cap`).
 4. **No progress** — same check failing twice consecutively with no change.
 
-On a wall, `loop.md` stays on disk (fg-status reports it); the human resolves the wall — possibly re-grilling via fg-ask or widening the scope/cap by editing the inquiry's answers in a short conversation — then re-triggers `fg-loop` to resume. On goal-met termination, `loop.md` is deleted and a final summary is the handoff (statement form — point to fg-learn for a later batch promotion of the archived run.md learnings, per ADR-0010's deferred-promotion model).
+On a wall, **set `loop.md`'s `wall:` field to the precise cause** (`no-progress (C1)` / `cap-exhausted` / `unverifiable-uat (C2)` / `fork (<reason>)`) so fg-status and the resume report *why* it stopped — never a bare "resume fg-loop". `loop.md` stays on disk (fg-status reports it); the human resolves the wall — possibly re-grilling via fg-ask or widening the scope/cap by editing the inquiry's answers in a short conversation — then re-triggers `fg-loop` to resume. On goal-met termination, `loop.md` is deleted and a final summary is the handoff (statement form — point to fg-learn for a later batch promotion of the archived run.md learnings, per ADR-0010's deferred-promotion model).
 
 ```
 fg-loop

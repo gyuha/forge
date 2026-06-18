@@ -1,0 +1,5 @@
+# Shell scripts must be LF even on Windows checkouts — CRLF breaks bash
+# (the `\r` ends up in shebangs/args and the script fails to run). The dual
+# sh/js scripts (ADR-0022) rely on the .sh running under git-bash on Windows,
+# so this guard is load-bearing there.
+*.sh text eol=lf

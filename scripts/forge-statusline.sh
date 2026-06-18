@@ -31,24 +31,35 @@ if [ ! -t 0 ]; then
   if [ -n "${input:-}" ]; then
     cwd="$(printf '%s' "$input" | sed -n 's/.*"cwd"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
     [ -z "$cwd" ] && cwd="$(printf '%s' "$input" | sed -n 's/.*"current_dir"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)"
+    # Decode JSON's escaped backslashes (a Windows cwd "C:\\Users\\…" leaves "\\"
+    # in the raw regex capture) so cd succeeds, matching the node twin's JSON.parse
+    # (ADR-0022 review). Best-effort: handles the common "\\" → "\" path case.
+    [ -n "$cwd" ] && cwd="$(printf '%s' "$cwd" | sed 's/\\\\/\\/g')"
     [ -n "$cwd" ] && [ -d "$cwd" ] && cd "$cwd" 2>/dev/null || true
   fi
 fi
 
 # --- Resolve forge root (ADR-0011 / FORGE-ROOT.md) ---------------------------
+# Anchor to the git repo root (after the cwd cd above) so a session cwd in a
+# subdirectory still finds repo-root state, and so this stays in parity with the
+# node twin's resolveForgeRoot() (ADR-0022 review). Non-git → CWD-relative.
+top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+prefix="${top:+$top/}"
+cfg="${top:-.}/.forge/config.json"
+
 branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
 
 default_branch="main"
-if [ -f .forge/config.json ]; then
-  d="$(sed -n 's/.*"defaultBranch"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' .forge/config.json | head -1)"
+if [ -f "$cfg" ]; then
+  d="$(sed -n 's/.*"defaultBranch"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$cfg" | head -1)"
   [ -n "$d" ] && default_branch="$d"
 fi
 
 # detached HEAD ("HEAD"), empty, or not a git repo → fall back to top-level .forge/
 if [ -z "$branch" ] || [ "$branch" = "HEAD" ] || [ "$branch" = "$default_branch" ]; then
-  root=".forge"
+  root="${prefix}.forge"
 else
-  root=".forge/branch/$branch"
+  root="${prefix}.forge/branch/$branch"
 fi
 
 [ -d "$root" ] || exit 0

@@ -48,8 +48,24 @@ Copy both scripts and `chmod +x` them (idempotent — a **refresh** after a forg
 
 - `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` → `<CFG>/forge-statusline.sh`
 - `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-wrapper.sh` → `<CFG>/forge-statusline-wrapper.sh`
+- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.js` → `<CFG>/forge-statusline.js` **and** `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-forge-root.js` → `<CFG>/resolve-forge-root.js` — the node fallback (ADR-0022) and the resolver it `require`s (must sit next to it). Needed only for the Windows / no-bash path below; harmless to always copy.
 
-Both are generic (no per-install substitution) — the wrapper finds the fragment and the preserved original **in its own install directory**, resolved at runtime from the wrapper's own script path (`BASH_SOURCE`), **not** from `$CLAUDE_CONFIG_DIR`. The statusLine process may not export that env var, and depending on it would silently blank the whole statusline in a custom config-dir setup (ADR-0017). Since the companions are copied next to the wrapper (all three land in `CFG`), one global copy of each serves every project.
+Both `.sh` are generic (no per-install substitution) — the wrapper finds the fragment and the preserved original **in its own install directory**, resolved at runtime from the wrapper's own script path (`BASH_SOURCE`), **not** from `$CLAUDE_CONFIG_DIR`. The statusLine process may not export that env var, and depending on it would silently blank the whole statusline in a custom config-dir setup (ADR-0017). Since the companions are copied next to the wrapper (all three land in `CFG`), one global copy of each serves every project.
+
+#### Cross-platform: Windows / no-bash (node fallback — ADR-0022)
+
+The fragment ships in two forms — `forge-statusline.sh` (bash, primary) and `forge-statusline.js` (node, identical output, guarded by `scripts/forge-statusline.parity.test.sh`).
+
+**Resolve `STATUSLINE_CMD` ONCE here, then use that single value in every wiring/refresh step below** — do NOT hardcode `.sh` in the later steps (a sequential reader would otherwise install an unrunnable bash command on a no-bash host and re-installing would just repeat the same broken wiring).
+
+**Decide by the HOST OS the statusLine will run under — NOT by whether bash is on this install session's PATH.** The skill runs via the Bash tool, which *always* has bash, so a PATH probe here would pick `.sh` on every platform and the Windows node fallback would never be selected (ADR-0022 review). The statusLine command runs later in the host's *system shell* (on Windows: cmd/PowerShell — which may lack bash entirely or have PowerShell blocked), a different environment from this install session. So detect the OS (`uname -s`: `Darwin`/`Linux` → Unix; `MINGW*`/`MSYS*`/`CYGWIN*`, or no `uname` with a Windows environment → Windows):
+
+- **Unix (Darwin / Linux, incl. WSL)** → `STATUSLINE_CMD = <CFG>/forge-statusline.sh`
+- **Windows** → `STATUSLINE_CMD = node <CFG>/forge-statusline.js` — node always runs on Windows and dodges a blocked/absent PowerShell; do **not** assume the Windows system shell has bash even when Git Bash exists for the Bash tool. (`<CFG>/resolve-forge-root.js` must sit beside `forge-statusline.js` — see the copy list.)
+
+State the detected OS and the chosen `STATUSLINE_CMD` to the user when you wire it, so the choice is auditable.
+
+**Wrapping requires bash.** The original-statusline-preservation wrapper (`forge-statusline-wrapper.sh`) is bash-only, so the auto-wrap branch (step 3) only applies when bash is available. On a pure-no-bash host you can only wire forge as the **sole** statusline (the node `STATUSLINE_CMD`); **wrapping an existing** statusline cross-platform without bash is not yet supported — a node wrapper is deferred (follow-up). If a no-bash host already has a non-forge statusLine, say so and stop rather than clobbering it.
 
 ### 2. Find the settings file and the existing statusLine
 
@@ -57,11 +73,11 @@ Decide which `settings.json` to edit. Prefer the file that **already** defines a
 
 Branch on what you find:
 
-- **No existing `statusLine`** → set forge as the sole statusline directly, by **absolute path** (the fragment reads cwd from the session JSON on stdin, so it works as the sole command):
+- **No existing `statusLine`** → set forge as the sole statusline directly, using the **`STATUSLINE_CMD` resolved above** by **absolute path** (the fragment reads cwd from the session JSON on stdin, so it works as the sole command):
   ```json
-  "statusLine": { "type": "command", "command": "<CFG>/forge-statusline.sh" }
+  "statusLine": { "type": "command", "command": "<STATUSLINE_CMD>" }
   ```
-  (`<CFG>` resolved, e.g. `/Users/you/.claude/forge-statusline.sh`.) Confirm the one-line change with the user, then write it.
+  (`<STATUSLINE_CMD>` = `<CFG>/forge-statusline.sh` when bash is present, else `node <CFG>/forge-statusline.js`; `<CFG>` resolved absolute, e.g. `/Users/you/.claude/...`.) Confirm the one-line change with the user, then write it.
 
 - **An existing `statusLine.command` that is NOT already a forge wrapper** → this is the auto-wrap case (below). Preserve it.
 
@@ -88,19 +104,22 @@ The wrapper script is already installed (step 1) and is **generic** — it runs 
 Procedure flow:
 
 ```
-copy fragment + wrapper → <CFG>/  (chmod +x, absolute paths)   [refresh: re-copy both]
+copy fragment(.sh+.js) + wrapper + resolve-forge-root.js → <CFG>/  (chmod +x, absolute)  [refresh: re-copy]
+   ↓
+resolve STATUSLINE_CMD once by HOST OS (uname -s):  Unix(Darwin/Linux/WSL) → <CFG>/forge-statusline.sh  ·  Windows → node <CFG>/forge-statusline.js
    ↓
 locate settings.json + read existing statusLine
-   ├── none                → set command = <CFG>/forge-statusline.sh (absolute)   (confirm, write)
+   ├── none                → set command = <STATUSLINE_CMD> (absolute)   (confirm, write)
    ├── already forge-wrap  → refreshed in step 1; fix ~→absolute if needed; report & stop
-   └── other command       → write original verbatim into <CFG>/forge-statusline-orig.sh
+   └── other command       → [bash only] write original verbatim into <CFG>/forge-statusline-orig.sh
                               → show before/after → confirm → command = <CFG>/forge-statusline-wrapper.sh
+                              [no bash: cannot wrap — report & stop, don't clobber]
 ```
 
 ## Notes & assumptions
 
 - **cwd resolution.** The fragment resolves the project directory from the session JSON's `cwd` (then `workspace.current_dir`, then `$PWD`) and `cd`s there before reading `.forge/`, so it shows the right project even when the host runs the statusLine from a different directory. In the wrapper case, the wrapper feeds the same JSON to the fragment on stdin so this resolution still applies. It stays jq-free (defensive `sed` extraction) — the one place the fragment parses JSON.
-- **Refresh on update.** Because the scripts are copied (not referenced in place), a forge plugin update does not change `<CFG>/forge-statusline.sh` / `forge-statusline-wrapper.sh` automatically — re-run `fg-statusline` to refresh them. They rarely change, so this is infrequent.
+- **Refresh on update.** Because the scripts are copied (not referenced in place), a forge plugin update does not change the installed copies automatically — re-run `fg-statusline` to refresh **all** of them: `forge-statusline.sh`, the node fallback `forge-statusline.js` + its `resolve-forge-root.js`, and `forge-statusline-wrapper.sh` (the full step-1 copy list). They rarely change, so this is infrequent.
 - **Takes effect on restart.** Claude Code loads the `statusLine` config at session start — after setup, fully quit and relaunch Claude Code before judging whether it works. A `~`-path command that silently failed is the classic "nothing shows" cause; this setup writes absolute paths to avoid it.
 - **Trust & disabling.** statusLine runs only in a trusted workspace and is suppressed if `disableAllHooks` is set — that is host behavior, not forge's.
 
@@ -110,4 +129,4 @@ State in one line what was done (installed / refreshed / already-wired) and that
 
 ## Document impact
 
-- Writes **outside** the forge state tree, under the Claude config dir (`<CFG>` = `$CLAUDE_CONFIG_DIR` or `~/.claude`): `<CFG>/forge-statusline.sh` (the fragment, copied) and `<CFG>/forge-statusline-wrapper.sh` (the composition wrapper, copied); when wrapping, `<CFG>/forge-statusline-orig.sh` (the preserved original command); and the `statusLine` key (an **absolute-path** command) in the chosen `settings.json`. It touches **no** `.forge/` loop state (active slot, backlog, executed, done) and writes nothing git-tracked in the project.
+- Writes **outside** the forge state tree, under the Claude config dir (`<CFG>` = `$CLAUDE_CONFIG_DIR` or `~/.claude`): `<CFG>/forge-statusline.sh` (the bash fragment) plus the node fallback `<CFG>/forge-statusline.js` + `<CFG>/resolve-forge-root.js`, and `<CFG>/forge-statusline-wrapper.sh` (the composition wrapper) — all copied; when wrapping, `<CFG>/forge-statusline-orig.sh` (the preserved original command); and the `statusLine` key (an **absolute-path** `STATUSLINE_CMD`) in the chosen `settings.json`. It touches **no** `.forge/` loop state (active slot, backlog, executed, done) and writes nothing git-tracked in the project.

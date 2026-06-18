@@ -49,3 +49,11 @@ Addy Osmani의 Loop Engineering 검토(`docs/forge-vs-loop-engineering.md`)에�
 **결정**: `/goal` 페어링을 **무인 드라이브의 운용 전제**로 격상한다 — (a) §1 드라이브 진입 직전, 붙여넣을 `/goal` 줄을 "offer only" hedge 없이 *가장 눈에 띄는 마지막 단계*로 제시("무인 주행하려면 지금 붙여넣어라"); (b) `/goal` 미사용 시 동작을 **정직하게 약속**("한 사이클 후 멈춤은 정상 — `forge loop` 재트리거로 stateless 재개", 계약 위반 아님); (c) **재개할 때마다 paste 줄을 벽 집합에서 재파생해 다시 출력**해 "까먹음"을 구조적으로 차단. paste 줄은 파생값이라 `loop.md` 스키마 변경 불요(상태 계약 ripple 없음).
 
 **범위**: 이 손질은 **fg-next all의 동형 `/goal` 섹션**(소유 ADR-0010)에도 같이 적용했다 — 동일 메커니즘·동일 one-cycle-stall이라 한쪽만 고치면 곧 다른 쪽에서 재발하기 때문. **불변**: `/goal`을 스킬이 자동 발동하는 것은 여전히 불가능하고(하니스 제약), 안전 벽(§4)·ADR-0009·활성 슬롯 1개·회고 auto-skip·위임 핸드오프의 진술형(ADR-0015)은 전부 그대로다. 이번 변경은 순수 문서(framing) 수준이며 드라이브 로직·게이트는 건드리지 않는다.
+
+## 개정 (2026-06-18) — no-progress 벽이 참조하는 이력을 loop.md에 영속화 (`## Check progress` + `wall:`)
+
+§4의 **No-progress 조기 중단 벽**("같은 체크 2연속 무진전")과 fg-status의 멈춤-원인 보고는 "체크별 이전 결과·연속 무진전 횟수·시도한 fix-forward·증거"를 알아야 한다. 그러나 최초 `loop.md` 스키마는 현재 체크박스·라운드·Tasks 멤버십만 담았고, fg-loop은 **stateless 재개**(매 pause 후 재트리거)라 — 영속 이력 없이는 재개 시 "이 체크가 이미 2번 무진전이었는지"를 판별할 수 없어 no-progress 벽이 사실상 발동하지 못하고, cap까지 거의 동일한 fix-forward를 반복 제안할 수 있었다(adversarial review가 지적한 "진행 없이 같은 작업 반복" 모드).
+
+**결정**: `loop.md`에 **`## Check progress` 원장**(체크별 result·`×N` 연속 무진전 횟수·last-evidence·tried slug)과 상단 **`wall:` 필드**(멈춤 정확 원인)를 추가한다. fg-loop은 매 stop-condition 실행 후 원장을 갱신하고, no-progress 벽은 in-session 기억이 아니라 **원장의 `×N ≥ 2`**로 판정하며, 벽에서 `wall:`을 채운다. fg-status는 이 필드들을 읽어 "왜 멈췄는지"(어느 체크·몇 회 무진전·증거)를 보고하므로 맨 "fg-loop 재개" 반복이 사라진다.
+
+**불변**: 드라이브 순서·cap·replan 범위·walls 집합·ADR-0009는 그대로. 이번 변경은 기존 no-progress 벽이 stateless 재개에서 *실제로 작동하도록* 필요한 상태를 영속화하는 additive 보강이다(로직 신설 아님).

@@ -11,6 +11,23 @@ This is **not** a stage of the forge loop. It is a read-only dashboard: run it a
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading state (ADR-0011). (fg-status only reports on the resolved root's branch; it does not survey other branches' roots.)
 
+## How it runs (script-backed survey + table — ADR-0020 / ADR-0022)
+
+The mechanical survey and the 6-column task table are produced by a **deterministic script**, not by an LLM re-reading `.forge/` and hand-rendering the table (that was slow — ADR-0020). **Run the script and relay its output verbatim**; then derive the one next step in prose (the next-step machine below — the script never derives it).
+
+Dual dispatch (ADR-0022): prefer bash, fall back to node.
+- **Has bash** (mac/Linux/WSL/git-bash — the Bash tool's normal case): `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-status.sh"` (full: table + footer) or `… --table` (table only).
+- **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-status.js"` — the node twin produces identical output (guarded by `scripts/forge-status.parity.test.sh`).
+
+The two sections below (**What it prints** / **Task table**) are the **documentation of the script's output format** — the script emits exactly those columns and footer, language-neutral. Keep them in sync with the script if the format ever changes (ADR-0020 consequence). After relaying the script output, translate the next-step line into the user's language.
+
+**The script outputs the table + footer counts ONLY — you must still surface what it omits, by reading those files directly (still read-only), or the report hides the very thing the user needs.** After running the script, before the `👉 Next` line:
+- **`.forge/loop.md` present** → read it and report the **goal (one line), the `wall:` cause if set, and from the `## Check progress` ledger which stop-condition checks are failing — with each failing check's no-progress count (`×N`) and `last-evidence`** (and round N/cap). This is load-bearing: without it the next step is a blind "resume fg-loop" every time, so a stuck loop looks identical run after run and the user never sees *why* it's stuck (the exact "keeps proposing the same task" failure mode). Name the failing check(s) and, when `×N ≥ 2` or `wall:` is set, say *that* it's a no-progress/cap/fork wall the human must resolve — not just "resume". (These fields are persisted by fg-loop precisely so a stateless resume can report the real cause — see `../fg-loop/SKILL.md`.)
+- **Active slot has a `run.md`** → read `STATUS.md` and state its `verified:` / `retro:` values in full (e.g. `failed (<reason>)`), not just the table glyph — the glyph says *that* it's blocked, the reason says *what to do*.
+- **Recent quick-lane entries** → if `.forge/quick/LOG.md` has entries, show the most recent few (the footer only counts them).
+
+The table/counts are the at-a-glance layer; this is the diagnostic layer the next-step derivation actually depends on.
+
 ## What it surveys
 
 Read these from `.forge/` (skip silently what doesn't exist):
@@ -75,7 +92,7 @@ The table derives purely from file location + the STATUS `verified:`/`retro:` fi
 
 Determine the one next step from the file layout, in this priority order:
 
-0. **`.forge/loop.md` exists** (a goal loop is in flight — fg-loop drives whole task loops itself) → the next step is resuming **fg-loop**, which re-derives per-task state internally and continues toward its stop condition (or reports the wall it halted at). Trigger: "forge loop" / `/forge:fg-loop`. Still report the underlying task states below for visibility.
+0. **`.forge/loop.md` exists** (a goal loop is in flight — fg-loop drives whole task loops itself) → the next step is resuming **fg-loop**, which re-derives per-task state internally and continues toward its stop condition (or reports the wall it halted at). Trigger: "forge loop" / `/forge:fg-loop`. **Read `loop.md` and name which stop-condition checks are currently failing (and round N/cap) as part of stating this step — do NOT emit a bare "resume fg-loop" without the failing reason.** This is load-bearing for every consumer of this state machine (fg-status reports it, **fg-next acts on it**): without the failing-check detail a halted loop looks byte-identical run after run, so the user just gets "resume fg-loop" repeatedly with no visible cause — the "keeps proposing the same task with no progress" failure mode. Still report the underlying task states below for visibility.
 1. **Active `run.md` exists** (a plan has run) — apply in this order (run → verify → learn → done, ADR-0009):
    - `STATUS.md` `verified: failed` → **the UAT ran and the result is broken** — fix it then re-run, or re-grill the plan. Routes to **fg-run** (fix-and-re-run) or fg-ask (re-grill), **not** fg-learn/fg-done. Trigger: "forge run" / `/forge:fg-run` (or "forge ask"). Highest priority — a failed result blocks both retro and seal.
    - `STATUS.md` `verified: pending` or missing → **verification is owed first** — the plan ran but its UAT was never completed. Re-entering fg-run takes its **verification-only resume** (it runs the UAT and writes `verified:` *without* re-executing the workflow — see fg-run step 4), which precedes retro. Trigger: "forge run" / `/forge:fg-run`. Do not route past this to fg-learn.
