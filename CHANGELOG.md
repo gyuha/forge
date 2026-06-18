@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.20] - 2026-06-18
+
+### Added
+- **크로스플랫폼 dual-dispatch 스크립트 규약 (ADR-0022).** 운영 연산을 결정론적 스크립트로 추출하고 각 스크립트를 `.sh`(bash 1차) + `.js`(node 폴백) 트윈으로 제공해 PowerShell이 차단된 Windows에서도 동작. `.gitattributes`로 `*.sh` LF 강제. 같은 fixture에 두 구현을 돌려 출력 동일성을 단언하는 **패리티 테스트 3종**이 drift 가드, fg-doctor는 `.sh`↔`.js` 트윈 존재를 정적 검사(check 14).
+- **`scripts/forge-status.{sh,js}`** — fg-status의 survey + 6열 테이블을 결정론적 스크립트로 (ADR-0020 완결). fg-status SKILL은 스크립트를 실행해 출력을 relay하고 next-step만 산문으로 도출.
+- **`scripts/resolve-forge-root.{sh,js}`** — FORGE-ROOT 해석을 추출(git 저장소 루트 앵커 — 하위 디렉터리 실행에서도 동작), forge-status가 DRY로 소비.
+- **`scripts/forge-statusline.js`** — statusline의 node 트윈. fg-statusline은 HOST OS로 `STATUSLINE_CMD`를 1회 판정(Windows→node, 그 외→`.sh`)해 모든 wiring에 단일 사용.
+
+### Changed
+- **fg-loop: `loop.md`에 `## Check progress` 원장 + `wall:` 필드 추가 (ADR-0016 개정).** no-progress 벽("같은 체크 2연속 무진전")이 stateless 재개에서도 `×N≥2`로 판정되도록 이력을 영속화. fg-status는 `wall:`·`×N`·last-evidence를 읽어 멈춘 *원인*을 보고 → 맨 "fg-loop 재개" 반복 제거.
+- **fg-status가 스크립트 출력 외에 loop 진단·active STATUS 상세·quick 최근 항목을 surface**하도록(스크립트는 테이블+카운트만 출력).
+- **forge-status backlog 표시 순서**를 fg-run 계약(priority→part→slug)에 맞춤(파일 glob 순서 아님).
+
+### Fixed
+- statusline의 Windows cwd 디코드(`JSON.parse`/sed unescape), CRLF 상태파일·한글 slug에서 sh↔js 출력 동일성, 패리티 테스트의 `set -euo pipefail`로 setup-실패 가짜통과 차단 — adversarial review 라운드들에서 발견·수정.
+
 ## [0.4.19] - 2026-06-18
 
 ### Added
