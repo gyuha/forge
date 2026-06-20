@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.23] - 2026-06-20
+
+### Added
+- **fg-done `all` 모드 — 봉인 전용 batch (ADR-0023).** `fg-done all`은 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로 **백로그의 미실행 작업은 promote·run하지 않는 것**이 유일한 구분점이다. 검증 게이트(ADR-0009)는 불가침 — `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 일괄 봉인하며, 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다(차선 완화 계열 ADR-0002/0010/0016의 네 번째 멤버). `SKILL.md`·`CLAUDE.md`·README(이중언어)·`docs/skills.md` 동기.
+- **fg-loop ↔ loop engineering 비교 안내 (사용법).** README(이중언어)에 "차선 고르기 — L1→L2→L3 신뢰 사다리" 절을 신설: `/fg-status`(L1 관찰) → `/fg-next`(L2 보조) → `/fg-loop`·`/fg-next all`(L3 무인)을 loop engineering의 배포 사다리에 매핑해 *언제 어느 차선을 쓰는지* 안내한다. fg-loop `SKILL.md`에 maker/checker(기계 검증 체크 = 독립 게이트)·배포 레벨 정합 근거 한 단락 추가. 동작 변경 없음 — worktree·스케줄링·중복 verifier는 forge 불변식·범위와 충돌해 의도적으로 비채택.
+
 ## [0.4.22] - 2026-06-19
 
 ### Added
