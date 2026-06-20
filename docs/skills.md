@@ -9,7 +9,7 @@
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-run` |
 | `fg-run` | ② 실행 | 계획을 Dynamic Workflow로 실행 — 미실행 plan이 하나면 메뉴 없이 즉시 실행, 여럿이면 선택 메뉴 제시(마지막 옵션 "모두 실행") | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` + `STATUS.md` (또는 `executed/`) | `fg-learn` |
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-done` (크게 어긋났으면 `fg-ask`로 재그릴링) |
-| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기 | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
+| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기. `all` 모드는 실행된 작업 일괄 봉인(회고 skip·백로그 불가침) | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 | `fg-map` | 유틸리티(루프 밖) | 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드를 다시 탐색하지 않고 지도를 읽게 한다(context rot 감소) | 코드베이스 | `.forge/codebase/*.md` (7개 문서) | — (`fg-ask`가 소비) |
 | `fg-quick` | 경량 차선(루프 밖) | 사소한 작업용 — 가볍게 그릴링한 뒤 형식 산출물(ADR/plan/회고) 없이 바로 실행; 비-trivial로 드러나면 `fg-ask`로 bail | 사용자 요청 | `.forge/quick/LOG.md`에 항목 하나 | — (자체 완결) |
 | `fg-status` | 리포터(루프 밖) | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 지금 필요한 다음 단계 하나를 출력; 아무것도 쓰지 않고 자동 실행도 안 함 | `.forge/*` (읽기 전용) | 출력 보고(파일 없음) | — (다음 단계 제안) |
@@ -40,6 +40,8 @@
 ### fg-done — ④ 완료
 
 한 바퀴의 잔여물을 정리한다 — 회고를 확인하고, `STATUS.md`를 done으로 마킹하고, 작업을 아카이브하고, 활성 `.forge` 상태를 비워 루프를 닫는다. "작업 완료", "봉인", "이거 마무리"에서 트리거된다(기존 "작업 정리"·"forge complete"도 alias로 인식; 단 "forge cleanup"은 이제 별개의 ADR 은퇴 스킬로 라우팅된다). 활성 상태를 비우는 것이 같은 plan의 재실행을 막는다.
+
+`all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트(ADR-0009)는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
 ## 루프 밖 유틸리티 (12개)
 

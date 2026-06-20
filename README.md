@@ -30,6 +30,16 @@ When you lose track: **`/fg-status`** just *shows* where you are; **`/fg-next`**
 
 Everything else in the catalog below is optional scaffolding — reach for it only when a specific need comes up. If you remember just one line: **`/fg-ask` then keep calling `/fg-next` (or `/fg-next all`).**
 
+## Choosing a lane — observe, assist, then run unattended
+
+The three driving skills form a **trust ladder** — the same graduated-autonomy idea as loop engineering's L1→L2→L3 rollout (report → assisted → unattended). Start low, move up as you trust the loop on a given task:
+
+- **L1 — observe (`/fg-status`)**: read-only. It just *shows* where every task stands and the single next step. Nothing runs. Use it to see the board before deciding.
+- **L2 — assisted (`/fg-next`)**: does the *one* next step and stops. You stay in the seat between steps — review, then call it again. Best when you want to watch each transition.
+- **L3 — unattended (`/fg-loop` or `/fg-next all`)**: drives whole task loops to completion. `/fg-next all` drains a human-grilled backlog until it's empty; `/fg-loop` converges on a machine-verifiable goal, generating bounded fix-forward work along the way. Both halt at the walls (failed/unverifiable verification, a genuine fork, no progress) and hand back with full context.
+
+Rule of thumb: grill the plan with `/fg-ask` first — that human judgment is L1 and is never automated — then pick the lowest lane you're comfortable with. `/fg-loop` is L3 for a goal you can pin to runnable checks (`grep`/test/build); `/fg-next all` is L3 for a queue you've already grilled.
+
 ## Skill catalog
 
 The four loop stages, then the thirteen utilities outside the loop:
@@ -39,7 +49,7 @@ The four loop stages, then the thirteen utilities outside the loop:
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
 | `fg-run` | ② Execute | Runs the plan as a Dynamic Workflow (one plan runs immediately, several show a selection menu) |
 | `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry |
-| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals |
+| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |

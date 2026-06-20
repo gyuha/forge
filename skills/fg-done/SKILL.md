@@ -1,11 +1,11 @@
 ---
 name: fg-done
-description: Tidies up the residue of one loop — confirms the retro, marks STATUS.md done, archives the task, empties the active .forge state, and closes the loop. Use when you want to seal a finished task whose retro is already done, in contexts like '작업 완료', '봉인', '이거 마무리' (the old triggers '작업 정리' and 'forge complete' are still recognized as aliases; note 'forge cleanup' now routes to the separate ADR-retirement skill, not here). Emptying the active state is what blocks the same plan from re-running.
+description: Tidies up the residue of one loop — confirms the retro, marks STATUS.md done, archives the task, empties the active .forge state, and closes the loop. With the `all` argument (`fg-done all`), it batch-seals every already-executed task at once — auto-skipping each retro, never promoting or running backlog work, and keeping the verification gate intact (seal-only counterpart to fg-next all — ADR-0023). Use when you want to seal a finished task whose retro is already done, in contexts like '작업 완료', '봉인', '이거 마무리', 'fg-done all', '봉인 all', '모두 봉인' (the old triggers '작업 정리' and 'forge complete' are still recognized as aliases; note 'forge cleanup' now routes to the separate ADR-retirement skill, not here). Emptying the active state is what blocks the same plan from re-running.
 ---
 
 # fg-done — ④ Done (tidy-up / re-run guard)
 
-This is the last step of the forge loop — the ④ **done** stage that seals one loop. Its job is to **tidy up** the residue left by one loop (ask·plan → execute → retro → done): confirm the retro, mark the task's STATUS.md as done, archive it, empty the active state, and close the loop. The unit of cleanup is a single **task** — there is no notion of closing an epic or bundling several tasks together. Because a task *is* one loop, you only need to tidy up that one loop cleanly.
+This is the last step of the forge loop — the ④ **done** stage that seals one loop. Its job is to **tidy up** the residue left by one loop (ask·plan → execute → retro → done): confirm the retro, mark the task's STATUS.md as done, archive it, empty the active state, and close the loop. The unit of cleanup is a single **task** — there is no notion of closing an epic or merging several tasks into one seal. (Even the `all` batch mode below seals each task into its own `done/` directory: it bulk-skips retros, it does not bundle tasks.) Because a task *is* one loop, you only need to tidy up that one loop cleanly.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
@@ -104,6 +104,38 @@ Codebase map stale?  (.forge/codebase/ exists AND non-.forge/ changes in git sta
 Follow-up exists?
    │ yes ──▶ propose starting fg-ask as a new task → end
    │ no  ──▶ end
+```
+
+## `all` mode — batch seal-only (skip every remaining retro)
+
+When invoked with the `all` argument (`fg-done all`, or "봉인 all" / "모두 봉인"), fg-done seals **every already-executed task at once**, auto-skipping each task's retro — instead of stopping at the no-seal-without-retro guard for tasks that lack a retro. It is the **seal-only counterpart to `fg-next all`**: where `fg-next all` is a full drive that *also* promotes and runs backlog tasks, `all` mode here **never promotes or runs anything** — it only tidies up work that has *already executed* (the active slot + the whole `.forge/executed/` queue). Use it when a pile of tasks sits in `executed/` awaiting retro and you want them all sealed now, while leaving unrun backlog plans alone. Rationale and the precise boundary: `.forge/adr/0023-fg-done-all-batch-seal.md`.
+
+It relaxes exactly **one** gate — the retro guard — and leaves everything else as the single-task path above:
+
+- **Scope: seal-only.** The targets are the active slot and every `.forge/executed/<slug>/`. The backlog (`.forge/backlog/`) is **out of scope** — `all` mode never promotes or runs an unexecuted plan (that is `fg-next all`). This is the only thing that distinguishes the two lanes, so keep it sharp: if the user wants backlog work run too, point them to `fg-next all`.
+- **The verification gate (ADR-0009) is untouched.** `all` skips the retro, **not** verification. Each task is sealed only when its `verified:` is a sealable value (`yes`/`skipped`/`n/a`). A `verified: failed` task is **never** sealed — set it aside and route it to **fg-run** (the single owner of unparking a failed task), and keep sealing the others. A `pending`/missing task takes the **same cleanup-time UAT recovery path as the single-task path above** (run the UAT against the plan's goal here, now): sealable → seal; `failed`/unverifiable → set aside and report. The batch just repeats that per-task recovery — it invents no shortcut around verification.
+- **The retro is auto-skipped unconditionally**, regardless of divergence — the same waiver `fg-next all`/`fg-loop` take (ADR-0010). As each task is closed out, record `retro: skipped (fg-done all — 학습은 run.md, 승급은 추후 fg-learn)` in its STATUS (in the user's language), so the skip is auditable and the learnings stay in the archived run.md for a later human fg-learn. Choosing `all` *is* the deliberate choice to discard the structured retro for this batch.
+- **One upfront confirmation, then no per-task prompts.** Before sealing anything, list **once**: the tasks that will be sealed (each with its `verified:` value and a "retro will be skipped" note) **and** the tasks that will be set aside (failed → fg-run, unverifiable → still pending). Get a single go-ahead — sealing is hard to undo and this batch is multi-task, so one gate that shows what lands in `done/` and what does not is the safety boundary (the same pattern as `fg-next all`'s entry gate). After the go-ahead, seal each qualifying task without further questions.
+- **The unit is unchanged.** `all` does not merge tasks — each is sealed into its own `.forge/done/<date-slug>/` exactly as single-task cleanup does; only the retro is skipped in bulk. Empty state and half-sealed `done/` recovery behave exactly as the single-task path above.
+
+```
+fg-done all
+   │
+   ▼
+Collect already-executed tasks (active slot + all executed/) ── none ──▶ single-task empty-state path (finish half-sealed · else guide to fg-ask)
+   │ one or more
+   ▼
+Per task — verified?
+   │ failed ──────────▶ set aside → route to fg-run (never seal)
+   │ pending/missing ─▶ cleanup-time UAT here, now → sealable? continue : set aside
+   │ sealable (yes/skipped/n/a)
+   ▼
+Show ONE confirmation: { to-seal (retro: skipped) · set-aside (failed→fg-run / unverifiable) } → get one go-ahead
+   │
+   ▼
+For each qualifying task: close out STATUS (retro: skipped recorded) → archive into its own .forge/done/<date-slug>/
+   ▼
+Empty active state (= block re-run) → completion notice (per-task summary + set-aside list)
 ```
 
 ## Wrap-up: guide the next flow
