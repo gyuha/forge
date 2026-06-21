@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.24] - 2026-06-21
+
+### Added
+- **README 루프 흐름 이미지·프로젝트 아이콘.** forge 4단계 순환 루프(ask → run → learn → done)를 투명 배경 인포그래픽으로 만들어 `README.md`·`README.ko.md` 최상단에 삽입(이중언어 동기). 기존 텍스트 흐름도는 "전체 흐름" 섹션에 그대로 유지(grep·diff 가능). 프로젝트 아이콘 `docs/icon.png`도 추가.
+
 ## [0.4.23] - 2026-06-20
 
 ### Added
