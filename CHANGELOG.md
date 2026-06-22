@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.26] - 2026-06-23
+
+### Added
+- **eco 모드에 caveman식 출력 prose 압축 (ADR-0014 2차 개정).** eco를 켜면 ECO.md 규율이 실행·보고 prose를 간결화한다 — 군더더기·헤지·인사치레 제거, 문장 단편 허용, 결론 먼저(언어 중립); 코드·명령·경로·에러는 verbatim. **적용 경계**: chat/실행/보고 prose만; 그릴링 질문·생성 영속문서(plan/run/retro/CONTEXT/ADR)·명시 요청 설명·보안/불가역/다단계 경고는 full 보존(기둥 1·2). 강도 레벨·wenyan 변형·별도 config 키는 미도입(eco 하나에 번들). JuliusBrussee의 [caveman](https://github.com/JuliusBrussee/caveman)에서 차용·각색(크레딧 README). `ECO.md`·`fg-eco`/`fg-run`/`fg-ask` SKILL·README(이중언어)·`docs/skills.md`·`CLAUDE.md`·매니페스트 동기.
+
+### Fixed
+- **eco 세션 채택을 상태 기반으로 전환 (적대적 리뷰 발견).** behavior 4(현재 세션 채택)가 `fg-eco on` 토글 행동에만 묶여 있어, eco를 기본값으로 박은 새 세션·`fg-eco` no-arg "그대로 두기"·fg-run 직접 실행 경로에서 메인 세션 prose 압축이 조용히 누락되던 결함을 수정. 이제 메인 세션이 `eco: true`를 **관측할 때마다** ECO.md를 채택한다(토글·no-arg 유지·fg-run 빌드/직접 실행·fg-ask 핸드오프). 불가피한 한계(어떤 forge 스킬도 안 돈 새 세션 첫 시점은 세션 시작 훅이 없어 자가 채택 불가 — 처음 eco-read 스킬이 집어감)는 behavior 4에 명문화. `fg-eco`/`fg-run`/`fg-ask` SKILL·ADR-0014·`docs/skills.md` 동기.
+
 ## [0.4.25] - 2026-06-23
 
 ### Added
