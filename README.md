@@ -58,7 +58,7 @@ The four loop stages, then the thirteen utilities outside the loop:
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
 | `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass |
 | `fg-tdd` | Utility | Toggles persistent TDD mode in `.forge/config.json` |
-| `fg-eco` | Utility | Toggles eco mode — caps delegated workflow subagents at `sonnet` |
+| `fg-eco` | Utility | Toggles eco mode — when on, caps delegated workflow subagents at `sonnet` **and** activates the embedded Eco laziness-first discipline (`ECO.md`): injected into fg-run subagents, woven into fg-ask grilling as a YAGNI lens, adopted by the session |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Installs a statusline fragment that shows forge's loop progress |
@@ -119,3 +119,5 @@ The full directory layout, the `.gitignore` pattern, branch isolation, the retro
 ## Credits
 
 The grilling/documentation pattern of `fg-ask` (including the verbatim original) and `CONTEXT-FORMAT.md`/`ADR-FORMAT.md` are inherited from [grill-with-docs in mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs).
+
+The code-simplicity discipline used by **eco mode** (`fg-eco`) — the laziness-first decision ladder embedded in `skills/fg-eco/ECO.md` and injected into fg-run subagents / fg-ask grilling — is adapted from the [Ponytail skill by DietrichGebert](https://github.com/DietrichGebert/ponytail).

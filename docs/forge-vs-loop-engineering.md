@@ -1,6 +1,6 @@
 # forge와 Loop Engineering
 
-> Addy Osmani의 [Loop Engineering](https://addyosmani.com/blog/loop-engineering/)(2026)을 forge에 적용할지 검토한 결과 문서. 검토일 2026-06-11, forge v0.4.4 기준.
+> Addy Osmani의 [Loop Engineering](https://addyosmani.com/blog/loop-engineering/)(2026)을 forge에 적용할지 검토한 결과 문서. 검토일 2026-06-11(forge v0.4.4) · 현황 갱신 2026-06-22(v0.4.24).
 >
 > **결론: forge는 loop engineering의 구현체다.** 글이 정의하는 6개 프리미티브 중 5개와 경고 전부를 forge가 자기 어휘로 이미 제도화하고 있으며, 유일한 갭(Automations)은 이 리포에서 효용이 낮아 도입하지 않기로 했다(아래 "도입하지 않은 것" 참조).
 
@@ -12,11 +12,11 @@ Osmani의 테제는 "에이전트에 프롬프트를 치는 사람을 시스템�
 
 | Loop Engineering 개념 | forge의 구현 | 근거 문서 |
 | --- | --- | --- |
-| **Skills** — SKILL.md로 관례·의도 인코딩, intent debt 방지 | forge 자체가 12개 `fg-*` 스킬. 용어는 `CONTEXT.md`, 결정은 ADR, 코드 맥락은 `.forge/codebase/` 지도 — "문서는 산출물이 아니라 루프의 연료"(기둥 2)가 곧 intent-debt 방지 | README 두 기둥, ADR-0001 |
+| **Skills** — SKILL.md로 관례·의도 인코딩, intent debt 방지 | forge 자체가 17개 `fg-*` 스킬(루프 4단계 + 루프 밖 유틸리티 13개). 용어는 `CONTEXT.md`, 결정은 ADR, 코드 맥락은 `.forge/codebase/` 지도 — "문서는 산출물이 아니라 루프의 연료"(기둥 2)가 곧 intent-debt 방지 | README 두 기둥, ADR-0001 |
 | **State/Memory** — 컨텍스트 밖 디스크 영속 상태 | `.forge/` 상태 계약 전체: backlog → 활성 슬롯(plan/run/STATUS) → executed/ → done/. "memory has to be on disk"를 문자 그대로 구현 — 모든 스킬이 독립 호출돼도 파일로 흐름이 이어진다 | README 공유 상태, FORGE-ROOT.md |
 | **Worktrees** — 병렬 에이전트 격리 | 브랜치별 forge 루트(`.forge/branch/<branch>/`)가 같은 충돌 문제를 상태 수준에서 해결. git worktree는 병용 가능하며, "worktree만으로 충분"은 검토 후 기각됨(추적 문서 충돌을 못 풀어서) | ADR-0011 |
-| **Sub-agents** — maker/checker 분리, 자기 채점 방지 | fg-run의 Dynamic Workflow(병렬 실행) + 위험/대형 변경에 조건부 적대 리뷰 단계, fg-map의 매퍼 4개 팬아웃. 전용 3종(explorer/retro-analyzer/verifier)은 구체적 통증 없음으로 **의도적 보류** — 재검토 바 명문화 | ADR-0007, ADR-0013 |
-| **`/goal`·`/loop`** — 검증 가능한 정지 조건까지 무인 재개 | `fg-next all`(백로그 완주, 대화의 벽에서 halt) + 하니스 `/goal` 페어링 운영 패턴 문서화 | ADR-0010, fg-next SKILL.md |
+| **Sub-agents** — maker/checker 분리, 자기 채점 방지 | fg-run의 Dynamic Workflow(병렬 실행) + 전용 적대 리뷰 스킬 **fg-adversarial-review**(결과가 틀렸다고 가정하고 6개 렌즈를 병렬 서브에이전트로 팬아웃) + fg-map의 매퍼 4개 팬아웃. 별도 3종(explorer/retro-analyzer/verifier)은 구체적 통증 없음으로 **의도적 보류** — 재검토 바 명문화 | ADR-0007, ADR-0013, ADR-0018 |
+| **`/goal`·`/loop`** — 검증 가능한 정지 조건까지 무인 재개 | 전용 goal 루프 스킬 **fg-loop** — 기계 검증 가능한 정지 조건을 `.forge/loop.md`에 못 박고 한정 fix-forward 재계획으로 수렴까지 무인 주행. `fg-next all`(백로그 완주, 대화의 벽에서 halt)은 그릴링 완료된 대기열용 동반 차선 | ADR-0016, ADR-0010 |
 | **Automations** — 스케줄 발굴·트리아지 → 인박스 | **없음 (유일한 갭).** forge의 모든 루프는 사람이 시작한다 | — (아래 참조) |
 | **Plugins/Connectors** — MCP로 외부 도구 연동 | **없음 (의도적).** 파일 기반 자기완결이 설계 원칙 — 외부 트래커 의존은 이식성을 깬다 | 스킬 편집 규약(하드 의존 금지) |
 
@@ -26,7 +26,7 @@ Osmani가 후반부에 쏟는 경고들은 forge에서 권고가 아니라 **게
 
 | 경고 | forge의 제도화 |
 | --- | --- |
-| Token cost volatility | `fg-eco` — 위임 서브에이전트를 sonnet으로 캡(ADR-0014). 비용 추정 우선 원칙(fg-run Constraints) |
+| Token cost volatility | `fg-eco` — 켜면 위임 서브에이전트를 sonnet으로 캡 + Eco laziness-first 규율(`ECO.md`)로 코드·계획 복잡도까지 절감(ADR-0014 개정). 비용 추정 우선 원칙(fg-run Constraints) |
 | "A loop running unattended is a loop making mistakes unattended" | **no-seal-without-verification** — 검증 결정이 기록되지 않으면 봉인 불가(ADR-0009). `failed`는 어떤 waiver로도 봉인 못 함 |
 | Comprehension debt | 회고가 기본값(ADR-0002) — 건너뛰기는 저-divergence에서만, 감사 가능하게(`retro: skipped (사유)`). 학습은 영속 문서로 승급 |
 | Cognitive surrender | 기둥 1 — 그릴링·회고는 워크플로우 밖 대화. `fg-next all`조차 실패한 UAT·진짜 fork·고비용 판단에서는 멈춰 사람에게 돌려준다 |
@@ -36,4 +36,4 @@ Osmani가 후반부에 쏟는 경고들은 forge에서 권고가 아니라 **게
 
 - **Automations (스케줄 트리아지).** 두 가지 이유로 보류. ① 기둥 1 제약 — 자동화는 그릴링(대화)을 할 수 없으므로, 산출물은 plan이 아니라 "fg-ask 후보 인박스"까지만 가능하다. ② 이 리포는 CI·테스트가 없는 Markdown 플러그인이라 스케줄 발굴이 주기적으로 찾아낼 거리가 거의 없다. **이 갭이 가치를 갖는 곳은 forge를 사용하는 큰 코드베이스다** — 그쪽 프로젝트에서 필요해지면 "스케줄 트리아지 → `.forge/` 인박스 적재 → 사람이 fg-ask로 그릴링" 패턴으로 그때 그릴링한다.
 - **Connectors (MCP 연동).** forge의 상태는 의도적으로 파일 기반 자기완결이다. 이슈트래커 연동은 특정 외부 도구에의 하드 의존을 만들어 이식성(어느 리포에든 설치)을 깬다.
-- **전용 서브에이전트 3종.** ADR-0013의 재검토 바(구체적·재현된 통증) 미충족. 이 글의 일반론은 그 바를 넘는 새 증거가 아니다.
+- **전용 서브에이전트 3종(explorer/retro-analyzer/verifier).** ADR-0013의 재검토 바(구체적·재현된 통증) 미충족으로 여전히 보류. 이 글의 일반론은 그 바를 넘는 새 증거가 아니다. (적대적 리뷰 수요는 이 3종과 별개로 `fg-adversarial-review`가 채웠다 — ADR-0018.)

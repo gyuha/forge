@@ -16,12 +16,13 @@
 | `fg-next` | 오케스트레이터(루프 밖) | fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행 — 보고만 하지 않음, one-shot; fg-status는 보고, fg-next는 행동 | `.forge/*` (자신은 읽기 전용) | 없음 — 호출한 스킬에 위임 | — (다음 스킬을 호출) |
 | `fg-loop` | 오케스트레이터(루프 밖) | goal 주도 한정 재계획 루프 — 기초 질의로 기계 검증 가능한 정지 체크·fix-forward 재계획 범위·상한(기본 3라운드)을 `.forge/loop.md`에 못 박고, 체크가 전부 통과할 때까지 run → UAT → 회고 자동 skip → 봉인을 주행; 벽에서 멈춤 | goal(질의), `.forge/loop.md`, `backlog/` | 봉인된 작업들 + 생성된 fix-forward plan(`generated-by: fg-loop`) | — (종료 보고; 추후 `fg-learn`으로 일괄 승급) |
 | `fg-tdd` | 토글(루프 밖) | `.forge/config.json`의 TDD 모드를 켜고 끔 — `fg-ask`가 작업마다 이 설정을 기본 답으로 질문하고, plan의 marker가 켜져 있으면 `fg-run`이 test-first로 실행 | `on`/`off`/(없음) | `.forge/config.json`(`tdd`) | — (설정만) |
-| `fg-eco` | 토글(루프 밖) | `.forge/config.json`의 eco 모드를 켜고 끔 — 켜면 `fg-run`이 위임 워크플로우 서브에이전트를 `sonnet`으로 캡(내리기만; 메인 세션 모델은 불변) | `on`/`off`/(없음) | `.forge/config.json`(`eco`) | — (설정만) |
+| `fg-eco` | 토글(루프 밖) | eco 모드 토글 — 켜면 (1) `fg-run` 위임 서브에이전트를 `sonnet`으로 캡(내리기만; 세션 모델 불변), (2) Eco laziness-first 절제 규율(`ECO.md`)을 fg-run 서브에이전트·fg-ask 그릴링·현 세션에 주입 | `on`/`off`/(없음) | `.forge/config.json`(`eco`) | — (설정만) |
 | `fg-merge` | 통합기(루프 밖) | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — ADR 번호 재부여(+교차참조)·CONTEXT 용어 병합·done 합침·브랜치 폴더 제거, 진짜 충돌 시 멈춤. git은 직접 안 돌림 | `.forge/branch/<branch>/` | 통합된 `.forge/` 문서 | — (통합 단계) |
 | `fg-cleanup` | 은퇴기(루프 밖) | 오래된/대체된 ADR을 활성 결정 집합에서 은퇴 — 후보를 근거와 함께 제시하고, 승인 시 각 ADR을 `.forge/adr/retired/<NNNN>-slug.md`로 이동+supersede/retire 마킹. 번호 불변·재사용 금지·삭제 안 함. fg-ask는 `retired/`를 정답소스로 안 읽음 | `.forge/adr/*.md` | `.forge/adr/retired/*` | — (ADR 정비) |
 | `fg-statusline` | 설정 유틸리티(루프 밖) | `.forge/`를 읽어 한 줄 진행 상태를 출력하는 bash 조각 스크립트를 설치하고 `settings.json`에 연결 — statusLine은 하나뿐이라 기존 것을 교체하지 않고 아래 별도 줄로 자동 래핑 | 기존 `settings.json` | `~/.claude/forge-statusline.sh` + `statusLine` 설정 | — (터미널 표시) |
 | `fg-adversarial-review` | 리뷰 유틸리티(루프 밖) | fg-run↔fg-learn 사이 선택적 적대적 리뷰 — 결과가 틀렸다고 가정하고 6개 렌즈를 워크플로우 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록하고 수정 필요 건은 승인 후 fix-forward plan으로; 봉인 게이트 아님, 무인 주행에선 자동 skip | `plan.md`·`run.md`·작업트리 diff·CONTEXT/ADR | `.forge/review.md` + (승인 시) fix-forward backlog plan | — (`fg-learn`/`fg-run`으로 복귀) |
 | `fg-doctor` | health check(루프 밖) | 읽기 전용 무결성 검사 — `.forge/` 상태 계약(고아·STATUS 필드·slug 페어링·half-sealed)과 문서/매니페스트 정합(버전 3곳 동기·README 이중언어·CLAUDE.md 스킬 목록)을 검사해 위반을 severity·actionable 수정 안내와 함께 보고; 아무것도 안 쓰고 자동 수정 안 함 | `.forge/*`·매니페스트·README·CLAUDE.md (읽기 전용) | 출력 보고(파일 없음) | — (`fg-quick`/`fg-ask`로 수정) |
+| `fg-drop` | 폐기 유틸리티(루프 밖) | 미완(미봉인) 작업 폐기 — backlog/활성 슬롯/`executed/` 회고대기/멈춘 goal 루프를 항목별 위험도와 함께 제시한 뒤 하드 삭제(기본·흔적 없음) 또는 `.forge/dropped/`로 보관; forge 상태만 지움(git·코드 불변) | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
 
 ## 루프 스킬 (4단계)
 
@@ -43,7 +44,7 @@
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트(ADR-0009)는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (12개)
+## 루프 밖 유틸리티 (13개)
 
 ### fg-map
 
@@ -71,7 +72,12 @@
 
 ### fg-eco
 
-`fg-eco`도 **루프 밖**이다 — `.forge/config.json`에 저장되는 eco 모드 토글(`fg-eco on|off`, 인자 없으면 상태 표시 + 켜기/끄기 선택). 켜면 `fg-run`이 위임 Dynamic Workflow 서브에이전트를 `sonnet`으로 캡한다 — 내리기만 하고(티어를 올리지 않음) 사용자의 명시적 모델 지시가 우선하며, 메인 세션 모델은 건드리지 않는다: 스킬은 세션 모델을 바꿀 수 없으므로 설계(fg-ask)·완료(fg-done)는 사용자가 고른 모델 그대로이고, 강력=메인 세션·일반=위임 실행의 2단 구조가 된다 ([ADR-0014](../.forge/adr/0014-fg-eco-subagent-model-tiering.md)). `fg-map`은 의도적으로 범위 밖이다(지도 품질=그릴링 연료). "forge eco", "eco on/off", "에코 모드" 같은 발화에서 트리거된다.
+`fg-eco`도 **루프 밖**이다 — `.forge/config.json`에 저장되는 eco 모드 토글(`fg-eco on|off`, 인자 없으면 상태 표시 + 켜기/끄기 선택). eco는 binary on/off이며, 켜지면 "forge 루프에서 낭비하지 않는다"는 한 원칙의 **두 효율 동작**이 활성화된다 ([ADR-0014](../.forge/adr/0014-fg-eco-subagent-model-tiering.md) 개정).
+
+1. **모델 캡 (비용 절약).** `fg-run`이 위임 Dynamic Workflow 서브에이전트를 `sonnet`으로 캡한다 — **내리기만** 하고(티어를 올리지 않음, 이미 sonnet 이하면 상속 그대로), 사용자의 명시적 모델 지시가 우선하며, **메인 세션 모델은 건드리지 않는다**. 스킬은 세션 모델을 바꿀 수 없으므로(그래서 자동 단계별 모델 전환은 불가능 — ADR-0014의 전제) 설계(fg-ask)·완료(fg-done)는 사용자가 고른 모델 그대로이고, 결과는 **강력=메인 세션 · 일반=위임 실행**의 2단 티어다. `fg-map`은 의도적으로 범위 밖이다(지도 품질=그릴링 연료라 절감 폭 대비 리스크가 크다).
+2. **Eco laziness-first 규율 (코드·계획 복잡도 절약).** 임베드된 절제 규율(`skills/fg-eco/ECO.md` — "가장 좋은 코드는 쓰지 않은 코드")이 세 곳에 적용된다: (a) **fg-run** 각 위임 서브에이전트 프롬프트에 6단 사다리(YAGNI → stdlib → 네이티브 → 기존 의존성 → 한 줄 → 최소 코드)와 핵심 제약이 prepend되고, (b) **fg-ask** 그릴링에 조용한 YAGNI 렌즈("이게 꼭 필요한가? 최소 버전은? 기존 메커니즘이 커버하나?")로 녹아들며, (c) **현 세션**도 `fg-eco on` 순간 그 규율을 채택한다(스킬이 세션에 *행동 렌즈*를 적용하는 유일한 경로 — 모델은 여전히 불변). 신뢰 경계 검증·데이터 손실 방지·보안·접근성·명시 요청은 절대 단순화하지 않으며, 비-trivial 로직은 runnable check 하나를 남긴다. 이 규율은 독립 스킬이 아니라 eco의 일부이고(별도 토글 없음), DietrichGebert의 Ponytail에서 차용·각색했다(크레딧은 README).
+
+"forge eco", "eco on/off", "에코 모드", "경제 모드", "lazy mode", "게으른 모드" 같은 발화에서 트리거된다.
 
 ### fg-merge
 
@@ -91,4 +97,8 @@
 
 ### fg-doctor
 
-`fg-doctor`는 **읽기 전용 무결성 health check로, 역시 루프 밖**이다 — harness engineering의 `init.sh` health check를 forge에 적용한 것이다. `fg-status`가 *어디까지 했나*를 보고한다면, `fg-doctor`는 *상태가 건강한가*를 보고한다: `.forge/` 상태 계약(고아 `run.md`·STATUS 필드 손상·plan↔STATUS↔retro slug 페어링 불일치·half-sealed `done/`·backlog 마커와 task 번호 유일성)과 영속 문서/매니페스트(버전 3곳 동기·JSON 유효성·스킬 `name` frontmatter·스킬 개수 정합·CLAUDE.md 스킬 목록 완전성·README 이중언어 동기·ADR 번호/상호참조)를 검사해 각 위반을 error/warning/info로 분류하고 항목별 actionable 수정 안내를 출력한다. **아무것도 쓰지 않고 자동 수정도 하지 않는다** — 수정은 사람이 `fg-quick`(사소) 또는 `fg-ask`(비사소)로 하며, 다른 스킬이 자동 호출하지 않는다. "forge doctor", "무결성 검사", "상태 점검" 같은 발화에서 트리거된다 ([ADR-0019](../.forge/adr/0019-fg-doctor-integrity-check.md)).
+`fg-doctor`는 **읽기 전용 무결성 health check로, 역시 루프 밖**이다 — harness engineering의 `init.sh` health check를 forge에 적용한 것이다. `fg-status`가 *어디까지 했나*를 보고한다면, `fg-doctor`는 *상태가 건강한가*를 보고한다: `.forge/` 상태 계약(고아 `run.md`·STATUS 필드 손상·plan↔STATUS↔retro slug 페어링 불일치·half-sealed `done/`·backlog 마커와 task 번호 유일성)과 영속 문서/매니페스트(버전 3곳 동기·JSON 유효성·스킬 `name` frontmatter·스킬 개수 정합·CLAUDE.md 스킬 목록 완전성·README 이중언어 동기·ADR 번호/상호참조)를 검사해 각 위반을 error/warning/info로 분류하고 항목별 actionable 수정 안내를 출력한다. **아무것도 쓰지 않고 자동 수정도 하지 않는다** — 수정은 사람이 `fg-quick`(사소) 또는 `fg-ask`(비사소)로 하며, 다른 스킬이 자동 호출하지 않는다. "forge doctor", "무결성 검사", "상태 점검", "forge 진단", "health check", "정합성 확인", "check forge state" 같은 발화에서 트리거된다 ([ADR-0019](../.forge/adr/0019-fg-doctor-integrity-check.md)).
+
+### fg-drop
+
+`fg-drop`은 **폐기 유틸리티로, 역시 루프 밖**이다 — 더 이상 원하지 않는 **미완(미봉인) 작업**을 지운다: backlog plan·활성 슬롯·`executed/`의 회고 대기 작업·멈춘 goal `loop.md`가 대상이다(봉인된 `done/`은 대상 아님 — 그건 `fg-done`의 영역). 먼저 미완 항목을 **항목별 위험도**와 함께 제시하고(≤4개면 체크박스 대화, ≥5개면 번호 텍스트 목록), 별도 후속 질문으로 **하드 삭제**(기본·흔적 없음)와 `.forge/dropped/<slug>/` **보관** 중 하나를 고르게 한다. 불가역 삭제 전 확인 게이트가 한 번 더 막고, **이미 실행된 작업의 바뀐 코드는 되돌리지 않음**을 경고한다 — fg-drop은 forge 상태만 지우고 git·코드는 건드리지 않는다. 멈춘 goal 루프는 **통째로만** drop하며 멤버 task를 개별 제외하지 않는다(loop.md 멤버십 재동기화 로직을 만들지 않기 위함). `.forge/dropped/`는 휘발(gitignore)이라 `fg-doctor`는 관용하고 `fg-status`는 무시한다. "forge drop", "fg-drop", "작업 버리기", "이 작업 취소", "계획 지워", "백로그 비워", "drop task", "discard plan" 같은 발화에서 트리거된다 ([ADR-0021](../.forge/adr/0021-fg-drop-discard-incomplete-work.md)).

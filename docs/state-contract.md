@@ -21,7 +21,9 @@ repo/
     ├── backlog/<slug>.md      # ① fg-ask 그릴링 산출 — 미실행 plan 대기열
     ├── plan.md                # 활성 슬롯: 지금 도는 한 바퀴의 정답 기준 (fg-run가 백로그에서 승격)
     ├── run.md                 # ② fg-run 산출 = 계획 vs 실제
+    ├── review.md              # (선택) fg-adversarial-review findings — 휘발·활성 슬롯 동반·비-게이트; fg-learn 승급 입력, 봉인 시 done/ 아카이브 (ADR-0018)
     ├── STATUS.md              # 활성 슬롯: fg-run가 실행 완료 시 작성 (status: executed, verified: pending, retro: pending) — verified는 yes/skipped/n/a(봉인 가능) 또는 failed(차단), retro는 이후 경로 또는 "skipped"가 됨
+    ├── loop.md                # goal 계약(fg-loop): 정지 체크·replan 라운드/상한·## Tasks 멤버십 — goal 충족 시 fg-loop가 삭제 (ADR-0016)
     ├── executed/<slug>/       # "모두 실행" 후 회고 대기 (plan+run+STATUS, 미회고)
     ├── done/<날짜-slug>/       # ④ fg-done 봉인 아카이브 (plan+run+STATUS, status: done)
     ├── quick/LOG.md           # fg-quick 차선 로그(빠른 작업당 한 줄)
@@ -51,15 +53,41 @@ repo/
 - 회고는 사소한 **저-divergence** 작업에 한해 **건너뛸 수 있다**. fg-run가 핸드오프에서 명시 선택지로 제시한다 — 자동이 아니고, 계획과 크게 어긋난 실행에는 제시하지 않는다(그때야말로 배울 게 있다). 건너뛰면 STATUS.md에 `retro: skipped`를 기록하고 회고 파일은 만들지 않으며, fg-done이 이를 봉인 가드 통과로 인정한다. 회고가 기본값이다 ([ADR-0002](../.forge/adr/0002-optional-retro-skip.md)).
 - 작업은 봉인 전에 **검증 결정이 기록된다**. 루프 순서는 run → verify → learn → done이다. 실행 직후 fg-run의 대화형 핸드오프가 계획의 목표에 대고 UAT를 수행하고 결과를 STATUS.md `verified:`에 기록한다 — `yes (증거)`(동작 확인 + *어떻게* 확인했는지 한 줄 증거를 동반: 돌린 명령·관찰한 출력, 예: `yes (npm test → 42 passing)`; TDD 모드에선 통과한 슬라이스 테스트가 곧 그 증거) / `n/a (사유)`(확인할 런타임 없음, 예: 문서만 변경) / `skipped (사유)`(의도적·감사 가능한 waiver). 두 상태는 봉인을 **차단**한다: `pending`(UAT 미수행 — 초기값 또는 중단된 핸드오프)과 `failed (사유)`(UAT를 수행했으나 목표 미달 — 수정·재실행 또는 재그릴로 가며 절대 봉인 안 됨). fg-done은 `verified:`가 차단 상태이면 봉인하지 않는다(**no-seal-without-verification 가드**) — 기록된 *봉인 가능* 결정 없이는 아무것도 `done/`에 들어가지 않는다. 단 `skipped`는 **봉인을 통과한다** — confirmation이 아니라 명시적 waiver다(retro-skip과 동일한 절제). 이 게이트가 보장하는 것은 "조용한 누락 없음"이지 "모든 작업이 동작 확인됨"이 아니다 ([ADR-0009](../.forge/adr/0009-verification-gate-before-seal.md)). ADR-0009 이전에 봉인된 작업은 이 필드가 없던 시절이라 `verified: n/a (legacy pre-ADR-0009)`로 채워져 있다 — `done/` 이력에서 `verified:`가 비어 있으면 게이트 실패가 아니라 legacy 데이터라는 뜻이다.
 
+## 생산자·소비자 계약
+
+각 휘발 상태 파일을 **누가 쓰고 누가 읽는가**의 계약. 스킬을 편집할 때 이 입출력을 깨지 않아야 흐름이 이어진다(아래 경로는 모두 해석된 forge 루트 기준 — 비-기본 브랜치면 `.forge/branch/<branch>/`). 입력 파일이 없으면 각 스킬은 앞 단계를 안내한다.
+
+| 파일 | 생산자 | 소비자 |
+| --- | --- | --- |
+| `backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
+| `plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준)·fg-learn |
+| `run.md` | fg-run | fg-learn |
+| `review.md` (선택·비-게이트) | fg-adversarial-review | fg-learn(retro 승급 입력)·fg-done(봉인 시 `done/` 아카이브) |
+| `STATUS.md` (동반 마커) | fg-run(`status: executed`·`verified:`·`retro:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-done(`status: done` 마감) |
+| `executed/<slug>/` | fg-run("모두 실행" park) | fg-learn(회고 대기)·fg-done(봉인) |
+| `done/<날짜-slug>/` | fg-done | fg-ask(slug 충돌 검출)·fg-run(완료 판별)·fg-learn(회고 대상 제외)·fg-done(이중 봉인 방지) |
+| `loop.md` (goal 계약) | fg-loop | fg-loop(재개·멤버십 필터 주행)·fg-status(한 줄 보고+상태 머신 step 0)·fg-ask(벽에 멈춘 루프 경고)·fg-next(all 모드 양보)·fg-merge(브랜치 잔존 시 in-flight halt) |
+
+- **STATUS.md는 이중 장부가 아니라 동반 마커다.** 상태의 원천은 파일 위치이고, STATUS.md는 plan/run과 함께 활성 슬롯 → `executed/` → `done/`을 따라 이동한다. plan 첫 줄의 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자다(파일이 이동해도 영속).
+- **은퇴된 ADR(`adr/retired/`)은 그릴링 연료에서 빠진다** — `fg-ask`는 `retired/`를 정답소스로 읽지 않으므로, `fg-cleanup`이 옮긴 결정은 디스크에 남되 활성 결정 집합에서 제외된다 (ADR-0012·ADR-0011 개정).
+
 ## 전체 흐름 상세도
 
-루프와 문서(`.forge/`)의 산출·소비 관계를 한눈에 본 다이어그램. 텍스트 흐름도는 [README](../README.ko.md#전체-흐름)에 있다.
+루프와 문서(`.forge/`)의 산출·소비 관계를 한눈에 본 다이어그램. 텍스트 흐름도는 [README](../README.ko.md#전체-흐름)에 있다. **루프 4단계의 재귀 흐름**과 거기 물린 `.forge/` 상태 파일, 그리고 그 흐름에 직접 관여하는 루프 밖 유틸리티(fg-map·fg-cleanup·fg-loop·fg-adversarial-review·fg-drop)만 표시한다. 설정 토글(fg-tdd·fg-eco), 상태를 직접 쓰지 않는 리포터·오케스트레이터(fg-status·fg-next·fg-doctor), 그리고 재귀 루프 밖의 일회성 유틸리티(fg-quick·fg-merge·fg-statusline)는 이 흐름에 들지 않아 생략했다.
 
 ```mermaid
 flowchart LR
     A[fg-ask<br/>① 질의·계획·그릴링] --> E[fg-run<br/>② 실행·Dynamic WF]
-    E --> L[fg-learn<br/>③ 회고]
+    E --> V{검증 게이트<br/>verified · ADR-0009}
+    V -->|sealable| L[fg-learn<br/>③ 회고]
+    V -. failed/pending: 재실행·재검증 .-> E
     L --> C[fg-done<br/>④ 완료·봉인]
+    E -. 선택적 적대 리뷰 .-> AR[fg-adversarial-review<br/>유틸리티 · 루프 밖]
+    AR -. findings .-> REVIEW[(.forge/review.md)]
+    AR -. fix-forward plan .-> E
+    AR -. 수용→회고 .-> L
+    E -. 모두 실행 park .-> EXEC[(.forge/executed/)]
+    EXEC -. 회고 대기 .-> L
     E -.크게 어긋나면 재그릴링.-> A
     L -.재그릴링.-> A
     C -->|새 작업| A
@@ -73,8 +101,15 @@ flowchart LR
     CB -.그릴링 전 읽기.-> A
     CLEAN[fg-cleanup<br/>유틸리티 · 루프 밖] -.오래된 ADR 은퇴.-> ADRRET[(.forge/adr/retired/)]
     ADR -.그릴링 전 활성 집합 읽기.-> A
+    LOOP[fg-loop<br/>goal 주도 · 루프 밖] -. 정지 체크·멤버십 .-> LOOPMD[(.forge/loop.md)]
+    LOOP -. run→UAT→봉인 주행 .-> E
+    DROP[fg-drop<br/>유틸리티 · 루프 밖] -. 미완 폐기 .-> DROPPED[(.forge/dropped/)]
     style A fill:#e3f2fd
     style C fill:#ffe0b2
+    style V fill:#fff9c4
     style MAP fill:#e8f5e9
     style CLEAN fill:#e8f5e9
+    style LOOP fill:#e8f5e9
+    style AR fill:#e8f5e9
+    style DROP fill:#e8f5e9
 ```
