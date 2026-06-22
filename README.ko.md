@@ -58,7 +58,7 @@
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행 |
 | `fg-tdd` | 유틸리티 | `.forge/config.json`의 영속 TDD 모드 토글 |
-| `fg-eco` | 유틸리티 | eco 모드 토글 — 켜면 위임 서브에이전트를 `sonnet`으로 캡하고, 임베드된 Eco laziness-first 규율(`ECO.md`)을 활성화(fg-run 주입·fg-ask YAGNI 렌즈·현 세션 채택) |
+| `fg-eco` | 유틸리티 | eco 모드 토글 — 켜면 위임 서브에이전트를 `sonnet`으로 캡하고, 임베드된 Eco laziness-first 규율(`ECO.md` — 코드 단순성 + 출력 prose 압축)을 활성화(fg-run 주입·fg-ask YAGNI 렌즈·현 세션 채택) |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | forge 루프 진행 상태를 띄우는 statusline 조각 설치 |
@@ -120,3 +120,5 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 `fg-ask`의 그릴링·문서화 패턴(원문 포함)과 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`는 [mattpocock/skills의 grill-with-docs](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)를 계승했다.
 
 **eco 모드**(`fg-eco`)가 쓰는 코드 단순성 규율 — `skills/fg-eco/ECO.md`에 임베드되어 fg-run 서브에이전트·fg-ask 그릴링에 주입되는 laziness-first 결정 사다리 — 은 [DietrichGebert의 Ponytail 스킬](https://github.com/DietrichGebert/ponytail)에서 차용·각색했다.
+
+같은 `ECO.md`의 출력 prose 압축 규칙 — 코드/에러는 verbatim으로 두고 그릴링 질문·생성 문서는 full로 보존하되 실행·보고 prose를 간결화해 컨텍스트를 아낀다 — 은 [JuliusBrussee의 caveman 스킬](https://github.com/JuliusBrussee/caveman)에서 차용·각색했다.

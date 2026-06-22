@@ -41,6 +41,24 @@ give it in full, the rule is only against unrequested prose.
 
 Pattern: `[code] → skipped: [X], add when [Y].`
 
+## Terse communication
+
+Compress the prose you write, not only its length. Drop filler, pleasantries,
+hedging, and self-reference; lead with the answer; fragments are fine; take the
+shorter word. This is language-agnostic — it cuts padding, not grammar (it is
+not about English articles). Keep these **verbatim, never compressed**: code,
+commands, file paths, identifiers, and error text.
+
+Boundary — terseness applies to **chat, execution, and reporting prose only**.
+Do NOT compress: grilling questions (a plan conversation needs clarity),
+generated persistent documents (plan/run/retro/CONTEXT/ADR — the loop's fuel,
+read later in full), explanation the user explicitly asked for, and any
+multi-step sequence or security/irreversible/data-loss/accessibility note where
+compression risks misreading — those stay full and clear (the same exceptions
+as "When NOT to be lazy" below).
+
+(Adapted from the caveman skill by JuliusBrussee — <https://github.com/JuliusBrussee/caveman>.)
+
 ## When NOT to be lazy
 
 Never simplify away: input validation at trust boundaries, error handling

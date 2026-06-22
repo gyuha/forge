@@ -7,12 +7,12 @@ description: Toggle forge's eco mode on or off — activates loop-efficiency beh
 
 This is **not** a stage of the forge loop. It is a tiny on-demand utility that flips one persistent project setting: whether forge runs **delegated subagent work on a cheaper model tier**. It reads and writes **only** `.forge/config.json` — it never touches the active slot, backlog, executed, or done state.
 
-**What eco mode is (and is not).** A skill cannot switch the current session's model — `/model` is a user-only interactive command, so the main-session stages (fg-ask grilling, fg-done sealing) always run on whatever model the user picked. What *can* be controlled is the behavior of the **forge loop itself** plus the **code-simplicity discipline** applied throughout. The discipline is the **Eco laziness-first spec embedded as the sibling [`ECO.md`](./ECO.md)** — it has no standalone skill and no toggle of its own; turning eco on is its only activation. When eco is on, these behaviors activate:
+**What eco mode is (and is not).** A skill cannot switch the current session's model — `/model` is a user-only interactive command, so the main-session stages (fg-ask grilling, fg-done sealing) always run on whatever model the user picked. What *can* be controlled is the behavior of the **forge loop itself** plus the **code-simplicity and terse-communication discipline** applied throughout. The discipline is the **Eco laziness-first spec embedded as the sibling [`ECO.md`](./ECO.md)** — it has no standalone skill and no toggle of its own; turning eco on is its only activation. When eco is on, these behaviors activate:
 
 1. **fg-run model cap** — caps Dynamic Workflow / execution subagents at `sonnet` (only ever lowers, never raises; explicit user model instruction wins).
-2. **fg-run Eco injection** — prepends the full [`ECO.md`](./ECO.md) to each subagent's prompt.
+2. **fg-run Eco injection** — prepends the full [`ECO.md`](./ECO.md) (laziness-first ladder + terse-communication output rules) to each subagent's prompt.
 3. **fg-ask YAGNI lens** — fg-ask applies the [Eco](./ECO.md) YAGNI lens to every slice discussion during grilling — no separate question, just sharpened grilling.
-4. **Current-session adoption** — when you flip eco **on**, read [`ECO.md`](./ECO.md) and adopt its discipline for your own main-session work for the rest of this conversation (this is the only way a skill can "activate" Eco in-session — the config drives the durable cross-session effect via fg-ask/fg-run above; this turn-level adoption gives the immediate effect). Flipping eco **off** drops it again.
+4. **Current-session adoption (state-driven).** Whenever the main session **observes `eco: true`**, read [`ECO.md`](./ECO.md) and adopt its discipline — especially the terse-communication output rules — for your own main-session prose for the rest of the conversation; on `eco: false`, drop it. This is **state-driven, not toggle-gated**: it activates not only on an explicit `fg-eco on`, but also when `fg-eco` (no arg) reports or leaves the state **on**, and when any main-session skill reads `eco: true` while working — fg-run building/handing off (including the direct, non-workflow execution path) and fg-ask's own handoff prose (fg-ask's grilling questions stay clear per ECO.md's boundary). Behaviors 1–3 drive the **subagent** cap/injection and the grilling lens from config; **only this behavior puts the main session's own output under the discipline**, so it must fire on every main-session eco-read, not just the toggle. **Unavoidable limit:** a brand-new session where `eco` is already true but no forge skill has run yet cannot self-adopt — a skill runs only when invoked and there is no session-start hook; the first eco-reading skill picks it up.
 
 Together these tier the loop as "strong = main session (design + grilling), efficient = delegated execution" and keep the whole loop lazy-first. See `.forge/adr/0014-fg-eco-subagent-model-tiering.md` for the full rationale.
 
@@ -26,7 +26,7 @@ Together these tier the loop as "strong = main session (design + grilling), effi
 
 - **`fg-eco on`** → set `eco: true` in `.forge/config.json`, then read the sibling [`ECO.md`](./ECO.md) and adopt its discipline for the rest of this session (behavior 4 above).
 - **`fg-eco off`** → set `eco: false`; stop applying the Eco discipline in this session.
-- **`fg-eco` (no argument)** → report the current state in one line (e.g. "eco mode: off — delegated agents inherit the session model"), then offer the choice via `AskUserQuestion`: turn it on / turn it off / leave as is. Apply only what the user picks.
+- **`fg-eco` (no argument)** → report the current state in one line (e.g. "eco mode: off — delegated agents inherit the session model"), then offer the choice via `AskUserQuestion`: turn it on / turn it off / leave as is. Apply only what the user picks. **If the resulting state is on** — it was already on and the user leaves it, or they turn it on — adopt [`ECO.md`](./ECO.md) for this session now (behavior 4); finding eco already on must not silently skip adoption.
 
 ## The config file — `.forge/config.json`
 
@@ -44,8 +44,8 @@ A git-tracked JSON settings file (lazily created on first write; `.gitignore` wh
 
 ## How the setting is used (for reference — not this skill's job)
 
-- **fg-ask** reads `eco` from the top-level `.forge/config.json` at grilling start: if `true`, applies the [Eco](./ECO.md) YAGNI lens to every slice discussion (no separate question). See fg-ask Forge integration.
-- **fg-run** reads `eco` from the top-level `.forge/config.json` when building a Dynamic Workflow: if `true`, (1) caps subagents at `sonnet` and (2) prepends the full [`ECO.md`](./ECO.md) to each subagent's prompt. See fg-run §1.
+- **fg-ask** reads `eco` from the top-level `.forge/config.json` at grilling start: if `true`, applies the [Eco](./ECO.md) YAGNI lens to every slice discussion (no separate question) **and adopts ECO.md's output discipline for its own non-grilling prose (handoff/reporting)** — grilling questions stay clear per the boundary (behavior 4). See fg-ask Forge integration.
+- **fg-run** reads `eco` from the top-level `.forge/config.json`: if `true`, for delegated subagents it (1) caps them at `sonnet` and (2) prepends the full [`ECO.md`](./ECO.md) to each subagent's prompt, **and the main session running fg-run adopts ECO.md's output discipline for its own execution/reporting prose** — the only carrier on the direct, non-workflow path where there are no subagents (behavior 4). See fg-run §1.
 - **fg-map is out of scope** — its mappers write the codebase map that fuels fg-ask grilling, and degrading map quality degrades design quality (ADR-0014).
 
 fg-eco only flips the default; it does not start any work.
