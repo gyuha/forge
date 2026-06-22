@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.4.25] - 2026-06-23
+
+### Added
+- **Eco laziness-first 규율 (`skills/fg-eco/ECO.md`).** eco 모드에 임베드되는 코드 단순성 규율 — 6단 게으름 사다리(YAGNI → stdlib → 네이티브 → 기존 의존성 → 한 줄 → 최소 코드)와 핵심 제약(불필요 추상화 금지·삭제 우선·`// eco:` 주석·신뢰 경계/보안/데이터 손실은 단순화 금지·비-trivial 로직은 runnable check 하나). 독립 스킬이 아니라 eco의 일부이며(별도 토글 없음), DietrichGebert의 [Ponytail](https://github.com/DietrichGebert/ponytail)에서 차용·각색(크레딧은 README).
+
+### Changed
+- **fg-eco eco 모드 확장 — 모델 캡에서 루프 전체 절약 모드로 (ADR-0014 개정).** eco를 켜면 네 가지 효율 동작이 활성화된다: (1) fg-run이 위임 서브에이전트를 `sonnet`으로 캡(기존; 내리기만·세션 모델 불변·명시 지시 우선), (2) fg-run이 각 서브에이전트 프롬프트에 `ECO.md`를 prepend, (3) fg-ask 그릴링에 Eco YAGNI 렌즈를 적용(별도 질문 없음), (4) `fg-eco on` 시 메인 세션이 `ECO.md`를 읽어 그 대화 동안 규율을 채택. 모델 비용 기준 "강력=메인 세션 / 효율=위임 실행"의 2단 티어는 유지(behavior 4는 *행동 렌즈*만 적용, 세션 *모델*은 여전히 불변). `skills/fg-eco`·`skills/fg-run`·`skills/fg-ask` SKILL.md 동기.
+- **문서 현행화 (이번 릴리스 작업 반영).** `docs/skills.md` — 누락됐던 `fg-drop` 카탈로그 행+섹션 추가, 루프 밖 유틸리티 카운트 12→13 정정, fg-eco를 두 동작+사다리+Ponytail 크레딧으로 재작성, fg-doctor 트리거 alias 보강. `docs/state-contract.md` — 디렉터리 트리에 `review.md`(ADR-0018)·`loop.md`(ADR-0016) 추가, **생산자·소비자 계약 표 신설**, 흐름 도식에 검증 게이트·적대적 리뷰·executed park·fg-loop·fg-drop 반영. `docs/forge-vs-loop-engineering.md` — 스킬 수 12→17, `/goal·/loop`에 fg-loop·sub-agents에 fg-adversarial-review 명시, eco 두 동작, 날짜 스탬프 재기입. `README.md`·`README.ko.md`(이중언어)·`CLAUDE.md` fg-eco 동기.
+
 ## [0.4.24] - 2026-06-21
 
 ### Added
