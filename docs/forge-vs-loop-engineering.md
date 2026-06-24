@@ -1,6 +1,6 @@
 # forge와 Loop Engineering
 
-> Addy Osmani의 [Loop Engineering](https://addyosmani.com/blog/loop-engineering/)(2026)을 forge에 적용할지 검토한 결과 문서. 검토일 2026-06-11(forge v0.4.4) · 현황 갱신 2026-06-22(v0.4.24).
+> Addy Osmani의 [Loop Engineering](https://addyosmani.com/blog/loop-engineering/)(2026)을 forge에 적용할지 검토한 결과 문서. 검토일 2026-06-11(forge v0.4.4) · 현황 갱신 2026-06-25(Loop Library 2차 감사 — fg-loop tension·safety 벽 추가).
 >
 > **결론: forge는 loop engineering의 구현체다.** 글이 정의하는 6개 프리미티브 중 5개와 경고 전부를 forge가 자기 어휘로 이미 제도화하고 있으며, 유일한 갭(Automations)은 이 리포에서 효용이 낮아 도입하지 않기로 했다(아래 "도입하지 않은 것" 참조).
 
@@ -31,6 +31,15 @@ Osmani가 후반부에 쏟는 경고들은 forge에서 권고가 아니라 **게
 | Comprehension debt | 회고가 기본값(ADR-0002) — 건너뛰기는 저-divergence에서만, 감사 가능하게(`retro: skipped (사유)`). 학습은 영속 문서로 승급 |
 | Cognitive surrender | 기둥 1 — 그릴링·회고는 워크플로우 밖 대화. `fg-next all`조차 실패한 UAT·진짜 fork·고비용 판단에서는 멈춰 사람에게 돌려준다 |
 | Orchestration tax | 활성 슬롯 항상 1개(한 plan = 한 run = 한 봉인) — 사람 리뷰 대역폭에 루프 폭을 맞춘 설계 |
+
+## fg-loop 2차 경화 — Loop Library 감사 (2026-06-25)
+
+Osmani 글에 더해, Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)(69개 루프 레시피)의 **공통 가드레일 DNA**에 대고 fg-loop를 다시 감사했다. DNA의 대부분 — 기계 검증 정지 조건 · "AI가 됐다고 생각함"은 정지 아님 · no-progress 2라운드 · Reflexion · evidence ledger · stateless 재개 · 독립 기계 checker — 은 이미 보유했고, 진짜 빈틈 둘만 차용했다(ADR-0016 7차 개정):
+
+- **tension 벽** — fix-forward가 이미 통과한 다른 정지 체크를 깨뜨리는 oscillation을 원장의 pass→fail 회귀(`regressed: ×N`)로 **기계 감지**해, cap 소진 전에 충돌 쌍을 보고하며 조기 정지(lenient + 1회 재시도). 기존 no-progress 벽(`×N`)이 핑퐁을 놓치던 사각지대를 메운다 — Loop Library #034가 oscillation을 1급 정지 사유로 명시.
+- **safety 벽** — 승인 범위 *안*이라도 비가역/파괴적/외부 액션 클래스(기본 7종)면 fix-forward **생성 시점**에 정지. Loop Library 전반의 approval-gate DNA를 계약 수준에 명시(하니스 권한 게이트가 넓은 권한에서 놓치는 in-scope-destructive 갭). best-effort 자기분류라는 한계는 ADR에 솔직히 기록.
+
+budget(replan-cap과 별개의 토큰/시간) 분리·체크 상태 다변화(proved/weak/contradicted)는 YAGNI로 기각. 두 벽은 *생성된* fix-forward에서만 발생해 **fg-loop 전용**(fg-next all 비적용).
 
 ## 도입하지 않은 것과 그 이유
 
