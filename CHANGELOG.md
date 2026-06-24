@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.27] - 2026-06-25
+
+### Added
+- **fg-loop에 tension 벽 + safety 벽 (ADR-0016 7차 개정).** Forward Future [Loop Library](https://signals.forwardfuture.ai/loop-library/)(69개 루프 레시피)의 공통 가드레일 DNA에 대고 fg-loop를 감사한 결과 — DNA 대부분(기계 검증 정지 조건·"AI가 됐다고 생각함"은 정지 아님·no-progress 2라운드·Reflexion·evidence ledger·stateless 재개·독립 기계 checker)은 이미 보유 — 남은 진짜 빈틈 2건을 보강했다. **tension 벽**: fix-forward가 이미 통과한 다른 정지 체크를 깨뜨리는 oscillation을 `## Check progress` 원장의 `regressed: ×N`(pass→fail 플립)으로 **기계 감지** — lenient + 1회 재시도(다음 fix-forward에 "둘 다 만족" 하드 제약 주입) 후 핑퐁이면 `wall: tension (Cx↔Cy)`으로 cap 소진 전 조기 정지. 기존 no-progress 벽(`×N`)이 놓치던 사각지대를 메운다(LL #034). **safety 벽**: 승인 범위 *안*이라도 비가역 7-class 액션(prod 데이터 변경/삭제·배포/릴리스/publish·외부 발신 통신·비가역 VCS/파일 파괴·금융/결제·시크릿/권한 변경·프라이버시 노출)이면 fix-forward **생성 시점**에 `wall: safety (<class>)`으로 정지(best-effort 자기분류라는 한계는 ADR에 명기). 둘 다 *생성된* fix-forward에서만 발생해 **fg-loop 전용**(fg-next all 비적용). budget 분리·체크 상태 다변화는 YAGNI로 기각. `skills/fg-loop`·`skills/fg-status` SKILL·ADR-0016·`docs/skills.md`·`docs/forge-vs-loop-engineering.md`·`CLAUDE.md`·README(이중언어) 동기.
+
 ## [0.4.26] - 2026-06-23
 
 ### Added
