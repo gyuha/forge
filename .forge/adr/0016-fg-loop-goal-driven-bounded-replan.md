@@ -77,3 +77,13 @@ Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)
 **①②의 비대칭(솔직히 명기).** ①은 원장 플립으로 **기계적·확정적** 감지가 되지만, ②는 fg-loop이 생성하는 plan을 모델이 **스스로 분류**하는 best-effort 안전 *선언*이다(Markdown 플러그인이라 정적 분석기로 강제 불가). ②의 가치는 100% 가로채기가 아니라, 멈춤이 계약과 `/goal` stop-allowed 집합에 명시되어 드라이브가 "멈추라는 명시 지시"를 갖는 것이다.
 
 **기각·경계(불변).** replan-cap과 별개의 토큰/시간 budget(forge 작업은 사람 규모, fg-run이 이미 bounded)·체크 상태 다변화(proved/weak/contradicted — 기계 체크의 이진성이 없애려던 주관성 재도입)는 YAGNI로 기각. **fg-next all에는 비적용** — tension·safety 둘 다 *생성된* fix-forward에서만 발생하는데 fg-next all은 fix-forward를 만들지 않으므로(공유는 `/goal` 메커니즘뿐, 벽 집합 분리), goal-pairing 개정(2026-06-15)의 fg-next 동기 대상이 아니다. cap·authorized replan 범위·ADR-0009·활성 슬롯 1개·회고 auto-skip·Reflexion·ADR-0015 진술형은 전부 불변.
+
+## 개정 (2026-06-25 2차) — 7차 개정 두 벽의 제어흐름 허점 보정 (Codex 적대적 리뷰)
+
+7차 개정 직후 배포(v0.4.27)에 대한 Codex 적대적 리뷰가 두 벽의 제어흐름 허점 2건을 짚었다. 둘 다 7차 개정의 *의도*는 옳았으나 SKILL.md *메커니즘*이 그 의도(및 이미 작성된 소비자 설명)보다 넓거나 누락된 경우였다 — 메커니즘을 의도에 맞추는 보정이다.
+
+**[high] tension 귀속이 너무 넓었다.** 7차 메커니즘은 "매 seal 후 pass→fail 플립 = regression, `regressed:` 증가"로 **모든** 봉인 작업을 카운트했다. 그러나 tension은 *fix-forward가 체크를 주고받는* 현상인데, 초기 멀티태스크 백로그 drain 중엔 사람이 그릴링한 member 작업도 정상적으로 체크를 깰 수 있다(다중작업 간섭). 그 member regression이 `regressed:`에 카운트되면 (a) 두 member가 각각 다른 체크를 깨 `regressed ×2`/핑퐁 위양성 `wall: tension`, 또는 (b) 알려진 regression을 지나쳐 주행하는 모순이 생긴다. **결정(옵션 a)**: `regressed: ×N`을 **fix-forward 귀인 플립(`generated-by: fg-loop`)만** 세도록 한정한다. member 작업의 플립은 `last-evidence`에만 기록(체크가 failing이 되어 잔여 백로그/후속 fix-forward가 처리)하고 `regressed:`·tension·드레인 정지에 영향 없음. tension의 satisfy-both 재시도·`×2`/핑퐁 정지는 모두 fix-forward 귀인 regression에만 적용된다. 기각한 옵션 b(즉시 우선 분기로 satisfy-both fix-forward를 백로그 승격 전 삽입)는 드라이브 제어흐름을 재배치해 더 침투적이고, member 간섭에도 조기 fix-forward를 생성해 백로그 순서를 교란할 위험이 있어 보류.
+
+**[medium] safety 게이트가 `verified: failed` 자동 경로를 우회했다.** 7차의 safety 게이트는 backlog-empty replan 경로에만 다이어그램으로 드러났고, `verified: failed` 자동 fix-forward bullet과 그 다이어그램 화살표는 게이트를 통과하지 않았다. `/goal`이 `verified: failed`에선 멈추지 말라고 지시하므로, 게이트 누락 시 *승인 범위 안의 비가역* 수정이 무인 자동 실행될 수 있다(최고위험 경로의 제어흐름 모호성). **결정**: safety 분류를 **모든 fix-forward 생성의 필수 전제조건**으로 통합 명시한다 — backlog-empty replan과 `verified: failed` 자동 케이스가 동일 게이트를 통과하고, 다이어그램의 `verified: failed` 화살표도 `safety-class?`를 경유한다.
+
+**소비자 무변경(근거).** wall enum 소비자(CLAUDE.md·docs/skills.md·docs/forge-vs-loop-engineering.md·README 양판)의 tension 설명은 7차 작성 시점부터 이미 "fix-forward가 깨뜨리는"으로, safety 설명은 "fix-forward 생성 시점"으로 (옳게) 스코프돼 있었다 — 어긋난 것은 SKILL.md 메커니즘뿐이라 이 보정은 메커니즘을 그 설명들에 정렬한다(소비자 편집 불요). **불변**: 두 벽의 이름·`wall:` enum·cap·authorized replan 범위·ADR-0009·활성 슬롯·회고 auto-skip·Reflexion·fg-next all 비적용은 전부 그대로.
