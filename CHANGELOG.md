@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.4.28] - 2026-06-25
+
+### Fixed
+- **fg-loop tension/safety 벽의 제어흐름 허점 2건 보정 (ADR-0016 8차 개정, Codex 적대적 리뷰).** v0.4.27의 두 벽에 대한 Codex 리뷰가 짚은 허점 — 둘 다 SKILL.md *메커니즘*이 자기/소비자 설명보다 넓거나 누락된 경우라 메커니즘을 의도에 정렬했다. **[high]** tension이 일반 멀티태스크 백로그 작업에도 오발동: regression 원장이 *모든* 봉인 작업의 pass→fail 플립을 카운트해, 초기 사람-그릴링 member 작업이 정지 체크를 깨면(정상적 다중작업 간섭) 위양성 `wall: tension`이거나 알려진 regression을 지나칠 수 있었다 → `regressed: ×N`을 **fix-forward 귀인 플립(`generated-by: fg-loop`)만** 세도록 한정, member 작업 플립은 last-evidence에만 기록·비-tension·드레인 안 멈춤. satisfy-both 재시도·×2/핑퐁 정지도 fix-forward 귀인에만 적용. **[medium]** safety 게이트가 `verified: failed` 자동 fix-forward 경로를 우회: `/goal`이 failed에서 안 멈추라 지시하므로 승인 범위 안의 비가역 수정이 무인 자동 실행될 수 있었다 → safety 분류를 **모든 fix-forward 생성의 필수 전제조건**(replan·verified:failed 동일)으로 통합, 다이어그램 verified:failed 화살표도 `safety-class?` 경유. 소비자 문서(CLAUDE.md·docs·README)는 설명이 이미 fix-forward-scoped라 무변경. `skills/fg-loop/SKILL.md`·ADR-0016 동기.
+
 ## [0.4.27] - 2026-06-25
 
 ### Added
