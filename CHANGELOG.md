@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.3] - 2026-06-27
+
+### Added
+- **README 사용 시나리오 섹션 (이중언어).** "상황별 어떤 스킬을 어떤 순서로 쓰나"를 보여주는 7행 표를 `README.md`·`README.ko.md`의 "Choosing a lane / 차선 고르기" 뒤에 추가 — 처음 셋업·일상·사소한 1회 변경·무인 주행·재진입/점검·마무리/배포·유지보수. 특히 Quick start가 건너뛰던 **첫 셋업 흐름**(`fg-map` → `fg-agents`[세션 재시작 필요, ADR-0024] → `fg-ask`)을 명시한다. 일상·무인 행은 기존 Quick start/Choosing a lane을 참조만 해 중복을 피한다.
+
 ## [0.5.2] - 2026-06-26
 
 ### Fixed
