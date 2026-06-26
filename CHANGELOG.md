@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0] - 2026-06-26
+
+### Added
+- **fg-agents (신규, 18번째 스킬) — 프로젝트 도메인 에이전트 생성.** 대화형 그릴링(기둥 1, 워크플로 밖)으로 프로젝트 도메인을 캐 역할을 도출하고 표준 `.claude/agents/<role>.md` 서브에이전트 카드를 생성한다. `.forge/codebase/` 맵·`CONTEXT.md`·**활성 ADR**을 연료로 읽어 — 번호를 기계 인용하지 않고 prose로 **가볍게** — 카드를 프로젝트에 정합하게 만든다. 카드 `description`의 "언제 쓰이나"로 fg-run이 slice↔role을 자동 매핑한다. **핵심 제약(ADR-0024)**: `.claude/agents/`는 세션 시작 시 1회 로드되므로 생성한 카드는 **세션 재시작 후** fg-run이 활용한다(생성→재시작→활용). 루프 밖 온디맨드 유틸리티·graceful·optional.
+
+### Changed
+- **fg-run이 프로젝트 도메인 에이전트를 `agentType`으로 dispatch.** Dynamic Workflow 빌드 시 세션 시작 시 로드된 `.claude/agents/`의 role을 slice에 맞춰 `agentType`으로 호출한다 — 도메인 에이전트가 없으면 **기존과 100% 동일**(graceful degradation). eco ON 시 `agentType` 호출도 sonnet 캡 + ECO.md 주입(단 카드에 `model:` 명시가 있으면 사용자 명시로 존중 — eco는 내리기만). 도메인 에이전트 부재 시 fg-agents로 생성할 수 있음을 1줄로 안내(의존 아닌 포인터).
+- **fg-ask가 반복적·분리 가능한 특화 역할이 도움될 때 fg-agents를 안내** — 좁게·offered·1회·자동 호출 안 함·"카드는 세션 재시작 후 활용" 게이트 명시(deep-research 포인터 ADR-0006와 동형).
+- **18-스킬로 동기** — `plugin.json`·`marketplace.json`의 `plugins[].description`(루프 밖이라 `metadata.description`은 제외), `README.md`+`README.ko.md`(이중언어), `docs/skills.md`·`docs/forge-vs-loop-engineering.md`, `CLAUDE.md` 스킬 목록, `fg-doctor` 카운트. `.forge/codebase/` 맵 7문서를 현재 상태로 리프레시.
+
+### Decisions
+- **ADR-0024** — forge가 사용자 프로젝트의 `.claude/agents/`를 fg-run 실행에 통합한다(생성=fg-agents, 호출=fg-run `agentType`). harness 풀 복제는 거부(harness=프로젝트 1회 셋업 팩토리, forge=매 작업 루프로 레이어가 다름; 한 줄로 공존 설치 가능). **ADR-0013(forge 내부 투기적 서브에이전트 보류)과 비충돌** — forge 플러그인에 에이전트를 더하는 게 아니라 사용자 프로젝트가 소유한 에이전트의 호출 경로를 여는 것. 전제(PoC+공식문서 검증): `.claude/agents/`는 세션 시작 시 1회 로드, 세션 중 생성분은 재시작 후 dispatch 가능.
+
 ## [0.4.28] - 2026-06-25
 
 ### Fixed
