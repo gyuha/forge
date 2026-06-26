@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.1] - 2026-06-26
+
+### Added
+- **forge 자체 도메인 에이전트 카드 2개 — fg-agents 도그푸딩.** v0.5.0의 fg-agents로 forge 리포 자체의 도메인 에이전트를 생성: `skill-author`(`skills/*/SKILL.md`·형식문서를 forge 컨벤션에 맞게 작성/편집)와 `manifest-doc-syncer`(18-스킬 카탈로그·버전 3곳·README 이중언어 동기 + JSON/카운트 검증). 활성 ADR·CONVENTIONS를 prose로 가볍게 반영, `description`에 "언제 쓰이나"를 담아 fg-run이 `agentType` 자동 매핑. **주의 — 리포-로컬 자산**: `.claude/agents/`에 있어 클론 시 따라오지만 `/plugin install`로는 배포되지 않는다(매니페스트가 선언한 플러그인 에이전트가 아님). fg-run이 dispatch하려면 세션 재시작 필요(ADR-0024).
+
 ## [0.5.0] - 2026-06-26
 
 ### Added
