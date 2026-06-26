@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.2] - 2026-06-26
+
+### Fixed
+- **스킬 문서 정합 수정 (적대적 감사 후속, #54).** `fg-adversarial-review`로 18개 스킬 묶음을 감사해 adjudicate한 실 결함을 정정 — 전부 SKILL.md 지시문 정합이며 동작은 불변:
+  - **ADR-0015 미전파 stale 제거** — `fg-loop`의 폐지된 "four-option menu" 참조를 진술형 핸드오프 표현으로, `fg-done`의 "fg-run이 handoff에서 `retro: skipped`를 쓴다"는 부정확 문구를 "skip 값은 skip-and-seal 경로(cleanup 시점, human 또는 fg-next all/fg-loop 드라이브)에서 기록"으로 정정.
+  - **`fg-drop` git 주장 브랜치 케이스 정정** — 비-기본 브랜치는 `.forge/branch/<branch>/`가 git-추적(ADR-0011)이라 hard-delete가 `git status`에 unstaged 삭제로 보임을 3곳에 명시. "nothing lost in git"의 무조건 주장을 기본 브랜치로 한정하되, fg-drop이 git을 직접 안 돌린다는 원칙(ADR-0021)은 유지.
+  - **`fg-done` STATUS 정합** — close-out 템플릿에 `reviewed:` 필드(record-only, fg-adversarial-review 실행 시) 추가 + cleanup-time retro-skip이 human 선택뿐 아니라 fg-next all/fg-loop 무인 드라이브가 구동하는 skip도 포함함을 명시(ADR-0010/0016 seam 해소).
+  - **다이어그램 완전성** — `fg-done`(cleanup retro-skip 분기)·`fg-merge`(in-flight 노드에 `loop.md`) 텍스트 흐름도를 prose와 정합.
+
+### Decisions
+- **ADR-0025 — forge는 Claude Code 전용, Codex/크로스플랫폼 포팅 보류.** 진짜 결합점은 ultracode/Dynamic Workflow(직접실행 fallback 있음)가 아니라 패키징(`.claude-plugin/`·`/plugin`·`CLAUDE_PLUGIN_ROOT`)+도구 계층(AskUserQuestion·Skill 체이닝·Workflow). 도구 추상화의 확정 비용 대비 가설적 이득이라 보류하되, 실사용 수요가 반복되면 (a)전면 추상화 / (b)방법론-only 차선을 그릴하라는 재검토 바를 명문화(ADR-0013/0024와 동형).
+
 ## [0.5.1] - 2026-06-26
 
 ### Added
