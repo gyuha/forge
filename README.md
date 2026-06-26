@@ -42,6 +42,22 @@ The three driving skills form a **trust ladder** — the same graduated-autonomy
 
 Rule of thumb: grill the plan with `/fg-ask` first — that human judgment is L1 and is never automated — then pick the lowest lane you're comfortable with. `/fg-loop` is L3 for a goal you can pin to runnable checks (`grep`/test/build); `/fg-next all` is L3 for a queue you've already grilled.
 
+## Use cases — typical flows
+
+Reach for the right sequence by situation. The everyday and unattended rows point back to the sections above rather than repeating them.
+
+| Situation | Flow |
+| --- | --- |
+| **First-time setup** (new project/codebase) | `fg-map` (map the code) → `fg-agents` (generate domain agents — **restart the session** so they load, ADR-0024) → `fg-ask` (first task) → the loop |
+| **Everyday task** | `fg-ask → fg-run → fg-next` — see *Quick start* above |
+| **Tiny one-off** (typo, version bump) | `fg-quick` — grills lightly, runs directly, no formal artifacts |
+| **Unattended to done** | a grilled queue: `fg-ask` ×N → `fg-next all` · a machine-verifiable goal: `fg-loop` — see *Choosing a lane* (L3) |
+| **Re-entry / health** | *where am I*: `fg-status` (shows) / `fg-next` (does the next step) · *is the state healthy*: `fg-doctor` |
+| **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-learn` (retro) → `fg-done` (seal) → type `배포` (deploy) |
+| **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · toggles `fg-tdd`/`fg-eco` · statusline `fg-statusline` |
+
+First-time setup is the one sequence *Quick start* skips: on a fresh project, map the code and (optionally) generate domain agents **before** your first `fg-ask` — `fg-agents` cards load only at session start, so restart once after generating them (ADR-0024).
+
 ## Skill catalog
 
 The four loop stages, then the fourteen utilities outside the loop:
