@@ -62,7 +62,7 @@ For each confirmed item:
 - **`executed/<slug>/`** — remove (or move) the whole directory.
 - **`loop.md`** — remove (or move) it, abandoning the goal loop.
 
-**Disposal semantics.** Hard delete is a plain removal — these are volatile, gitignored files, so nothing is lost in git (the permanent fuel from grilling — CONTEXT.md, ADRs — already landed and is untouched). Archive moves the files under `.forge/dropped/<slug>/`, which is itself volatile (gitignored under the `.forge/*` default-exclude — no whitelist entry). `dropped/` has no automatic reaper; it is cleaned manually (re-running fg-drop can also target/empty it if you later expose its contents — keep that simple).
+**Disposal semantics.** Hard delete is a plain removal. On the **default branch** these are volatile, gitignored files, so nothing is lost in git (the permanent fuel from grilling — CONTEXT.md, ADRs — already landed and is untouched). On a **non-default branch** the forge root `.forge/branch/<branch>/` is git-tracked whole (ADR-0011), so deleting a tracked file there shows up as an **unstaged deletion in `git status`** — recoverable via `git restore` until committed. fg-drop still does not run git (see Constraints); on a branch the removal is simply a tracked-file change the user then commits or restores. Archive moves the files under `.forge/dropped/<slug>/`, which is itself volatile (gitignored under the `.forge/*` default-exclude — no whitelist entry). `dropped/` has no automatic reaper; it is cleaned manually (re-running fg-drop can also target/empty it if you later expose its contents — keep that simple).
 
 ```
 fg-drop (outside the loop)
@@ -77,7 +77,7 @@ Present items with risk level:  ≤4 → checkbox multi-select · ≥5 → numbe
    ▼
 Disposal question (separate):  Delete (default, no trace)  |  Archive → .forge/dropped/<slug>/
    ▼
-Confirmation gate: summary + explicit "yes"   (high-risk run.md present → "⚠ changed code is NOT reverted")
+Confirmation gate: summary + explicit "yes"   (high-risk run.md present → "⚠ changed code is NOT reverted"; non-default branch → "⚠ tracked files — deletion shows in git status")
    │ no ──▶ abort, change nothing
    ▼
 Execute per item (active slot = plan+run+STATUS+review · backlog file · executed/ dir · loop.md)
@@ -87,7 +87,7 @@ Report what was dropped/archived → end
 
 ## Constraints
 
-- **forge state only — never git, never your code.** fg-drop deletes/moves `.forge/` state and nothing else. It does **not** revert commits or working-tree changes (the same principle as fg-merge not running git). If the user wants already-changed code reverted, that is theirs to do via git — say so when it is relevant.
+- **forge state only — never git, never your code.** fg-drop deletes/moves `.forge/` state and nothing else. It does **not** revert commits or working-tree changes (the same principle as fg-merge not running git). If the user wants already-changed code reverted, that is theirs to do via git — say so when it is relevant. (On a **non-default branch** the dropped `.forge/branch/<branch>/` files are themselves git-tracked — ADR-0011 — so the deletion appears as an unstaged change; fg-drop still does not run git, the user commits or `git restore`s it.)
 - **No auto-run, no chaining.** Like fg-status/fg-doctor/fg-cleanup, fg-drop runs only on demand; it does not invoke other skills and nothing invokes it.
 - **Loop members are not individually droppable** while `loop.md` exists — drop the loop whole (the membership-resync logic is deliberately not built).
 - **Confirmation is mandatory** before any destructive action — there is no "drop without confirming" path.

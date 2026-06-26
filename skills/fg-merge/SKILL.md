@@ -66,7 +66,7 @@ fg-merge <branch>   (run AFTER `git merge <branch>` on the default branch)
 .forge/branch/<branch>/ present?  ── no ──▶ stop ("nothing to integrate — git merge first?")
    │ yes
    ▼
-In-flight task in the branch root (active slot · executed/ · pending quick entry)?  ── yes ──▶ halt, warn (seal or recover on the branch first)
+In-flight task in the branch root (active slot · executed/ · pending quick entry · `loop.md`)?  ── yes ──▶ halt, warn (seal/recover/resume-or-abandon on the branch first)
    │ no
    ▼
 Auto (mechanical): renumber ADRs (map first, one pass, incoming docs only) · move retros · append non-conflicting CONTEXT terms · fold done/ · fold backlog plans (renumber task:)
