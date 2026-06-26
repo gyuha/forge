@@ -23,6 +23,7 @@
 | `fg-adversarial-review` | 리뷰 유틸리티(루프 밖) | fg-run↔fg-learn 사이 선택적 적대적 리뷰 — 결과가 틀렸다고 가정하고 6개 렌즈를 워크플로우 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록하고 수정 필요 건은 승인 후 fix-forward plan으로; 봉인 게이트 아님, 무인 주행에선 자동 skip | `plan.md`·`run.md`·작업트리 diff·CONTEXT/ADR | `.forge/review.md` + (승인 시) fix-forward backlog plan | — (`fg-learn`/`fg-run`으로 복귀) |
 | `fg-doctor` | health check(루프 밖) | 읽기 전용 무결성 검사 — `.forge/` 상태 계약(고아·STATUS 필드·slug 페어링·half-sealed)과 문서/매니페스트 정합(버전 3곳 동기·README 이중언어·CLAUDE.md 스킬 목록)을 검사해 위반을 severity·actionable 수정 안내와 함께 보고; 아무것도 안 쓰고 자동 수정 안 함 | `.forge/*`·매니페스트·README·CLAUDE.md (읽기 전용) | 출력 보고(파일 없음) | — (`fg-quick`/`fg-ask`로 수정) |
 | `fg-drop` | 폐기 유틸리티(루프 밖) | 미완(미봉인) 작업 폐기 — backlog/활성 슬롯/`executed/` 회고대기/멈춘 goal 루프를 항목별 위험도와 함께 제시한 뒤 하드 삭제(기본·흔적 없음) 또는 `.forge/dropped/`로 보관; forge 상태만 지움(git·코드 불변) | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
+| `fg-agents` | 생성 유틸리티(루프 밖) | 대화형 그릴링으로 프로젝트 도메인을 캐 역할을 도출하고 표준 `.claude/agents/<role>.md` 카드 생성(`description`에 "언제 쓰이나" 포함 → fg-run이 slice↔role 자동 매핑). 활성 ADR을 연료로 읽어 카드에 프로젝트 결정을 가볍게 반영. 카드는 세션 시작 시 로드되므로 생성 후 **재시작 필요**(ADR-0024). graceful·선택적 | `.forge/codebase/`·`CONTEXT.md`·활성 `.forge/adr/`(선택 연료) | `.claude/agents/<role>.md` 카드 | — (재시작 후 fg-run이 활용) |
 
 ## 루프 스킬 (4단계)
 
@@ -34,6 +35,8 @@
 
 계획(`.forge/plan.md`, 또는 `.forge/backlog/`의 대기 plan)을 Claude Code Dynamic Workflow로 실행한다. 백로그에 미실행 plan이 정확히 하나면 확인 질문 없이 바로 실행하고, 여럿이면 미완료 목록을 선택 메뉴(마지막 옵션 "모두 실행")로 제시한 뒤 고른 작업을 활성 슬롯으로 승격해 실행한다. "forge run", "계획 실행", "이거 워크플로우로 돌려줘"에서 트리거된다(기존 "forge execute"도 alias). 실행할 plan이 없으면 돌지 않고, 이미 실행된 plan의 재실행을 경고한다.
 
+프로젝트에 도메인 에이전트(`.claude/agents/`, 예: `fg-agents`가 생성)가 있으면 워크플로가 slice에 맞는 role을 `agentType`으로 호출해 실행한다 — role 카드 `description`의 "언제 쓰이나"로 매핑한다. **없으면 기존과 100% 동일**(기본 워크플로 서브에이전트, graceful). 단 `.claude/agents/`는 **세션 시작 시 1회 로드**되므로 세션 중 새로 만든 카드는 재시작해야 호출 가능하고, eco가 켜지면 `agentType` 호출도 sonnet 캡·ECO.md 주입을 받되 role 카드의 `model:` 명시가 우선한다([ADR-0024](../.forge/adr/0024-fg-agents-and-domain-agent-execution.md)).
+
 ### fg-learn — ③ 회고
 
 실행 뒤 학습을 분류해 `CONTEXT.md`·ADR·회고 로그(`.forge/retro`)로 승급하고 다음 질의를 드러낸다. "forge learn", "회고하자", "이번 작업 정리해줘"에서 트리거된다. 항상 대화형이며 승급 절제를 지킨다.
@@ -44,7 +47,7 @@
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트(ADR-0009)는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (13개)
+## 루프 밖 유틸리티 (14개)
 
 ### fg-map
 
@@ -102,3 +105,7 @@
 ### fg-drop
 
 `fg-drop`은 **폐기 유틸리티로, 역시 루프 밖**이다 — 더 이상 원하지 않는 **미완(미봉인) 작업**을 지운다: backlog plan·활성 슬롯·`executed/`의 회고 대기 작업·멈춘 goal `loop.md`가 대상이다(봉인된 `done/`은 대상 아님 — 그건 `fg-done`의 영역). 먼저 미완 항목을 **항목별 위험도**와 함께 제시하고(≤4개면 체크박스 대화, ≥5개면 번호 텍스트 목록), 별도 후속 질문으로 **하드 삭제**(기본·흔적 없음)와 `.forge/dropped/<slug>/` **보관** 중 하나를 고르게 한다. 불가역 삭제 전 확인 게이트가 한 번 더 막고, **이미 실행된 작업의 바뀐 코드는 되돌리지 않음**을 경고한다 — fg-drop은 forge 상태만 지우고 git·코드는 건드리지 않는다. 멈춘 goal 루프는 **통째로만** drop하며 멤버 task를 개별 제외하지 않는다(loop.md 멤버십 재동기화 로직을 만들지 않기 위함). `.forge/dropped/`는 휘발(gitignore)이라 `fg-doctor`는 관용하고 `fg-status`는 무시한다. "forge drop", "fg-drop", "작업 버리기", "이 작업 취소", "계획 지워", "백로그 비워", "drop task", "discard plan" 같은 발화에서 트리거된다 ([ADR-0021](../.forge/adr/0021-fg-drop-discard-incomplete-work.md)).
+
+### fg-agents
+
+`fg-agents`는 **생성 유틸리티로, 역시 루프 밖**이다 — 프로젝트의 **도메인 에이전트**를 만든다. 대화형 그릴링(기둥 1, 워크플로 밖)으로 프로젝트에서 반복되는·분리 가능한 작업 종류를 캐내 역할을 도출하고, 표준 Claude Code 서브에이전트 정의 `.claude/agents/<role>.md`(role 카드)를 자체 생성한다. 카드의 `description`에는 **"언제 쓰이나"를 반드시 담는다** — `fg-run`의 워크플로 빌더가 이 설명으로 plan의 work slice를 role에 자동 매핑하기 때문이다(ADR-0024는 plan 쪽 매핑 마커 대신 자동 매핑을 택했다). `.forge/codebase/` 지도·`CONTEXT.md`·**활성 `.forge/adr/`**가 있으면 그릴링 연료로 읽고, 없으면 직접 탐색하거나 사용자 설명만으로 진행한다(graceful·하드 의존 없음). ADR은 프로젝트의 문서화된 결정이므로, 관련 결정을 카드 system prompt에 **가볍게 반영**해(번호를 기계적으로 인용하지 않고 prose로) 카드가 generic하지 않고 프로젝트에 정합하게 한다 — `retired/`는 안 읽고(ADR-0012), 비기본 브랜치는 read-overlay(ADR-0011)로 fg-ask의 ADR 읽기 규율과 동일하다. 역할은 사람이 승인한 부분집합만 카드가 되며, 마땅한 seam이 없으면 **0개**도 정직한 결과다(역할을 억지로 만들지 않음 — fg-cleanup의 절제와 동형). **핵심 제약(ADR-0024)**: `.claude/agents/`는 **세션 시작 시 1회 로드**되므로 세션 중 만든 카드는 동적 픽업되지 않는다 — fg-agents가 생성한 카드는 **세션을 재시작해야** fg-run이 로드·`agentType` 호출한다. 운영 흐름은 **생성 → 재시작 → 활용**이며, 재시작은 프로젝트 셋업 시 1회뿐이다. 생성한 카드는 forge `.forge/` 상태가 아니라 프로젝트 자산이라 git으로 커밋한다(git은 직접 안 돌림). **루프 스킬이 fg-agents를 안내한다**: `fg-ask`(그릴링 중)·`fg-run`(실행 중)은 특화 역할이 반복적으로 도움될 것으로 판단되고 프로젝트에 맞는 카드가 없을 때 fg-agents를 **좁게·offered로** 한 번 안내한다(자동 호출 아님, 재시작 게이트 명시) — fg-agents의 "역할은 제 몫을 해야 한다" 절제와 동형. "forge agents", "도메인 에이전트 만들어", "에이전트 팀 구성", "create project agents", "domain agents", "agent roles" 같은 발화에서 트리거된다 ([ADR-0024](../.forge/adr/0024-fg-agents-and-domain-agent-execution.md)).

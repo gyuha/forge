@@ -1,11 +1,11 @@
 ---
-last_mapped_commit: 54877b368a1025c44da1e1ca669880c2f955ac45
-mapped: 2026-06-18
+last_mapped_commit: 2059a08bee17a9fbb97e6e938958f5ed813bdb2d
+mapped: 2026-06-26
 ---
 
 # CONVENTIONS
 
-forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러그인**이다. 산출물은 거의 전부 Markdown(`SKILL.md`, `*-FORMAT.md`)과 JSON(매니페스트)이며, 유일한 실행 코드는 `scripts/` 아래 bash 스크립트(statusline fragment·wrapper와 `forge-status.sh`)뿐이다. 따라서 여기서 말하는 "컨벤션"은 전통적 코드 스타일이 아니라 `CLAUDE.md`에 명문화된 **저술(authoring) 규약**이다. 이 문서는 그 규약을 구현 사실 위주로 정리한다. 원천은 항상 `/Users/gyuha/workspace/forge/CLAUDE.md`다.
+forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러그인**이다. 산출물은 거의 전부 Markdown(`SKILL.md`, `*-FORMAT.md`)과 JSON(매니페스트)이며, 유일한 실행 코드는 `scripts/` 아래 bash/node 스크립트(statusline fragment·wrapper, `forge-status.sh/.js`, `resolve-forge-root.sh/.js`)뿐이다. 따라서 여기서 말하는 "컨벤션"은 전통적 코드 스타일이 아니라 `/Users/gyuha/workspace/forge/CLAUDE.md`에 명문화된 **저술(authoring) 규약**이다.
 
 ## Language: skill body English, output in user's language
 
@@ -33,7 +33,7 @@ forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러�
 
 이유: 스킬은 에이전트가 읽고 실행하는 지시문이라 렌더링 없이 그대로 파싱되어야 하고, Mermaid 블록은 진단·diff·grep을 어렵게 한다.
 
-주의: 이 규약은 **스킬 문서 한정**이다. 사용자 프로젝트에 생성되는 산출 문서에는 적용되지 않는다(사용자 글로벌 지침은 산출 문서에 Mermaid를 허용). `scripts/forge-statusline.sh`·`scripts/forge-status.sh` 상단 주석의 출력 흐름도(precedence order)도 이 텍스트 규약을 따른다.
+주의: 이 규약은 **스킬 문서 한정**이다. 사용자 프로젝트에 생성되는 산출 문서에는 적용되지 않는다. `scripts/` 상단 주석의 출력 흐름도(precedence order 등)도 이 텍스트 규약을 따른다.
 
 ## README bilingual sync
 
@@ -54,7 +54,7 @@ forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러�
 - `.claude-plugin/marketplace.json`의 `metadata.description` — 루프(ask→execute→retro→done)를 정의하는 한 줄 태그라인. **루프 밖 유틸리티(fg-map류)는 넣지 않는다.**
 - `.claude-plugin/plugin.json`의 `description`과 `marketplace.json`의 `plugins[].description` — 전체 스킬 목록을 담는 설명이므로 **루프 밖 스킬도 반영한다.**
 
-루프 밖 스킬을 metadata에 끼우면 루프 정의가 흐려진다. 스킬 개수·설명을 바꿀 땐 `plugin.json`과 `marketplace.json`을 함께 갱신해야 한다(둘 다 사람이 읽는 설명을 담는다). 매니페스트 description의 개수 단어(예: "Seventeen … Thirteen more")가 `skills/*/SKILL.md` 실제 개수와 어긋나면 fg-doctor B10이 warning으로 잡는다.
+루프 밖 스킬을 metadata에 끼우면 루프 정의가 흐려진다. 스킬 개수·설명을 바꿀 땐 `plugin.json`과 `marketplace.json`을 함께 갱신해야 한다(둘 다 사람이 읽는 설명을 담는다). 버전은 **3곳을 반드시 동기 갱신**한다: `.claude-plugin/plugin.json`의 `version`, `.claude-plugin/marketplace.json`의 `metadata.version`, `.claude-plugin/marketplace.json`의 `plugins[0].version`. 매니페스트 description의 개수 단어(예: "Seventeen … Thirteen more")가 `skills/*/SKILL.md` 실제 개수와 어긋나면 fg-doctor B10이 warning으로 잡는다.
 
 ## Lazy file creation
 
@@ -62,28 +62,42 @@ forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러�
 
 ## Format docs live with the owning skill (single owner, referenced not copied)
 
-형식 정의는 한 벌만 존재하며 소유 스킬 디렉터리에 둔다: `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`(생산자는 fg-ask지만 fg-ask 디렉터리가 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-done 포함)은 자체 복사하지 않고 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조한다. forge-root 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이고 모든 루프 스킬이 이를 참조한다(복붙 금지). 루트 `references/` 디렉터리는 폐지됐다.
+형식 정의는 한 벌만 존재하며 소유 스킬 디렉터리에 둔다:
+- `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md` — grill-with-docs 원본. fg-ask 디렉터리가 verbatim 영역이라 SKILL.md 본문과 "Forge integration (minimal)" 섹션이 따로 움직인다(알려진 불일치).
+- `skills/fg-run/PLAN-FORMAT.md` — plan.md 형식 + 분할 규칙. 생산자는 fg-ask지만 소비자(fg-run) 쪽에 둔다.
+- `skills/fg-run/FORGE-ROOT.md` — 브랜치별 forge-root 단일 정의. 모든 루프 스킬이 참조하고 복붙 금지.
+- `skills/fg-learn/RETRO-FORMAT.md` — 회고 형식.
+
+다른 스킬(fg-done 포함)은 자체 복사하지 않고 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조한다. 루트 `references/` 디렉터리는 폐지됐다.
+
+## Scripts convention: dual-dispatch .sh + .js (ADR-0022)
+
+`scripts/` 아래 각 운영 스크립트는 `.sh`(bash, 1차) + `.js`(node, 폴백) 트윈으로 제공한다. PowerShell 차단 환경을 위해 `.ps1` 대신 node를 폴백으로 쓴다(node는 Claude Code가 항상 보장).
+
+현재 트윈 쌍:
+- `scripts/forge-status.sh` + `scripts/forge-status.js` — fg-status용 결정론적 survey + 6열 task 테이블(ADR-0020)
+- `scripts/forge-statusline.sh` + `scripts/forge-statusline.js` — statusline 한 줄 fragment
+- `scripts/forge-statusline-wrapper.sh` — bash 전용 wrapper(no-bash 호스트에서는 단독 연결만 지원)
+- `scripts/resolve-forge-root.sh` + `scripts/resolve-forge-root.js` — 브랜치별 forge-root 경로 해석(ADR-0011)
+
+포터블 규칙: shebang `#!/usr/bin/env bash`(`/bin/bash` 금지 — NixOS 등), `bash script.sh`로 호출(`./script.sh` 금지 — NTFS는 POSIX exec 비트가 없음), `.gitattributes`로 `*.sh`를 LF 강제(CRLF가 bash를 깨뜨림).
+
+판단은 스크립트로 옮기지 않는다 — grilling·retro 분류·divergence 평가 같은 LLM 판단은 산문에 남기고, 결정론적 survey/상태 전이만 스크립트화한다(ADR-0020의 "survey=스크립트, next-step=산문" 분할).
 
 ## Deploy procedure (trigger: "배포")
 
-사용자가 프롬프트에 **"배포"**라고 치면 아래를 순서대로 수행한다(`CLAUDE.md` "배포 규칙").
+흐름: `CHANGELOG.md 작성 → README(이중언어)·docs 갱신 → 버전 3곳 범프 → JSON 검증 → commit → push(main)`
 
-흐름: `CHANGELOG.md 작성 → 버전 3곳 범프 → JSON 검증 → commit → push(main)`
-
-1. **CHANGELOG.md 갱신** — 마지막 배포(마지막 버전 범프 커밋) 이후 커밋을 요약해 새 버전 섹션을 맨 위에 추가(Keep a Changelog 약식: `## [X.Y.Z] - YYYY-MM-DD` + `### Added/Changed/Fixed`). 파일이 없으면 lazy 생성.
-2. **버전 범프** — 기본 patch("배포 minor"/"배포 major"로 지정 가능). 버전은 **3곳을 반드시 동기 갱신**한다:
-   - `.claude-plugin/plugin.json`의 `version`
-   - `.claude-plugin/marketplace.json`의 `metadata.version`
-   - `.claude-plugin/marketplace.json`의 `plugins[0].version`
-3. **검증** — 매니페스트 JSON 유효성(아래 node 한 줄, `TESTING.md` 참조).
-4. **commit & push** — `chore(release): vX.Y.Z` 형식으로 커밋하고 `main`에 push한다. 설치는 GitHub 기본 브랜치(main)를 당기므로 **push까지가 배포**다.
+1. **CHANGELOG.md 갱신** — 마지막 배포 이후 커밋을 요약해 새 버전 섹션을 맨 위에 추가(Keep a Changelog 약식). 파일이 없으면 lazy 생성.
+2. **README·docs 갱신** — 릴리스 내용에 맞춰 `README.md`+`README.ko.md`(이중언어 동기) 및 관련 `docs/` 문서를 갱신. 변경이 사용자 문서에 영향 없으면 생략.
+3. **버전 범프** — 기본 patch. 버전은 3곳 동기 갱신(위 참조).
+4. **JSON 검증** — 매니페스트 유효성 node 한 줄(`TESTING.md` 참조).
+5. **commit & push** — `chore(release): vX.Y.Z` 형식, `main`에 push. 설치는 main을 당기므로 push까지가 배포다.
 
 가드:
-- 작업 트리에 배포와 무관한 변경이 섞여 있으면 멈추고 먼저 확인받는다(배포 커밋에 끼워 넣지 않는다).
-- 마지막 배포 이후 커밋이 하나도 없으면 배포할 것이 없다고 알리고 멈춘다.
-- 미커밋 변경이 곧 릴리스 내용이면(커밋 0개인데 작업 트리에 기능 작업이 쌓임) 먼저 그 작업을 별도 `feat` 커밋으로 묶은 뒤 릴리스 절차를 돈다(릴리스 커밋엔 CHANGELOG+버전 범프만). 이게 이 리포의 정상 흐름이다.
-
-배포 후 "설치 테스트"는 `/plugin install`·`/plugin marketplace update`가 interactive라 에이전트가 못 친다. 에이전트가 검증할 수 있는 건 설치 전제뿐: `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`으로 원격 main의 버전 3곳을, `awk '/^name:/'`로 `skills/*/SKILL.md`의 frontmatter `name`(자동 탐색 대상) 누락 여부를 확인한다.
+- 배포와 무관한 변경이 섞여 있으면 멈추고 확인받는다.
+- 마지막 배포 이후 커밋이 없으면 배포할 것이 없다고 알리고 멈춘다.
+- 미커밋 변경이 곧 릴리스 내용이면 먼저 `feat` 커밋으로 묶은 뒤 릴리스 절차를 돈다(릴리스 커밋엔 CHANGELOG+버전 범프만).
 
 ## Known inconsistency (편집 전 인지)
 

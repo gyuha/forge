@@ -3,7 +3,7 @@
 ![forge loop: ask → run → learn → done](./docs/workflow.png)
 
 > A development loop that takes one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from seventeen `fg-`-prefixed Claude Code skills — four that form the loop, plus thirteen utilities outside it.
+> A loop-style workflow plugin built from eighteen `fg-`-prefixed Claude Code skills — four that form the loop, plus fourteen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -11,7 +11,7 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 
 ## Quick start — you mostly only need three
 
-Seventeen skills look like a lot, but day to day you drive with **three**:
+Eighteen skills look like a lot, but day to day you drive with **three**:
 
 ```
 /fg-ask   →   /fg-run   →   /fg-next
@@ -44,7 +44,7 @@ Rule of thumb: grill the plan with `/fg-ask` first — that human judgment is L1
 
 ## Skill catalog
 
-The four loop stages, then the thirteen utilities outside the loop:
+The four loop stages, then the fourteen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -65,6 +65,7 @@ The four loop stages, then the thirteen utilities outside the loop:
 | `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and fg-learn — six lenses, fix-forward findings |
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
+| `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
 
 Per-skill detail — input/output/next, triggers, and the rationale ADRs — is in **[docs/skills.md](./docs/skills.md) (Korean)**. `fg-ask` is the loop's entry point (it triggers on "start with forge", "new task", "refine the plan"); the utilities are on-demand, each triggered by its own utterances.
 

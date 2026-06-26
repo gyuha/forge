@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 54877b368a1025c44da1e1ca669880c2f955ac45
-mapped: 2026-06-18
+last_mapped_commit: 2059a08bee17a9fbb97e6e938958f5ed813bdb2d
+mapped: 2026-06-26
 ---
 
 # STACK.md — forge의 기술 스택과 패키징 모델
@@ -13,7 +13,13 @@ forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러�
 
 - **Markdown** — 스킬 본문(`skills/<name>/SKILL.md`), 형식 정의 문서(`*-FORMAT.md`, `FORGE-ROOT.md`), 루트 문서(`README.md`·`README.ko.md`·`CLAUDE.md`·`CHANGELOG.md`), `docs/*.md`. 스킬 본문과 형식 문서는 영문으로 작성하지만, 스킬이 사용자에게 출력하는 언어와 사용자 프로젝트에 남는 산출 문서는 사용자 언어를 따른다.
 - **JSON** — 플러그인/마켓플레이스 매니페스트 두 개(`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`). 사용자 프로젝트 런타임에는 `.forge/config.json`도 JSON이지만 그것은 사용자 측 휘발/설정 상태이지 리포 소스가 아니다.
-- **Bash** — 유일한 실행 코드. `scripts/forge-status.sh`(fg-status가 호출하는 결정적 상태 조사 스크립트, ADR-0020)와 `scripts/forge-statusline.sh`·`scripts/forge-statusline-wrapper.sh`(statusline 조각·래퍼, ADR-0017)다. 각각 `*.test.sh` 동반 테스트 파일이 있으나 자동 실행되는 CI는 없다. 스크립트는 `#!/usr/bin/env bash`로 시작하고 `jq` 없이 `sed`로 방어적 JSON 추출을 한다.
+- **Bash + Node.js** — 결정론적 상태 조사와 statusline 표시에 쓰이는 실행 코드. ADR-0022에 따라 각 운영 스크립트는 `.sh`(bash, 1차) + `.js`(node, 폴백) 트윈으로 제공된다.
+  - `scripts/forge-status.sh` / `scripts/forge-status.js` — `.forge/` 상태를 결정적으로 조사해 테이블로 출력(ADR-0020). fg-status·fg-next가 호출.
+  - `scripts/resolve-forge-root.sh` / `scripts/resolve-forge-root.js` — 브랜치별 forge 루트 경로를 계산해 출력(ADR-0011).
+  - `scripts/forge-statusline.sh` / `scripts/forge-statusline.js` — `.forge/`를 읽어 한 줄 진행 상태를 stdout에 찍는 display-only 조각(ADR-0017).
+  - `scripts/forge-statusline-wrapper.sh` — 기존 statusLine과 forge 조각을 합성하는 래퍼(bash 전용).
+  - `scripts/*.parity.test.sh` — 각 `.sh`·`.js` 트윈의 출력 동일성을 같은 fixture로 검증하는 패리티 테스트. 자동 실행 CI는 없고, 수동으로 돌린다.
+  - 스크립트 포터블 규칙: shebang `#!/usr/bin/env bash`(`/bin/bash` 금지), `bash script.sh`로 호출(`./` 금지), `jq` 의존 없이 `sed`로 방어적 JSON 추출.
 
 ## 플러그인 패키징 모델 (리포 루트 = 플러그인 루트 = 마켓플레이스)
 
@@ -26,10 +32,11 @@ forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러�
 
 ## 스킬 자동 탐색 (식별자 = frontmatter의 `name`)
 
-스킬은 `skills/<dir>/SKILL.md` 경로로 자동 탐색된다. **스킬 식별자는 디렉터리명이 아니라 SKILL.md frontmatter의 `name` 필드**다. 현재 17개 디렉터리가 있고 각 `SKILL.md`의 `name`이 디렉터리명과 일치한다.
+스킬은 `skills/<dir>/SKILL.md` 경로로 자동 탐색된다. **스킬 식별자는 디렉터리명이 아니라 SKILL.md frontmatter의 `name` 필드**다. 현재 18개 스킬이 있고 각 `SKILL.md`의 `name`이 디렉터리명과 일치한다.
 
 ```
 skills/fg-adversarial-review/SKILL.md   →  name: fg-adversarial-review
+skills/fg-agents/SKILL.md               →  name: fg-agents
 skills/fg-ask/SKILL.md                  →  name: fg-ask
 skills/fg-cleanup/SKILL.md              →  name: fg-cleanup
 skills/fg-doctor/SKILL.md               →  name: fg-doctor
@@ -50,7 +57,7 @@ skills/fg-tdd/SKILL.md                  →  name: fg-tdd
 
 설치 전제 검증 시 `awk '/^name:/'`로 `skills/*/SKILL.md`의 frontmatter `name` 누락 여부를 확인한다.
 
-형식 정의 문서는 소유 스킬 디렉터리에 한 벌만 둔다: `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-learn/RETRO-FORMAT.md`. 다른 스킬은 복사하지 않고 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<file>`로 참조한다.
+형식 정의 문서는 소유 스킬 디렉터리에 한 벌만 둔다: `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-run/RUN-ALL.md`, `skills/fg-learn/RETRO-FORMAT.md`. 다른 스킬은 복사하지 않고 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<file>`로 참조한다.
 
 ## 매니페스트 필드
 
@@ -78,7 +85,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 2. `.claude-plugin/marketplace.json`의 `metadata.version`
 3. `.claude-plugin/marketplace.json`의 `plugins[0].version`
 
-현재 세 곳 모두 `0.4.18`. 배포 절차는 CHANGELOG 갱신 → 버전 3곳 범프(기본 patch) → JSON 검증 → `chore(release): vX.Y.Z` 커밋 → `main` push 순이다.
+현재 세 곳 모두 `0.4.28`. 배포 절차는 CHANGELOG 갱신 → README(이중언어)·docs 갱신 → 버전 3곳 범프(기본 patch) → JSON 검증 → `chore(release): vX.Y.Z` 커밋 → `main` push 순이다.
 
 ## `.gitignore` 화이트리스트 모델 (`.forge/`)
 
