@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 2059a08bee17a9fbb97e6e938958f5ed813bdb2d
-mapped: 2026-06-26
+last_mapped_commit: 8aaed407ae96e0d59f87de00424a18a652577950
+mapped: 2026-06-27
 ---
 
 # forge 디렉터리 구조
@@ -12,6 +12,10 @@ mapped: 2026-06-26
 ├── .claude-plugin/
 │   ├── plugin.json          ← 플러그인 매니페스트 (name, version, description, author)
 │   └── marketplace.json     ← 마켓플레이스 등록 (metadata.version + plugins[0].version)
+├── .claude/
+│   └── agents/              ← forge 자체 dogfood 도메인 에이전트 카드
+│       ├── skill-author.md
+│       └── manifest-doc-syncer.md
 ├── skills/                  ← 18개 스킬 (디렉터리별 1개)
 │   └── <name>/SKILL.md
 ├── docs/                    ← 사용자 문서
@@ -34,6 +38,15 @@ mapped: 2026-06-26
 - `marketplace.json` — `metadata.version` + `plugins[0].version` + `plugins[0].description`. **버전은 3곳 동기 필수**: `plugin.json:version`, `marketplace.json:metadata.version`, `marketplace.json:plugins[0].version`.
 - `marketplace.json:metadata.description` 은 루프 정의 태그라인 (루프 밖 유틸리티 제외).
 - 스킬 식별자 = frontmatter `name` (디렉터리명 아님).
+
+## `.claude/agents/` — forge 자체 도메인 에이전트
+
+forge 리포 자신의 dogfood 에이전트 카드. fg-agents가 사용자 프로젝트에 생성하는 것과 동일한 표준 Claude Code subagent 형식(YAML frontmatter + 시스템 프롬프트).
+
+| 카드 파일 | frontmatter `name` | 역할 |
+|----------|-------------------|------|
+| `skill-author.md` | `skill-author` | `skills/*/SKILL.md` 및 형식문서를 forge 컨벤션에 맞게 작성·편집 |
+| `manifest-doc-syncer.md` | `manifest-doc-syncer` | 18-스킬 카탈로그·매니페스트·버전·이중언어 문서 일관 동기화 |
 
 ## `skills/` — 18개 스킬
 
@@ -63,7 +76,7 @@ mapped: 2026-06-26
 | `skills/fg-adversarial-review/` | `fg-adversarial-review` | fg-run ↔ fg-learn 사이 선택적 적대적 리뷰 — 6개 렌즈 병렬 팬아웃, `review.md` 기록 |
 | `skills/fg-doctor/` | `fg-doctor` | `.forge/` 상태 계약 + 문서/매니페스트 무결성 점검 — 읽기 전용 |
 | `skills/fg-drop/` | `fg-drop` | 미완 작업(백로그·활성 슬롯·executed·loop) 폐기 또는 `.forge/dropped/` 보관 |
-| `skills/fg-agents/` | `fg-agents` | 대화형 그릴링으로 프로젝트 도메인 에이전트 `.claude/agents/<role>.md` 생성 |
+| `skills/fg-agents/` | `fg-agents` | 대화형 그릴링으로 프로젝트 도메인 에이전트 `.claude/agents/<role>.md` 생성 (ADR-0024) |
 
 ## 형식 문서 위치
 
@@ -97,7 +110,7 @@ mapped: 2026-06-26
 │   ├── CONCERNS.md
 │   └── TESTING.md
 ├── CONTEXT.md               ← 도메인 글로서리 (git 추적)
-├── adr/                     ← 아키텍처 결정 (git 추적)
+├── adr/                     ← 아키텍처 결정 0001–0025 (git 추적)
 │   ├── NNNN-slug.md
 │   └── retired/NNNN-slug.md
 ├── retro/                   ← 회고 로그 (git 추적)
@@ -109,6 +122,7 @@ mapped: 2026-06-26
 ├── run.md                   ← 실행 기록 (gitignored)
 ├── review.md                ← 적대적 리뷰 findings (gitignored, 선택적)
 ├── STATUS.md                ← 활성 슬롯 동반 마커 (gitignored)
+├── loop.md                  ← goal 계약 (gitignored, fg-loop 존재 시)
 ├── executed/                ← 실행됐으나 미회고 (gitignored)
 │   └── <slug>/plan.md, run.md, STATUS.md
 ├── done/                    ← 봉인 완료 아카이브 (gitignored)
@@ -130,7 +144,7 @@ mapped: 2026-06-26
 | ADR 파일 | `NNNN-slug.md` (4자리 단조 증가, 재사용 금지) | `0024-fg-agents-and-domain-agent-execution.md` |
 | done 디렉터리 | `YYYY-MM-DD-<slug>/` | `2026-06-26-add-oauth-login/` |
 | retro 파일 | `YYYY-MM-DD-<slug>.md` | `2026-06-26-add-oauth-login.md` |
-| 도메인 에이전트 | `.claude/agents/<role>.md`, frontmatter `name` = kebab-case ASCII | `backend-api.md` |
+| 도메인 에이전트 카드 | `.claude/agents/<role>.md`, frontmatter `name` = kebab-case ASCII | `backend-api.md` |
 
 ## 버전 관리
 

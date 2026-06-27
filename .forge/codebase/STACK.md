@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 2059a08bee17a9fbb97e6e938958f5ed813bdb2d
-mapped: 2026-06-26
+last_mapped_commit: 8aaed407ae96e0d59f87de00424a18a652577950
+mapped: 2026-06-27
 ---
 
 # STACK.md — forge의 기술 스택과 패키징 모델
@@ -12,13 +12,13 @@ forge는 코드를 빌드하는 프로젝트가 아니라 **Claude Code 플러�
 리포에 컴파일·실행되는 애플리케이션 코드는 없다. 구성 요소는 세 종류다.
 
 - **Markdown** — 스킬 본문(`skills/<name>/SKILL.md`), 형식 정의 문서(`*-FORMAT.md`, `FORGE-ROOT.md`), 루트 문서(`README.md`·`README.ko.md`·`CLAUDE.md`·`CHANGELOG.md`), `docs/*.md`. 스킬 본문과 형식 문서는 영문으로 작성하지만, 스킬이 사용자에게 출력하는 언어와 사용자 프로젝트에 남는 산출 문서는 사용자 언어를 따른다.
-- **JSON** — 플러그인/마켓플레이스 매니페스트 두 개(`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`). 사용자 프로젝트 런타임에는 `.forge/config.json`도 JSON이지만 그것은 사용자 측 휘발/설정 상태이지 리포 소스가 아니다.
+- **JSON** — 플러그인/마켓플레이스 매니페스트 두 개(`.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`). 사용자 프로젝트 런타임에서 `.forge/config.json`도 JSON이지만 그것은 사용자 측 휘발/설정 상태이지 리포 소스가 아니다.
 - **Bash + Node.js** — 결정론적 상태 조사와 statusline 표시에 쓰이는 실행 코드. ADR-0022에 따라 각 운영 스크립트는 `.sh`(bash, 1차) + `.js`(node, 폴백) 트윈으로 제공된다.
-  - `scripts/forge-status.sh` / `scripts/forge-status.js` — `.forge/` 상태를 결정적으로 조사해 테이블로 출력(ADR-0020). fg-status·fg-next가 호출.
+  - `scripts/forge-status.sh` / `scripts/forge-status.js` — `.forge/` 상태를 결정론적으로 조사해 테이블로 출력(ADR-0020). fg-status·fg-next가 호출.
   - `scripts/resolve-forge-root.sh` / `scripts/resolve-forge-root.js` — 브랜치별 forge 루트 경로를 계산해 출력(ADR-0011).
   - `scripts/forge-statusline.sh` / `scripts/forge-statusline.js` — `.forge/`를 읽어 한 줄 진행 상태를 stdout에 찍는 display-only 조각(ADR-0017).
   - `scripts/forge-statusline-wrapper.sh` — 기존 statusLine과 forge 조각을 합성하는 래퍼(bash 전용).
-  - `scripts/*.parity.test.sh` — 각 `.sh`·`.js` 트윈의 출력 동일성을 같은 fixture로 검증하는 패리티 테스트. 자동 실행 CI는 없고, 수동으로 돌린다.
+  - `scripts/*.parity.test.sh` — 각 `.sh`·`.js` 트윈의 출력 동일성을 같은 fixture로 검증하는 패리티 테스트. 자동 실행 CI는 없고 수동으로 돌린다.
   - 스크립트 포터블 규칙: shebang `#!/usr/bin/env bash`(`/bin/bash` 금지), `bash script.sh`로 호출(`./` 금지), `jq` 의존 없이 `sed`로 방어적 JSON 추출.
 
 ## 플러그인 패키징 모델 (리포 루트 = 플러그인 루트 = 마켓플레이스)
@@ -57,7 +57,7 @@ skills/fg-tdd/SKILL.md                  →  name: fg-tdd
 
 설치 전제 검증 시 `awk '/^name:/'`로 `skills/*/SKILL.md`의 frontmatter `name` 누락 여부를 확인한다.
 
-형식 정의 문서는 소유 스킬 디렉터리에 한 벌만 둔다: `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-run/RUN-ALL.md`, `skills/fg-learn/RETRO-FORMAT.md`. 다른 스킬은 복사하지 않고 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<file>`로 참조한다.
+형식 정의 문서는 소유 스킬 디렉터리에 한 벌만 둔다: `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-run/RUN-ALL.md`, `skills/fg-learn/RETRO-FORMAT.md`, `skills/fg-eco/ECO.md`. 다른 스킬은 복사하지 않고 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<file>`로 참조한다.
 
 ## 매니페스트 필드
 
@@ -85,7 +85,24 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 2. `.claude-plugin/marketplace.json`의 `metadata.version`
 3. `.claude-plugin/marketplace.json`의 `plugins[0].version`
 
-현재 세 곳 모두 `0.4.28`. 배포 절차는 CHANGELOG 갱신 → README(이중언어)·docs 갱신 → 버전 3곳 범프(기본 patch) → JSON 검증 → `chore(release): vX.Y.Z` 커밋 → `main` push 순이다.
+현재 세 곳 모두 `0.5.3`. 배포 절차는 CHANGELOG 갱신 → README(이중언어)·docs 갱신 → 버전 3곳 범프(기본 patch) → JSON 검증 → `chore(release): vX.Y.Z` 커밋 → `main` push 순이다.
+
+## `.forge/config.json` 설정 키
+
+사용자 프로젝트 전역 설정 파일로, 전역 예외라 모든 브랜치에서 항상 최상위 `.forge/config.json`이다.
+
+- `defaultBranch` — forge 루트 해석의 기준 브랜치(없으면 `main`).
+- `tdd` — TDD 모드 토글. `true`면 fg-ask가 "이 작업 TDD로?" 기본 제안, fg-run이 test-first로 실행(ADR-0008).
+- `eco` — eco 모드 토글. `true`면 fg-run 위임 서브에이전트를 sonnet으로 캡 + `skills/fg-eco/ECO.md` 내용을 서브에이전트 프롬프트에 prepend + fg-ask 그릴링에 YAGNI 렌즈 적용(ADR-0014).
+
+## `scripts/` 이중 디스패치 규약 (ADR-0022)
+
+각 운영 스크립트가 `.sh`(bash, 1차) + `.js`(node, 폴백) 트윈으로 존재한다. PowerShell 차단 환경을 위해 `.ps1` 대신 node를 폴백으로 선택했다(node는 Claude Code가 항상 보장).
+
+- **스킬 호출 경로**: Bash 도구가 bash를 보장하므로 `bash scripts/<name>.sh`로 호출.
+- **statusline 경로**: Bash 도구 밖에서 실행되므로 설치 시 bash 가용 여부를 한 번 판정해 `settings.json`에 기록할 STATUSLINE_CMD를 확정한다 — bash 있으면 `<CFG>/forge-statusline.sh`, 없으면 `node <CFG>/forge-statusline.js`.
+- **drift 관리**: fg-doctor가 `.sh`마다 `.js` 트윈 존재를 정적 검사하고, `scripts/*.parity.test.sh`가 같은 fixture로 출력 동일성을 단언한다(패리티 테스트가 진짜 동치 가드).
+- **판단은 스크립트로 옮기지 않는다**: grilling·divergence 평가·next-step 추론은 SKILL.md 산문이 담당하고, 결정론적 survey/테이블 렌더링만 스크립트화한다.
 
 ## `.gitignore` 화이트리스트 모델 (`.forge/`)
 
@@ -106,3 +123,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEac
 ## 브랜치별 forge 루트 해석 규칙
 
 모든 `.forge/...` 경로는 해석된 forge 루트 기준이다. 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이며(복붙 금지), 모든 루프 스킬이 이를 참조한다. 현재 브랜치가 기본 브랜치(`config.json`의 `defaultBranch`, 없으면 `main`)면 `.forge/`, 그 외면 `.forge/branch/<branch>/`. 전역 예외 두 개(`.forge/config.json`·`.forge/codebase/`)는 모든 브랜치에서 항상 최상위 `.forge/`다.
+
+## `.claude/agents/` — 프로젝트 도메인 에이전트 카드
+
+fg-agents(루프 밖 유틸리티)가 대화형 그릴링으로 도출한 역할을 `.claude/agents/<role>.md`에 표준 Claude Code 서브에이전트 정의 카드로 작성한다. 카드는 사용자 프로젝트 소유이며 forge 플러그인 소스가 아니다. forge 리포 자체에는 `manifest-doc-syncer`, `skill-author` 두 카드가 개발 유틸리티로 포함돼 있다(ADR-0024).

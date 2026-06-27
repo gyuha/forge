@@ -1,11 +1,11 @@
 ---
-last_mapped_commit: 2059a08bee17a9fbb97e6e938958f5ed813bdb2d
-mapped: 2026-06-26
+last_mapped_commit: 8aaed407ae96e0d59f87de00424a18a652577950
+mapped: 2026-06-27
 ---
 
 # INTEGRATIONS.md — forge의 외부 접점
 
-forge는 외부 시스템과의 통합이 거의 없는 자기완결 플러그인이다. 네트워크 API 호출, 데이터베이스, 외부 서비스, MCP 서버 의존이 **하나도 없다**. 실제 외부 접점은 Claude Code 호스트 자체와의 인터페이스뿐이다. 아래가 전부이며, 빈약해 보인다면 그것이 정확한 현실이다 — 패딩하지 않았다.
+forge는 외부 시스템과의 통합이 거의 없는 자기완결 플러그인이다. 네트워크 API 호출, 데이터베이스, 외부 서비스, MCP 서버 의존이 **하나도 없다**. 실제 외부 접점은 Claude Code 호스트 자체와의 인터페이스뿐이다. 아래가 전부이며, 빈약해 보인다면 그것이 정확한 현실이다.
 
 ## 1. Claude Code 플러그인/마켓플레이스 설치 메커니즘 (GitHub main을 당김)
 
@@ -14,11 +14,26 @@ forge는 Claude Code 플러그인 시스템에 두 매니페스트로 등록된�
 - `.claude-plugin/marketplace.json` — `/plugin marketplace add gyuha/forge`로 이 리포를 마켓플레이스로 등록.
 - `.claude-plugin/plugin.json` — `/plugin install forge@forge`로 플러그인 설치.
 
-설치는 **GitHub 기본 브랜치(`main`)를 당긴다**. 따라서 설치/업데이트 테스트를 하려면 변경이 `main`에 push돼 있어야 한다(배포 = push까지). `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행할 수 없고, 에이전트가 검증 가능한 것은 설치 전제뿐이다 — `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json`로 원격 `main`의 버전 3곳을 확인한다. 설치 경로는 업데이트마다 바뀐다(`~/.claude/plugins/cache/<hash>/`).
+설치는 **GitHub 기본 브랜치(`main`)를 당긴다**. 따라서 설치/업데이트 테스트를 하려면 변경이 `main`에 push돼 있어야 한다(배포 = push까지). `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행할 수 없고, 에이전트가 검증 가능한 것은 설치 전제뿐이다:
+
+```bash
+curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/plugin.json
+curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/marketplace.json
+```
+
+설치 경로는 업데이트마다 바뀐다(`~/.claude/plugins/cache/<hash>/`).
 
 ## 2. `${CLAUDE_PLUGIN_ROOT}` 참조 (스킬 간 형식 문서 공유)
 
-스킬 본문은 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 환경변수로 설치 위치를 해석해 형식 문서를 참조한다. 18개 SKILL.md 전부가 이 변수를 사용한다. 용례는 소유 스킬의 형식 문서를 가리키는 것이다 — 예: `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/PLAN-FORMAT.md`·`FORGE-ROOT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-learn/RETRO-FORMAT.md`. 형식 정의는 한 벌만 두고 복사하지 않는 단일 출처 원칙의 구현이다.
+스킬 본문은 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 환경변수로 설치 위치를 해석해 형식 문서를 참조한다. 18개 SKILL.md 전부가 이 변수를 사용한다. 용례는 소유 스킬의 형식 문서를 가리키는 것이다:
+
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/PLAN-FORMAT.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/RUN-ALL.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-learn/RETRO-FORMAT.md`
+- `${CLAUDE_PLUGIN_ROOT}/skills/fg-eco/ECO.md`
 
 **중요한 제약**: `${CLAUDE_PLUGIN_ROOT}`는 스킬이 실행되는 메인 세션 컨텍스트에서만 가용하다. statusLine 셸에는 주입되지 않으므로 statusline 스크립트는 이 변수를 쓸 수 없다(아래 3 참조).
 
@@ -41,7 +56,7 @@ forge는 Claude Code 플러그인 시스템에 두 매니페스트로 등록된�
 
 ## 4. fg-status/fg-next ↔ 결정론적 상태 스크립트
 
-`fg-status`(와 fg-next)는 `scripts/forge-status.sh`(없으면 폴백으로 `scripts/forge-status.js`)를 호출해 `.forge/` 상태를 결정론적으로 조사한다(ADR-0020). 이는 외부 통합이 아니라 리포 내부 스크립트 의존이지만, 셸 스크립트가 스킬 동작의 일부라는 점에서 기록한다. 두 스크립트 모두 `jq` 없이 동작한다.
+`fg-status`(와 fg-next)는 `scripts/forge-status.sh`(없으면 폴백으로 `scripts/forge-status.js`)를 Bash 도구로 호출해 `.forge/` 상태를 결정론적으로 조사한다(ADR-0020). 이는 외부 통합이 아니라 리포 내부 스크립트 의존이지만, 셸 스크립트가 스킬 동작의 일부라는 점에서 기록한다. 두 스크립트 모두 `jq` 없이 동작한다.
 
 ## 5. Claude Code Dynamic Workflow / 서브에이전트 (fg-run의 실행 기제)
 
@@ -49,17 +64,20 @@ fg-run은 작업 실행을 Claude Code의 Dynamic Workflow(`workflow` 키워드 
 
 - 워크플로우 오케스트레이션 스크립트를 빌드해 사용자 승인 후 병렬/직렬 서브에이전트로 실행.
 - 서브에이전트에는 `model`, `agentType`, 프롬프트 prepend(`skills/fg-eco/ECO.md` 내용)를 전달할 수 있다.
-- eco 모드(ADR-0014): 서브에이전트 model을 `sonnet`으로 캡(내리기만), `ECO.md` prepend 주입.
-- 도메인 에이전트 dispatch(ADR-0024): `.claude/agents/<role>.md` 카드가 세션 시작 시 로드돼 있으면 `agentType: '<role>'`으로 슬라이스를 해당 role에 위임. graceful — 카드 없으면 기본 서브에이전트로 동일 동작.
+- **eco 모드(ADR-0014)**: 서브에이전트 model을 `sonnet`으로 캡(내리기만), `ECO.md` prepend 주입. 세션 모델은 불변.
+- **도메인 에이전트 dispatch(ADR-0024)**: `.claude/agents/<role>.md` 카드가 세션 시작 시 로드돼 있으면 `agentType: '<role>'`으로 슬라이스를 해당 role에 위임. graceful — 카드 없으면 기본 서브에이전트로 동일 동작.
+- **fallback**: 스케일이 작으면 워크플로우 대신 직접 실행(`skills/fg-run/SKILL.md` Constraints 명시). Workflow 없는 환경에선 대규모 병렬 팬아웃이 직렬/직접으로 degrade되고 루프 자체는 깨지지 않는다(ADR-0025).
 
 ## 6. `.claude/agents/` — 도메인 에이전트 dispatch (ADR-0024)
 
 fg-agents 스킬이 프로젝트 도메인을 그릴링해 `.claude/agents/<role>.md`(표준 Claude Code 서브에이전트 정의 카드)를 생성한다. fg-run은 이 카드들을 `agentType`으로 호출해 워크플로우 슬라이스를 전문화된 역할에 위임한다.
 
-두 가지 하드 제약(ADR-0024):
+두 가지 하드 제약(ADR-0024 PoC 검증):
 
 1. **세션 시작 시 1회 로드** — `.claude/agents/`는 session start에 한 번만 읽힌다. fg-agents가 세션 중 카드를 생성해도 그 카드는 해당 세션에서 fg-run이 dispatch할 수 없다. 운영 흐름: `fg-agents 생성 → 세션 재시작 → fg-run 활용`.
-2. **카드는 사용자 프로젝트 소유** — forge 플러그인이 자체 에이전트를 보유하는 게 아니라, 사용자 프로젝트의 `.claude/agents/`를 fg-run이 `agentType` 경로로 활용한다.
+2. **카드는 사용자 프로젝트 소유** — forge 플러그인이 자체 에이전트를 보유하는 게 아니라, 사용자 프로젝트의 `.claude/agents/`를 fg-run이 `agentType` 경로로 활용한다. forge 리포 자체의 `.claude/agents/`(`manifest-doc-syncer`, `skill-author`)는 forge 개발 전용 카드이며 일반 사용자 프로젝트 패턴과 별개다.
+
+eco ON 시 `agentType` 호출에도 sonnet 캡 + ECO.md 주입이 적용된다. 단 role 카드에 `model`이 명시돼 있으면 사용자 명시로 보고 존중한다(eco는 내리기만).
 
 ## 7. 선택적 외부 스킬 참조 (graceful, 하드 의존 아님)
 
@@ -74,12 +92,13 @@ forge는 두 가지 외부 스킬을 조건부 연료로 참조하지만 어느 
 
 ## 요약
 
-실질 외부 접점은 다섯 가지다.
+실질 외부 접점은 여섯 가지다.
 
 1. GitHub `main` 기반 플러그인 설치 메커니즘
 2. 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 경로 참조 (스킬 간 형식 문서 공유)
 3. fg-statusline의 `settings.json` 와이어링 (bash/node 스크립트를 안정 경로로 복사)
 4. Claude Code Dynamic Workflow / 서브에이전트 (fg-run의 실행 기제, 호스트 제공)
 5. `.claude/agents/` 도메인 에이전트 dispatch (fg-agents 생성 → 세션 재시작 → fg-run agentType 호출)
+6. 결정론적 상태 스크립트 (`scripts/forge-status.sh`·`.js` — fg-status/fg-next가 Bash 도구로 호출)
 
 네트워크 API·DB·서드파티·MCP 의존은 0이다.
