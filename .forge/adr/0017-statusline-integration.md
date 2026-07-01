@@ -29,3 +29,24 @@ forge는 실행 코드가 한 줄도 없는 리포다(전부 Markdown/JSON, 빌�
 - **합성 래퍼는 committed generic 스크립트(`scripts/forge-statusline-wrapper.sh`) + 원본 보존 파일(`forge-statusline-orig.sh`)로 한다.** 원본 명령을 별도 파일에 verbatim 저장하므로 래퍼 자체엔 설치별 치환이 없어 fragment처럼 복사만 하면 된다(중첩 따옴표 escaping 회피). 래퍼는 같은 JSON을 원본과 fragment **양쪽에 stdin으로 흘려** cwd 해석을 일치시키고, 원본을 먼저 출력한 뒤 fragment를 별도 줄로 덧붙인다. SKILL.md의 과거 "inline 임베드" 서술은 이 구현에 맞춰 정정했다. **(개정 2026-06-14)** 래퍼는 동반 파일(`forge-statusline-orig.sh`·`forge-statusline.sh`)을 **자기 스크립트 위치**(`$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)`)에서 해석한다 — 런타임 `CLAUDE_CONFIG_DIR`에 의존하면 statusLine 프로세스가 그 변수를 export 안 하는 custom config dir 환경에서 동반 파일을 못 찾아 전체 statusline이 조용히 공백이 되는 결함(Codex 적대적 리뷰 지적)을 제거. 동반 파일은 래퍼와 같은 디렉터리에 복사되므로 자기 위치 해석이 항상 옳다. custom config dir·`CLAUDE_CONFIG_DIR` 미설정 회귀 테스트 추가.
 - **테스트가 늘었다**: fragment에 stdin-cwd 케이스 추가(`forge-statusline.test.sh`), 래퍼 동반 테스트 신설(`forge-statusline-wrapper.test.sh` — 원본 보존·forge 행 추가·idle 무행·stdin 재공급).
 - statusLine 설정은 **Claude Code 재시작 후** 적용된다 — 설정 직후 같은 세션에서 판단하면 안 된다(SKILL.md Notes·Handoff에 명시).
+
+## 개정 (2026-07-02) — 단일 세그먼트 우선순위 표시 → 2줄 상시 표시 + progress-dots 파이프라인
+
+최초 결정(위)은 활성 슬롯 > `executed/` > `backlog` **우선순위 중 하나만** 보여주는 "단일 세그먼트" 모델이었다 — 활성 작업이 있으면 대기 중인 backlog·회고 대기 개수는 화면에서 완전히 가려졌다. 사용자 요청(task 이름 + ask/run/learn 진행 표시를 색상 등 여러 방식으로 구상해달라는 fg-ask 그릴링)을 반영하며 이 우선순위 은닉 모델을 바꿨다.
+
+**결정**: 세그먼트를 우선순위로 하나만 고르는 대신, 해당되는 상태를 **독립적으로 판단해 최대 2줄을 동시에** 출력한다.
+
+- **1번째 줄** (활성 슬롯 `plan.md`가 있을 때만): `⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]`. 파이프라인은 forge 루프 전체(ask/run/learn/done) 네 단계를 항상 다 그리되, 지난 단계는 초록 `✔`, 현재 단계는 강조색 `●`, 다음 단계는 흐린 `○`로 구분한다. `done`은 fg-status의 버킷→stage 매핑에 실재하는 상태가 아니라(봉인되면 추적 버킷을 아예 벗어나 `done/`로 이동) 루프 전체 그림을 완성하기 위해 덧붙인 장식용 4번째 단계로, 항상 `○`(예정)로만 그려진다 — fg-ask 그릴링에서 "단순히 4번째 단계로서 항상 표시"를 선택한 결과다. 활성 슬롯은 backlog에서 promote된 뒤에만 생기므로(fg-ask는 항상 backlog에 적재) `ask`는 이 줄이 뜨는 한 항상 "완료"로 그려진다 — 마찬가지로 의도된 동작이다.
+- **1번째 줄의 예외**: 활성 슬롯이 없고 goal loop(`loop.md`)만 도는 중이면 `🔁 rN/cap` 단독 줄(⚒ 프리픽스 없음)을 대신 보여준다.
+- **2번째 줄** (backlog 또는 `executed/` 중 하나라도 있으면, **1번째 줄 유무와 무관하게 항상**): `📋 N queued · 📝 M awaiting retro`(해당 없는 쪽은 생략, ⚒ 프리픽스 없음).
+- 색상 값 자체(완료=초록/현재=강조/예정=흐림)는 스크립트에 고정하고 `.forge/config.json`에 별도 설정 키를 두지 않는다 — 표시 방식을 여러 개 만들어 토글 가능하게 하는 건 요청 범위를 넘는 speculative 확장으로 보고 기각했다. 정확한 ANSI 색상 코드 값(어떤 색조를 쓸지)은 라이브 터미널에서 눈으로 보고 조정 가능한 구현 세부로 열어뒀다.
+
+**고려한 대안**: backlog-only/executed-only 상태에서도 대표 task 1개를 뽑아 `ask` 포인터를 실제로 보여주는 확장안을 검토했으나(예: `<slug> | ▶︎ ask > run > learn | (+N more)`), "여러 개 중 어떤 걸 대표로 보여줄지" 규칙이 새로 필요해 범위가 커져 기각했다 — `ask`는 이 스크립트에서 실질적으로 결코 현재 포인터가 되지 않는 채로 남는다(항상 배경 완료 표시로만 등장).
+
+**트레이드오프**: 정보량(활성 작업 + 대기 요약을 한눈에) vs 줄 수(최대 2줄, 기존 1줄보다 statusline 세로 공간을 더 씀 — 래퍼가 원본 statusline에 추가하는 행까지 합치면 최대 3줄). 우선순위 은닉으로 인한 "backlog에 뭔가 쌓였는데 안 보인다"는 혼란을 없애는 쪽을 택했다.
+
+**결과**:
+- `forge-statusline.sh`/`forge-statusline.js`가 최대 2줄을 출력하도록 재작성됨 (ADR-0022 패리티 유지 — 색상 포함 동일 출력).
+- 기존 fixture 테스트(`forge-statusline.test.sh`, `forge-statusline.parity.test.sh`, `forge-statusline-wrapper.test.sh`)가 새 포맷 기대값으로 갱신됨. 색상 값은 라이브 튜닝 대상이라 테스트는 ANSI 코드를 벗겨내고 텍스트/기호만 비교한다.
+- `skills/fg-statusline/SKILL.md`의 "What the fragment prints" 섹션이 새 2줄 모델로 갱신됨.
+- fg-status의 다음-단계 우선순위 머신(어떤 스킬로 갈지 판단)은 이 표시 방식 변경과 무관하게 그대로다 — 여전히 표시 전용 개정.

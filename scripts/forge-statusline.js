@@ -1,12 +1,20 @@
 #!/usr/bin/env node
 // forge-statusline.js — node twin of forge-statusline.sh (ADR-0022 dual dispatch).
 //
-// Prints a compact one-line forge progress fragment, identical to
-// forge-statusline.sh for the same state (guarded by
-// forge-statusline.parity.test.sh). node is the fallback for environments where
-// bash cannot run the .sh — notably PowerShell-blocked Windows (the reason this
-// twin exists, ADR-0022). A display-only reader (ADR-0017): it never reproduces
+// Prints forge progress fragment line(s), identical to forge-statusline.sh for
+// the same state (guarded by forge-statusline.parity.test.sh). node is the
+// fallback for environments where bash cannot run the .sh — notably
+// PowerShell-blocked Windows (the reason this twin exists, ADR-0022). A
+// display-only reader (ADR-0017, amended 2026-07-02): it never reproduces
 // fg-status's next-step machine.
+//
+// Output (each line shown independently — NOT precedence-hidden):
+//   Line 1 (active slot present):
+//     ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
+//   Line 1 fallback (no active slot, but a goal loop is in flight):
+//     🔁 rN/cap
+//   Line 2 (backlog and/or executed non-empty, independent of line 1):
+//     📋 N queued · 📝 M awaiting retro   (either half omitted when zero)
 //
 // Reads the session JSON on stdin (when piped) to find the project cwd, cd's
 // there, then reads the resolved forge root relative to it.
@@ -15,6 +23,27 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveForgeRoot } = require('./resolve-forge-root.js');
+
+// --- ANSI helpers (must match forge-statusline.sh's palette) -----------------
+const DOT_DONE = '\x1b[32m';     // green — completed stage
+const DOT_CUR = '\x1b[1;36m';    // bold cyan — current stage
+const DOT_UPCOMING = '\x1b[2m';  // dim — upcoming stage
+const RESET = '\x1b[0m';
+
+// buildPipeline('run'|'learn') -> "✔ ask → ● run → ○ learn → ○ done" (colored)
+// "done" is always upcoming here — the active slot never sits at "done" (a
+// sealed task moves to .forge/done/ and stops appearing in line 1 entirely);
+// it is shown purely to complete the visual picture of the full 4-stage loop.
+function buildPipeline(stage) {
+  const target = stage === 'learn' ? 2 : 1;
+  return ['ask', 'run', 'learn', 'done']
+    .map((w, i) => {
+      if (i < target) return `${DOT_DONE}✔ ${w}${RESET}`;
+      if (i === target) return `${DOT_CUR}● ${w}${RESET}`;
+      return `${DOT_UPCOMING}○ ${w}${RESET}`;
+    })
+    .join(' → ');
+}
 
 // --- cwd from session JSON (stdin), same as the .sh --------------------------
 if (!process.stdin.isTTY) {
@@ -45,52 +74,56 @@ const read = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch (_) { ret
 
 if (!isDir(root)) process.exit(0);
 
-// --- Loop indicator (prefix) -------------------------------------------------
-let loop = '';
+// --- Loop indicator -----------------------------------------------------------
+let loopIndicator = '';
 const loopPath = path.join(root, 'loop.md');
 if (isFile(loopPath)) {
   const txt = read(loopPath);
   const rnd = (txt.match(/replan-round\s*:\s*([0-9]+)/) || [])[1];
   const cap = (txt.match(/replan-cap\s*:\s*([0-9]+)/) || [])[1];
-  if (rnd && cap) loop = `🔁 r${rnd}/${cap} `;
+  if (rnd && cap) loopIndicator = `🔁 r${rnd}/${cap}`;
 }
 
-// --- Determine the single segment (active > executed > backlog) ---------------
-let segment = '';
+// --- Line 1: active slot, or the loop-only fallback ---------------------------
+let line1 = '';
 const planPath = path.join(root, 'plan.md');
 if (isFile(planPath)) {
   let slug = (read(planPath).match(/forge-slug:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'plan';
+  let stage, flag = '';
   if (isFile(path.join(root, 'run.md'))) {
-    let flag = ' ⏳';
+    stage = 'learn';
     const st = path.join(root, 'STATUS.md');
-    if (isFile(st)) {
-      const v = (read(st).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '';
-      switch (v) {
-        case 'yes': flag = ' ✓'; break;
-        case 'failed': flag = ' ✗'; break;
-        case 'pending': case '': flag = ' ⏳'; break;
-        case 'skipped': case 'n/a': flag = ''; break;
-        default: flag = ' ⏳';
-      }
+    let v = '';
+    if (isFile(st)) v = (read(st).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '';
+    switch (v) {
+      case 'yes': flag = ' ✓'; break;
+      case 'failed': flag = ' ✗'; break;
+      case 'pending': case '': flag = ' ⏳'; break;
+      case 'skipped': case 'n/a': flag = ''; break;
+      default: flag = ' ⏳';
     }
-    segment = `${slug}:learn${flag}`;
   } else {
-    segment = `${slug}:run`;
+    stage = 'run';
   }
-} else {
-  const execDir = path.join(root, 'executed');
-  const backlogDir = path.join(root, 'backlog');
-  const execSub = isDir(execDir) ? fs.readdirSync(execDir).filter((f) => isDir(path.join(execDir, f))) : [];
-  const backlogMd = isDir(backlogDir) ? fs.readdirSync(backlogDir).filter((f) => f.endsWith('.md')) : [];
-  if (execSub.length > 0) {
-    segment = `📝 ${execSub.length} awaiting retro`;
-  } else if (backlogMd.length > 0) {
-    segment = `📋 ${backlogMd.length} queued`;
-  }
+  const pipeline = buildPipeline(stage);
+  const prefixBit = loopIndicator ? `${loopIndicator} ` : '';
+  line1 = `⚒ ${prefixBit}${slug} | ${pipeline} |${flag}`;
+} else if (loopIndicator) {
+  line1 = loopIndicator;
 }
 
-// --- Emit --------------------------------------------------------------------
-if (!segment && !loop) process.exit(0);
-let out = `⚒ ${loop}${segment}`;
-out = out.replace(/\s+$/, '');
-process.stdout.write(out + '\n');
+// --- Line 2: pending summary (backlog + executed), independent of line 1 -----
+const execDir = path.join(root, 'executed');
+const backlogDir = path.join(root, 'backlog');
+const awaitN = isDir(execDir) ? fs.readdirSync(execDir).filter((f) => isDir(path.join(execDir, f))).length : 0;
+const queuedN = isDir(backlogDir) ? fs.readdirSync(backlogDir).filter((f) => f.endsWith('.md')).length : 0;
+
+const parts = [];
+if (queuedN > 0) parts.push(`📋 ${queuedN} queued`);
+if (awaitN > 0) parts.push(`📝 ${awaitN} awaiting retro`);
+const line2 = parts.join(' · ');
+
+// --- Emit ----------------------------------------------------------------------
+const lines = [line1, line2].filter(Boolean);
+if (lines.length === 0) process.exit(0);
+process.stdout.write(lines.join('\n') + '\n');

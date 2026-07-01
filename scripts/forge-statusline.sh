@@ -1,22 +1,72 @@
 #!/usr/bin/env bash
-# forge-statusline.sh — print a compact one-line forge progress fragment.
+# forge-statusline.sh — print forge progress fragment line(s).
 #
-# A deliberately thin, display-only reader of forge state (see ADR-0017).
-# It reads the resolved forge root (ADR-0011 branch resolution) relative to the
-# current working directory and prints a single line, or nothing when idle.
-# It does NOT reproduce fg-status's next-step priority machine — fg-status stays
-# the single source of truth for "what to do next"; this only shows "where we are".
+# A deliberately thin, display-only reader of forge state (see ADR-0017,
+# amended 2026-07-02). It reads the resolved forge root (ADR-0011 branch
+# resolution) relative to the current working directory and prints up to two
+# lines, or nothing when idle. It does NOT reproduce fg-status's next-step
+# priority machine — fg-status stays the single source of truth for "what to
+# do next"; this only shows "where we are".
 #
-# Output (single segment, in precedence order):
-#   ⚒ [🔁 rN/cap ] <slug>:<stage> [flag]   active slot   (stage run|learn)
-#   ⚒ [🔁 rN/cap ] 📝 N awaiting retro       parked in executed/
-#   ⚒ [🔁 rN/cap ] 📋 N queued               backlog only
-#   ⚒ 🔁 rN/cap                              loop in flight, no work shown
-#   (nothing)                                idle
+# Output (each line shown independently — NOT precedence-hidden):
+#   Line 1 (active slot present):
+#     ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
+#   Line 1 fallback (no active slot, but a goal loop is in flight):
+#     🔁 rN/cap
+#   Line 2 (backlog and/or executed non-empty, independent of line 1):
+#     📋 N queued · 📝 M awaiting retro   (either half omitted when zero)
+#
+# The ask/run/learn/done pipeline always renders all four stages (the fourth,
+# "done", completes the visual picture of the full forge loop): stages before
+# the current one show ✔ (done, green), the current stage shows ● (bold/
+# cyan), stages after show ○ (dim). Since the active slot only ever exists at
+# "run" or "learn" (a plan reaches .forge/plan.md only after promotion from
+# the backlog, and a sealed task moves to .forge/done/ and stops appearing in
+# line 1 entirely — see fg-ask/fg-done), "ask" is always rendered done and
+# "done" is always rendered upcoming here; that is expected, not a bug.
 #
 # Dependencies: bash + git only. No JSON/jq parsing (reads files by path).
 
 set -u
+
+# --- ANSI helpers -------------------------------------------------------------
+DOT_DONE=$'\033[32m'      # green — completed stage
+DOT_CUR=$'\033[1;36m'     # bold cyan — current stage
+DOT_UPCOMING=$'\033[2m'   # dim — upcoming stage
+RESET=$'\033[0m'
+
+# build_pipeline <stage: run|learn> -> prints "✔ ask → ● run → ○ learn → ○ done" (colored)
+# "done" is always upcoming here — the active slot never sits at "done" (a sealed
+# task moves to .forge/done/ and stops appearing in line 1 entirely); it is shown
+# purely to complete the visual picture of the full 4-stage loop.
+build_pipeline() {
+  local stage="$1" target=0 i=0 out="" seg w
+  case "$stage" in
+    run) target=1 ;;
+    learn) target=2 ;;
+  esac
+  for w in ask run learn done; do
+    if [ "$i" -lt "$target" ]; then
+      seg="${DOT_DONE}✔ ${w}${RESET}"
+    elif [ "$i" -eq "$target" ]; then
+      seg="${DOT_CUR}● ${w}${RESET}"
+    else
+      seg="${DOT_UPCOMING}○ ${w}${RESET}"
+    fi
+    if [ -z "$out" ]; then out="$seg"; else out="${out} → ${seg}"; fi
+    i=$((i + 1))
+  done
+  printf '%s' "$out"
+}
+
+# join_dot <part...> -> prints parts joined by " · "
+join_dot() {
+  local out="" first=1 p
+  for p in "$@"; do
+    if [ "$first" -eq 1 ]; then out="$p"; first=0; else out="${out} · ${p}"; fi
+  done
+  printf '%s' "$out"
+}
 
 # --- cwd from session JSON (stdin) -------------------------------------------
 # Claude Code feeds the statusLine command the session JSON on stdin. The host
@@ -64,19 +114,18 @@ fi
 
 [ -d "$root" ] || exit 0
 
-# --- Loop indicator (prefix) -------------------------------------------------
-loop=""
+# --- Loop indicator (rN/cap, without the 🔁 body until assembled below) -------
+loop_rnd=""
+loop_cap=""
 if [ -f "$root/loop.md" ]; then
-  rnd="$(sed -n 's/.*replan-round[[:space:]]*:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$root/loop.md" | head -1)"
-  cap="$(sed -n 's/.*replan-cap[[:space:]]*:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$root/loop.md" | head -1)"
-  if [ -n "$rnd" ] && [ -n "$cap" ]; then
-    loop="🔁 r${rnd}/${cap} "
-  fi
+  loop_rnd="$(sed -n 's/.*replan-round[[:space:]]*:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$root/loop.md" | head -1)"
+  loop_cap="$(sed -n 's/.*replan-cap[[:space:]]*:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$root/loop.md" | head -1)"
 fi
+loop_indicator=""
+[ -n "$loop_rnd" ] && [ -n "$loop_cap" ] && loop_indicator="🔁 r${loop_rnd}/${loop_cap}"
 
-# --- Determine the single segment (active > executed > backlog) ---------------
-segment=""
-
+# --- Line 1: active slot, or the loop-only fallback --------------------------
+line1=""
 if [ -f "$root/plan.md" ]; then
   slug="$(sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$root/plan.md" | head -1)"
   [ -z "$slug" ] && slug="plan"
@@ -95,24 +144,31 @@ if [ -f "$root/plan.md" ]; then
     else
       flag=" ⏳"
     fi
-    segment="${slug}:${stage}${flag}"
   else
-    segment="${slug}:run"
+    stage="run"
+    flag=""
   fi
-elif [ -d "$root/executed" ] && [ -n "$(ls -A "$root/executed" 2>/dev/null)" ]; then
-  n="$(find "$root/executed" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
-  segment="📝 ${n} awaiting retro"
-elif [ -d "$root/backlog" ] && [ -n "$(ls -A "$root/backlog"/*.md 2>/dev/null)" ]; then
-  n="$(ls -1 "$root/backlog"/*.md 2>/dev/null | wc -l | tr -d ' ')"
-  segment="📋 ${n} queued"
+  pipeline="$(build_pipeline "$stage")"
+  prefix_bit=""
+  [ -n "$loop_indicator" ] && prefix_bit="${loop_indicator} "
+  line1="⚒ ${prefix_bit}${slug} | ${pipeline} |${flag}"
+elif [ -n "$loop_indicator" ]; then
+  line1="$loop_indicator"
 fi
 
-# --- Emit --------------------------------------------------------------------
-if [ -z "$segment" ] && [ -z "$loop" ]; then
-  exit 0
-fi
+# --- Line 2: pending summary (backlog + executed), independent of line 1 -----
+queued_n=0
+await_n=0
+[ -d "$root/executed" ] && await_n="$(find "$root/executed" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+[ -d "$root/backlog" ] && queued_n="$(ls -1 "$root/backlog"/*.md 2>/dev/null | wc -l | tr -d ' ')"
 
-# Trim a trailing space when only the loop prefix is present.
-out="⚒ ${loop}${segment}"
-out="${out%"${out##*[![:space:]]}"}"
-printf '%s\n' "$out"
+line2=""
+parts=()
+[ "${queued_n:-0}" -gt 0 ] && parts+=("📋 ${queued_n} queued")
+[ "${await_n:-0}" -gt 0 ] && parts+=("📝 ${await_n} awaiting retro")
+[ "${#parts[@]}" -gt 0 ] && line2="$(join_dot "${parts[@]}")"
+
+# --- Emit ----------------------------------------------------------------------
+[ -n "$line1" ] && printf '%s\n' "$line1"
+[ -n "$line2" ] && printf '%s\n' "$line2"
+exit 0

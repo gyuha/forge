@@ -30,6 +30,7 @@ assert() {
 
 mktmp() { mktemp -d "${TMPDIR:-/tmp}/fgslw.XXXXXX"; }
 write() { mkdir -p "$(dirname "$1")"; printf '%s\n' "$2" > "$1"; }
+strip_ansi() { sed -E $'s/\x1b\\[[0-9;]*m//g'; }
 
 # Build a fake install dir: the wrapper + the real fragment + a stub original
 # statusline, all in ONE directory (the real install model). The stub proves the
@@ -45,10 +46,12 @@ printf 'ORIG-LINE(%s)\n' "$n"
 STUB
 }
 
-# Run the installed wrapper from cwd $3 with JSON $2 on stdin.
+# Run the installed wrapper from cwd $3 with JSON $2 on stdin (ANSI stripped —
+# the exact color values are a live-tuned implementation detail, not a fixture
+# concern; see .forge/adr/0017-statusline-integration.md's 2026-07-02 amendment).
 # CRITICAL: no CLAUDE_CONFIG_DIR is set — the wrapper must find its companions
 # from its own location ($1), not from any env var.
-run_wrapper() { ( cd "$3" && unset CLAUDE_CONFIG_DIR; printf '%s' "$2" | bash "$1/forge-statusline-wrapper.sh" ); }
+run_wrapper() { ( cd "$3" && unset CLAUDE_CONFIG_DIR; printf '%s' "$2" | bash "$1/forge-statusline-wrapper.sh" ) | strip_ansi; }
 
 # --- Case: active forge -> ORIG line first, forge row appended below ----------
 # State lives in project dir; wrapper invoked from an unrelated dir; JSON cwd
@@ -63,7 +66,7 @@ out="$(run_wrapper "$h" "$json" "$other")"
 first="$(printf '%s\n' "$out" | sed -n '1{s/(.*//;p;}')"
 second="$(printf '%s\n' "$out" | sed -n '2p')"
 assert "wrapper-active-orig-first" "ORIG-LINE" "$first"
-assert "wrapper-active-forge-row"  "⚒ w-task:run" "$second"
+assert "wrapper-active-forge-row"  "⚒ w-task | ✔ ask → ● run → ○ learn → ○ done |" "$second"
 rm -rf "$h" "$proj" "$other"
 
 # --- Case: idle forge -> only the ORIG line, no blank extra row --------------
@@ -103,7 +106,7 @@ out="$(run_wrapper "$custom" "$json" "$other")"
 first="$(printf '%s\n' "$out" | sed -n '1{s/(.*//;p;}')"
 second="$(printf '%s\n' "$out" | sed -n '2p')"
 assert "wrapper-customdir-orig-preserved" "ORIG-LINE" "$first"
-assert "wrapper-customdir-forge-row"      "⚒ reg-task:run" "$second"
+assert "wrapper-customdir-forge-row"      "⚒ reg-task | ✔ ask → ● run → ○ learn → ○ done |" "$second"
 rm -rf "$custom" "$proj" "$other"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

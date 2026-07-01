@@ -1,6 +1,6 @@
 ---
 name: fg-statusline
-description: Set up (or refresh) a Claude Code statusline that shows forge's current loop progress. It installs a self-contained bash fragment script that reads .forge/ and prints one compact line — the active task and its stage, a goal-loop indicator, or backlog count — then wires it into settings.json. Because Claude Code allows only ONE statusLine, it does NOT replace an existing one: it auto-wraps your current statusLine command so forge appears as an extra row below it (the original output is preserved). An on-demand setup utility outside the loop. Use in contexts like 'forge statusline', 'statusline 설정', '상태바', '상태 표시줄', 'add forge to statusline'.
+description: Set up (or refresh) a Claude Code statusline that shows forge's current loop progress. It installs a self-contained bash fragment script that reads .forge/ and prints up to two compact lines — the active task's name with a colored ask/run/learn progress pipeline, and a backlog/awaiting-retro summary — then wires it into settings.json. Because Claude Code allows only ONE statusLine, it does NOT replace an existing one: it auto-wraps your current statusLine command so forge appears as extra rows below it (the original output is preserved). An on-demand setup utility outside the loop. Use in contexts like 'forge statusline', 'statusline 설정', '상태바', '상태 표시줄', 'add forge to statusline'.
 ---
 
 # fg-statusline — set up the forge progress statusline (outside the loop)
@@ -11,7 +11,7 @@ This is **not** a stage of the forge loop. It is a one-time setup utility: it in
 
 ## Why a script (and why it can't be a plugin component)
 
-Claude Code's statusLine is configured **only** in `settings.json` (`statusLine` key) — a plugin cannot register one — and the command runs as a **non-interactive shell command** that gets session JSON on stdin and prints text. It cannot call a forge skill. So forge ships a real `bash` script, `scripts/forge-statusline.sh`, that reads `.forge/` directly and prints one compact line. It is a deliberately **thin, display-only** reader: it shows the *current stage*, and does **not** reproduce fg-status's next-step priority machine (fg-status stays the single source of truth for "what to do next"). See `.forge/adr/0017-statusline-integration.md`.
+Claude Code's statusLine is configured **only** in `settings.json` (`statusLine` key) — a plugin cannot register one — and the command runs as a **non-interactive shell command** that gets session JSON on stdin and prints text. It cannot call a forge skill. So forge ships a real `bash` script, `scripts/forge-statusline.sh`, that reads `.forge/` directly and prints up to two compact lines. It is a deliberately **thin, display-only** reader: it shows the *current stage* (as a colored ask/run/learn progress pipeline, not just a stage word), and does **not** reproduce fg-status's next-step priority machine (fg-status stays the single source of truth for "what to do next"). See `.forge/adr/0017-statusline-integration.md`.
 
 Two facts shape the setup:
 
@@ -21,22 +21,28 @@ Two facts shape the setup:
 
 ## What the fragment prints
 
-The script reads the session JSON on stdin and resolves the project directory from its `cwd` (falling back to `workspace.current_dir`, then to `$PWD` when no JSON/cwd is piped — e.g. an interactive run), `cd`s there, and prints a single line, or nothing when idle. Resolving cwd from stdin (rather than assuming the shell's cwd is the project) is why it shows the right project even when the host runs the statusLine from elsewhere. Precedence — one segment only:
+The script reads the session JSON on stdin and resolves the project directory from its `cwd` (falling back to `workspace.current_dir`, then to `$PWD` when no JSON/cwd is piped — e.g. an interactive run), `cd`s there, and prints **up to two lines**, or nothing when idle. Resolving cwd from stdin (rather than assuming the shell's cwd is the project) is why it shows the right project even when the host runs the statusLine from elsewhere. Unlike the single-segment precedence design this replaced (ADR-0017's original mechanism — see its 2026-07-02 amendment), the two lines are **independent** — both show whenever they apply, neither hides the other:
 
 ```
-⚒ [🔁 rN/cap ] <slug>:<stage> [flag]    active slot   (stage: run | learn)
-⚒ [🔁 rN/cap ] 📝 N awaiting retro        parked in executed/
-⚒ [🔁 rN/cap ] 📋 N queued                backlog only
-⚒ 🔁 rN/cap                               goal loop in flight, no work to show
-(nothing)                                 idle — active slot, executed, backlog all empty
+Line 1 (active slot present):
+  ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
+
+Line 1 fallback (no active slot, but a goal loop is in flight):
+  🔁 rN/cap
+
+Line 2 (backlog and/or executed non-empty, independent of line 1):
+  📋 N queued · 📝 M awaiting retro     (either half omitted when zero)
+
+(nothing)   idle — active slot, executed, backlog, loop all empty
 ```
 
-- **stage** — `run` (plan promoted, not yet run) or `learn` (run.md present, retro pending), mapped from the bucket exactly as fg-status's task table does.
-- **flag** (only at `learn`) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`.
-- **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap.
+- **The ask/run/learn/done pipeline** always renders all four stages of the forge loop (the fourth, `done`, completes the visual picture — it does not correspond to a bucket this script ever actually sits at, see below): stages before the current one show `✔` (done, green), the current stage shows `●` (bold/cyan), stages after show `○` (dim). Since the active slot only ever exists at `run` or `learn` (a plan reaches `.forge/plan.md` only after promotion from the backlog — see fg-ask — and a sealed task moves to `.forge/done/` and stops appearing in line 1 entirely — see fg-done), `ask` renders done and `done` renders upcoming every time line 1 appears; that is expected, not a bug. The exact colors are an implementation detail tuned live in a real terminal, not a fixture concern — tests strip ANSI codes and assert on the visible text/symbols.
+- **flag** (only at the `learn` stage) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`. Placed after the pipeline's closing `|`.
+- **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap. Attached as a prefix on line 1 when an active slot exists; shown as its own prefix-less line when there is no active slot.
+- Line 2 carries no `⚒` prefix — only line 1 (and its loop-only fallback) does.
 - It resolves the branch-isolated forge root (ADR-0011): `.forge/` on the default branch, `.forge/branch/<branch>/` otherwise.
 
-This stage mapping is the **thin display twin** of `skills/fg-status/SKILL.md`'s task table. If that bucket→stage mapping ever changes, update both the script and fg-status together.
+The first three stage names (`ask`/`run`/`learn`) mirror `skills/fg-status/SKILL.md`'s task table bucket→stage mapping (backlog → ask, active plan-only → run, run.md present/`executed/` → learn) — this is the **thin display twin**, now with the earlier stages of the pipeline shown alongside the current one instead of a single stage word. `done` is a fourth, decorative-only stage appended for the visual — it has no corresponding bucket in fg-status's table (a sealed task leaves the tracked buckets entirely) and never becomes the current (`●`) stage in this script. If the `ask`/`run`/`learn` bucket→stage mapping ever changes, update both the script and fg-status together.
 
 ## Setup procedure
 
