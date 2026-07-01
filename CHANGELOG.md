@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.4] - 2026-07-02
+
+### Changed
+- **`fg-statusline` — task 이름 + 색상 ask/run/learn/done 진행 파이프라인, 2줄 상시 표시.** 활성 슬롯 > `executed/` > `backlog` 우선순위로 하나만 가리던 단일 세그먼트 표시를 폐지 — 1번째 줄은 활성 task의 slug와 `✔ ask → ● run → ○ learn → ○ done` 색상 진행 파이프라인(현재 단계만 강조, `done`은 forge 루프 전체 그림을 완성하는 장식용 4번째 단계), 2번째 줄은 backlog 대기·회고 대기 개수 요약을 **해당되면 항상 동시에** 보여준다. bash(`forge-statusline.sh`)·node 폴백(`forge-statusline.js`) 양쪽 동일 반영, 정확한 색상 값은 라이브 튜닝 대상으로 열어두고 테스트는 ANSI를 벗겨 구조만 검증한다 ([ADR-0017](./.forge/adr/0017-statusline-integration.md) 개정).
+
+### Added
+- **README GSD Core·GStack·Superpowers 비교표 (이중언어).** forge를 다른 AI 코딩 하네스 세 가지와 비교하는 표와 forge의 강점·솔직한 격차를 `README.md`/`README.ko.md`에 추가.
+
+### Docs
+- 코드베이스 지도(`.forge/codebase/`) 전체 리프레시 — v0.5.3 반영(`.claude/agents/` 도메인 카드, ADR-0025, scripts dual-dispatch 등).
+- 프로젝트 로컬 `.forge/config.json` 초기화(`eco: false`) — forge의 자체 dogfooding 설정.
+
 ## [0.5.3] - 2026-06-27
 
 ### Added
