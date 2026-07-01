@@ -133,6 +133,43 @@ The full directory layout, the `.gitignore` pattern, branch isolation, the retro
 1. **Grilling (planning) is conversational, outside the Dynamic Workflow.** A Dynamic Workflow cannot take user input mid-run, so question-by-question grilling never goes inside a workflow.
 2. **Docs are the loop's fuel, not its by-product.** Terms sharpened in planning become the standard for execution, and retro learnings become the starting point of the next plan.
 
+## forge vs. other harnesses
+
+| Axis | forge | GSD Core | GStack | Superpowers |
+| --- | --- | --- | --- | --- |
+| Pure file-based persistent state (no DB) | ✓ (`.forge/` markdown+JSON, git-tracked) | ✓ (`STATE.md`/`CONTEXT.md`) | △ (GBrain defaults to a DB — PGLite/Supabase/remote MCP) | △ (design docs saved to disk; no documented state contract) |
+| Explicit restraint gate on doc promotion | ✓ (ADR only when irreversible + surprising + a real trade-off) | — | — | — |
+| Retro learnings auto-feed the next planning session | ✓ | — | — | — |
+| Evidence-first, multi-state verification gate before sealing | ✓ (5 states: yes/skipped/n-a/pending/failed, blocks sealing) | △ (has a Verify phase) | △ (`/qa`, `/canary`) | △ (`verification-before-completion` skill) |
+| Seal blocks the same task from ever re-running | ✓ (`done/` archive) | — | — | — |
+| Graduated autonomy (observe→assist→unattended) with automatic halt walls (incl. tension/oscillation detection) | ✓ | — | — | — |
+| TDD as a per-project/per-task toggle (not all-or-nothing) | ✓ (config default + per-task override) | — | — | △ (TDD is mandatory, always on) |
+| Generates project-specific domain agents on demand | ✓ (interview-driven, only roles that earn their place) | — | △ (25+ fixed built-in specialist skills) | — |
+| Built-in cost-discipline mode (subagent model cap + simplicity discipline) | ✓ (eco mode) | — | △ (model benchmarking tool, different angle) | — |
+| Target platform breadth | Claude Code only | 10+ runtimes | 10 agents | 9+ agents |
+
+Legend: ✓ explicitly supported · △ something similar exists but differs in form/rigor · — not found in public docs (not claimed absent)
+
+### forge's strengths
+
+- Docs are the loop's fuel, not a byproduct — ADRs are created only when all three gate conditions hold, which structurally prevents doc bloat.
+- No seal without verification — pending/failed/skipped(reason)/n-a(reason) are honestly distinguished so an unverified task can never quietly become "done."
+- Unattended automation still stops itself at human-defined walls (failed verification, an unresolvable fork, tension/oscillation ping-pong, safety-class actions).
+- Sealing means the loop really ends — a sealed task is structurally blocked from ever re-running.
+- Zero infrastructure — no DB, no server, no npm install; just `/plugin install`.
+- Instead of a fixed roster of specialists, forge interviews the project to find which roles actually recur, and generates agent cards only for those.
+- Honest trade-off: forge is Claude Code-only, the narrowest platform reach of the four. In exchange, it goes deep on Claude Code-native capabilities (Dynamic Workflow, AskUserQuestion, Skill chaining) instead of flattening them to a lowest common denominator.
+
+### What forge doesn't do
+
+- **Cross-model benchmarking** — GStack has it (`/codex`, `gstack-model-benchmark`), forge doesn't (deliberate: model choice is Claude Code's own domain, not forge's).
+- **Browser automation, iOS QA, design generation** — GStack has these (`/browse`, `/ios-qa`, `/design-*`), forge doesn't (deliberate: forge stays scoped to the plan→execute→retro→done loop, not the whole SDLC).
+- **Team-shared, searchable knowledge base across projects** — GStack's GBrain (Supabase-backed) does this; forge's `.forge/` is scoped to a single repo.
+- **Always-on, unconditional TDD enforcement** — Superpowers deletes code written before tests; forge's TDD is an opt-in toggle a project can choose not to use.
+- **Automatic per-task git worktree isolation** — Superpowers creates one automatically; forge isolates state per branch (ADR-0011) but doesn't automate worktree creation itself.
+- **Scored quality gate on planning documents** — GStack's `/spec` blocks below a 7/10 Codex score; forge's ADR gate is qualitative (three conditions), not numeric.
+- **A dedicated, structured security-audit skill (OWASP/STRIDE)** — GStack's `/cso` does this; forge's adversarial review is six general lenses, not security-specialized.
+
 ## Credits
 
 The grilling/documentation pattern of `fg-ask` (including the verbatim original) and `CONTEXT-FORMAT.md`/`ADR-FORMAT.md` are inherited from [grill-with-docs in mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs).

@@ -132,6 +132,43 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 1. **그릴링(계획)은 Dynamic Workflow 밖의 대화형으로.** Dynamic Workflow는 실행 중 사용자 입력을 못 받으므로, 한 질문씩 주고받는 그릴링을 워크플로우 안에 넣지 않는다.
 2. **문서는 산출물이 아니라 루프의 연료.** 계획에서 다듬은 용어가 실행의 기준이 되고, 회고의 학습이 다음 계획의 출발점이 된다.
 
+## forge와 다른 하네스 비교
+
+| 항목 | forge | GSD Core | GStack | Superpowers |
+| --- | --- | --- | --- | --- |
+| 순수 파일 기반 영속 상태(DB 불필요) | ✓ (`.forge/` 마크다운+JSON, git 추적) | ✓ (`STATE.md`/`CONTEXT.md`) | △ (GBrain은 기본적으로 DB 지향 — PGLite/Supabase/원격 MCP) | △ (설계 문서는 저장하나 구조화된 상태 계약은 미문서화) |
+| 문서 승급에 명시적 절제 게이트 | ✓ (비가역·의아함·진짜 트레이드오프 셋 다 충족할 때만 ADR) | — | — | — |
+| 회고 학습이 다음 계획 그릴링에 자동 환류 | ✓ | — | — | — |
+| 증거-우선 다상태 검증 게이트(봉인 차단) | ✓ (5상태: yes/skipped/n·a/pending/failed) | △ (Verify 단계 존재) | △ (`/qa`, `/canary`) | △ (`verification-before-completion` 스킬) |
+| 봉인 후 동일 작업 영구 재실행 방지 | ✓ (`done/` 아카이브) | — | — | — |
+| 단계적 자율성(관찰→보조→무인) + 자동 정지 벽(tension·oscillation 감지 포함) | ✓ | — | — | — |
+| TDD를 프로젝트/작업 단위로 켜고 끄는 토글 | ✓ (config 기본값 + 작업별 오버라이드) | — | — | △ (상시 강제, 끌 수 없음) |
+| 프로젝트 전용 도메인 에이전트를 필요할 때만 생성 | ✓ (그릴링 기반, 자격 갖춘 역할만) | — | △ (25개 이상 고정 내장 전문가 스킬) | — |
+| 비용 절감 내장 규율(서브에이전트 모델 캡+단순성 규율) | ✓ (eco 모드) | — | △ (모델 벤치마킹 도구, 결이 다름) | — |
+| 대상 플랫폼 폭 | Claude Code 전용 | 10+ 런타임 | 10개 에이전트 | 9개 이상 에이전트 |
+
+범례: ✓ 명시적으로 지원 · △ 비슷한 것은 있으나 형태·엄격도가 다름 · — 공개 문서에서 확인 안 됨(없다고 단정하지 않음)
+
+### forge의 강점
+
+- 문서는 산출물이 아니라 루프의 연료다 — ADR은 세 조건(비가역·의아함·진짜 트레이드오프)을 모두 충족할 때만 만들어 문서 인플레이션을 구조적으로 막는다.
+- 검증 없이는 봉인 없다 — pending/failed(사유)/skipped(사유)/n·a(사유)를 정직하게 구분해, 검증 안 된 작업이 조용히 "완료"로 둔갑하지 못한다.
+- 무인 자동화도 사람이 정의한 벽(실패한 검증·해소 불가한 분기·tension 핑퐁·안전 등급 액션)에서 스스로 멈춘다.
+- 봉인이 진짜 끝을 의미한다 — 봉인된 작업은 같은 작업이 다시 실행되는 걸 구조적으로 막는다.
+- 인프라가 필요 없다 — DB도 서버도 npm도 없이 `/plugin install` 한 줄로 끝난다.
+- 고정된 전문가 세트를 들이미는 대신, 이 프로젝트에 실제로 반복되는 역할이 무엇인지 그릴링으로 찾아 그만큼만 에이전트 카드를 만든다.
+- 정직한 트레이드오프: forge는 Claude Code 전용이라 넷 중 플랫폼 폭이 가장 좁다. 대신 그 자리에서 Dynamic Workflow·AskUserQuestion·Skill 체이닝 같은 Claude Code 고유 기능을 최소공통분모로 깎지 않고 깊게 판다.
+
+### forge가 하지 않는 것
+
+- **크로스모델 벤치마킹** — GStack은 있음(`/codex`, `gstack-model-benchmark`), forge는 없음 (의도적: 모델 선택은 Claude Code 자체의 영역이지 forge의 영역이 아님)
+- **브라우저 자동화·iOS QA·디자인 생성** — GStack은 있음(`/browse`, `/ios-qa`, `/design-*`), forge는 없음 (의도적: forge는 SDLC 전체가 아니라 계획→실행→회고→완료 루프에만 집중)
+- **팀 공유 검색형 지식베이스** — GStack GBrain(Supabase 기반)은 프로젝트 간 공유·검색을 지원, forge의 `.forge/`는 리포 하나에 국한
+- **상시 강제 TDD** — Superpowers는 테스트 없이 짠 코드를 삭제할 정도로 강제, forge의 TDD는 선택적 토글(프로젝트가 안 쓸 수도 있음)
+- **작업별 git worktree 자동 격리** — Superpowers는 자동 생성, forge는 브랜치별 상태 격리(ADR-0011)만 하고 worktree 자동화는 안 함
+- **계획 문서의 점수제 품질 게이트** — GStack `/spec`은 Codex 점수 7/10 미만이면 차단, forge의 ADR 게이트는 정성적 3조건이지 점수제 아님
+- **보안 감사 전용 내장 스킬(OWASP/STRIDE)** — GStack `/cso`가 이를 수행, forge의 적대적 리뷰는 일반 6렌즈지 보안 특화 아님
+
 ## 크레딧
 
 `fg-ask`의 그릴링·문서화 패턴(원문 포함)과 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`는 [mattpocock/skills의 grill-with-docs](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)를 계승했다.
