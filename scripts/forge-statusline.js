@@ -30,12 +30,12 @@ const DOT_CUR = '\x1b[1;36m';    // bold cyan — current stage
 const DOT_UPCOMING = '\x1b[2m';  // dim — upcoming stage
 const RESET = '\x1b[0m';
 
-// buildPipeline('run'|'learn') -> "✔ ask → ● run → ○ learn → ○ done" (colored)
+// buildPipeline('ask'|'run'|'learn') -> "✔ ask → ● run → ○ learn → ○ done" (colored)
 // "done" is always upcoming here — the active slot never sits at "done" (a
 // sealed task moves to .forge/done/ and stops appearing in line 1 entirely);
 // it is shown purely to complete the visual picture of the full 4-stage loop.
 function buildPipeline(stage) {
-  const target = stage === 'learn' ? 2 : 1;
+  const target = stage === 'learn' ? 2 : stage === 'run' ? 1 : 0;
   return ['ask', 'run', 'learn', 'done']
     .map((w, i) => {
       if (i < target) return `${DOT_DONE}✔ ${w}${RESET}`;
@@ -91,19 +91,20 @@ if (isFile(planPath)) {
   let slug = (read(planPath).match(/forge-slug:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'plan';
   let stage, flag = '';
   if (isFile(path.join(root, 'run.md'))) {
-    stage = 'learn';
     const st = path.join(root, 'STATUS.md');
     let v = '';
     if (isFile(st)) v = (read(st).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '';
+    // verified not yet sealable (pending/failed/missing) -> still fg-run's territory
+    // (fg-learn's own retro gate refuses these); sealable -> retro gate passed, learn is current.
     switch (v) {
-      case 'yes': flag = ' ✓'; break;
-      case 'failed': flag = ' ✗'; break;
-      case 'pending': case '': flag = ' ⏳'; break;
-      case 'skipped': case 'n/a': flag = ''; break;
-      default: flag = ' ⏳';
+      case 'yes': flag = ' ✓'; stage = 'learn'; break;
+      case 'failed': flag = ' ✗'; stage = 'run'; break;
+      case 'pending': case '': flag = ' ⏳'; stage = 'run'; break;
+      case 'skipped': case 'n/a': flag = ''; stage = 'learn'; break;
+      default: flag = ' ⏳'; stage = 'run';
     }
   } else {
-    stage = 'run';
+    stage = 'ask';
   }
   const pipeline = buildPipeline(stage);
   const prefixBit = loopIndicator ? `${loopIndicator} ` : '';

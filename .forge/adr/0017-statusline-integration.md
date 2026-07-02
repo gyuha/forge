@@ -50,3 +50,17 @@ forge는 실행 코드가 한 줄도 없는 리포다(전부 Markdown/JSON, 빌�
 - 기존 fixture 테스트(`forge-statusline.test.sh`, `forge-statusline.parity.test.sh`, `forge-statusline-wrapper.test.sh`)가 새 포맷 기대값으로 갱신됨. 색상 값은 라이브 튜닝 대상이라 테스트는 ANSI 코드를 벗겨내고 텍스트/기호만 비교한다.
 - `skills/fg-statusline/SKILL.md`의 "What the fragment prints" 섹션이 새 2줄 모델로 갱신됨.
 - fg-status의 다음-단계 우선순위 머신(어떤 스킬로 갈지 판단)은 이 표시 방식 변경과 무관하게 그대로다 — 여전히 표시 전용 개정.
+
+## 개정 (2026-07-02, 2차) — 현재 단계 판정을 "파일 존재"에서 "verified 게이트"로
+
+위 개정에서 파이프라인의 "현재 단계(●)" 판정은 파일 존재 여부만 봤다 — `run.md`가 있으면 곧바로 `run`을 `✔`로, `learn`을 `●`로 그렸다. 그런데 이건 실제 게이트 로직과 어긋난다: `fg-learn`은 `verified`가 아직 확정 안 됐으면(`pending`/`failed`) 회고를 거부하고 `fg-run`으로 돌려보낸다(회고 게이트, fg-learn SKILL.md "Input" 섹션) — 즉 `run.md`가 존재해도 `verified`가 미확정이면 실질적으로 아직 `run` 단계에 머물러 있는 것이다. 또한 `fg-ask`/`fg-run`의 재실행 경계상, 한 단계는 "다음 단계로 실질적으로 못 넘어가는 시점"까지는 계속 열려있다고 봐야 한다(예: `run.md`가 생기기 전까지는 `fg-ask`로 plan을 자유롭게 고칠 수 있고, `verified`가 확정되기 전까지는 `fg-run`이 계속 개입할 수 있다).
+
+**결정**: 파이프라인의 현재 단계(`●`) 판정 기준을 다음으로 바꾼다 — 한 번에 점 하나만 켜진다는 제약(single active dot)을 유지하면서:
+
+- `plan.md`만 있고 `run.md` 없음 → `● ask → ○ run → ○ learn → ○ done` (ask는 아직 재그릴링으로 자유롭게 고칠 수 있는 열린 상태 — `run`은 아직 시작 전).
+- `run.md` 있음, `verified: pending`/`failed`(미확정) → `✔ ask → ● run → ○ learn → ○ done` (`run.md`가 생겨 plan은 더 이상 조용히 못 고치지만(ask 마감), `verified`가 아직 안 끝나 회고 게이트를 통과 못 했으므로 여전히 `run` 단계).
+- `run.md` 있음, `verified: yes`/`skipped`/`n/a`(sealable) → `✔ ask → ✔ run → ● learn → ○ done` (이제야 `fg-learn`의 회고 게이트를 통과할 수 있는 상태 — `run`도 마감, `fg-run` 재진입은 이제 "중복 실행 경고"가 뜨는 예외 경로일 뿐 자연스러운 이어짐이 아니다).
+
+**고려한 대안**: 파일 존재만으로 판정 유지 — 기각. `verified: pending`/`failed`인데 `learn`을 현재로 그리면, 실제로는 `fg-learn`이 그 즉시 `fg-run`으로 돌려보내는 상태를 "회고 진행 중"처럼 보이게 해 혼란을 준다.
+
+**결과**: `run`/`learn` 경계 판정에 `STATUS.md`의 `verified:` 필드를 추가로 읽어야 한다(기존엔 `run.md` 파일 존재만 확인했음). `ask`/`done`의 판정 로직(각각 "항상 완료"/"항상 예정")은 이번 개정과 무관하게 그대로다.

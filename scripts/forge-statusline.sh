@@ -19,11 +19,15 @@
 # The ask/run/learn/done pipeline always renders all four stages (the fourth,
 # "done", completes the visual picture of the full forge loop): stages before
 # the current one show ✔ (done, green), the current stage shows ● (bold/
-# cyan), stages after show ○ (dim). Since the active slot only ever exists at
-# "run" or "learn" (a plan reaches .forge/plan.md only after promotion from
-# the backlog, and a sealed task moves to .forge/done/ and stops appearing in
-# line 1 entirely — see fg-ask/fg-done), "ask" is always rendered done and
-# "done" is always rendered upcoming here; that is expected, not a bug.
+# cyan), stages after show ○ (dim). The current stage is gated, not just
+# file-existence-based (ADR-0017, 2nd amendment 2026-07-02):
+#   no run.md                              -> ask is current (plan still freely re-grillable)
+#   run.md + verified: pending/failed      -> run is current (fg-learn's own retro gate
+#                                              refuses these; it is still fg-run's territory)
+#   run.md + verified: yes/skipped/n/a     -> learn is current (retro gate passed)
+# "done" never becomes current here — a sealed task leaves .forge/plan.md
+# entirely and stops appearing in line 1 (see fg-done); it is shown purely to
+# complete the visual picture of the full 4-stage loop.
 #
 # Dependencies: bash + git only. No JSON/jq parsing (reads files by path).
 
@@ -35,13 +39,14 @@ DOT_CUR=$'\033[1;36m'     # bold cyan — current stage
 DOT_UPCOMING=$'\033[2m'   # dim — upcoming stage
 RESET=$'\033[0m'
 
-# build_pipeline <stage: run|learn> -> prints "✔ ask → ● run → ○ learn → ○ done" (colored)
+# build_pipeline <stage: ask|run|learn> -> prints "✔ ask → ● run → ○ learn → ○ done" (colored)
 # "done" is always upcoming here — the active slot never sits at "done" (a sealed
 # task moves to .forge/done/ and stops appearing in line 1 entirely); it is shown
 # purely to complete the visual picture of the full 4-stage loop.
 build_pipeline() {
   local stage="$1" target=0 i=0 out="" seg w
   case "$stage" in
+    ask) target=0 ;;
     run) target=1 ;;
     learn) target=2 ;;
   esac
@@ -130,22 +135,19 @@ if [ -f "$root/plan.md" ]; then
   slug="$(sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$root/plan.md" | head -1)"
   [ -z "$slug" ] && slug="plan"
   if [ -f "$root/run.md" ]; then
-    stage="learn"
-    flag=""
-    if [ -f "$root/STATUS.md" ]; then
-      v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1)"
-      case "$v" in
-        yes)            flag=" ✓" ;;
-        failed)         flag=" ✗" ;;
-        pending|"")     flag=" ⏳" ;;
-        skipped|n/a)    flag="" ;;
-        *)              flag=" ⏳" ;;
-      esac
-    else
-      flag=" ⏳"
-    fi
+    v=""
+    [ -f "$root/STATUS.md" ] && v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1)"
+    # verified not yet sealable (pending/failed/missing) -> still fg-run's territory
+    # (fg-learn's own retro gate refuses these); sealable -> retro gate passed, learn is current.
+    case "$v" in
+      yes)            flag=" ✓"; stage="learn" ;;
+      failed)         flag=" ✗"; stage="run" ;;
+      pending|"")     flag=" ⏳"; stage="run" ;;
+      skipped|n/a)    flag="";   stage="learn" ;;
+      *)              flag=" ⏳"; stage="run" ;;
+    esac
   else
-    stage="run"
+    stage="ask"
     flag=""
   fi
   pipeline="$(build_pipeline "$stage")"

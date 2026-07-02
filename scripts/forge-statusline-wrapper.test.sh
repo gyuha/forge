@@ -66,7 +66,7 @@ out="$(run_wrapper "$h" "$json" "$other")"
 first="$(printf '%s\n' "$out" | sed -n '1{s/(.*//;p;}')"
 second="$(printf '%s\n' "$out" | sed -n '2p')"
 assert "wrapper-active-orig-first" "ORIG-LINE" "$first"
-assert "wrapper-active-forge-row"  "⚒ w-task | ✔ ask → ● run → ○ learn → ○ done |" "$second"
+assert "wrapper-active-forge-row"  "⚒ w-task | ● ask → ○ run → ○ learn → ○ done |" "$second"
 rm -rf "$h" "$proj" "$other"
 
 # --- Case: idle forge -> only the ORIG line, no blank extra row --------------
@@ -106,7 +106,7 @@ out="$(run_wrapper "$custom" "$json" "$other")"
 first="$(printf '%s\n' "$out" | sed -n '1{s/(.*//;p;}')"
 second="$(printf '%s\n' "$out" | sed -n '2p')"
 assert "wrapper-customdir-orig-preserved" "ORIG-LINE" "$first"
-assert "wrapper-customdir-forge-row"      "⚒ reg-task | ✔ ask → ● run → ○ learn → ○ done |" "$second"
+assert "wrapper-customdir-forge-row"      "⚒ reg-task | ● ask → ○ run → ○ learn → ○ done |" "$second"
 rm -rf "$custom" "$proj" "$other"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

@@ -42,10 +42,18 @@ printf '<!-- forge-slug: my-task --> <!-- task: 1 -->\n# T\n' > "$A/.forge/plan.
 printf 'verified: yes (x)\nretro: pending\n' > "$A/.forge/STATUS.md"
 check "active learn verified yes" "$A" "⚒ my-task | ✔ ask → ✔ run → ● learn → ○ done | ✓"
 
+# run.md exists but verified: failed -> still run current, not learn (ADR-0017 2nd amendment
+# — fg-learn's own retro gate refuses a not-yet-sealable verified value)
+F="$(mktemp -d)"; mkdir -p "$F/.forge"
+printf '<!-- forge-slug: broke-task --> <!-- task: 4 -->\n# T\n' > "$F/.forge/plan.md"
+: > "$F/.forge/run.md"
+printf 'verified: failed (UAT broke)\nretro: pending\n' > "$F/.forge/STATUS.md"
+check "run.md + verified failed stays run" "$F" "⚒ broke-task | ✔ ask → ● run → ○ learn → ○ done | ✗"
+
 # active run (no run.md)
 R="$(mktemp -d)"; mkdir -p "$R/.forge"
 printf '<!-- forge-slug: pre-run --> <!-- task: 2 -->\n# T\n' > "$R/.forge/plan.md"
-check "active run (plan only)" "$R" "⚒ pre-run | ✔ ask → ● run → ○ learn → ○ done |"
+check "active run (plan only)" "$R" "⚒ pre-run | ● ask → ○ run → ○ learn → ○ done |"
 
 # backlog queued (line 2 only, no active slot)
 Q="$(mktemp -d)"; mkdir -p "$Q/.forge/backlog"
@@ -62,7 +70,7 @@ printf 'replan-round: 1\nreplan-cap: 3\n' > "$L/.forge/loop.md"
 printf '<!-- forge-slug: goal-task --> <!-- task: 1 -->\n# T\n' > "$L/.forge/plan.md"
 : > "$L/.forge/run.md"
 printf 'verified: pending\nretro: pending\n' > "$L/.forge/STATUS.md"
-check "loop + active learn pending" "$L" "⚒ 🔁 r1/3 goal-task | ✔ ask → ✔ run → ● learn → ○ done | ⏳"
+check "loop + active learn pending" "$L" "⚒ 🔁 r1/3 goal-task | ✔ ask → ● run → ○ learn → ○ done | ⏳"
 
 # loop only (no work) — standalone line, no ⚒ prefix
 LO="$(mktemp -d)"; mkdir -p "$LO/.forge"
@@ -73,7 +81,7 @@ check "loop only, no work" "$LO" "🔁 r2/3"
 AB="$(mktemp -d)"; mkdir -p "$AB/.forge/backlog" "$AB/.forge/executed/t1"
 printf '<!-- forge-slug: active-task --> <!-- task: 3 -->\n# T\n' > "$AB/.forge/plan.md"
 : > "$AB/.forge/backlog/x.md"
-check "active + pending both lines" "$AB" "$(printf '⚒ active-task | ✔ ask → ● run → ○ learn → ○ done |\n📋 1 queued · 📝 1 awaiting retro')"
+check "active + pending both lines" "$AB" "$(printf '⚒ active-task | ● ask → ○ run → ○ learn → ○ done |\n📋 1 queued · 📝 1 awaiting retro')"
 
 # escaped (Windows-style) cwd: JSON "\\" must decode to "\" before chdir, else the
 # statusline blanks on the very platform the node twin exists for (ADR-0022 review).
