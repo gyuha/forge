@@ -1,13 +1,13 @@
 ---
 name: fg-next
-description: Derives the single next step of the forge loop (reusing fg-status's state machine) and actually runs it — it announces the step in one line then invokes that skill, rather than only reporting it (that is fg-status's job; fg-next acts and proceeds without waiting for a separate go-ahead). One-shot by default — it executes exactly one step and stops; the invoked skill's own handoff carries the loop forward from there. With the 'all' argument it instead drives backlog tasks to completion one after another until the backlog is empty, auto-progressing the linear mechanical steps (always auto-skipping retros) and halting at the conversational walls (failed/unverifiable UAT, a genuine fork, empty state). It writes nothing itself; every write happens inside the delegated skill. An on-demand orchestrator outside the loop — the entry point for cold re-entry ("I forget where I was — just do the next thing"). Use in contexts like 'forge next', '다음 단계', '이어서 해줘', '계속 진행', 'do the next step', 'fg-next all', 'forge next all', '다음 전부 진행'.
+description: Derives the single next step of the forge loop (reusing fg-status's state machine) and actually runs it — it announces the step in one line then invokes that skill, rather than only reporting it (that is fg-status's job; fg-next acts and proceeds without waiting for a separate go-ahead). One-shot by default — it executes exactly one step and stops; the invoked skill's own handoff carries the loop forward from there. The one exception: when that step is a retro (fg-learn) and it concludes without recommending a re-grill, fg-next continues in the same call straight through to sealing (fg-done) — ADR-0026. With the 'all' argument it instead drives backlog tasks to completion one after another until the backlog is empty, auto-progressing the linear mechanical steps (always auto-skipping retros) and halting at the conversational walls (failed/unverifiable UAT, a genuine fork, empty state). It writes nothing itself; every write happens inside the delegated skill. An on-demand orchestrator outside the loop — the entry point for cold re-entry ("I forget where I was — just do the next thing"). Use in contexts like 'forge next', '다음 단계', '이어서 해줘', '계속 진행', 'do the next step', 'fg-next all', 'forge next all', '다음 전부 진행'.
 ---
 
 # fg-next — derive the next step, then act on it (outside the loop)
 
 This is **not** a stage of the forge loop. It is the acting sibling of `fg-status`: where fg-status surveys `.forge/` and **reports** the single next step but deliberately never runs it, fg-next derives that same next step and **runs it** — it announces the step in one line and then actually invokes the skill, rather than stopping at the report. Its real value is **cold re-entry**: when you don't remember where a task stands, "forge next" figures out the one correct move and takes it.
 
-By default it does **one step only** (one-shot). After that step, the invoked skill's own handoff carries the loop forward — so you rarely need fg-next twice in a row. (With the `all` argument it instead drives multiple steps to the wall — see "`all` mode" below.) It **writes nothing itself**: it reads state and delegates; every file write (plan/run/STATUS/backlog/done/retro/adr/quick) happens inside the skill it hands off to.
+By default it does **one step only** (one-shot). After that step, the invoked skill's own handoff carries the loop forward — so you rarely need fg-next twice in a row. **One exception:** when that step is a retro (fg-learn) and it concludes normally (no re-grill recommended), fg-next continues in the same call through to sealing (fg-done) — see "Learn → done follow-through" below (ADR-0026). (With the `all` argument it instead drives multiple steps to the wall — see "`all` mode" below.) It **writes nothing itself**: it reads state and delegates; every file write (plan/run/STATUS/backlog/done/retro/adr/quick) happens inside the skill it hands off to.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The one-line next-step announcement (and any narrow fork question) is written in the user's language.
 
@@ -30,7 +30,16 @@ Do **not** duplicate or paraphrase that state machine here — if the loop chang
 - **fg-run / fg-done** (mechanical stages) → invoke the skill now to run that step.
 - **fg-ask / fg-learn** (conversational stages) → invoke the skill now to **enter that conversation**; fg-next does not conduct the grilling/retro itself, but it does open it (the skill is interactive, so the human engages inside it — that is not fg-next stalling).
 
-Then **stop** — one step, no chaining (one-shot). The invoked skill handles its own handoff.
+Then **stop** — one step, no chaining (one-shot), with **one exception** — see "Learn → done follow-through" right below.
+
+### Learn → done follow-through (the one exception to one-shot)
+
+When the step just invoked was **fg-learn** (a retro), don't stop at "the invoked skill handles its own handoff" as usual. Instead, watch how that retro concluded:
+
+- **The retro concluded normally** (it did *not* recommend re-grilling via fg-ask — the only off-ramp fg-learn's own handoff has) → **continue in the same call**: derive the next step again (it will now be `fg-done` for this same task) and invoke it too, exactly as in section 2 above — announce it in one line ("회고가 정상 종료되어 이어서 fg-done까지 진행합니다"), then invoke, no separate confirmation. If `.forge/executed/` still has other tasks awaiting retro, mention the remaining count in **one line** alongside fg-done's own completion notice — this does not block sealing the task just retro'd.
+- **The retro recommended re-grilling** (high divergence) → **stop here**, same as every other one-shot step. Do not invoke fg-done — the task needs fg-ask rework, not a seal.
+
+This is the **only** place fg-next chains two skill invocations in one no-arg call — every other step (run, done, ask) still stops after one invocation. The reasoning: once a retro concludes without a re-grill recommendation, fg-done's own guards (verification + retro) are already guaranteed to pass — there is no fork left to ask about, so stopping here would just cost the user a second "forge next" for no decision gained. `fg-learn`/`fg-done` themselves are unchanged — invoking `/forge:fg-learn` (or "forge learn") directly still states "next: fg-done" and stops, per their own statement-form handoff. `fg-next all` is unaffected — it already unconditionally skips the retro conversation and seals within its own drive loop. See `.forge/adr/0026-fg-next-learn-done-autochain.md`.
 
 **Re-run safety does not require a confirmation gate here** — it is already guaranteed by the skills fg-next invokes: fg-run's re-run guard refuses to re-run a plan that already has a `run.md`, and fg-done only seals (and empties active state) when the guards pass. fg-next therefore proceeds without a separate stop. The only times it pauses are when the step genuinely needs human input it cannot supply (section 3) — that is missing information, not a confirmation gate.
 
@@ -50,7 +59,12 @@ Derive next step  ── follow fg-status's "Deriving the next step" state machi
    │
    ▼
 Single unambiguous step?
-   ├── yes ──▶ announce in one line ──▶ INVOKE the skill now (fg-run/fg-done run it; fg-ask/fg-learn open the conversation) ──▶ STOP (one-shot)
+   ├── yes ──▶ announce in one line ──▶ INVOKE the skill now
+   │             ├── fg-run / fg-done / fg-ask ──▶ STOP (one-shot)
+   │             └── fg-learn ──▶ retro concludes:
+   │                                 ├── recommends re-grill ──▶ STOP (one-shot, as usual)
+   │                                 └── concludes normally ──▶ derive again (now fg-done) ──▶ announce ──▶ INVOKE fg-done ──▶ STOP
+   │                                     (the one exception — ADR-0026)
    └── no  ──▶ fork             ──▶ ask which option (needed choice) ──▶ invoke the chosen skill
               multiple backlog  ──▶ invoke fg-run (its menu makes the pick)
               everything empty  ──▶ invoke fg-ask to start a new task
@@ -58,7 +72,7 @@ Single unambiguous step?
 
 ## `all` mode — drive to the wall (multi-step momentum)
 
-When invoked with the `all` argument (`fg-next all`, or "forge next all" / "다음 전부 진행"), fg-next does **not** stop after one step. It drives the loop forward — **promoting and running backlog tasks in turn until the backlog is empty** — auto-progressing the linear mechanical steps with their recommended answer, and **halting at the conversational walls** to hand back to the human. It is the momentum mode (see `.forge/adr/0010-fg-next-all-momentum-mode.md`); the default `fg-next` (no arg) is unchanged — still one-shot (announce → invoke one step → stop).
+When invoked with the `all` argument (`fg-next all`, or "forge next all" / "다음 전부 진행"), fg-next does **not** stop after one step. It drives the loop forward — **promoting and running backlog tasks in turn until the backlog is empty** — auto-progressing the linear mechanical steps with their recommended answer, and **halting at the conversational walls** to hand back to the human. It is the momentum mode (see `.forge/adr/0010-fg-next-all-momentum-mode.md`); the default `fg-next` (no arg) is unchanged — still one-shot per task, with only the one learn→done exception above (ADR-0026), never a multi-task drive.
 
 **If `.forge/loop.md` exists, all-mode does not drive.** A goal loop is in flight (or halted at a wall), and the state machine's step 0 already routes the next step to resuming fg-loop — which runs its own drive over its own member tasks. Driving all-mode in parallel would double-promote backlog work; so announce in one line that a goal loop owns the drive and delegate to fg-loop (the same announce-then-invoke as the one-shot path), instead of starting the all-mode sweep.
 
@@ -111,7 +125,7 @@ Freeze backlog order, show it once, get ONE go-ahead
   > *"Keep running `fg-next all` until there is nothing left to auto-progress. Stopping is allowed only when: (1) the backlog, active slot, and executed/ are all empty (done); or (2) it hits a point that needs me — `verified: failed`, an unverifiable UAT, a genuine fork, or a workflow script approval. Everything else (run · verify-pass · auto-skip retro · seal · promote next) — keep going, don't stop."*
 
 - **Do NOT phrase it as "until the backlog is empty" alone.** That makes the hook block stopping *even at a safety wall*, forcing the drive past gates it must hand to a human — auto fix-and-re-run, sealing unverified work, auto-picking a fork. Those are exactly what ADR-0009 / ADR-0010 forbid. The condition must let the agent stop at a wall; the human resolves it, then re-issues `fg-next all` (the goal, still active, resumes the drive).
-- **Safety walls and the default one-shot are unchanged.** `/goal` only automates the *stateless resume* a human would otherwise type by hand; it changes none of fg-next's logic. The four halt conditions still halt, and the no-arg `fg-next` is still one-shot.
+- **Safety walls and the default one-shot are unchanged.** `/goal` only automates the *stateless resume* a human would otherwise type by hand; it changes none of fg-next's logic. The four halt conditions still halt, and the no-arg `fg-next` is still one-shot per task (learn→done follow-through aside, ADR-0026).
 
 ### Relationship to fg-run "Run all"
 
@@ -119,7 +133,7 @@ fg-run's "Run all" is **execute-only** — it runs the backlog, UAT-verifies, pa
 
 ## Handoff
 
-fg-next's handoff **is** the step it invoked — once it delegates, the invoked skill's own next-flow handoff takes over (fg-run ends in its statement-form handoff — ADR-0015 amended 2026-06-15, the old 4-way menu dropped; fg-learn points to fg-done, and so on). fg-next adds nothing after that; it does not re-derive or chain. If the user wants the following step too, they say "forge next" again (or follow the skill's own handoff prompt).
+fg-next's handoff **is** the step it invoked — once it delegates, the invoked skill's own next-flow handoff takes over (fg-run ends in its statement-form handoff — ADR-0015 amended 2026-06-15, the old 4-way menu dropped; fg-learn points to fg-done, and so on). fg-next adds nothing after that and does not re-derive or chain — **except** the one learn→done follow-through above (ADR-0026), where fg-next itself re-derives once and invokes fg-done in the same call. Outside that one case, if the user wants the following step too, they say "forge next" again (or follow the skill's own handoff prompt).
 
 fg-next proceeds by default — it does not wait for permission. Only if the user explicitly says "just tell me, don't act" (or similar) do you fall back to fg-status behavior: state the next step and its trigger, write nothing, and stop.
 
