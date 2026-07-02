@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.5.5] - 2026-07-02
+
+### Changed
+- **`fg-next` — 회고(fg-learn)가 재그릴링 권고 없이 끝나면 같은 호출에서 봉인(fg-done)까지 자동으로 잇는다.** 실사용 관찰상 회고 후 봉인하지 않은 경우는 "divergence가 커서 재그릴링" 뿐이었기에, `fg-next`(인자 없는 one-shot)의 유일한 예외로 이 연쇄를 추가했다 — 그 외 모든 포크·다른 스킬(`fg-learn`/`fg-done`/`fg-status` 자체, `fg-next all`)은 그대로다 ([ADR-0026](./.forge/adr/0026-fg-next-learn-done-autochain.md)).
+- **`fg-statusline` — 파이프라인 현재 단계 판정을 파일 존재가 아니라 `verified` 게이트 기반으로.** `run.md`가 있어도 `verified`가 아직 확정 안 됐으면(`pending`/`failed`) `run`을 현재로, 확정되면(`yes`/`skipped`/`n/a`) `learn`을 현재로 표시한다 — `run.md`가 없으면 `ask`가 현재(플랜을 아직 자유롭게 재그릴링할 수 있는 상태)로 표시된다. `fg-learn`의 실제 회고 게이트 로직과 일치시킨 것 ([ADR-0017](./.forge/adr/0017-statusline-integration.md) 2차 개정).
+
 ## [0.5.4] - 2026-07-02
 
 ### Changed
