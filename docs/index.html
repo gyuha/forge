@@ -404,11 +404,12 @@
   var els = document.querySelectorAll('[data-reveal]');
   els.forEach(function (el, i) {
     el.style.opacity = '0';
-    el.style.transform = 'translateY(28px)';
-    el.style.transition = 'opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1)';
-    el.style.transitionDelay = ((i % 4) * 60) + 'ms';
+    el.style.transform = 'translateY(40px) scale(0.96)';
+    el.style.filter = 'blur(9px)';
+    el.style.transition = 'opacity .9s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1), filter .9s cubic-bezier(.2,.7,.2,1)';
+    el.style.transitionDelay = ((i % 4) * 80) + 'ms';
   });
-  var reveal = function (el) { el.style.opacity = '1'; el.style.transform = 'none'; };
+  var reveal = function (el) { el.style.opacity = '1'; el.style.transform = 'none'; el.style.filter = 'none'; };
   var pending = new Set(els);
   var check = function () {
     var vh = window.innerHeight || document.documentElement.clientHeight;
@@ -422,8 +423,6 @@
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll, { passive: true });
   requestAnimationFrame(check);
-  // safety net: never leave content permanently hidden
-  setTimeout(function () { els.forEach(reveal); }, 1200);
 
   // card hover lift
   document.querySelectorAll('.fg-card').forEach(function (c) {
