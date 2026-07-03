@@ -79,6 +79,8 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 
 형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-run/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-done 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
 
+형식 문서 외에 **공유 규율 문서**도 같은 "단일 정의·복붙 금지" 원칙을 따른다: `skills/fg-run/FORGE-ROOT.md`(forge 루트 해석 — 모든 루프 스킬 참조, ADR-0011)와 `skills/fg-next/DRIVE.md`(무인 주행 규율 — 턴 내 계속 + `/goal` 페어링·문구 규칙·정직한 폴백; fg-next `all` 모드·fg-loop이 참조하되 각자 자기 벽 집합을 채움, ADR-0028)가 그것이다.
+
 ## 설계 원칙 (두 기둥)
 
 스킬을 수정할 때 이 둘을 깨면 forge가 forge가 아니게 된다:
