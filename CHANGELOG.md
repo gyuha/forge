@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.6] - 2026-07-03
+
+### Added
+- **GitHub Pages 랜딩 페이지 신설 (`docs/index.html`).** 단일 파일에 KO/EN 텍스트를 나란히 담고 언어 토글로 전환하는 이중언어 구조([ADR-0027](./.forge/adr/0027-docs-index-single-file-bilingual.md)), 데스크탑 스택 스크롤 + 섹션별 reveal 프리셋 애니메이션, 모바일(≤760px)에서 nav 링크 숨김·grid 1~2열 재배치로 반응형 대응.
+- **이슈 연동 작업 봉인 시 자동 커밋+push+이슈 코멘트+닫기.** 이 리포 전용 `CLAUDE.md` 규칙 — plan의 `## Source of truth`에 `이슈 추적: GitHub 이슈 #N` 표기가 있으면 fg-done 봉인 시 확인 질문 없이 가벼운 배포(커밋+push, 전체 릴리스 절차 아님)와 이슈 코멘트·닫기를 자동 수행한다. `.claude/skills/issue-triage`(로컬 전용, forge 플러그인 비소속)의 hand-off가 이 표기를 기록하도록 안내.
+
+### Fixed
+- **`fg-statusline` — plan.md만 있고 run.md가 없는 상태를 "ask"가 아니라 "run"으로 판정.** 활성 슬롯 승격은 fg-run만 하는 행위라 이 상태는 실질적으로 fg-run의 영역이었다(GitHub 이슈 #3). fg-ask 그릴링 중에는 읽을 파일이 없어 표시가 비어 있던 문제도 함께 고쳐, 그릴링 시작 시 쓰는 `ask.md` 표시용 마커로 "ask 진행 중"을 보여주게 했다([ADR-0017](./.forge/adr/0017-statusline-integration.md) 3차 개정).
+
 ## [0.5.5] - 2026-07-02
 
 ### Changed
