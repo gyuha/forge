@@ -64,7 +64,7 @@ Under the table, give a 2–3 line synthesis: how many are genuinely worth fixin
 
 ### 5. Hand off (you don't act)
 
-Close with: the user picks a worthy issue and starts the real work — for this repo that's **`fg-ask`** (grill it into a plan, seeding the grilling with the issue number/summary), then the forge loop runs and seals it; for a trivial change, fix it directly. issue-triage stops here — it has only reported.
+Close with: the user picks a worthy issue and starts the real work — for this repo that's **`fg-ask`** (grill it into a plan, seeding the grilling with the issue number/summary — make sure the issue number itself carries through into the plan's `## Source of truth` as `이슈 추적: GitHub 이슈 #N`, since this repo's `CLAUDE.md` "이슈 연동 작업 봉인 규칙" watches for that exact phrasing to auto-commit/push/comment/close the issue once fg-done seals the task), then the forge loop runs and seals it; for a trivial change, fix it directly. issue-triage stops here — it has only reported and pointed; it still writes nothing itself.
 
 ## What it does NOT do
 
