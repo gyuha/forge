@@ -64,3 +64,22 @@ forge는 실행 코드가 한 줄도 없는 리포다(전부 Markdown/JSON, 빌�
 **고려한 대안**: 파일 존재만으로 판정 유지 — 기각. `verified: pending`/`failed`인데 `learn`을 현재로 그리면, 실제로는 `fg-learn`이 그 즉시 `fg-run`으로 돌려보내는 상태를 "회고 진행 중"처럼 보이게 해 혼란을 준다.
 
 **결과**: `run`/`learn` 경계 판정에 `STATUS.md`의 `verified:` 필드를 추가로 읽어야 한다(기존엔 `run.md` 파일 존재만 확인했음). `ask`/`done`의 판정 로직(각각 "항상 완료"/"항상 예정")은 이번 개정과 무관하게 그대로다.
+
+## 개정 (2026-07-03) — plan-only(run.md 없음) 판정을 ask에서 run으로 되돌리고, 그릴링 중 표시용 ask.md 마커 추가
+
+GitHub 이슈 #3이 이 스크립트의 두 가지 버그를 지적했다.
+
+**버그 1 — plan-only 상태의 오분류.** 위 "개정 (2026-07-02, 2차)"는 `plan.md`만 있고 `run.md`가 없을 때를 `ask`가 현재 단계라고 판정했다("plan은 아직 재그릴링으로 자유롭게 고칠 수 있는 열린 상태"). 그런데 이는 실제 소유권 경계와 어긋난다: **오직 fg-run만 백로그에서 활성 슬롯으로 승격시킨다** — `plan.md`가 활성 슬롯에 있다는 사실 자체가 이미 fg-run이 개입해 승격을 마쳤다는 뜻이고, 그 다음(워크플로우 빌드/실행 시작)도 구조적으로 fg-run의 영역이지 fg-ask의 영역이 아니다(`skills/fg-status/SKILL.md`의 버킷→stage 매핑도 애초에 "active slot, plan.md only (no run.md) → run"이었다 — 이 스크립트만 어긋나 있었다). fg-ask가 `plan.md`를 직접 조용히 고치는 경로는 없다(재그릴은 항상 새 `backlog/` 행을 거친다).
+
+**결정 1**: `plan.md` 있음·`run.md` 없음 케이스의 현재 단계 판정을 `ask` → **`run`**으로 되돌린다(플래그는 그대로 없음). 이로써 이 한 케이스에 한해 "개정 (2026-07-02, 2차)"의 ask/run 경계를 뒤집는다 — 나머지(`run.md` 있음 이후의 verified 기반 run/learn 분기)는 그대로다.
+
+**버그 2 — 그릴링 중 공백.** `plan.md`가 아직 없으면(= fg-ask가 그릴링 중이라 아직 백로그에도 안 실렸으면) line 1이 통째로 비어 있었다 — statusline만 보면 대화가 진행 중인지 아무 작업도 없는지 구분할 수 없었다.
+
+**결정 2**: fg-ask가 그릴링 **시작 시점**에 `$root/ask.md`를 표시 전용 마커로 쓰고(`<!-- forge-ask: <working-slug> -->` 한 줄), **백로그에 계획을 적재할 때**(또는 fg-quick으로 이탈할 때) 삭제한다. 스크립트는 `plan.md`가 없고 `ask.md`만 있으면 `⚒ <working-slug> | ● ask → ○ run → ○ learn → ○ done`을 그린다(플래그 없음; 마커 줄이 없거나 파싱 실패하면 `working-slug`는 문자열 `"ask"`로 대체). **둘 다 있으면 `plan.md`가 이긴다** — 기존 line 1 로직 그대로 표시하고 `ask.md`는 무시한다. 이는 "다른 작업이 이미 승격되어 활성 슬롯에 대기 중인 채로, 새 작업을 그릴링 중"인 상태를 정확히 반영한다(활성 슬롯은 언제나 최대 1개이지만, 그릴링은 활성 슬롯과 별개로 진행될 수 있다).
+
+**고려한 대안**: `STATUS.md`에 `status: running`류의 새 값을 추가하는 안을 검토했으나 기각했다. `STATUS.md`는 이미 fg-done의 봉인 게이트, fg-learn의 회고 게이트, fg-doctor의 정합성 검사, fg-status의 버킷 판정 등 여러 소비자가 필드값을 가드 조건으로 직접 읽는 파일이다 — 여기에 새 상태값을 얹으면 이 계약면 전체에 파급되어 각 소비자가 그 값을 무시/처리하도록 손봐야 한다. 반면 `ask.md`는 fg-statusline **하나만** 읽는 표시 전용 마커라 계약 표면이 훨씬 작다.
+
+**결과**:
+- `scripts/forge-statusline.sh`/`.js`의 헤더 표·gating 로직이 위 두 결정으로 갱신됨(ADR-0022 패리티 유지).
+- `fg-ask`가 그릴링 시작 시 `ask.md`를 쓰고 백로그 적재/이탈 시 삭제하는 책임을 새로 진다.
+- `skills/fg-statusline/SKILL.md`의 "What the fragment prints" 섹션과 `CLAUDE.md`/`docs/state-contract.md`의 상태 계약 표가 `ask.md` 항목을 반영하도록 갱신됨.

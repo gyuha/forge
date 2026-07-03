@@ -19,6 +19,7 @@ Drop targets are **incomplete** work = anything not sealed in `done/`. Scan the 
 
 | Bucket | What it is | Risk |
 | --- | --- | --- |
+| `ask.md` | an in-progress fg-ask grilling session (its working-slug marker) | **low** — display-only marker; nothing has run, dropping it just abandons an unfinished conversation |
 | `backlog/<slug>.md` | a queued plan that has **not run** | **low** — volatile & gitignored; deleting loses nothing in git |
 | active slot `plan.md` **with no** `run.md` | promoted but not yet run | **low** — same as a backlog plan |
 | active slot **with** `run.md` (+`STATUS.md`, +`review.md`) | **already executed**, awaiting verify/retro/seal | **high** — the code already changed; dropping removes only forge tracking |
@@ -57,6 +58,7 @@ Show a summary — "the following will be **[deleted / archived]**: …" listing
 
 For each confirmed item:
 
+- **`ask.md`** — remove (or move) the single file.
 - **Active slot** — remove (or move to `dropped/<slug>/`) `plan.md` + `run.md` + `STATUS.md`, plus `review.md` if present (the same companion set fg-done archives — ADR-0018). After this the active slot is empty.
 - **`backlog/<slug>.md`** — remove (or move) the single file.
 - **`executed/<slug>/`** — remove (or move) the whole directory.
@@ -70,7 +72,7 @@ fg-drop (outside the loop)
    ▼
 Resolve forge root (ADR-0011)
    ▼
-Scan buckets: backlog · active slot · executed/ · loop.md   (exclude done/, quick/, loop members while loop.md present)
+Scan buckets: ask.md · backlog · active slot · executed/ · loop.md   (exclude done/, quick/, loop members while loop.md present)
    │ none ──▶ "no incomplete work to drop" → stop
    ▼
 Present items with risk level:  ≤4 → checkbox multi-select · ≥5 → numbered text list ("2,4,5" / "all")
@@ -80,7 +82,7 @@ Disposal question (separate):  Delete (default, no trace)  |  Archive → .forge
 Confirmation gate: summary + explicit "yes"   (high-risk run.md present → "⚠ changed code is NOT reverted"; non-default branch → "⚠ tracked files — deletion shows in git status")
    │ no ──▶ abort, change nothing
    ▼
-Execute per item (active slot = plan+run+STATUS+review · backlog file · executed/ dir · loop.md)
+Execute per item (ask.md · active slot = plan+run+STATUS+review · backlog file · executed/ dir · loop.md)
    ▼
 Report what was dropped/archived → end
 ```
@@ -94,6 +96,6 @@ Report what was dropped/archived → end
 
 ## Document impact
 
-- **Removes** (default) or **moves to `.forge/dropped/<slug>/`** (archive) the selected incomplete state: a `backlog/<slug>.md`, the active slot (`plan.md`/`run.md`/`STATUS.md`/`review.md`), an `executed/<slug>/` directory, or `loop.md`.
+- **Removes** (default) or **moves to `.forge/dropped/<slug>/`** (archive) the selected incomplete state: `ask.md`, a `backlog/<slug>.md`, the active slot (`plan.md`/`run.md`/`STATUS.md`/`review.md`), an `executed/<slug>/` directory, or `loop.md`.
 - Creates `.forge/dropped/` lazily only when archive is chosen. `dropped/` is volatile (gitignored — no whitelist entry); `fg-doctor` tolerates it (does not flag its contents as orphans) and `fg-status` ignores it (abandoned work, not progress) — ADR-0021.
 - Touches no permanent docs (CONTEXT.md, ADRs, retros) and no `done/` history.

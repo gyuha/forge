@@ -27,28 +27,33 @@ The script reads the session JSON on stdin and resolves the project directory fr
 Line 1 (active slot present):
   ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
 
-Line 1 fallback (no active slot, but a goal loop is in flight):
+Line 1 (no active slot, but fg-ask is mid-grilling — ask.md marker present):
+  ⚒ <working-slug> | ● ask → ○ run → ○ learn → ○ done
+
+Line 1 fallback (no active slot, no ask.md, but a goal loop is in flight):
   🔁 rN/cap
 
 Line 2 (backlog and/or executed non-empty, independent of line 1):
   📋 N queued · 📝 M awaiting retro     (either half omitted when zero)
 
-(nothing)   idle — active slot, executed, backlog, loop all empty
+(nothing)   idle — active slot, executed, backlog, ask.md, loop all empty
 ```
 
-- **The ask/run/learn/done pipeline** always renders all four stages of the forge loop (the fourth, `done`, completes the visual picture — it never corresponds to a bucket this script actually sits at, see below): stages before the current one show `✔` (done, green), the current stage shows `●` (bold/cyan), stages after show `○` (dim). The current stage is **gated, not just file-existence-based** (ADR-0017, 2nd amendment 2026-07-02) — exactly one dot is lit at a time:
-  - No `run.md` → **`ask`** is current (the plan is still freely re-grillable via fg-ask — see its "refine a pending plan" boundary).
+- **The ask/run/learn/done pipeline** always renders all four stages of the forge loop (the fourth, `done`, completes the visual picture — it never corresponds to a bucket this script actually sits at, see below): stages before the current one show `✔` (done, green), the current stage shows `●` (bold/cyan), stages after show `○` (dim). The current stage is **gated, not just file-existence-based** (ADR-0017, 3rd amendment 2026-07-03) — exactly one dot is lit at a time:
+  - No `plan.md`, no `ask.md` → line 1 is empty (or the loop-only fallback below).
+  - No `plan.md`, `ask.md` present → **`ask`** is current (fg-ask is mid-grilling, before anything has been promoted into the active slot). The `working-slug` is read from `ask.md`'s `<!-- forge-ask: ... -->` marker comment, defaulting to the literal string `ask` if the line is missing or unparseable. No flag is shown. **If both `plan.md` and `ask.md` exist, `plan.md` wins** — the active-slot pipeline above is rendered and `ask.md` is ignored for display, reflecting grilling on a *new* task while a different task sits promoted-but-not-run in the active slot.
+  - `plan.md` present, no `run.md` → **`run`** is current. Only fg-run ever promotes a plan from the backlog into the active slot, so a promoted-but-unexecuted plan is already fg-run's territory, not fg-ask's — fg-ask has no path to quietly edit `plan.md` in place (a re-grill always goes through a fresh `backlog/` entry). This reverses the prior "ask is current here" reading from the 2026-07-02 2nd amendment (see ADR-0017's 2026-07-03 amendment).
   - `run.md` present, `STATUS.md` `verified:` **not yet sealable** (`pending`/`failed`/missing) → **`run`** is current. This holds even though `run.md` already exists, because fg-learn's own retro gate refuses these values and routes back to fg-run — it is still fg-run's territory (verification-only resume, or fix-and-re-run).
   - `run.md` present, `verified:` **sealable** (`yes`/`skipped`/`n/a`) → **`learn`** is current (the retro gate has passed).
   - `done` never becomes current here — a sealed task leaves `.forge/plan.md` entirely and stops appearing in line 1 (see fg-done); it is shown purely to complete the visual picture of the full 4-stage loop.
 
   The exact colors are an implementation detail tuned live in a real terminal, not a fixture concern — tests strip ANSI codes and assert on the visible text/symbols.
-- **flag** (present whenever `run.md` exists, regardless of whether `run` or `learn` is the current stage) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`. Placed after the pipeline's closing `|`.
-- **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap. Attached as a prefix on line 1 when an active slot exists; shown as its own prefix-less line when there is no active slot.
+- **flag** (present whenever `run.md` exists, regardless of whether `run` or `learn` is the current stage) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`. Placed after the pipeline's closing `|`. The `ask.md`-only line 1 never carries a flag.
+- **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap. Attached as a prefix on line 1 when an active slot exists; shown as its own prefix-less line when there is no active slot and no `ask.md`.
 - Line 2 carries no `⚒` prefix — only line 1 (and its loop-only fallback) does.
 - It resolves the branch-isolated forge root (ADR-0011): `.forge/` on the default branch, `.forge/branch/<branch>/` otherwise.
 
-The first three stage **names** (`ask`/`run`/`learn`) match `skills/fg-status/SKILL.md`'s task table bucket→stage mapping (backlog → ask, active plan-only → run, run.md present/`executed/` → learn), but as of the 2026-07-02 2nd amendment this script's **current-stage** (`●`) determination is no longer a strict mirror of that table: fg-status's Stage column is purely file-existence-based (any `run.md` present → `learn`, full stop), while this fragment additionally reads `STATUS.md` `verified:` to decide whether `run` or `learn` is truly current (see above) — a `verified: failed`/`pending` task shows `run` as current here even though fg-status's table would still label its bucket `learn`. This is a deliberate refinement, not a bug: fg-status answers "which bucket is this task in," this fragment answers "where is a human's attention actually needed right now," and the two questions diverge exactly when a bucket's gate hasn't cleared yet. `done` is a fourth, decorative-only stage appended for the visual — it has no corresponding bucket in fg-status's table (a sealed task leaves the tracked buckets entirely) and never becomes the current (`●`) stage in this script. If the `ask`/`run`/`learn` bucket **names** ever change, update both the script and fg-status together; the verified-gating refinement here is local to this script.
+The first three stage **names** (`ask`/`run`/`learn`) match `skills/fg-status/SKILL.md`'s task table bucket→stage mapping (backlog → ask, active plan-only → run, run.md present/`executed/` → learn), and as of the 2026-07-03 amendment this script's plan-only case now matches that mapping exactly (both read plan.md-with-no-run.md as `run`). One divergence remains, from the 2026-07-02 2nd amendment: fg-status's Stage column is purely file-existence-based for `run.md` (any `run.md` present → `learn`, full stop), while this fragment additionally reads `STATUS.md` `verified:` to decide whether `run` or `learn` is truly current (see above) — a `verified: failed`/`pending` task shows `run` as current here even though fg-status's table would still label its bucket `learn`. This is a deliberate refinement, not a bug: fg-status answers "which bucket is this task in," this fragment answers "where is a human's attention actually needed right now," and the two questions diverge exactly when a bucket's gate hasn't cleared yet. `done` is a fourth, decorative-only stage appended for the visual — it has no corresponding bucket in fg-status's table (a sealed task leaves the tracked buckets entirely) and never becomes the current (`●`) stage in this script. The `ask.md`-only line 1 has no counterpart in fg-status's table either — fg-status never reports on grilling-in-progress (there is no file for it to read until `backlog/` gets a row), so this is fg-statusline-only display state. If the `ask`/`run`/`learn` bucket **names** ever change, update both the script and fg-status together; the verified-gating refinement and the ask.md display case are local to this script.
 
 ## Setup procedure
 

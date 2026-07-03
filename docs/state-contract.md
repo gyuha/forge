@@ -59,6 +59,7 @@ repo/
 
 | 파일 | 생산자 | 소비자 |
 | --- | --- | --- |
+| `ask.md` (그릴링 시작 시 쓰는 표시용 마커, 백로그 적재/fg-quick 이탈 시 삭제) | fg-ask | fg-statusline(표시 전용 — 다른 스킬은 게이트로 읽지 않음) |
 | `backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준)·fg-learn |
 | `run.md` | fg-run | fg-learn |

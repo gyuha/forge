@@ -11,7 +11,9 @@
 # Output (each line shown independently — NOT precedence-hidden):
 #   Line 1 (active slot present):
 #     ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
-#   Line 1 fallback (no active slot, but a goal loop is in flight):
+#   Line 1 (no active slot, but fg-ask is mid-grilling — ask.md marker present):
+#     ⚒ <working-slug> | ● ask → ○ run → ○ learn → ○ done
+#   Line 1 fallback (no active slot, no ask.md, but a goal loop is in flight):
 #     🔁 rN/cap
 #   Line 2 (backlog and/or executed non-empty, independent of line 1):
 #     📋 N queued · 📝 M awaiting retro   (either half omitted when zero)
@@ -20,8 +22,13 @@
 # "done", completes the visual picture of the full forge loop): stages before
 # the current one show ✔ (done, green), the current stage shows ● (bold/
 # cyan), stages after show ○ (dim). The current stage is gated, not just
-# file-existence-based (ADR-0017, 2nd amendment 2026-07-02):
-#   no run.md                              -> ask is current (plan still freely re-grillable)
+# file-existence-based (ADR-0017, 3rd amendment):
+#   no plan.md, no ask.md                  -> line 1 empty (or loop-only fallback)
+#   no plan.md, ask.md present             -> ask is current (fg-ask grilling; plan.md
+#                                              wins over ask.md if both exist)
+#   plan.md present, no run.md             -> run is current (only fg-run promotes into
+#                                              the active slot, so this is fg-run's
+#                                              territory, not fg-ask's)
 #   run.md + verified: pending/failed      -> run is current (fg-learn's own retro gate
 #                                              refuses these; it is still fg-run's territory)
 #   run.md + verified: yes/skipped/n/a     -> learn is current (retro gate passed)
@@ -147,13 +154,18 @@ if [ -f "$root/plan.md" ]; then
       *)              flag=" ⏳"; stage="run" ;;
     esac
   else
-    stage="ask"
+    stage="run"
     flag=""
   fi
   pipeline="$(build_pipeline "$stage")"
   prefix_bit=""
   [ -n "$loop_indicator" ] && prefix_bit="${loop_indicator} "
   line1="⚒ ${prefix_bit}${slug} | ${pipeline} |${flag}"
+elif [ -f "$root/ask.md" ]; then
+  working_slug="$(sed -n 's/.*forge-ask:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$root/ask.md" | head -1)"
+  [ -z "$working_slug" ] && working_slug="ask"
+  pipeline="$(build_pipeline "ask")"
+  line1="⚒ ${working_slug} | ${pipeline} |"
 elif [ -n "$loop_indicator" ]; then
   line1="$loop_indicator"
 fi

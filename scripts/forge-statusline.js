@@ -11,10 +11,24 @@
 // Output (each line shown independently — NOT precedence-hidden):
 //   Line 1 (active slot present):
 //     ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
-//   Line 1 fallback (no active slot, but a goal loop is in flight):
+//   Line 1 (no active slot, but fg-ask is mid-grilling — ask.md marker present):
+//     ⚒ <working-slug> | ● ask → ○ run → ○ learn → ○ done
+//   Line 1 fallback (no active slot, no ask.md, but a goal loop is in flight):
 //     🔁 rN/cap
 //   Line 2 (backlog and/or executed non-empty, independent of line 1):
 //     📋 N queued · 📝 M awaiting retro   (either half omitted when zero)
+//
+// The current stage is gated, not just file-existence-based (ADR-0017, 3rd
+// amendment):
+//   no plan.md, no ask.md                  -> line 1 empty (or loop-only fallback)
+//   no plan.md, ask.md present             -> ask is current (fg-ask grilling; plan.md
+//                                              wins over ask.md if both exist)
+//   plan.md present, no run.md             -> run is current (only fg-run promotes into
+//                                              the active slot, so this is fg-run's
+//                                              territory, not fg-ask's)
+//   run.md + verified: pending/failed      -> run is current (fg-learn's own retro gate
+//                                              refuses these; it is still fg-run's territory)
+//   run.md + verified: yes/skipped/n/a     -> learn is current (retro gate passed)
 //
 // Reads the session JSON on stdin (when piped) to find the project cwd, cd's
 // there, then reads the resolved forge root relative to it.
@@ -104,11 +118,15 @@ if (isFile(planPath)) {
       default: flag = ' ⏳'; stage = 'run';
     }
   } else {
-    stage = 'ask';
+    stage = 'run';
   }
   const pipeline = buildPipeline(stage);
   const prefixBit = loopIndicator ? `${loopIndicator} ` : '';
   line1 = `⚒ ${prefixBit}${slug} | ${pipeline} |${flag}`;
+} else if (isFile(path.join(root, 'ask.md'))) {
+  const workingSlug = (read(path.join(root, 'ask.md')).match(/forge-ask:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'ask';
+  const pipeline = buildPipeline('ask');
+  line1 = `⚒ ${workingSlug} | ${pipeline} |`;
 } else if (loopIndicator) {
   line1 = loopIndicator;
 }
