@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.7] - 2026-07-04
+
+### Changed
+- **무인 주행(`fg-next all`·`fg-loop`)의 턴 내 계속 + `/goal` 페어링을 1차 경로로 강제.** `fg-next all`은 위임 스킬의 진술형(statement-form) 정지를 턴 경계가 아니라 계속 신호로 취급해 같은 턴에서 다음 단계로 이어가고, `fg-next all`·`fg-loop` 둘 다 진입 시 진짜 턴 경계를 넘기 위한 붙여넣기용 `/goal` 라인을 1차 경로로 제시한다. 공유 규율은 `skills/fg-next/DRIVE.md`에 단일 정의로 두고 두 차선이 참조한다(자동 설치형 Stop 훅은 검토 후 거부 — [ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)).
+
 ## [0.5.6] - 2026-07-03
 
 ### Added
