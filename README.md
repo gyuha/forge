@@ -68,7 +68,7 @@ The four loop stages, then the fourteen utilities outside the loop:
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
 | `fg-run` | ② Execute | Runs the plan as a Dynamic Workflow (one plan runs immediately, several show a selection menu) |
 | `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry |
-| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
+| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path (ADR-0030). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
@@ -78,7 +78,7 @@ The four loop stages, then the fourteen utilities outside the loop:
 | `fg-eco` | Utility | Toggles eco mode — when on, caps delegated workflow subagents at `sonnet` **and** activates the embedded Eco laziness-first discipline (`ECO.md` — code simplicity + terse-communication output): injected into fg-run subagents, woven into fg-ask grilling as a YAGNI lens, adopted by the session |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
-| `fg-statusline` | Utility | Installs a statusline fragment that shows forge's loop progress |
+| `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
 | `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and fg-learn — six lenses, fix-forward findings |
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |

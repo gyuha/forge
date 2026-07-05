@@ -9,7 +9,7 @@
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-run` |
 | `fg-run` | ② 실행 | 계획을 Dynamic Workflow로 실행 — 미실행 plan이 하나면 메뉴 없이 즉시 실행, 여럿이면 선택 메뉴 제시(마지막 옵션 "모두 실행") | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` + `STATUS.md` (또는 `executed/`) | `fg-learn` |
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-done` (크게 어긋났으면 `fg-ask`로 재그릴링) |
-| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기. `all` 모드는 실행된 작업 일괄 봉인(회고 skip·백로그 불가침) | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
+| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기. 기계적 봉인은 결정론 스크립트(`forge-done.sh`/`.js`)가 처리(ADR-0030). `all` 모드는 실행된 작업 일괄 봉인(회고 skip·백로그 불가침) | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 | `fg-map` | 유틸리티(루프 밖) | 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드를 다시 탐색하지 않고 지도를 읽게 한다(context rot 감소) | 코드베이스 | `.forge/codebase/*.md` (7개 문서) | — (`fg-ask`가 소비) |
 | `fg-quick` | 경량 차선(루프 밖) | 사소한 작업용 — 가볍게 그릴링한 뒤 형식 산출물(ADR/plan/회고) 없이 바로 실행; 비-trivial로 드러나면 `fg-ask`로 bail | 사용자 요청 | `.forge/quick/LOG.md`에 항목 하나 | — (자체 완결) |
 | `fg-status` | 리포터(루프 밖) | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 지금 필요한 다음 단계 하나를 출력; 아무것도 쓰지 않고 자동 실행도 안 함 | `.forge/*` (읽기 전용) | 출력 보고(파일 없음) | — (다음 단계 제안) |
@@ -19,7 +19,7 @@
 | `fg-eco` | 토글(루프 밖) | eco 모드 토글 — 켜면 (1) `fg-run` 위임 서브에이전트를 `sonnet`으로 캡(내리기만; 세션 모델 불변), (2) Eco laziness-first 절제 규율(`ECO.md`)을 fg-run 서브에이전트·fg-ask 그릴링·현 세션에 주입 | `on`/`off`/(없음) | `.forge/config.json`(`eco`) | — (설정만) |
 | `fg-merge` | 통합기(루프 밖) | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — ADR 번호 재부여(+교차참조)·CONTEXT 용어 병합·done 합침·브랜치 폴더 제거, 진짜 충돌 시 멈춤. git은 직접 안 돌림 | `.forge/branch/<branch>/` | 통합된 `.forge/` 문서 | — (통합 단계) |
 | `fg-cleanup` | 은퇴기(루프 밖) | 오래된/대체된 ADR을 활성 결정 집합에서 은퇴 — 후보를 근거와 함께 제시하고, 승인 시 각 ADR을 `.forge/adr/retired/<NNNN>-slug.md`로 이동+supersede/retire 마킹. 번호 불변·재사용 금지·삭제 안 함. fg-ask는 `retired/`를 정답소스로 안 읽음 | `.forge/adr/*.md` | `.forge/adr/retired/*` | — (ADR 정비) |
-| `fg-statusline` | 설정 유틸리티(루프 밖) | `.forge/`를 읽어 최대 2줄(활성 task 이름+색상 ask/run/learn/done 진행 파이프라인, 그리고 backlog/회고대기 요약)을 출력하는 bash 조각 스크립트를 설치하고 `settings.json`에 연결 — statusLine은 하나뿐이라 기존 것을 교체하지 않고 아래 별도 줄로 자동 래핑 | 기존 `settings.json` | `~/.claude/forge-statusline.sh` + `statusLine` 설정 | — (터미널 표시) |
+| `fg-statusline` | 설정 유틸리티(루프 밖) | statusline에 forge 진행 상태를 두 모드 중 하나로 표시 — 방법 1(append)은 기존 statusline을 아래 별도 줄로 자동 래핑(얇은 forge fragment, ADR-0017), 방법 2(merge)는 daleseo식 시스템 정보(모델·디렉터리·git·사용량 바)+forge 진행을 한 스크립트로 출력하는 통합 스크립트 설치(ADR-0029) | 기존 `settings.json` | `~/.claude/`의 statusline 스크립트 + `statusLine` 설정 | — (터미널 표시) |
 | `fg-adversarial-review` | 리뷰 유틸리티(루프 밖) | fg-run↔fg-learn 사이 선택적 적대적 리뷰 — 결과가 틀렸다고 가정하고 6개 렌즈를 워크플로우 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록하고 수정 필요 건은 승인 후 fix-forward plan으로; 봉인 게이트 아님, 무인 주행에선 자동 skip | `plan.md`·`run.md`·작업트리 diff·CONTEXT/ADR | `.forge/review.md` + (승인 시) fix-forward backlog plan | — (`fg-learn`/`fg-run`으로 복귀) |
 | `fg-doctor` | health check(루프 밖) | 읽기 전용 무결성 검사 — `.forge/` 상태 계약(고아·STATUS 필드·slug 페어링·half-sealed)과 문서/매니페스트 정합(버전 3곳 동기·README 이중언어·CLAUDE.md 스킬 목록)을 검사해 위반을 severity·actionable 수정 안내와 함께 보고; 아무것도 안 쓰고 자동 수정 안 함 | `.forge/*`·매니페스트·README·CLAUDE.md (읽기 전용) | 출력 보고(파일 없음) | — (`fg-quick`/`fg-ask`로 수정) |
 | `fg-drop` | 폐기 유틸리티(루프 밖) | 미완(미봉인) 작업 폐기 — backlog/활성 슬롯/`executed/` 회고대기/멈춘 goal 루프를 항목별 위험도와 함께 제시한 뒤 하드 삭제(기본·흔적 없음) 또는 `.forge/dropped/`로 보관; forge 상태만 지움(git·코드 불변) | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
@@ -44,6 +44,8 @@
 ### fg-done — ④ 완료
 
 한 바퀴의 잔여물을 정리한다 — 회고를 확인하고, `STATUS.md`를 done으로 마킹하고, 작업을 아카이브하고, 활성 `.forge` 상태를 비워 루프를 닫는다. "작업 완료", "봉인", "이거 마무리"에서 트리거된다(기존 "작업 정리"·"forge complete"도 alias로 인식; 단 "forge cleanup"은 이제 별개의 ADR 은퇴 스킬로 라우팅된다). 활성 상태를 비우는 것이 같은 plan의 재실행을 막는다.
+
+기계적 봉인(사전점검·게이트 강제·`STATUS.md` 마감·아카이브·슬롯 비우기)은 **결정론 스크립트 `forge-done.sh`/`.js`** 가 한 번에 처리하고, 스킬은 그 exit code로 라우팅만 한다 — fg-status(ADR-0020)에 이어 스크립트 백킹된 스킬이다. 이 스크립트는 대화형 `fg-done`·`fg-done all`·`fg-next all`(위임) **세 봉인 경로가 공유하는 단일 봉인 프리미티브**로, read-only인 fg-status와 달리 파일을 이동하므로 **게이트-우선-비파괴**(검증·회고 게이트를 통과하기 전엔 아무것도 안 건드리고 사유와 함께 refuse)이며 behavior+parity 테스트로 보호된다 ([ADR-0030](../.forge/adr/0030-fg-done-deterministic-seal-script.md)).
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트(ADR-0009)는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
@@ -92,7 +94,12 @@
 
 ### fg-statusline
 
-`fg-statusline`은 **일회성 설정 유틸리티로, 역시 루프 밖**이다 — 터미널 statusline에 forge 루프의 현재 위치를 띄운다. 자기완결 `bash` 조각(`scripts/forge-statusline.sh`)을 안정 경로(`~/.claude/forge-statusline.sh`)에 설치하는데, 이 스크립트는 `.forge/`를 읽어 **해당되는 상태를 우선순위로 가리지 않고 최대 2줄을 동시에** 출력한다 — 1번째 줄은 활성 task 이름과 `🔁` goal 루프 지표(있을 때)에 이어 색상 `✔ ask → ● run → ○ learn → ○ done` 진행 파이프라인(현재 단계만 강조, `done`은 루프 전체 그림을 완성하는 장식용 4번째 단계), 2번째 줄은 backlog 대기·회고 대기 개수 요약(`📋 N queued · 📝 M awaiting retro`) — 이고, idle이면 아무것도 안 띄운다. 그리고 `settings.json`에 연결한다. Claude Code는 statusLine을 **하나만** 허용하므로(플러그인이 등록할 수 없고 쌓기도 없음) 기존 statusline을 교체하지 않고, 현재 명령을 **자동 래핑**해 forge를 그 아래 별도 줄(들)로 덧붙인다(기존 출력 보존). 의도적으로 얇은 표시 전용 판독자이며 — 다음 단계의 정답소스는 여전히 `fg-status`다. forge 업데이트 후 스크립트를 갱신하려면 다시 실행하면 된다. "forge statusline", "상태바", "statusline 설정" 같은 발화에서 트리거된다 ([ADR-0017](../.forge/adr/0017-statusline-integration.md)).
+`fg-statusline`은 **일회성 설정 유틸리티로, 역시 루프 밖**이다 — 터미널 statusline에 forge 루프의 현재 위치를 **두 설치 모드 중 하나로** 띄운다(ADR-0029). 두 모드는 forge 진행 줄을 위해 같은 얇은 fragment를 공유하고, 그 외에 무엇을 더 보여주고 누가 명령을 소유하느냐가 다르다.
+
+- **방법 1 (append/wrap)** — 얇은 forge 전용 fragment(`scripts/forge-statusline.sh`/`.js`)를 안정 경로에 설치해, `.forge/`를 읽어 **해당되는 상태를 우선순위로 가리지 않고 최대 2줄을 동시에** 출력한다 — 1번째 줄은 활성 task 이름과 `🔁` goal 루프 지표(있을 때)에 이어 색상 `✔ ask → ● run → ○ learn → ○ done` 진행 파이프라인(현재 단계만 강조, `done`은 장식용 4번째 단계), 2번째 줄은 backlog·회고 대기 개수 요약(`📋 N queued · 📝 M awaiting retro`)이고, idle이면 아무것도 안 띄운다. Claude Code는 statusLine을 **하나만** 허용하므로(플러그인이 등록할 수 없고 쌓기도 없음) 기존 statusline을 교체하지 않고 현재 명령을 **자동 래핑**해 forge를 그 아래 별도 줄로 덧붙인다(원본 보존). 이 fragment는 시스템 정보를 일절 그리지 않는 얇은 표시 전용 판독자다(ADR-0017, 이중 모드 도입에도 불변).
+- **방법 2 (merge)** — forge 소유 통합 스크립트(`scripts/forge-statusline-full.sh`/`.js` 트윈)가 daleseo식 **시스템 정보**(모델·추론강도·작업 디렉터리·git 브랜치+상태, 이어 Context/Usage/Weekly 사용량 바 — 임계값 색·필드 부재 시 그레이스풀 생략)와 **forge 진행**을 한 스크립트로 출력한다(3+1줄). forge 부분은 fragment에 `FORGE_SL_PREFIX='forge | '`로 **위임**해 단계 로직을 재사용하고(3중 복제 금지, parity 테스트로 드리프트 방지), forge가 idle이면 forge 줄만 사라지고 시스템 줄은 유지된다.
+
+**설치 결정**: 기존 statusline 있으면 1/2 선택, 없으면 2 자동, Windows+기존이면 2만(방법 1 wrapper가 bash 전용). 방법 2가 기존을 교체할 땐 원본을 보존하고 복원법을 안내한다. 모드는 wired command 경로로 감지한다(새 config 키 없음). 어느 모드든 다음 단계의 정답소스는 여전히 `fg-status`이며, forge 업데이트 후 스크립트 갱신은 다시 실행하면 된다. "forge statusline", "상태바", "statusline 설정" 같은 발화에서 트리거된다 ([ADR-0017](../.forge/adr/0017-statusline-integration.md) · [ADR-0029](../.forge/adr/0029-fg-statusline-combined-daleseo-dual-mode.md)).
 
 ### fg-adversarial-review
 

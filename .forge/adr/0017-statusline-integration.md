@@ -1,5 +1,7 @@
 # statusline 통합 — forge 최초의 런타임 스크립트 + 얇은 두 번째 상태 판독자
 
+> **후속:** [ADR-0029](0029-fg-statusline-combined-daleseo-dual-mode.md)가 이 얇은 forge-전용 판독자 위에 **이중 모드**를 얹었다 — 방법 1(append)은 이 문서의 wrap 그대로, 방법 2(merge)는 daleseo식 시스템 정보+forge를 하나로 합친 통합 스크립트(`forge-statusline-full.sh`/`.js`)를 신설한다. 이 문서의 결정(얇은 forge fragment·설정 시 복사·절대경로·stdin cwd·bash+js 트윈)은 방법 1에서 불변으로 남는다.
+
 ## 맥락
 
 forge는 실행 코드가 한 줄도 없는 리포다(전부 Markdown/JSON, 빌드·테스트 없음). 그런데 Claude Code의 statusLine은 **플러그인이 직접 등록할 수 없고**(`settings.json`의 `statusLine` 키로만 설정), 명령은 stdin JSON을 받아 텍스트를 뱉는 **비대화형 셸 명령**이라 에이전트가 읽는 Markdown 스킬(fg-status)을 호출할 수 없다. 또 statusLine은 **동시에 하나뿐**이라 사용자가 이미 쓰는 다른 플러그인 statusline에 "추가"가 불가능하다(합성만 가능). 따라서 forge 상태를 statusline에 띄우려면 `.forge/`를 직접 읽는 **실제 bash 스크립트**가 필요하다.

@@ -37,6 +37,11 @@
 # complete the visual picture of the full 4-stage loop.
 #
 # Dependencies: bash + git only. No JSON/jq parsing (reads files by path).
+#
+# FORGE_SL_PREFIX (env, optional): the line-1 prefix, default "⚒ ". The "merge"
+# mode unified script (forge-statusline-full.sh, ADR-0029) sets it to "forge | "
+# so it can REUSE this fragment's stage-gating for its forge line instead of
+# re-implementing it. Unset in method-1 (wrap/sole) usage -> byte-identical to before.
 
 set -u
 
@@ -160,12 +165,12 @@ if [ -f "$root/plan.md" ]; then
   pipeline="$(build_pipeline "$stage")"
   prefix_bit=""
   [ -n "$loop_indicator" ] && prefix_bit="${loop_indicator} "
-  line1="⚒ ${prefix_bit}${slug} | ${pipeline} |${flag}"
+  line1="${FORGE_SL_PREFIX:-⚒ }${prefix_bit}${slug} | ${pipeline} |${flag}"
 elif [ -f "$root/ask.md" ]; then
   working_slug="$(sed -n 's/.*forge-ask:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$root/ask.md" | head -1)"
   [ -z "$working_slug" ] && working_slug="ask"
   pipeline="$(build_pipeline "ask")"
-  line1="⚒ ${working_slug} | ${pipeline} |"
+  line1="${FORGE_SL_PREFIX:-⚒ }${working_slug} | ${pipeline} |"
 elif [ -n "$loop_indicator" ]; then
   line1="$loop_indicator"
 fi

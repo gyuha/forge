@@ -44,6 +44,11 @@ const DOT_CUR = '\x1b[1;36m';    // bold cyan — current stage
 const DOT_UPCOMING = '\x1b[2m';  // dim — upcoming stage
 const RESET = '\x1b[0m';
 
+// The line-1 prefix, default "⚒ ". The "merge" mode unified script
+// (forge-statusline-full.js, ADR-0029) sets FORGE_SL_PREFIX="forge | " to REUSE
+// this stage-gating for its forge line. Unset in method-1 usage -> unchanged.
+const PREFIX = process.env.FORGE_SL_PREFIX || '⚒ ';
+
 // buildPipeline('ask'|'run'|'learn') -> "✔ ask → ● run → ○ learn → ○ done" (colored)
 // "done" is always upcoming here — the active slot never sits at "done" (a
 // sealed task moves to .forge/done/ and stops appearing in line 1 entirely);
@@ -122,11 +127,11 @@ if (isFile(planPath)) {
   }
   const pipeline = buildPipeline(stage);
   const prefixBit = loopIndicator ? `${loopIndicator} ` : '';
-  line1 = `⚒ ${prefixBit}${slug} | ${pipeline} |${flag}`;
+  line1 = `${PREFIX}${prefixBit}${slug} | ${pipeline} |${flag}`;
 } else if (isFile(path.join(root, 'ask.md'))) {
   const workingSlug = (read(path.join(root, 'ask.md')).match(/forge-ask:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'ask';
   const pipeline = buildPipeline('ask');
-  line1 = `⚒ ${workingSlug} | ${pipeline} |`;
+  line1 = `${PREFIX}${workingSlug} | ${pipeline} |`;
 } else if (loopIndicator) {
   line1 = loopIndicator;
 }
