@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.8] - 2026-07-05
+
+### Added
+- **`fg-statusline` 방법 2(merge) 이중 모드.** forge 소유 통합 스크립트(`forge-statusline-full.sh`/`.js` 트윈)가 daleseo식 시스템 정보(모델·추론강도·작업 디렉터리·git 브랜치+상태 · Context/Usage/Weekly 사용량 바 — 임계값 색·필드 부재 그레이스풀 생략)와 forge 진행을 한 스크립트로 출력한다. 설치 시 기존 statusline이 있으면 방법 1(append/wrap)/방법 2(merge) 선택, 없으면 2 자동, Windows+기존이면 2만(wrapper가 bash 전용). forge 부분은 기존 fragment에 `FORGE_SL_PREFIX`로 위임해 단계 로직을 재사용한다(방법 1은 바이트 불변 — [ADR-0029](./.forge/adr/0029-fg-statusline-combined-daleseo-dual-mode.md)).
+- **`fg-done` 봉인 결정론 스크립트(`forge-done.sh`/`.js`).** 사전점검·게이트 강제·STATUS 마감·원자적 아카이브·슬롯 비우기를 한 번의 호출로 처리하는, 대화형 `fg-done`·`fg-done all`·`fg-next all`(위임) **세 봉인 경로가 공유하는 단일 프리미티브**다. read-only인 fg-status 스크립트와 달리 파일을 이동하므로 **게이트-우선-비파괴**(검증·회고 게이트 통과 전엔 아무것도 안 건드리고 사유+exit code로 refuse)이며 behavior+parity 테스트로 보호된다 — 스킬은 스크립트 호출+출력 relay+exit code 라우팅으로 축약된다([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)).
+
+### Changed
+- **스크립트 백킹을 forge 컨벤션으로 승격.** "기계적·결정론 작업은 트윈 스크립트(behavior+parity 테스트, 파괴적이면 게이트-우선-비파괴), 판단·대화·next-step은 산문"을 fg-status(ADR-0020)·fg-statusline(ADR-0029)·fg-done(ADR-0030)에 흩어진 원칙에서 새 스킬 작성자용 단일 정본으로 명문화했다([ADR-0031](./.forge/adr/0031-script-backing-convention-for-mechanical-skill-work.md)).
+
 ## [0.5.7] - 2026-07-04
 
 ### Changed
