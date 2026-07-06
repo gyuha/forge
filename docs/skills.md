@@ -47,6 +47,8 @@
 
 기계적 봉인(사전점검·게이트 강제·`STATUS.md` 마감·아카이브·슬롯 비우기)은 **결정론 스크립트 `forge-done.sh`/`.js`** 가 한 번에 처리하고, 스킬은 그 exit code로 라우팅만 한다 — fg-status(ADR-0020)에 이어 스크립트 백킹된 스킬이다. 이 스크립트는 대화형 `fg-done`·`fg-done all`·`fg-next all`(위임) **세 봉인 경로가 공유하는 단일 봉인 프리미티브**로, read-only인 fg-status와 달리 파일을 이동하므로 **게이트-우선-비파괴**(검증·회고 게이트를 통과하기 전엔 아무것도 안 건드리고 사유와 함께 refuse)이며 behavior+parity 테스트로 보호된다 ([ADR-0030](../.forge/adr/0030-fg-done-deterministic-seal-script.md)).
 
+**명시적 단일 `/fg-done`으로 봉인하면**, 마감 직후 아카이브된 plan·run·STATUS·retro에서 "요구사항 + 처리 내용"을 재구성한 **봉인 요약**(요구사항 / 처리 내용 / 회고 파일이 있을 때만 회고 챕터 / 검증·문서·아카이브 메타)을 화면에 렌더한다(파일로 저장하지 않고, 봉인 스크립트도 안 건드리는 판단 계층 산문). 반대로 `fg-done all`·`fg-next`(원샷 — autochain이든 fg-done 직접 위임이든 · all)·`fg-loop` 같은 **배치/무인 경로는 현행 간결 notice를 유지**한다 — 흐름 유지가 목적이고 autochain 뒤엔 회고가 방금 끝나 요약이 중복되기 때문. 이 비대칭의 근거는 [ADR-0032](../.forge/adr/0032-fg-done-single-seal-summary.md)이다.
+
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트(ADR-0009)는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
 ## 루프 밖 유틸리티 (14개)

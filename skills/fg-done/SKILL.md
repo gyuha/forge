@@ -94,6 +94,29 @@ docs updated: {CONTEXT.md terms / ADR-NNNN / none}   # from --docs-updated
 
 **3) Completion notice.** After a successful seal, summarize at a glance what was finished, which persistent docs were updated (retro, ADR, CONTEXT), and where the archive landed (`.forge/done/<date-slug>/`). Make the wrap-up explicit so the user recognizes one loop is done. If `git status` shows the permanent docs this loop touched (`.forge/retro/`, `.forge/adr/`, `CONTEXT.md` — or the branch root on a non-default branch) still uncommitted, add a one-line reminder to commit them — a reminder only; never run git yourself (the same restraint as fg-merge).
 
+**Seal summary — explicit single seal only (ADR-0032).** This is part of the step-3 completion notice: on an **explicit, single `/fg-done`** it **replaces** the terse notice above (render the docs/archive facts once, in the summary's meta line — but still append step 3's git-commit reminder if tracked docs are uncommitted). "Explicit single seal" = a bare human `/fg-done` (with or without `--slug`), *not* `all` mode, and *not* a seal delegated by an orchestrated/unattended drive (`fg-next` one-shot — whether it reached fg-done via the learn→done autochain or derived fg-done directly — `fg-next all`, `fg-loop`). In those delegated/batch cases keep the terse notice; **no summary**. Render a **seal summary** reconstructing "what this task set out to do, and what was actually done" from: `plan.md`/`run.md`/`STATUS.md` in the sealed archive (use the `dest=<path>` the script emitted in its `SEALED` token — do **not** reconstruct `<date-slug>`, which can differ from the retro's date), and the **retro at the path in STATUS's `retro:` field** (it lives in `.forge/retro/`, **not** the archive — the script records its path but never moves it). Map: `plan.md` → requirements (Goal + Source-of-truth: Related ADRs / Definition of Done), `run.md` → what was done + divergences, `STATUS.md` → verified/docs, the retro → learnings. Write it in the user's language, **on screen only** — do **not** persist it to a file (the archived plan/run + the retro already are the durable trace). The seal script is untouched; this is judgment-layer prose, not mechanical seal work (ADR-0031). Shape (render headings in the user's language; scale length to the work):
+
+```
+✅ Sealed: {title} (#{task})
+
+▸ Requirements
+  · Goal: {plan Goal, one line}
+  · Key decisions: {1-2 from Related ADRs / Definition of Done, if any}
+
+▸ What was done
+  · {3-5 lines from run.md — result per slice}
+  · vs plan: {run.md divergences, or "as planned"}
+
+▸ Retro                          ← only when a retro file exists (omit this whole chapter if retro: skipped)
+  · Next time: {1-2 lines from the retro's "Do differently next time"}
+  · Keep: {1 line from the retro's "Confirmed"/"What went as planned", if present}
+  · Full: {the retro path from STATUS's `retro:` field}
+
+▸ Verified {verified} · docs {docs updated} · retro {skipped (reason) — only if skipped} · archived {the dest= path from the SEALED token}
+```
+
+The **Retro chapter appears only when a retro file actually exists at STATUS's `retro:` path**; on `retro: skipped` (or a dangling path) omit the whole chapter and let the bottom meta line carry `retro: skipped (<reason>)`. **Gate:** the summary is for the **explicit single seal** only, per the definition above. fg-done cannot detect its caller (same limit as fg-run's handoff — ADR-0015), so the terseness of the delegated/batch paths is enforced from the orchestrator side: `fg-next`/`fg-loop` carry a matching "a delegated seal stays terse — no single-seal summary" rule in their own drive discipline (`all` mode also self-guards below), while a bare human-invoked single `/fg-done` (no `all`) renders the summary here. Note the enforcement is only cosmetic-on-forget (unlike ADR-0015's self-enforcing stop) — if a delegated path ever leaks the summary it is verbose, not broken. The rationale for the asymmetry (batch/drive favor momentum; after `fg-next`'s learn→done autochain the retro conversation just happened, so a summary would duplicate it) is ADR-0032.
+
 **3a) Codebase map check (conditional — offer, never auto-run).** Check two cheap signals: **(a)** does `.forge/codebase/` exist? and **(b)** did this loop change project files the map describes — i.e. does `git status --short` show changes (modified *or* untracked) on paths **not** starting with `.forge/` (skills, `src/`, manifests, README, …)? If **both** are true, the map may be stale, so offer **once**, in the user's language: *"이 작업이 `<changed project files>`를 바꿨고 `.forge/codebase/` 지도가 있습니다 — 지도가 stale할 수 있어요. 지금 `fg-map`을 돌릴까요?"* On agreement, invoke `fg-map`; on decline, finish. **Offer, never auto-run** — fg-map fans out subagents and is on-demand (ADR-0006). If `.forge/codebase/` is absent, **or** the loop changed only `.forge/` docs, **say nothing and skip**.
 
 **4) Close the loop.** If `fg-learn` left a follow-up, **state** that it can start as a **new task** — do not ask "shall I start it?" or auto-invoke fg-ask (chaining is `fg-next`'s job — ADR-0015). If there is no follow-up, finish here.
@@ -109,6 +132,7 @@ It relaxes exactly **one** gate — the retro guard (via `--skip-retro` on every
 - **The retro is auto-skipped unconditionally**, regardless of divergence — the same waiver `fg-next all`/`fg-loop` take (ADR-0010). Pass `--skip-retro "fg-done all — 학습은 run.md, 승급은 추후 fg-learn"` (in the user's language) so the skip is auditable and the learnings stay in the archived run.md for a later human fg-learn.
 - **One upfront confirmation, then no per-task prompts.** Before sealing anything, list **once**: the tasks that will be sealed (each with its `verified:` value and "retro will be skipped") **and** the tasks set aside (failed → fg-run, unverifiable → still pending) — the deciding of this list is judgment (which tasks, what will happen), which is why it stays here and not in the script. Get a single go-ahead. After it, loop over the qualifying tasks, calling the script once per task (`--slug <slug> --skip-retro "…"`). (Under `fg-next all`, the drive's upfront go-ahead already covers this — do not re-prompt; see fg-next's DRIVE.md.)
 - **The unit is unchanged.** Each task is sealed into its own `.forge/done/<date-slug>/` by its own script call — `all` only skips retros in bulk, it does not bundle tasks.
+- **The notice stays terse.** `all` emits the per-task completion notice + set-aside list only — **never** the explicit-single-seal summary chapter (the seal-summary block in step 3, ADR-0032). Batch sealing favors momentum, so a summary per task would be a wall of text.
 
 ```
 fg-done all
@@ -128,7 +152,7 @@ completion notice (per-task summary + set-aside list)
 
 When cleanup is done, convey the following naturally, in a conversational tone (don't stamp out a fixed template):
 
-- **What you just did** — that you sealed the task (via the seal script), archived it into `.forge/done/<date-slug>/` with STATUS.md marked done, and the active state is now empty, plus a one-line summary of the docs this loop updated — and, if those git-tracked docs are still uncommitted, a one-line reminder to commit them (reminder only, never run git yourself).
+- **What you just did** — that you sealed the task (via the seal script), archived it into `.forge/done/<date-slug>/` with STATUS.md marked done, and the active state is now empty, plus a one-line summary of the docs this loop updated — and, if those git-tracked docs are still uncommitted, a one-line reminder to commit them (reminder only, never run git yourself). **On an explicit single `/fg-done`, the seal-summary block in step 3 was already rendered above** (the requirements-and-what-was-done recap, which replaces this terse notice); batch (`all`) and orchestrated/unattended seals stay terse (no summary chapter). Do not render the summary twice.
 - **Next step** — since the active state is empty, the same plan will never run again. If `fg-learn` left a follow-up, it can be started as a new task.
 - **How to start** — if there is a follow-up, **state** it can start as a new task and stop; do **not** ask "shall I start it?" or auto-invoke fg-ask (chaining is `fg-next`'s job — ADR-0015). Trigger: "forge ask" / "새 작업 시작" / `/forge:fg-ask`, or `fg-next`. No follow-up → finish here.
 - **Codebase map** — if this loop changed project files (non-`.forge/` paths) and `.forge/codebase/` exists, **offer** to refresh the map with `fg-map` (step 3a). Offer, not auto-run; skip silently otherwise.
