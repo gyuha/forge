@@ -49,6 +49,7 @@ function bar(p) {
 }
 function humanize(s) {
   if (s < 0) s = 0;
+  if (s > 86400) return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h`;
   const m = Math.floor(s / 60);
   return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
 }

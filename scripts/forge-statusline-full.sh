@@ -61,8 +61,9 @@ bar() { # <pctInt> -> "<colored 10-cell bar> N%"
   printf '%s%s%s %s%%' "$col" "$out" "$RESET" "$p"
 }
 
-humanize() { # <seconds> -> "Nm" | "Hh Mm"
+humanize() { # <seconds> -> "Nm" | "Hh Mm" | "Dd Hh"
   local s="$1"; [ "$s" -lt 0 ] && s=0
+  if [ "$s" -gt 86400 ]; then printf '%dd %dh' $(( s / 86400 )) $(( (s % 86400) / 3600 )); return; fi
   local m=$(( s / 60 ))
   if [ "$m" -lt 60 ]; then printf '%dm' "$m"; else printf '%dh %dm' $(( m / 60 )) $(( m % 60 )); fi
 }
