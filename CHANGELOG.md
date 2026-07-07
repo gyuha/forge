@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.10] - 2026-07-07
+
+### Changed
+- **statusline 리셋 남은 시간의 24h 초과 표기.** 방법 2(merge) 통합 스크립트의 Usage/Weekly 바에서 `resets in`이 24h를 초과하면 `4d 4h`처럼 일 단위(`Nd Nh`)로 표기한다 — 24h 이하는 기존 `Nh Nm`/`Nm` 유지, 경계는 86400초 초과부터(정확히 24h는 `24h 0m`). `forge-statusline-full.sh`/`.js` 트윈 동시 반영이며, 이 분기를 고정하는 behavior/parity 테스트 케이스와 `fg-statusline` SKILL.md의 출력 형식 문서를 함께 동기화했다.
+
+### Fixed
+- **스킬 전수 리뷰에서 나온 정합 수정 2건.** ① `fg-quick`의 LOG 항목 라벨이 한국어(`요청/결정/결과`)로 하드코딩되어 비한국어 사용자도 한국어 라벨을 받던 결함 — canonical English(`Request/Decision/Result`)로 바꾸고 사용자 언어로 렌더하도록 했으며, 이 라벨을 리터럴 매칭하던 `fg-merge`의 브랜치 통합 전 in-flight 검사(`결과: pending`)도 의미 매칭으로 함께 동기. ② `fg-status` 태스크 표의 Retro 컬럼 라벨을 실제 값 집합에 맞춰 `O/X` → `O/X/—`로 정정.
+- **`forge-statusline-full.test.sh` 하니스 버그.** 파일 헤더가 문서화한 상대경로 실행법(`FGSL_FULL_IMPL=scripts/….js`)이 테스트 내부의 픽스처 디렉터리 `cd` 때문에 전 케이스 MODULE_NOT_FOUND로 깨지던 문제 — 상대경로 IMPL을 절대경로로 정규화해 수정.
+
 ## [0.5.9] - 2026-07-06
 
 ### Added
