@@ -88,6 +88,13 @@ j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":89},\"rate_limits\":
 check "boundary 89 + weekly 17h20m" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Context $B89 89% | Weekly $B60 60% (resets in 17h 20m)")"
 rm -rf "$D"
 
+# humanize >24h -> "Nd Nh" (weekly window's common case)
+E="$(mktemp -d)"; wd="$E/myproj"; mkdir -p "$wd/.forge"
+R4D4H=$((NOW + 360000))
+j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":0},\"rate_limits\":{\"seven_day\":{\"used_percentage\":60,\"resets_at\":$R4D4H}}}"
+check "weekly >24h -> 4d 4h" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Context $B0 0% | Weekly $B60 60% (resets in 4d 4h)")"
+rm -rf "$E"
+
 echo ""
 if [ "$fails" -eq 0 ]; then echo "STATUSLINE-FULL PARITY OK"; exit 0
 else echo "STATUSLINE-FULL PARITY FAILED ($fails)"; exit 1; fi

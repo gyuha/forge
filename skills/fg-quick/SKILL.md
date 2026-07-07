@@ -37,13 +37,13 @@ If any appears, **stop and bail to `fg-ask`**: tell the user "this isn't a quick
 
 ### 3. Record one line to the log
 
-Before acting, append an entry to `.forge/quick/LOG.md` (create the directory and file lazily on first use). Keep it to a few lines, written in the user's language:
+Before acting, append an entry to `.forge/quick/LOG.md` (create the directory and file lazily on first use). Keep it to a few lines, written in the user's language — the labels below are canonical English names; render them in the user's language (e.g. Korean `요청:`/`결정:`/`결과:`), matching the labels already used in the log:
 
 ```md
 ## {YYYY-MM-DD} — {one-line task title}
-- 요청: {what was asked, one line}
-- 결정: {the key choice made during light grilling, or "—"}
-- 결과: pending
+- Request: {what was asked, one line}
+- Decision: {the key choice made during light grilling, or "—"}
+- Result: pending
 ```
 
 On the default branch, `.forge/quick/` is gitignored volatile state (the `.gitignore` whitelists only the permanent docs, which `quick/` is not); on a non-default branch it lives under the git-tracked `.forge/branch/<branch>/` root (ADR-0011). Either way the log is a local convenience record, not loop fuel.
@@ -54,7 +54,7 @@ The task is small by definition, so handle it directly in this session — no Dy
 
 ### 5. Mark the result
 
-Update the log entry's `결과:` line to `done` (or `failed: {one-line reason}`). On failure, don't pile on retries in the quick lane — surface it honestly and recommend handling it properly through `fg-ask` (the full loop), where the divergence can be grilled and recorded.
+Update the log entry's `Result:` line (rendered in the log's language, e.g. `결과:`) to `done` (or `failed: {one-line reason}`). On failure, don't pile on retries in the quick lane — surface it honestly and recommend handling it properly through `fg-ask` (the full loop), where the divergence can be grilled and recorded.
 
 ## Handoff
 

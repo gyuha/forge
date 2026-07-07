@@ -28,6 +28,7 @@ set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 IMPL="${FGSL_FULL_IMPL:-$HERE/forge-statusline-full.sh}"
+case "$IMPL" in /*) : ;; *) IMPL="$(cd "$(dirname "$IMPL")" && pwd)/$(basename "$IMPL")" ;; esac  # run_full cd's into the fixture, so a relative FGSL_FULL_IMPL must be absolutized
 FRAGMENT="$HERE/forge-statusline.sh"   # (existence sanity only; the impl finds its own)
 
 pass=0
@@ -51,6 +52,8 @@ R_30M=$((NOW + 1800))          # +30m
 R_17H20M=$((NOW + 62400))      # +17h 20m
 R_60M=$((NOW + 3600))          # +1h 0m
 R_PAST=$((NOW - 100))          # already elapsed -> 0m
+R_24H=$((NOW + 86400))         # exactly +24h -> stays "24h 0m" (boundary: > 86400 only)
+R_4D4H=$((NOW + 360000))       # +4d 4h -> "4d 4h"
 
 # run_full <cwd> <json> [now]  -> stdout, ANSI stripped (exact, no trailing strip)
 run_full() {
@@ -175,6 +178,13 @@ t=$(mktmp); wd="$t/myproj"; mkdir -p "$wd/.forge"
 json="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":0},\"rate_limits\":{\"five_hour\":{\"used_percentage\":0,\"resets_at\":$R_PAST},\"seven_day\":{\"used_percentage\":0,\"resets_at\":$R_60M}}}"
 exp="$(printf '%s\n%s' "myproj" "Context $B0 0% | Usage $B0 0% (resets in 0m) | Weekly $B0 0% (resets in 1h 0m)")"
 assert "humanize-edges" "$exp" "$(run_full "$wd" "$json")"
+rm -rf "$t"
+
+# (i2) humanize >24h: exactly 24h stays "24h 0m" (boundary), beyond -> "Nd Nh"
+t=$(mktmp); wd="$t/myproj"; mkdir -p "$wd/.forge"
+json="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":0},\"rate_limits\":{\"five_hour\":{\"used_percentage\":0,\"resets_at\":$R_24H},\"seven_day\":{\"used_percentage\":0,\"resets_at\":$R_4D4H}}}"
+exp="$(printf '%s\n%s' "myproj" "Context $B0 0% | Usage $B0 0% (resets in 24h 0m) | Weekly $B0 0% (resets in 4d 4h)")"
+assert "humanize-over-24h" "$exp" "$(run_full "$wd" "$json")"
 rm -rf "$t"
 
 # (j1) threshold boundary 69/70 -> bars 7/7 (color stripped; assert bar+% text)

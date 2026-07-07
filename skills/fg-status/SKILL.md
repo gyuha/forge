@@ -75,7 +75,7 @@ No. | Date | Task | Stage | Verify | Retro
   | `done/` (sealed) | `done` |
 
 - **Verify (O/~/—/✗)** — from the STATUS `verified:` field: `yes` → `O`; `skipped`/`n/a` → `~` (sealable waiver / not-applicable, not a positive confirmation); `pending` / missing / not yet reached → `—`; `failed` → `✗` (UAT ran, result broken — blocks seal). A `—` on a task that already has a `run.md` means the UAT is still owed; a `✗` means it needs fixing or re-grilling (see the next-step machine below). On a sealed `done/` task a `—` means **legacy** (sealed before ADR-0009, no `verified:` field) — not an in-flight pending; render it `—` (or note "legacy") and don't treat it as a gate violation.
-- **Retro (O/X)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; **a matching `.forge/retro/*-<slug>.md` file exists while STATUS still reads `pending` (normal pre-seal state — fg-done fills the field at seal; see the next-step machine) → `O`**; `skipped` → `X`; anything else (pending with no retro file / not yet reached) → `—`.
+- **Retro (O/X/—)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; **a matching `.forge/retro/*-<slug>.md` file exists while STATUS still reads `pending` (normal pre-seal state — fg-done fills the field at seal; see the next-step machine) → `O`**; `skipped` → `X`; anything else (pending with no retro file / not yet reached) → `—`.
 
 Example (No. is the stable `task:` number; `—` for plans created before task numbering):
 
