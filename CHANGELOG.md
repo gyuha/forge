@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.11] - 2026-07-10
+
+### Added
+- **`fg-statusline` 방법 2(merge) 밀도 토글 (compact/full).** 4줄 `full` ↔ 2줄 `compact`를 wired command의 위치 인자로 전환한다(새 `config.json` 키 없음 — 모드처럼 command에 인코딩). `compact`는 시스템 정보+사용량 바를 한 줄로 합치고 forge를 단일 그룹으로 접으며 세션 그룹(⏱/$/±라인)을 생략한다. 설치 시 밀도를 한 번 묻고, refresh는 기존 밀도를 보존한다.
+- **가이드 기반 신규 표시 필드(방법 2).** Context 라벨에 컨텍스트 윈도우 크기(`Context/1M`·`Context/200K`), 사용량 바에 컨텍스트 %별 동적 이모지(🟢<20·⚡20–69·🔥70–89·🚨≥90)와 셀별 RGB 그라디언트, 시스템 첫 줄 세션 그룹에 `$비용`(`cost.total_cost_usd`)과 `+A −R` 라인 수(`cost.total_lines_added/removed`). 각 필드는 소스 부재 시 graceful 생략.
+- **task 번호 `#N` · git ahead/behind `↑N ↓N` · 모드 지시자 `🧪`(tdd)/`♻️`(eco).** 활성 plan의 안정 task 번호를 slug 앞에, upstream 대비 ahead/behind를 `⎇` 브랜치 세그먼트에(0·upstream 부재 시 생략), tdd/eco 모드를 실활동(활성 작업/큐)에서만 지시자로 표시한다(idle·loop-only 제외).
+
+### Changed
+- **statusline 표시 계약을 의미 단위 그룹 대괄호 `[...]`로 재편 + 구분자/라벨/색상/재배치.** 세그먼트를 대괄호 그룹으로 묶고(그룹 사이 공백, 안은 구분자), 방법 2 구분자를 ` · `→` | `로(fragment엔 신설 `FORGE_SL_SEP`으로 위임 — 방법 1은 `·`·무색 유지), `Ctx`→`Context` 라벨 원복(#70 개정의 부분 원복), 가이드 팔레트 색(모델 magenta·`⎇`cyan·`$`yellow·`±`green/red·대괄호·구분자 dim·바 truecolor 그라디언트), 세션 그룹(⏱/$/±라인)을 사용량 줄에서 시스템 첫 줄 끝으로 재배치, 모드 지시자를 원문자 `Ⓣ`/`Ⓔ`에서 이모지 `🧪`/`♻️`로 교체(#71 이모지 기각의 원복). fragment는 **전역 그룹 대괄호 + density-aware**로 확장되어 방법 1 출력도 대괄호·이모지 지시자를 반영한다(구분자 `·`·무색·append 성격은 불변). 색은 라이브 튜닝·테스트 ANSI strip이며 6개 테스트 스위트를 새 계약으로 전수 갱신했다([ADR-0029](./.forge/adr/0029-fg-statusline-combined-daleseo-dual-mode.md) 2026-07-10 개정 · [ADR-0017](./.forge/adr/0017-statusline-integration.md) 개정).
+
 ## [0.5.10] - 2026-07-07
 
 ### Changed
