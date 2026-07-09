@@ -1,32 +1,43 @@
 #!/usr/bin/env node
-// forge-statusline-full.js — node twin of forge-statusline-full.sh (ADR-0022 dual
-// dispatch; "merge" mode / method 2, ADR-0029). Emits identical line(s) to the
-// .sh for the same state (guarded by forge-statusline-full.parity.test.sh). node
-// is the fallback where bash can't run the .sh (PowerShell-blocked Windows).
+// forge-statusline-full.js — node twin of forge-statusline-full.sh (ADR-0022;
+// "merge" mode / method 2, ADR-0029). Emits identical line(s) to the .sh for the
+// same state (guarded by forge-statusline-full.parity.test.sh).
 //
-// Layout (see the .sh header for the full spec):
-//   Line 1: <model> · <effort> · <dir> · ⎇ <branch [↑ahead] [↓behind] [+staged] [!modified] [?untracked]>
-//   Line 2: Ctx <bar> N% [· 5h <bar> N% (~H)] [· 7d <bar> N% (~H)] [· ⏱ (D)]
-//   Line 3/4: forge progress — DELEGATED to forge-statusline.js (default '⚒ ' prefix).
+// Grouped [ ... ] layout with " | " intra-group separators (method 2 always uses
+// "|"; the delegated fragment gets FORGE_SL_SEP="|"). Density is the positional
+// arg argv[2] ("full" default / "compact"). See the .sh header for the full spec:
+// full = system+session / usage bars / forge / queue (4 lines); compact = system
+// + usage bars on one line + the fragment's single compact group (session group
+// dropped). New fields: Context/<size>, dynamic emoji, gradient bars, $cost, ±lines.
 //
-// System JSON is read with JSON.parse (the nested rate_limits/context_window
-// leaves the .sh must parent-anchor by hand are trivial here). Time via
-// FORGE_SL_NOW (epoch s) or Date.now(). Colors stripped in tests (ADR-0017).
+// System JSON via JSON.parse. Time via FORGE_SL_NOW (epoch s) or Date.now().
+// Colors stripped in tests (ADR-0017).
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 
+const DENSITY = process.argv[2] === 'compact' ? 'compact' : 'full';
+const SEP = '|';
+
 // --- colors (live-tuned; stripped in tests) ----------------------------------
 const C = {
-  green: '\x1b[32m', yellow: '\x1b[33m', red: '\x1b[31m',
-  model: '\x1b[1;36m', dir: '\x1b[36m', git: '\x1b[35m', reset: '\x1b[0m',
+  model: '\x1b[35m', branch: '\x1b[36m', cost: '\x1b[33m',
+  add: '\x1b[32m', del: '\x1b[31m', dim: '\x1b[2m', reset: '\x1b[0m',
 };
 function effColor(l) {
-  return l === 'low' ? C.green : l === 'medium' ? C.dir
-    : l === 'high' ? C.yellow : l === 'max' ? C.red : C.reset;
+  return l === 'low' ? '\x1b[32m' : l === 'medium' ? '\x1b[36m'
+    : l === 'high' ? '\x1b[33m' : l === 'max' ? '\x1b[31m' : C.reset;
 }
+
+// grp(...parts) -> "[ a | b ]" (dim brackets/separators); empty parts dropped.
+function grp(...parts) {
+  const kept = parts.filter((p) => p !== undefined && p !== null && p !== '');
+  if (kept.length === 0) return '';
+  return `${C.dim}[${C.reset}${kept.join(` ${C.dim}${SEP}${C.reset} `)}${C.dim}]${C.reset}`;
+}
+function joinGroups(...groups) { return groups.filter(Boolean).join(' '); }
 
 // --- read session JSON on stdin ----------------------------------------------
 let input = '';
@@ -41,17 +52,30 @@ function floorInt(v) {
   const n = Math.floor(Number(v));
   return Number.isFinite(n) ? n : 0;
 }
+function emoji(p) { return p >= 90 ? '🚨' : p >= 70 ? '🔥' : p >= 20 ? '⚡' : '🟢'; }
+function gradCell(i) {
+  let r, g, b;
+  if (i < 5) { r = 40 + i * 36; g = 200; b = 90 - i * 10; }
+  else { r = 220; g = 200 - (i - 5) * 38; b = 40; }
+  return `\x1b[38;2;${r};${g};${b}m`;
+}
 function bar(p) {
   let filled = Math.floor((p + 5) / 10);
   if (filled > 10) filled = 10; if (filled < 0) filled = 0;
-  const col = p >= 90 ? C.red : p >= 70 ? C.yellow : C.green;
-  return `${col}${'█'.repeat(filled)}${'░'.repeat(10 - filled)}${C.reset} ${p}%`;
+  let out = '';
+  for (let i = 0; i < filled; i++) out += `${gradCell(i)}█`;
+  for (let i = filled; i < 10; i++) out += `${C.dim}░`;
+  return `${out}${C.reset} ${p}%`;
 }
 function humanize(s) {
   if (s < 0) s = 0;
   if (s > 86400) return `${Math.floor(s / 86400)}d ${Math.floor((s % 86400) / 3600)}h`;
   const m = Math.floor(s / 60);
   return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+function sizeLabel(s) {
+  if (!s) return '';
+  return s >= 1000000 ? `/${Math.floor(s / 1000000)}M` : `/${Math.floor((s + 500) / 1000)}K`;
 }
 
 // --- cwd resolution (same as the fragment) -----------------------------------
@@ -60,16 +84,17 @@ if (input) {
   try { if (cwd && fs.statSync(cwd).isDirectory()) process.chdir(cwd); } catch (_) { /* keep cwd */ }
 }
 
-// --- Line 1: model · effort · dir · ⎇ git ------------------------------------
+// --- System groups -----------------------------------------------------------
 const model = (data.model && data.model.display_name) || '';
 const effort = (data.effort && data.effort.level) || '';
 const dir = path.basename(process.cwd());
 
-const seg1 = [];
-if (model) seg1.push(`${C.model}${model}${C.reset}`);
-if (effort) seg1.push(`${effColor(effort)}${effort}${C.reset}`);
-seg1.push(`${C.dir}${dir}${C.reset}`);
+const idParts = [];
+if (model) idParts.push(`${C.model}${model}${C.reset}`);
+if (effort) idParts.push(`${effColor(effort)}${effort}${C.reset}`);
+const idGrp = grp(...idParts);
 
+const locParts = [dir];
 let branch = '';
 try {
   branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
@@ -83,9 +108,6 @@ if (branch && branch !== 'HEAD') {
   const md = cnt(['diff', '--name-only']);
   const ut = cnt(['ls-files', '--others', '--exclude-standard']);
   let g = `⎇ ${branch}`;
-  // ahead/behind vs upstream: left-right count emits "<behind>\t<ahead>"
-  // (left = upstream-only, right = HEAD-only). No upstream -> command fails
-  // (stderr suppressed) -> ↑↓ omitted entirely.
   let ab = '';
   try {
     ab = execFileSync('git', ['rev-list', '--left-right', '--count', '@{upstream}...HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
@@ -100,38 +122,49 @@ if (branch && branch !== 'HEAD') {
   if (st > 0) g += ` +${st}`;
   if (md > 0) g += ` !${md}`;
   if (ut > 0) g += ` ?${ut}`;
-  seg1.push(`${C.git}${g}${C.reset}`);
+  locParts.push(`${C.branch}${g}${C.reset}`);
 }
-const line1 = seg1.join(' · ');
+const locGrp = grp(...locParts);
 
-// --- Line 2: Ctx · 5h · 7d · ⏱ ------------------------------------------------
-const ctx = floorInt(data.context_window && data.context_window.used_percentage);
-const seg2 = [`Ctx ${bar(ctx)}`];
-
+// --- Usage-bars group --------------------------------------------------------
+const cw = data.context_window || {};
+const ctx = floorInt(cw.used_percentage);
+const usageParts = [`${emoji(ctx)} Context${sizeLabel(floorInt(cw.context_window_size))} ${bar(ctx)}`];
 const rl = data.rate_limits || {};
-if (rl.five_hour) {
-  seg2.push(`5h ${bar(floorInt(rl.five_hour.used_percentage))} (~${humanize(floorInt(rl.five_hour.resets_at) - now)})`);
-}
-if (rl.seven_day) {
-  seg2.push(`7d ${bar(floorInt(rl.seven_day.used_percentage))} (~${humanize(floorInt(rl.seven_day.resets_at) - now)})`);
-}
-// ⏱ session elapsed: cost.total_duration_ms floored to seconds, humanized.
-// Omitted when cost/total_duration_ms is absent; an explicit 0 renders "⏱ (0m)".
-if (data.cost && data.cost.total_duration_ms != null) {
-  seg2.push(`⏱ (${humanize(Math.floor(floorInt(data.cost.total_duration_ms) / 1000))})`);
-}
-const line2 = seg2.join(' · ');
+if (rl.five_hour) usageParts.push(`5h ${bar(floorInt(rl.five_hour.used_percentage))} (~${humanize(floorInt(rl.five_hour.resets_at) - now)})`);
+if (rl.seven_day) usageParts.push(`7d ${bar(floorInt(rl.seven_day.used_percentage))} (~${humanize(floorInt(rl.seven_day.resets_at) - now)})`);
+const usageGrp = grp(...usageParts);
 
-// --- Line 3/4: forge progress, DELEGATED to the fragment (default '⚒ ' prefix) --
+// --- Session group (full only) -----------------------------------------------
+const sessParts = [];
+const cost = data.cost || null;
+if (cost) {
+  if (cost.total_duration_ms != null) sessParts.push(`⏱ (${humanize(Math.floor(floorInt(cost.total_duration_ms) / 1000))})`);
+  if (cost.total_cost_usd != null) sessParts.push(`${C.cost}$${Number(cost.total_cost_usd).toFixed(2)}${C.reset}`);
+  const la = floorInt(cost.total_lines_added);
+  const lr = floorInt(cost.total_lines_removed);
+  if (la > 0 || lr > 0) sessParts.push(`${C.add}+${la}${C.reset} ${C.del}−${lr}${C.reset}`);
+}
+const sessGrp = grp(...sessParts);
+
+// --- forge lines, DELEGATED to the fragment (SEP=|, density passed) ----------
 let forgeOut = '';
 try {
   forgeOut = execFileSync('node', [path.join(__dirname, 'forge-statusline.js')], {
     input,
     stdio: ['pipe', 'pipe', 'ignore'],
+    env: Object.assign({}, process.env, { FORGE_SL_SEP: SEP, FORGE_SL_DENSITY: DENSITY }),
   }).toString().replace(/\n$/, '');
 } catch (_) { forgeOut = ''; }
 
-// --- Emit: system lines always; forge lines only when non-empty --------------
-const out = [line1, line2];
-if (forgeOut) out.push(forgeOut);
+// --- Emit --------------------------------------------------------------------
+const out = [];
+if (DENSITY === 'compact') {
+  out.push(joinGroups(idGrp, locGrp, usageGrp));
+  if (forgeOut) out.push(forgeOut);
+} else {
+  out.push(joinGroups(idGrp, locGrp, sessGrp));
+  out.push(usageGrp);
+  if (forgeOut) out.push(forgeOut);
+}
 process.stdout.write(out.join('\n') + '\n');

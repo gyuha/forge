@@ -1,6 +1,6 @@
 # statusline 통합 — forge 최초의 런타임 스크립트 + 얇은 두 번째 상태 판독자
 
-> **후속:** [ADR-0029](0029-fg-statusline-combined-daleseo-dual-mode.md)가 이 얇은 forge-전용 판독자 위에 **이중 모드**를 얹었다 — 방법 1(append)은 이 문서의 wrap 그대로, 방법 2(merge)는 daleseo식 시스템 정보+forge를 하나로 합친 통합 스크립트(`forge-statusline-full.sh`/`.js`)를 신설한다. 이 문서의 결정(얇은 forge fragment·설정 시 복사·절대경로·stdin cwd·bash+js 트윈)은 방법 1에서 불변으로 남는다.
+> **후속:** [ADR-0029](0029-fg-statusline-combined-daleseo-dual-mode.md)가 이 얇은 forge-전용 판독자 위에 **이중 모드**를 얹었다 — 방법 1(append)은 이 문서의 wrap 그대로, 방법 2(merge)는 daleseo식 시스템 정보+forge를 하나로 합친 통합 스크립트(`forge-statusline-full.sh`/`.js`)를 신설한다. 이 문서의 결정(얇은 forge fragment·설정 시 복사·절대경로·stdin cwd·bash+js 트윈)은 방법 1에서 불변으로 남는다. **단 ADR-0029 개정(2026-07-10)에서 fragment가 의미 단위 **그룹 대괄호 `[...]`**와 이모지 모드 지시자(`🧪`/`♻️`)를 항상 적용하게 되어, 방법 1의 출력도 이 두 가지는 반영한다(구분자는 `FORGE_SL_SEP` 기본 `·`·무색·append 성격 유지 — 즉 fragment는 바뀌되 방법 1의 "bare forge 진행" 성격 자체는 그대로).** 아래 본문/개정의 "한 줄 표시" 예시는 그 이전 표기다.
 
 ## 맥락
 

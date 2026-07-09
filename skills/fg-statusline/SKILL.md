@@ -1,6 +1,6 @@
 ---
 name: fg-statusline
-description: Set up (or refresh) a Claude Code statusline showing forge's loop progress, in one of two install modes. Method 1 (append) auto-wraps your existing statusLine so forge shows as extra rows below it (original preserved) — the thin forge-only fragment. Method 2 (merge) installs a forge-owned unified script that renders daleseo-style system info (model/effort/dir/git · Ctx/5h/7d usage bars · session elapsed) AND forge progress in one command. If you already have a statusline it asks which mode; if you have none it installs method 2; on Windows-with-an-existing-statusline it offers method 2 only (the wrapper is bash-only). An on-demand setup utility outside the loop. Use in contexts like 'forge statusline', 'statusline 설정', '상태바', '상태 표시줄', 'add forge to statusline'.
+description: Set up (or refresh) a Claude Code statusline showing forge's loop progress, in one of two install modes. Method 1 (append) auto-wraps your existing statusLine so forge shows as extra rows below it (original preserved) — the thin forge-only fragment. Method 2 (merge) installs a forge-owned unified script that renders daleseo-style system info (model/effort/dir/⎇git · Context/size + gradient usage bars + $cost/±lines/elapsed) AND forge progress in one command, laid out in bracketed groups, with a compact/full density toggle stored as a command arg (no config key). If you already have a statusline it asks which mode; if you have none it installs method 2; on Windows-with-an-existing-statusline it offers method 2 only (the wrapper is bash-only). An on-demand setup utility outside the loop. Use in contexts like 'forge statusline', 'statusline 설정', '상태바', '상태 표시줄', 'add forge to statusline'.
 ---
 
 # fg-statusline — set up the forge progress statusline (outside the loop)
@@ -36,19 +36,19 @@ This is the forge fragment's own output. In **method 1** these are the rows appe
 
 The script reads the session JSON on stdin and resolves the project directory from its `cwd` (falling back to `workspace.current_dir`, then to `$PWD` when no JSON/cwd is piped — e.g. an interactive run), `cd`s there, and prints **up to two lines**, or nothing when idle. Resolving cwd from stdin (rather than assuming the shell's cwd is the project) is why it shows the right project even when the host runs the statusLine from elsewhere. Unlike the single-segment precedence design this replaced (ADR-0017's original mechanism — see its 2026-07-02 amendment), the two lines are **independent** — both show whenever they apply, neither hides the other:
 
+Segments are grouped into bracketed semantic units `[ ... ]`; groups are joined by a single space, segments **inside** a group by ` <SEP> ` (SEP = `FORGE_SL_SEP`, default `·`; the merge script passes `|`). Brackets/separators are dim; the pipeline arrows `→` are not a separator. Empty groups are omitted. Output shape depends on `FORGE_SL_DENSITY` (`full` default, or `compact` when the merge script's compact mode passes it):
+
 ```
-Line 1 (active slot present):
-  ⚒ [🔁 rN/cap ][#N ]<slug> · ✔ ask → ● run → ○ learn → ○ done[ · <flag>][ · Ⓣ Ⓔ]
-  (the " · <flag>" and " · Ⓣ Ⓔ" tails appear only when lit — no trailing separator otherwise)
+full density — up to two lines:
+  Line 1: [🔁 rN/cap] [⚒ [#N ]<slug> · ✔ ask → ● run → ○ learn → ○ done[ · <flag>]]
+          (the loop group appears only under a goal loop; the flag part only when run.md exists)
+  Line 1 (ask.md, no active slot): [⚒ <working-slug> · ● ask → ○ run → ○ learn → ○ done]
+  Line 1 (loop only, no slot/ask): [🔁 rN/cap]
+  Line 2 (activity present): [📋 N queued · 📝 M awaiting retro[ · ♻️][ · 🧪]]
+          (each part omitted when absent; the whole group omitted when idle)
 
-Line 1 (no active slot, but fg-ask is mid-grilling — ask.md marker present):
-  ⚒ <working-slug> · ● ask → ○ run → ○ learn → ○ done[ · Ⓔ]
-
-Line 1 fallback (no active slot, no ask.md, but a goal loop is in flight):
-  🔁 rN/cap
-
-Line 2 (backlog and/or executed non-empty, independent of line 1):
-  📋 N queued · 📝 M awaiting retro     (either half omitted when zero)
+compact density — a single line, forge + queue-count + modes folded into one group:
+  [🔁 rN/cap] [⚒ [#N ]<slug> · ✔ ask → ● run → ○ learn → ○ done[ · <flag>][ · 📋 N][ · ♻️][ · 🧪]]
 
 (nothing)   idle — active slot, executed, backlog, ask.md, loop all empty
 ```
@@ -63,28 +63,34 @@ Line 2 (backlog and/or executed non-empty, independent of line 1):
 
   The exact colors are an implementation detail tuned live in a real terminal, not a fixture concern — tests strip ANSI codes and assert on the visible text/symbols.
 - **#N task number** — read from the active plan's `<!-- task: N -->` marker (marker-anchored parsing, same style as the `forge-slug` marker) and shown just before the slug. Omitted when the plan has no marker (older plans — graceful), and never shown on the `ask.md`-only line 1 (no plan exists yet at the ask stage).
-- **flag** (present whenever `run.md` exists, regardless of whether `run` or `learn` is the current stage) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`. Appended as a ` · <flag>` tail after the pipeline; when there is no flag the pipeline is followed directly by the indicator segment, if any (no trailing separator either way). The `ask.md`-only line 1 never carries a flag.
-- **Ⓣ Ⓔ mode indicators** — a ` · Ⓣ Ⓔ` segment at the very end of line 1, space-separated, showing only the lit ones. `Ⓣ` (U+24C9) lights when the active plan carries `<!-- tdd: on -->` — like `#N` it can never appear on the `ask.md`-only line. `Ⓔ` (U+24BA) lights when the **top-level** `.forge/config.json` has `"eco": true` (the branch-independent global exception — the same key fg-eco writes; this script only reads it) and applies to every state that renders a slug line, the `ask.md` line included. Neither indicator appears on the `🔁`-only fallback line or when idle. When no indicator is lit the output is byte-identical to the pre-indicator format (the no-trailing-separator rule holds).
-- **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap. Attached as a prefix on line 1 when an active slot exists; shown as its own prefix-less line when there is no active slot and no `ask.md`.
-- Line 2 carries no `⚒` prefix — only line 1 (and its loop-only fallback) does.
+- **flag** (present whenever `run.md` exists, regardless of whether `run` or `learn` is the current stage) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`. It sits at the **end of the forge group** (`[⚒ #N slug · <pipeline> · <flag>]`), joined by the SEP. The `ask.md`-only forge group never carries a flag.
+- **🧪 ♻️ mode indicators** — `🧪` lights when the active plan carries `<!-- tdd: on -->`; `♻️` lights when the **top-level** `.forge/config.json` has `"eco": true` (the branch-independent global exception — the same key fg-eco writes; this script only reads it). Only the lit ones show. Placement is density-dependent (they replaced the earlier `Ⓣ`/`Ⓔ` circled-letters, ADR-0029): in **full** density they sit in the **line-2 queue group** (`[📋 N queued · 📝 M awaiting retro · ♻️ · 🧪]`); in **compact** they fold into the single forge group. They render **only alongside real activity** (an active task or a non-empty queue) — never on the `🔁`-only fallback or a fully idle repo, so "nothing when idle" holds. `🧪` requires an active plan, so it can never appear at the `ask.md` stage; `♻️` can (with activity).
+- **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap, rendered as a **leading `[🔁 rN/cap]` group** before the forge group (both densities); shown as its own group alone when there is no active slot and no `ask.md`.
+- Every rendered unit is a bracketed group; the `⚒ ` prefix lives inside the forge group's first segment (both lines/densities carry groups, not a bare prefix).
 - It resolves the branch-isolated forge root (ADR-0011): `.forge/` on the default branch, `.forge/branch/<branch>/` otherwise.
 
 The first three stage **names** (`ask`/`run`/`learn`) match `skills/fg-status/SKILL.md`'s task table bucket→stage mapping (backlog → ask, active plan-only → run, run.md present/`executed/` → learn), and as of the 2026-07-03 amendment this script's plan-only case now matches that mapping exactly (both read plan.md-with-no-run.md as `run`). One divergence remains, from the 2026-07-02 2nd amendment: fg-status's Stage column is purely file-existence-based for `run.md` (any `run.md` present → `learn`, full stop), while this fragment additionally reads `STATUS.md` `verified:` to decide whether `run` or `learn` is truly current (see above) — a `verified: failed`/`pending` task shows `run` as current here even though fg-status's table would still label its bucket `learn`. This is a deliberate refinement, not a bug: fg-status answers "which bucket is this task in," this fragment answers "where is a human's attention actually needed right now," and the two questions diverge exactly when a bucket's gate hasn't cleared yet. `done` is a fourth, decorative-only stage appended for the visual — it has no corresponding bucket in fg-status's table (a sealed task leaves the tracked buckets entirely) and never becomes the current (`●`) stage in this script. The `ask.md`-only line 1 has no counterpart in fg-status's table either — fg-status never reports on grilling-in-progress (there is no file for it to read until `backlog/` gets a row), so this is fg-statusline-only display state. If the `ask`/`run`/`learn` bucket **names** ever change, update both the script and fg-status together; the verified-gating refinement and the ask.md display case are local to this script.
 
 ## What the merge-mode script prints (method 2 only)
 
-`forge-statusline-full.sh`/`.js` render a daleseo-style dashboard plus the forge line(s), reading everything from the session JSON on stdin (`used_percentage` appears in three places and `resets_at` in two, so the bash twin extracts each leaf from its **parent** object — never a first-match grab; the node twin uses `JSON.parse`). Layout — each line independent, and every field renders only when present (graceful omission):
+`forge-statusline-full.sh`/`.js` render a daleseo-style dashboard plus the forge line(s), reading everything from the session JSON on stdin (`used_percentage` appears in three places and `resets_at` in two, so the bash twin extracts each leaf from its **parent** object — never a first-match grab; the node twin uses `JSON.parse`). Method 2 always uses `|` as the intra-group separator (and passes `FORGE_SL_SEP=|` to the delegated fragment). **Density is the positional arg** (`$1`/`argv[2]`): `full` (default — 4 lines) or `compact` (2 lines); an unrecognized/absent value falls back to `full`. Every group/field renders only when present (graceful omission):
 
 ```
-Line 1: <model> · <effort> · <dir> · ⎇ <branch [↑ahead] [↓behind] [+staged] [!modified] [?untracked]>
-Line 2: Ctx <bar> N% [· 5h <bar> N% (~H)] [· 7d <bar> N% (~H)] [· ⏱ (D)]
-Line 3: ⚒ [#N ]<slug> · ✔ ask → ● run → ○ learn → ○ done[ · <flag>][ · Ⓣ Ⓔ]   (delegated to the fragment)
-Line 4: 📋 N queued · 📝 M awaiting retro                                      (delegated to the fragment)
+full density (4 lines):
+  Line 1: [<model> | <effort>] [<dir> | ⎇ <branch [↑N ↓N] [+s !m ?u]>] [⏱ (D) | $X.XX | +A −R]
+  Line 2: [<emoji> Context[/<size>] <bar> N% | 5h <bar> N% (~H) | 7d <bar> N% (~H)]
+  Line 3: [⚒ [#N ]<slug> | <pipeline>[ | <flag>]]                    (delegated to the fragment)
+  Line 4: [📋 N queued | 📝 M awaiting retro[ | ♻️][ | 🧪]]           (delegated to the fragment)
+
+compact density (2 lines): system groups + the usage-bars group on ONE line, then the
+fragment's single compact group; the session group (⏱/$/±lines) is dropped.
+  Line 1: [<model> | <effort>] [<dir> | ⎇ …] [<emoji> Context[/<size>] <bar> N% | 5h … | 7d …]
+  Line 2: [⚒ [#N ]<slug> | <pipeline>[ | <flag>][ | 📋 N][ | ♻️][ | 🧪]]
 ```
 
-- **Line 1 (system):** `model.display_name`, `effort.level` (omitted on models without one), the working-dir basename, and — inside a git repo — the branch as `⎇ <branch>` with `↑N`/`↓N` ahead/behind counts vs the upstream (placed after the branch name, before the worktree counts; each omitted when zero, and the whole `↑↓` pair omitted when the branch has no upstream — stderr suppressed), then `+N`/`!N`/`?N` counts for staged / modified / untracked (each omitted when zero). Segments are joined by ` · `; missing segments drop out.
-- **Line 2 (usage):** three 10-cell bars (`█`/`░`), labeled `Ctx` (context) / `5h` (5-hour usage) / `7d` (7-day usage). `context_window.used_percentage` is null at session start → treated as `0`; the two `rate_limits` windows exist **only** for Pro/Max after the first API response and each may be absent independently → that whole segment is omitted when its window is missing. `resets_at` is a **Unix epoch second**, humanized as a compact `~`-prefixed remainder — `(~Xm)` / `(~Xh Ym)` from `now`, or `(~Xd Yh)` when more than 24h remain (the weekly window's common case). Bar fill = `round(pct/10)`; threshold colors `<70` green / `70–89` yellow / `≥90` red (colors are live-tuned and stripped in tests — ADR-0017; the bar length and `%` text carry the same information). A final `⏱ (D)` segment shows the session's elapsed time — `cost.total_duration_ms` floored to seconds (`ms/1000`) and humanized by the same helper as the reset remainders (no separate format logic); the whole segment is omitted when `cost` or `total_duration_ms` is absent, and an explicit `0` renders `⏱ (0m)`.
-- **Lines 3–4 (forge):** the fragment's output verbatim, with its default `⚒ ` prefix (the merge script sets no `FORGE_SL_PREFIX` override). When forge is **idle** the fragment emits nothing, so Line 3/4 vanish but the two system lines stay (system info is independent of forge state). All the stage-gating, flags, loop indicator, and branch-root resolution are exactly as documented in the fragment section above — because they *are* the fragment.
+- **Line 1 (system) — two/three groups:** the **identity group** `[<model> | <effort>]` (`model.display_name` magenta, `effort.level` omitted on models without one — the group vanishes if both absent); the **location group** `[<dir> | ⎇ <branch …>]` (working-dir basename, plus — inside a git repo — the branch cyan as `⎇ <branch>` with `↑N`/`↓N` ahead/behind vs upstream placed before the `+N`/`!N`/`?N` staged/modified/untracked counts, each omitted when zero, the `↑↓` pair omitted with no upstream); and — **full density only** — the **session group** `[⏱ (D) | $X.XX | +A −R]` (`⏱` = `cost.total_duration_ms`→s humanized; `$` = `cost.total_cost_usd` yellow; `+A −R` = `cost.total_lines_added/removed` green/red, omitted when both 0), each part omitted when its source is absent, the group omitted when empty.
+- **Line 2 (usage-bars group):** a dynamic emoji (`🟢`<20 · `⚡`20–69 · `🔥`70–89 · `🚨`≥90) prefixes `Context`; `context_window.context_window_size` attaches as `/1M` or `/NK` (omitted when absent). Three 10-cell bars (`█`/`░`) with a per-cell truecolor **gradient** (green→yellow→red), labeled `Context` / `5h` / `7d`. `used_percentage` null → `0`; the two `rate_limits` windows are Pro/Max-only (each may be absent → that segment omitted). `resets_at` (Unix epoch s) humanizes to `(~Xm)` / `(~Xh Ym)` / `(~Xd Yh)`. Bar fill = `round(pct/10)`; colors live-tuned and stripped in tests (ADR-0017; bar length + `%` carry the info).
+- **Forge groups (delegated):** the fragment's output verbatim, invoked with `FORGE_SL_SEP=|` and `FORGE_SL_DENSITY=<the resolved density>` (default `⚒ ` prefix — no `FORGE_SL_PREFIX` override). In full density that is Line 3 (forge group) + Line 4 (queue+modes group); in compact it is the fragment's single folded group as Line 2. When forge is **idle** the fragment emits nothing, so those lines vanish but the system/usage groups stay. All stage-gating, flags, `🧪`/`♻️` indicators, loop indicator, and branch-root resolution are exactly as documented in the fragment section above — because they *are* the fragment.
 
 Both twins emit identical output (ANSI stripped), guarded by `scripts/forge-statusline-full.parity.test.sh`; behavior is pinned by `scripts/forge-statusline-full.test.sh`. Time is injectable via `FORGE_SL_NOW` (epoch s) so humanization is testable.
 
@@ -114,7 +120,9 @@ Both the fragment and the unified script ship in two forms — `.sh` (bash, prim
 - **Unix (Darwin / Linux, incl. WSL)** → `STATUSLINE_CMD = <CFG>/forge-statusline-full.sh`
 - **Windows** → `STATUSLINE_CMD = node <CFG>/forge-statusline-full.js` — node always runs on Windows and dodges a blocked/absent PowerShell; do **not** assume the Windows system shell has bash even when Git Bash exists for the Bash tool. (`<CFG>/forge-statusline.js` + `<CFG>/resolve-forge-root.js` must sit beside it — see the copy list.)
 
-State the detected OS and the chosen `STATUSLINE_CMD` to the user when you wire it, so the choice is auditable.
+**Density (method 2 only): ask once, then append it to `STATUSLINE_CMD`.** Method 2 renders in `full` (4 lines — system + session / usage bars / forge / queue) or `compact` (2 lines — system + bars on one line, forge folded into a single group; the session group is dropped). Ask the user which they want (default **`full`** — no arg, byte-compatible with an existing full install), and append the density as a positional arg to the command **only when `compact`** (full = no arg): `STATUSLINE_CMD = <CFG>/forge-statusline-full.sh compact` (Unix) / `node <CFG>/forge-statusline-full.js compact` (Windows). Density is stored in the wired command itself — **no new `config.json` key** (ADR-0029). On a **refresh**, read the density from the existing wired command and preserve it (don't silently flip it); a density switch is an explicit re-ask, like a mode switch. Method 1 has no density (the wrapper always appends the fragment's full-density output).
+
+State the detected OS, the chosen density, and the resulting `STATUSLINE_CMD` to the user when you wire it, so the choice is auditable.
 
 **Wrapping requires bash; the merge script does not.** The method-1 wrapper (`forge-statusline-wrapper.sh`) is bash-only, so method 1 only applies when bash is available. This is why **Windows + an existing statusLine offers method 2 only** (the unified node script cleanly takes over) — wrapping an existing statusline cross-platform without bash is not yet supported (a node wrapper is deferred, follow-up). If method 2 replaces an existing command, preserve the original for restore (step 3b); on a no-bash host that already has a non-forge statusLine, if the user declines method 2, say so and stop rather than clobbering it.
 
