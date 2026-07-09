@@ -57,26 +57,26 @@ rm -rf "$t"
 # into the active slot, so this is fg-run's territory, not fg-ask's) -----------
 t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
-assert "active-plan-only" "⚒ my-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in "$t")"
+assert "active-plan-only" "⚒ my-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: ask.md only (fg-ask mid-grilling, no active slot) -> ask is current --
 t=$(mktmp)
 write "$t/.forge/ask.md" "<!-- forge-ask: my-idea -->"
-assert "ask-md-only" "⚒ my-idea | ● ask → ○ run → ○ learn → ○ done |" "$(run_in "$t")"
+assert "ask-md-only" "⚒ my-idea · ● ask → ○ run → ○ learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: plan.md + ask.md both present -> plan.md wins, ask.md ignored ------
 t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: promoted-task -->"
 write "$t/.forge/ask.md" "<!-- forge-ask: other-idea -->"
-assert "plan-and-ask-both-plan-wins" "⚒ promoted-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in "$t")"
+assert "plan-and-ask-both-plan-wins" "⚒ promoted-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: ask.md with malformed/missing marker -> working-slug falls back to "ask" --
 t=$(mktmp)
 write "$t/.forge/ask.md" "# no marker comment here"
-assert "ask-md-malformed-marker-fallback" "⚒ ask | ● ask → ○ run → ○ learn → ○ done |" "$(run_in "$t")"
+assert "ask-md-malformed-marker-fallback" "⚒ ask · ● ask → ○ run → ○ learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: active plan + run + STATUS verified: pending -> still run (not sealable), ⏳ --
@@ -84,7 +84,7 @@ t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
 write "$t/.forge/run.md" "run notes"
 printf 'verified: pending\n' > "$t/.forge/STATUS.md"
-assert "verified-pending" "⚒ my-task | ✔ ask → ● run → ○ learn → ○ done | ⏳" "$(run_in "$t")"
+assert "verified-pending" "⚒ my-task · ✔ ask → ● run → ○ learn → ○ done · ⏳" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: verified: yes -> learn, ✓ -----------------------------------------
@@ -92,7 +92,7 @@ t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
 write "$t/.forge/run.md" "run notes"
 printf 'verified: yes (npm test → 42 passing)\n' > "$t/.forge/STATUS.md"
-assert "verified-yes" "⚒ my-task | ✔ ask → ✔ run → ● learn → ○ done | ✓" "$(run_in "$t")"
+assert "verified-yes" "⚒ my-task · ✔ ask → ✔ run → ● learn → ○ done · ✓" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: verified: failed -> still run (not sealable, fg-learn's retro gate
@@ -101,7 +101,7 @@ t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
 write "$t/.forge/run.md" "run notes"
 printf 'verified: failed (UAT broke)\n' > "$t/.forge/STATUS.md"
-assert "verified-failed" "⚒ my-task | ✔ ask → ● run → ○ learn → ○ done | ✗" "$(run_in "$t")"
+assert "verified-failed" "⚒ my-task · ✔ ask → ● run → ○ learn → ○ done · ✗" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: verified: skipped -> learn, no flag -------------------------------
@@ -109,13 +109,13 @@ t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
 write "$t/.forge/run.md" "run notes"
 printf 'verified: skipped (docs only)\n' > "$t/.forge/STATUS.md"
-assert "verified-skipped" "⚒ my-task | ✔ ask → ✔ run → ● learn → ○ done |" "$(run_in "$t")"
+assert "verified-skipped" "⚒ my-task · ✔ ask → ✔ run → ● learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: slug falls back to filename stem when no forge-slug comment --------
 t=$(mktmp)
 write "$t/.forge/plan.md" "# some title without slug comment"
-assert "slug-fallback-filename" "⚒ plan | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in "$t")"
+assert "slug-fallback-filename" "⚒ plan · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: executed parked, no active -> awaiting retro (line 2 only) --------
@@ -139,7 +139,7 @@ t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: active-one -->"
 mkdir -p "$t/.forge/executed/foo"; printf 'status: executed\n' > "$t/.forge/executed/foo/STATUS.md"
 write "$t/.forge/backlog/a.md" "<!-- forge-slug: a -->"
-expected="$(printf '⚒ active-one | ✔ ask → ● run → ○ learn → ○ done |\n📋 1 queued · 📝 1 awaiting retro')"
+expected="$(printf '⚒ active-one · ✔ ask → ● run → ○ learn → ○ done\n📋 1 queued · 📝 1 awaiting retro')"
 assert "active-plus-pending-both-lines" "$expected" "$(run_in "$t")"
 rm -rf "$t"
 
@@ -147,7 +147,7 @@ rm -rf "$t"
 t=$(mktmp)
 write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
 printf '# LOOP — reach green\nreplan-round: 2\nreplan-cap: 3\n' > "$t/.forge/loop.md"
-assert "loop-prefix-active" "⚒ 🔁 r2/3 my-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in "$t")"
+assert "loop-prefix-active" "⚒ 🔁 r2/3 my-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: loop.md but idle -> loop indicator alone, no ⚒ prefix -------------
@@ -155,6 +155,65 @@ t=$(mktmp)
 mkdir -p "$t/.forge/backlog"
 printf '# LOOP — reach green\nreplan-round: 0\nreplan-cap: 3\n' > "$t/.forge/loop.md"
 assert "loop-idle" "🔁 r0/3" "$(run_in "$t")"
+rm -rf "$t"
+
+# ==== Display contract: task #N + Ⓣ/Ⓔ indicators (plan task 71) ==============
+
+# --- Case: plan with task marker -> #N before the slug ------------------------
+t=$(mktmp)
+write "$t/.forge/plan.md" $'<!-- forge-slug: my-task -->\n<!-- task: 12 -->'
+assert "task-number-shown" "⚒ #12 my-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: no task marker + tdd off + eco false -> plain line unchanged -------
+# (number omitted without a marker; "tdd: off" / "eco": false must NOT light up)
+t=$(mktmp)
+write "$t/.forge/plan.md" $'<!-- forge-slug: my-task -->\n<!-- tdd: off -->'
+printf '{ "eco": false }\n' > "$t/.forge/config.json"
+assert "no-task-tdd-off-eco-false-plain" "⚒ my-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: tdd marker on -> Ⓣ as the trailing segment -------------------------
+t=$(mktmp)
+write "$t/.forge/plan.md" $'<!-- forge-slug: my-task -->\n<!-- tdd: on -->'
+assert "tdd-indicator" "⚒ my-task · ✔ ask → ● run → ○ learn → ○ done · Ⓣ" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: eco true in TOP-LEVEL .forge/config.json -> Ⓔ ----------------------
+t=$(mktmp)
+write "$t/.forge/plan.md" "<!-- forge-slug: my-task -->"
+printf '{ "eco": true }\n' > "$t/.forge/config.json"
+assert "eco-indicator" "⚒ my-task · ✔ ask → ● run → ○ learn → ○ done · Ⓔ" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: task # + tdd on + eco true all at once -> "#71 … · Ⓣ Ⓔ" ------------
+t=$(mktmp)
+write "$t/.forge/plan.md" $'<!-- forge-slug: my-task -->\n<!-- task: 71 -->\n<!-- tdd: on -->'
+printf '{ "eco": true }\n' > "$t/.forge/config.json"
+assert "task+tdd+eco-combined" "⚒ #71 my-task · ✔ ask → ● run → ○ learn → ○ done · Ⓣ Ⓔ" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: flag + indicator coexist -> flag first, indicators last ------------
+t=$(mktmp)
+write "$t/.forge/plan.md" $'<!-- forge-slug: my-task -->\n<!-- task: 71 -->\n<!-- tdd: on -->'
+write "$t/.forge/run.md" "run notes"
+printf 'verified: yes (npm test → 42 passing)\n' > "$t/.forge/STATUS.md"
+assert "flag-then-indicators" "⚒ #71 my-task · ✔ ask → ✔ run → ● learn → ○ done · ✓ · Ⓣ" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: ask.md stage + eco -> Ⓔ on the ask line (no #N, no Ⓣ possible yet) --
+t=$(mktmp)
+write "$t/.forge/ask.md" "<!-- forge-ask: my-idea -->"
+printf '{ "eco": true }\n' > "$t/.forge/config.json"
+assert "ask-eco-indicator" "⚒ my-idea · ● ask → ○ run → ○ learn → ○ done · Ⓔ" "$(run_in "$t")"
+rm -rf "$t"
+
+# --- Case: 🔁-only fallback line never carries indicators, even with eco on ----
+t=$(mktmp)
+mkdir -p "$t/.forge/backlog"
+printf '# LOOP — reach green\nreplan-round: 0\nreplan-cap: 3\n' > "$t/.forge/loop.md"
+printf '{ "eco": true }\n' > "$t/.forge/config.json"
+assert "loop-only-no-indicators" "🔁 r0/3" "$(run_in "$t")"
 rm -rf "$t"
 
 # --- Case: branch root resolution (non-default branch) -----------------------
@@ -168,10 +227,10 @@ if command -v git >/dev/null 2>&1; then
   # active plan lives under the branch root, NOT top-level .forge/
   mkdir -p "$t/.forge/branch/feature-x"
   write "$t/.forge/branch/feature-x/plan.md" "<!-- forge-slug: branch-task -->"
-  assert "branch-root-resolution" "⚒ branch-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in "$t")"
+  assert "branch-root-resolution" "⚒ branch-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
   # a stray top-level plan must be ignored on a non-default branch
   write "$t/.forge/plan.md" "<!-- forge-slug: should-not-show -->"
-  assert "branch-root-ignores-toplevel" "⚒ branch-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in "$t")"
+  assert "branch-root-ignores-toplevel" "⚒ branch-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in "$t")"
   rm -rf "$t"
 else
   printf '  skip git branch-root case (git not found)\n'
@@ -182,25 +241,25 @@ fi
 # session JSON whose "cwd" points at A. It must read A's state, not B's (empty).
 a=$(mktmp); b=$(mktmp)
 write "$a/.forge/plan.md" "<!-- forge-slug: cwd-task -->"
-assert "stdin-cwd-redirects" "⚒ cwd-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in_json "$b" "{\"cwd\":\"$a\",\"model\":{\"display_name\":\"x\"}}")"
+assert "stdin-cwd-redirects" "⚒ cwd-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in_json "$b" "{\"cwd\":\"$a\",\"model\":{\"display_name\":\"x\"}}")"
 rm -rf "$a" "$b"
 
 # --- Case: cwd falls back to workspace.current_dir when no top-level "cwd" -----
 a=$(mktmp); b=$(mktmp)
 write "$a/.forge/plan.md" "<!-- forge-slug: ws-task -->"
-assert "stdin-workspace-current-dir" "⚒ ws-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in_json "$b" "{\"workspace\":{\"current_dir\":\"$a\"}}")"
+assert "stdin-workspace-current-dir" "⚒ ws-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in_json "$b" "{\"workspace\":{\"current_dir\":\"$a\"}}")"
 rm -rf "$a" "$b"
 
 # --- Case: stdin JSON without any cwd -> falls back to $PWD -------------------
 a=$(mktmp)
 write "$a/.forge/plan.md" "<!-- forge-slug: pwd-task -->"
-assert "stdin-no-cwd-uses-pwd" "⚒ pwd-task | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in_json "$a" "{\"model\":{\"display_name\":\"x\"}}")"
+assert "stdin-no-cwd-uses-pwd" "⚒ pwd-task · ✔ ask → ● run → ○ learn → ○ done" "$(run_in_json "$a" "{\"model\":{\"display_name\":\"x\"}}")"
 rm -rf "$a"
 
 # --- Case: stdin cwd points at a nonexistent dir -> falls back to $PWD --------
 a=$(mktmp)
 write "$a/.forge/plan.md" "<!-- forge-slug: missing-cwd -->"
-assert "stdin-cwd-nonexistent-falls-back" "⚒ missing-cwd | ✔ ask → ● run → ○ learn → ○ done |" "$(run_in_json "$a" "{\"cwd\":\"/no/such/dir/xyz123\"}")"
+assert "stdin-cwd-nonexistent-falls-back" "⚒ missing-cwd · ✔ ask → ● run → ○ learn → ○ done" "$(run_in_json "$a" "{\"cwd\":\"/no/such/dir/xyz123\"}")"
 rm -rf "$a"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

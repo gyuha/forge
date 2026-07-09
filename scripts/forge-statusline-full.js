@@ -5,9 +5,9 @@
 // is the fallback where bash can't run the .sh (PowerShell-blocked Windows).
 //
 // Layout (see the .sh header for the full spec):
-//   Line 1: <model> | <effort> | <dir> | <branch [+staged] [!modified] [?untracked]>
-//   Line 2: Context <bar> N% [| Usage <bar> N% (resets in H)] [| Weekly <bar> N% (resets in H)]
-//   Line 3/4: forge progress — DELEGATED to forge-statusline.js (FORGE_SL_PREFIX='forge | ').
+//   Line 1: <model> · <effort> · <dir> · ⎇ <branch [↑ahead] [↓behind] [+staged] [!modified] [?untracked]>
+//   Line 2: Ctx <bar> N% [· 5h <bar> N% (~H)] [· 7d <bar> N% (~H)] [· ⏱ (D)]
+//   Line 3/4: forge progress — DELEGATED to forge-statusline.js (default '⚒ ' prefix).
 //
 // System JSON is read with JSON.parse (the nested rate_limits/context_window
 // leaves the .sh must parent-anchor by hand are trivial here). Time via
@@ -60,7 +60,7 @@ if (input) {
   try { if (cwd && fs.statSync(cwd).isDirectory()) process.chdir(cwd); } catch (_) { /* keep cwd */ }
 }
 
-// --- Line 1: model | effort | dir | git --------------------------------------
+// --- Line 1: model · effort · dir · ⎇ git ------------------------------------
 const model = (data.model && data.model.display_name) || '';
 const effort = (data.effort && data.effort.level) || '';
 const dir = path.basename(process.cwd());
@@ -82,33 +82,51 @@ if (branch && branch !== 'HEAD') {
   const st = cnt(['diff', '--cached', '--name-only']);
   const md = cnt(['diff', '--name-only']);
   const ut = cnt(['ls-files', '--others', '--exclude-standard']);
-  let g = branch;
+  let g = `⎇ ${branch}`;
+  // ahead/behind vs upstream: left-right count emits "<behind>\t<ahead>"
+  // (left = upstream-only, right = HEAD-only). No upstream -> command fails
+  // (stderr suppressed) -> ↑↓ omitted entirely.
+  let ab = '';
+  try {
+    ab = execFileSync('git', ['rev-list', '--left-right', '--count', '@{upstream}...HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+  } catch (_) { ab = ''; }
+  if (ab) {
+    const parts = ab.split(/\s+/);
+    const behind = Number(parts[0]) || 0;
+    const ahead = Number(parts[1]) || 0;
+    if (ahead > 0) g += ` ↑${ahead}`;
+    if (behind > 0) g += ` ↓${behind}`;
+  }
   if (st > 0) g += ` +${st}`;
   if (md > 0) g += ` !${md}`;
   if (ut > 0) g += ` ?${ut}`;
   seg1.push(`${C.git}${g}${C.reset}`);
 }
-const line1 = seg1.join(' | ');
+const line1 = seg1.join(' · ');
 
-// --- Line 2: Context | Usage | Weekly ----------------------------------------
+// --- Line 2: Ctx · 5h · 7d · ⏱ ------------------------------------------------
 const ctx = floorInt(data.context_window && data.context_window.used_percentage);
-const seg2 = [`Context ${bar(ctx)}`];
+const seg2 = [`Ctx ${bar(ctx)}`];
 
 const rl = data.rate_limits || {};
 if (rl.five_hour) {
-  seg2.push(`Usage ${bar(floorInt(rl.five_hour.used_percentage))} (resets in ${humanize(floorInt(rl.five_hour.resets_at) - now)})`);
+  seg2.push(`5h ${bar(floorInt(rl.five_hour.used_percentage))} (~${humanize(floorInt(rl.five_hour.resets_at) - now)})`);
 }
 if (rl.seven_day) {
-  seg2.push(`Weekly ${bar(floorInt(rl.seven_day.used_percentage))} (resets in ${humanize(floorInt(rl.seven_day.resets_at) - now)})`);
+  seg2.push(`7d ${bar(floorInt(rl.seven_day.used_percentage))} (~${humanize(floorInt(rl.seven_day.resets_at) - now)})`);
 }
-const line2 = seg2.join(' | ');
+// ⏱ session elapsed: cost.total_duration_ms floored to seconds, humanized.
+// Omitted when cost/total_duration_ms is absent; an explicit 0 renders "⏱ (0m)".
+if (data.cost && data.cost.total_duration_ms != null) {
+  seg2.push(`⏱ (${humanize(Math.floor(floorInt(data.cost.total_duration_ms) / 1000))})`);
+}
+const line2 = seg2.join(' · ');
 
-// --- Line 3/4: forge progress, DELEGATED to the fragment (prefix 'forge | ') --
+// --- Line 3/4: forge progress, DELEGATED to the fragment (default '⚒ ' prefix) --
 let forgeOut = '';
 try {
   forgeOut = execFileSync('node', [path.join(__dirname, 'forge-statusline.js')], {
     input,
-    env: { ...process.env, FORGE_SL_PREFIX: 'forge | ' },
     stdio: ['pipe', 'pipe', 'ignore'],
   }).toString().replace(/\n$/, '');
 } catch (_) { forgeOut = ''; }

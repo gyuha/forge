@@ -40,7 +40,7 @@ A="$(mktemp -d)"; mkdir -p "$A/.forge"
 printf '<!-- forge-slug: my-task --> <!-- task: 1 -->\n# T\n' > "$A/.forge/plan.md"
 : > "$A/.forge/run.md"
 printf 'verified: yes (x)\nretro: pending\n' > "$A/.forge/STATUS.md"
-check "active learn verified yes" "$A" "⚒ my-task | ✔ ask → ✔ run → ● learn → ○ done | ✓"
+check "active learn verified yes" "$A" "⚒ #1 my-task · ✔ ask → ✔ run → ● learn → ○ done · ✓"
 
 # run.md exists but verified: failed -> still run current, not learn (ADR-0017 2nd amendment
 # — fg-learn's own retro gate refuses a not-yet-sealable verified value)
@@ -48,28 +48,28 @@ F="$(mktemp -d)"; mkdir -p "$F/.forge"
 printf '<!-- forge-slug: broke-task --> <!-- task: 4 -->\n# T\n' > "$F/.forge/plan.md"
 : > "$F/.forge/run.md"
 printf 'verified: failed (UAT broke)\nretro: pending\n' > "$F/.forge/STATUS.md"
-check "run.md + verified failed stays run" "$F" "⚒ broke-task | ✔ ask → ● run → ○ learn → ○ done | ✗"
+check "run.md + verified failed stays run" "$F" "⚒ #4 broke-task · ✔ ask → ● run → ○ learn → ○ done · ✗"
 
 # active run (no run.md) -> run is current (only fg-run promotes into the active slot)
 R="$(mktemp -d)"; mkdir -p "$R/.forge"
 printf '<!-- forge-slug: pre-run --> <!-- task: 2 -->\n# T\n' > "$R/.forge/plan.md"
-check "active run (plan only)" "$R" "⚒ pre-run | ✔ ask → ● run → ○ learn → ○ done |"
+check "active run (plan only)" "$R" "⚒ #2 pre-run · ✔ ask → ● run → ○ learn → ○ done"
 
 # ask.md only (fg-ask mid-grilling, no active slot) -> ask is current
 AM="$(mktemp -d)"; mkdir -p "$AM/.forge"
 printf '<!-- forge-ask: my-idea -->\n' > "$AM/.forge/ask.md"
-check "ask.md only" "$AM" "⚒ my-idea | ● ask → ○ run → ○ learn → ○ done |"
+check "ask.md only" "$AM" "⚒ my-idea · ● ask → ○ run → ○ learn → ○ done"
 
 # plan.md + ask.md both present -> plan.md wins, ask.md ignored
 PA="$(mktemp -d)"; mkdir -p "$PA/.forge"
 printf '<!-- forge-slug: promoted-task -->\n' > "$PA/.forge/plan.md"
 printf '<!-- forge-ask: other-idea -->\n' > "$PA/.forge/ask.md"
-check "plan.md + ask.md both present, plan wins" "$PA" "⚒ promoted-task | ✔ ask → ● run → ○ learn → ○ done |"
+check "plan.md + ask.md both present, plan wins" "$PA" "⚒ promoted-task · ✔ ask → ● run → ○ learn → ○ done"
 
 # ask.md with malformed/missing marker -> working-slug falls back to "ask"
 AMF="$(mktemp -d)"; mkdir -p "$AMF/.forge"
 printf '# no marker comment here\n' > "$AMF/.forge/ask.md"
-check "ask.md malformed marker falls back to ask" "$AMF" "⚒ ask | ● ask → ○ run → ○ learn → ○ done |"
+check "ask.md malformed marker falls back to ask" "$AMF" "⚒ ask · ● ask → ○ run → ○ learn → ○ done"
 
 # backlog queued (line 2 only, no active slot)
 Q="$(mktemp -d)"; mkdir -p "$Q/.forge/backlog"
@@ -86,7 +86,7 @@ printf 'replan-round: 1\nreplan-cap: 3\n' > "$L/.forge/loop.md"
 printf '<!-- forge-slug: goal-task --> <!-- task: 1 -->\n# T\n' > "$L/.forge/plan.md"
 : > "$L/.forge/run.md"
 printf 'verified: pending\nretro: pending\n' > "$L/.forge/STATUS.md"
-check "loop + active learn pending" "$L" "⚒ 🔁 r1/3 goal-task | ✔ ask → ● run → ○ learn → ○ done | ⏳"
+check "loop + active learn pending" "$L" "⚒ 🔁 r1/3 #1 goal-task · ✔ ask → ● run → ○ learn → ○ done · ⏳"
 
 # loop only (no work) — standalone line, no ⚒ prefix
 LO="$(mktemp -d)"; mkdir -p "$LO/.forge"
@@ -97,7 +97,17 @@ check "loop only, no work" "$LO" "🔁 r2/3"
 AB="$(mktemp -d)"; mkdir -p "$AB/.forge/backlog" "$AB/.forge/executed/t1"
 printf '<!-- forge-slug: active-task --> <!-- task: 3 -->\n# T\n' > "$AB/.forge/plan.md"
 : > "$AB/.forge/backlog/x.md"
-check "active + pending both lines" "$AB" "$(printf '⚒ active-task | ✔ ask → ● run → ○ learn → ○ done |\n📋 1 queued · 📝 1 awaiting retro')"
+check "active + pending both lines" "$AB" "$(printf '⚒ #3 active-task · ✔ ask → ● run → ○ learn → ○ done\n📋 1 queued · 📝 1 awaiting retro')"
+
+# indicators (display contract, plan task 71): task # + tdd marker + TOP-LEVEL
+# config eco -> flag first, then "Ⓣ Ⓔ" as the trailing segment
+M="$(mktemp -d)"; mkdir -p "$M/.forge"
+printf '<!-- forge-slug: modes-task --> <!-- task: 5 --> <!-- tdd: on -->\n# T\n' > "$M/.forge/plan.md"
+: > "$M/.forge/run.md"
+printf 'verified: yes (x)\nretro: pending\n' > "$M/.forge/STATUS.md"
+printf '{ "eco": true }\n' > "$M/.forge/config.json"
+check "task + tdd + eco indicators" "$M" "⚒ #5 modes-task · ✔ ask → ✔ run → ● learn → ○ done · ✓ · Ⓣ Ⓔ"
+rm -rf "$M"
 
 # escaped (Windows-style) cwd: JSON "\\" must decode to "\" before chdir, else the
 # statusline blanks on the very platform the node twin exists for (ADR-0022 review).

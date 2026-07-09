@@ -37,3 +37,11 @@ ADR-0017은 `forge-statusline.sh`를 **의도적으로 얇은 forge-전용 판�
 - forge 단계 매핑이 이제 **3곳**(fg-status 정본 · fragment · 통합 스크립트)이 될 위험. 통합 스크립트는 fragment의 단계 로직을 **재사용**하고(복제 금지 — 프리픽스만 파라미터화), consistency 테스트로 드리프트를 막는다.
 - `resets_at`은 Unix epoch 초라 `resets_at - now`로 "resets in Xm"을 계산한다(공식 스키마 확인 — 블로그엔 없던 필드).
 - 새 스크립트 2종(`forge-statusline-full.sh`/`.js`) + 테스트 2종(behavior + parity)이 설치·refresh 복사 목록에 추가된다.
+
+## 개정 (2026-07-07)
+
+컴팩트 스타일 채택(task #70 그릴링 합의): 세그먼트 구분자 ` | ` → ` · `, Line 2 라벨 Context/Usage/Weekly → Ctx/5h/7d, git 브랜치에 `⎇ ` 접두, Line 2 끝에 `⏱` 세션 경과 세그먼트(`cost.total_duration_ms`→초 내림, 기존 humanize 재사용, cost 부재 시 생략) 추가. 통합 스크립트의 forge 줄 위임 프리픽스는 `forge | ` 오버라이드를 폐지하고 fragment 기본 `⚒ `를 그대로 쓴다 — `FORGE_SL_PREFIX` 위임 메커니즘 자체는 불변.
+
+## 개정 (2026-07-08)
+
+세그먼트 3종 추가(task #71 그릴링 합의). fragment line 1(양 모드 공통)에 **task 번호 `#N`**(활성 plan의 `<!-- task: N -->` 마커에서 slug 앞에 표시 — 마커 없으면 생략, ask 단계엔 없음)과 **맨 끝 모드 인디케이터 세그먼트 ` · Ⓣ Ⓔ`** — `Ⓣ`(U+24C9)는 plan의 `<!-- tdd: on -->`일 때, `Ⓔ`(U+24BA)는 **최상위** `.forge/config.json`의 `eco: true`일 때(브랜치 무관 전역 예외 키 재사용 — ADR-0011; ask 줄에도 적용, idle·`🔁`-only 폴백 줄엔 없음). 켜진 것만 공백 구분으로 표시하고, 하나도 없으면 현행 출력과 완전 동일(후미 구분자 없음 규칙 유지). full 스크립트 line 1의 `⎇` git 세그먼트에 **ahead/behind `↑N ↓N`** 추가 — 브랜치명 뒤·worktree 카운트(`+!?`) 앞, 0이면 각각 생략, upstream 없는 브랜치면 통째 생략(기존 graceful omission 규칙 그대로, stderr 억제). 아이콘은 원문자 계열로 통일 — 🧪·🌱·⚙는 기각(사용자 선택: ⚙는 줄 앞머리 `⚒`와 도구류 모양이 겹침, 이모지 둘은 `Ⓣ`와 계열을 맞추기 위해 교체).

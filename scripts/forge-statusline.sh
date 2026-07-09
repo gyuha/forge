@@ -10,11 +10,19 @@
 #
 # Output (each line shown independently — NOT precedence-hidden):
 #   Line 1 (active slot present):
-#     ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
+#     ⚒ [🔁 rN/cap ][#N ]<slug> · ✔ ask → ● run → ○ learn → ○ done[ · flag][ · Ⓣ Ⓔ]
+#     (#N comes from the plan's `<!-- task: N -->` marker — omitted when the plan
+#     has none; the " · flag" tail appears only when there is a flag; the trailing
+#     indicator segment shows Ⓣ when the plan has `<!-- tdd: on -->` and Ⓔ when
+#     the TOP-LEVEL .forge/config.json (branch-independent global, ADR-0011) has
+#     "eco": true — space-separated when both are on, only the lit one otherwise,
+#     and the whole segment omitted when neither is, so with no indicators the
+#     line is unchanged and carries no trailing separator)
 #   Line 1 (no active slot, but fg-ask is mid-grilling — ask.md marker present):
-#     ⚒ <working-slug> | ● ask → ○ run → ○ learn → ○ done
+#     ⚒ <working-slug> · ● ask → ○ run → ○ learn → ○ done[ · Ⓔ]
+#     (no #N/Ⓣ at the ask stage — no plan exists yet; Ⓔ still applies)
 #   Line 1 fallback (no active slot, no ask.md, but a goal loop is in flight):
-#     🔁 rN/cap
+#     🔁 rN/cap   (never carries indicators)
 #   Line 2 (backlog and/or executed non-empty, independent of line 1):
 #     📋 N queued · 📝 M awaiting retro   (either half omitted when zero)
 #
@@ -39,9 +47,9 @@
 # Dependencies: bash + git only. No JSON/jq parsing (reads files by path).
 #
 # FORGE_SL_PREFIX (env, optional): the line-1 prefix, default "⚒ ". The "merge"
-# mode unified script (forge-statusline-full.sh, ADR-0029) sets it to "forge | "
-# so it can REUSE this fragment's stage-gating for its forge line instead of
-# re-implementing it. Unset in method-1 (wrap/sole) usage -> byte-identical to before.
+# mode unified script (forge-statusline-full.sh, ADR-0029) REUSES this fragment's
+# stage-gating for its forge line instead of re-implementing it, invoking it as-is
+# (default "⚒ " prefix — it no longer overrides this env var).
 
 set -u
 
@@ -131,6 +139,15 @@ fi
 
 [ -d "$root" ] || exit 0
 
+# --- Eco indicator source (Ⓔ): TOP-LEVEL .forge/config.json ------------------
+# Branch-independent global exception (ADR-0011) — the same top-level cfg path
+# already read for defaultBranch above. fg-eco owns the key; this only reads it.
+eco=""
+if [ -f "$cfg" ]; then
+  e="$(sed -n 's/.*"eco"[[:space:]]*:[[:space:]]*true.*/on/p' "$cfg" | head -1)"
+  [ -n "$e" ] && eco="on"
+fi
+
 # --- Loop indicator (rN/cap, without the 🔁 body until assembled below) -------
 loop_rnd=""
 loop_cap=""
@@ -146,17 +163,23 @@ line1=""
 if [ -f "$root/plan.md" ]; then
   slug="$(sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$root/plan.md" | head -1)"
   [ -z "$slug" ] && slug="plan"
+  # #N from the plan's `<!-- task: N -->` marker (marker-anchored, same style as
+  # the forge-slug parse above) — omitted when the plan carries no marker.
+  task_n="$(sed -n 's/.*<!--[[:space:]]*task:[[:space:]]*\([0-9]\{1,\}\)[[:space:]]*-->.*/\1/p' "$root/plan.md" | head -1)"
+  # Ⓣ only for an explicit `<!-- tdd: on -->` marker ("tdd: off" must not light up).
+  tdd=""
+  grep -q '<!--[[:space:]]*tdd:[[:space:]]*on[[:space:]]*-->' "$root/plan.md" && tdd="on"
   if [ -f "$root/run.md" ]; then
     v=""
     [ -f "$root/STATUS.md" ] && v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1)"
     # verified not yet sealable (pending/failed/missing) -> still fg-run's territory
     # (fg-learn's own retro gate refuses these); sealable -> retro gate passed, learn is current.
     case "$v" in
-      yes)            flag=" ✓"; stage="learn" ;;
-      failed)         flag=" ✗"; stage="run" ;;
-      pending|"")     flag=" ⏳"; stage="run" ;;
-      skipped|n/a)    flag="";   stage="learn" ;;
-      *)              flag=" ⏳"; stage="run" ;;
+      yes)            flag="✓"; stage="learn" ;;
+      failed)         flag="✗"; stage="run" ;;
+      pending|"")     flag="⏳"; stage="run" ;;
+      skipped|n/a)    flag="";  stage="learn" ;;
+      *)              flag="⏳"; stage="run" ;;
     esac
   else
     stage="run"
@@ -165,12 +188,23 @@ if [ -f "$root/plan.md" ]; then
   pipeline="$(build_pipeline "$stage")"
   prefix_bit=""
   [ -n "$loop_indicator" ] && prefix_bit="${loop_indicator} "
-  line1="${FORGE_SL_PREFIX:-⚒ }${prefix_bit}${slug} | ${pipeline} |${flag}"
+  num_bit=""
+  [ -n "$task_n" ] && num_bit="#${task_n} "
+  line1="${FORGE_SL_PREFIX:-⚒ }${prefix_bit}${num_bit}${slug} · ${pipeline}"
+  [ -n "$flag" ] && line1="${line1} · ${flag}"
+  # Trailing indicator segment " · Ⓣ Ⓔ" — space-separated, only the lit ones,
+  # whole segment omitted when neither is on (no trailing separator otherwise).
+  indicators=""
+  [ -n "$tdd" ] && indicators="Ⓣ"
+  [ -n "$eco" ] && indicators="${indicators:+${indicators} }Ⓔ"
+  [ -n "$indicators" ] && line1="${line1} · ${indicators}"
 elif [ -f "$root/ask.md" ]; then
   working_slug="$(sed -n 's/.*forge-ask:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$root/ask.md" | head -1)"
   [ -z "$working_slug" ] && working_slug="ask"
   pipeline="$(build_pipeline "ask")"
-  line1="${FORGE_SL_PREFIX:-⚒ }${working_slug} | ${pipeline} |"
+  line1="${FORGE_SL_PREFIX:-⚒ }${working_slug} · ${pipeline}"
+  # No #N/Ⓣ at the ask stage (no plan yet); Ⓔ still applies to the ask line.
+  [ -n "$eco" ] && line1="${line1} · Ⓔ"
 elif [ -n "$loop_indicator" ]; then
   line1="$loop_indicator"
 fi

@@ -46,21 +46,21 @@ mkdir -p "$wd/.forge"; printf '<!-- forge-slug: pt-a -->\n' > "$wd/.forge/plan.m
 : > "$wd/.forge/run.md"; printf 'verified: yes (x)\n' > "$wd/.forge/STATUS.md"
 j="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"effort\":{\"level\":\"high\"},\"context_window\":{\"used_percentage\":45},\"rate_limits\":{\"five_hour\":{\"used_percentage\":30,\"resets_at\":$R30},\"seven_day\":{\"used_percentage\":60,\"resets_at\":$R17}}}"
 check "all fields + active yes" "$wd" "$j" "$(printf '%s\n%s\n%s' \
-  'Opus 4.8 | high | myproj' \
-  "Context $B45 45% | Usage $B30 30% (resets in 30m) | Weekly $B60 60% (resets in 17h 20m)" \
-  'forge | pt-a | ✔ ask → ✔ run → ● learn → ○ done | ✓')"
+  'Opus 4.8 · high · myproj' \
+  "Ctx $B45 45% · 5h $B30 30% (~30m) · 7d $B60 60% (~17h 20m)" \
+  '⚒ pt-a · ✔ ask → ✔ run → ● learn → ○ done · ✓')"
 rm -rf "$A"
 
 # rate_limits absent + forge idle -> 2 system lines only
 B="$(mktemp -d)"; wd="$B/myproj"; mkdir -p "$wd/.forge"
 j="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Sonnet 5\"},\"context_window\":{\"used_percentage\":45}}"
-check "no rate_limits + idle" "$wd" "$j" "$(printf '%s\n%s' 'Sonnet 5 | myproj' "Context $B45 45%")"
+check "no rate_limits + idle" "$wd" "$j" "$(printf '%s\n%s' 'Sonnet 5 · myproj' "Ctx $B45 45%")"
 rm -rf "$B"
 
 # context null -> 0
 C_="$(mktemp -d)"; wd="$C_/myproj"; mkdir -p "$wd/.forge"
 j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":null}}"
-check "context null -> 0" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Context $B0 0%")"
+check "context null -> 0" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Ctx $B0 0%")"
 rm -rf "$C_"
 
 # git status counts (branch + staged/modified/untracked)
@@ -71,29 +71,49 @@ if command -v git >/dev/null 2>&1; then
       && printf 'b\n' >> tracked.txt && printf 'x\n' > staged.txt && git add staged.txt \
       && printf 'y\n' > untracked.txt ) 2>/dev/null
   j="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"}}"
-  check "git status counts" "$wd" "$j" "$(printf '%s\n%s' 'Opus 4.8 | gitproj | test-branch +1 !1 ?1' "Context $B0 0%")"
+  check "git status counts" "$wd" "$j" "$(printf '%s\n%s' 'Opus 4.8 · gitproj · ⎇ test-branch +1 !1 ?1' "Ctx $B0 0%")"
   rm -rf "$G"
+
+  # git ahead/behind vs upstream (display contract, plan task 71): "↑N ↓N" after
+  # the branch name; local bare repo as remote, ahead 2 / behind 1
+  G2="$(mktemp -d)"; wd="$G2/gitproj"; bare="$G2/remote.git"; mkdir -p "$wd"
+  git init -q --bare "$bare" 2>/dev/null
+  ( cd "$wd" && git init -q -b main && git config user.email t@t && git config user.name t \
+      && git commit -q --allow-empty -m A \
+      && git remote add origin "$bare" && git push -q -u origin main \
+      && git checkout -q -b side && git commit -q --allow-empty -m D \
+      && git push -q origin side:main && git checkout -q main \
+      && git commit -q --allow-empty -m B && git commit -q --allow-empty -m C ) 2>/dev/null
+  j="{\"cwd\":\"$wd\"}"
+  check "git ahead/behind counts" "$wd" "$j" "$(printf '%s\n%s' 'gitproj · ⎇ main ↑2 ↓1' "Ctx $B0 0%")"
+  rm -rf "$G2"
 else
   echo "skip git parity case (git not found)"
 fi
 
 # forge states delegated (plan-only / verified failed) with minimal system JSON
 P="$(mktemp -d)"; wd="$P/myproj"; printf '<!-- forge-slug: t -->\n' | { mkdir -p "$wd/.forge"; cat > "$wd/.forge/plan.md"; }
-check "forge plan-only delegated" "$wd" "{\"cwd\":\"$wd\"}" "$(printf '%s\n%s\n%s' 'myproj' "Context $B0 0%" 'forge | t | ✔ ask → ● run → ○ learn → ○ done |')"
+check "forge plan-only delegated" "$wd" "{\"cwd\":\"$wd\"}" "$(printf '%s\n%s\n%s' 'myproj' "Ctx $B0 0%" '⚒ t · ✔ ask → ● run → ○ learn → ○ done')"
 rm -rf "$P"
 
 # boundary 89 (bar 9) + humanize 17h20m
 D="$(mktemp -d)"; wd="$D/myproj"; mkdir -p "$wd/.forge"
 j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":89},\"rate_limits\":{\"seven_day\":{\"used_percentage\":60,\"resets_at\":$R17}}}"
-check "boundary 89 + weekly 17h20m" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Context $B89 89% | Weekly $B60 60% (resets in 17h 20m)")"
+check "boundary 89 + weekly 17h20m" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Ctx $B89 89% · 7d $B60 60% (~17h 20m)")"
 rm -rf "$D"
 
 # humanize >24h -> "Nd Nh" (weekly window's common case)
 E="$(mktemp -d)"; wd="$E/myproj"; mkdir -p "$wd/.forge"
 R4D4H=$((NOW + 360000))
 j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":0},\"rate_limits\":{\"seven_day\":{\"used_percentage\":60,\"resets_at\":$R4D4H}}}"
-check "weekly >24h -> 4d 4h" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Context $B0 0% | Weekly $B60 60% (resets in 4d 4h)")"
+check "weekly >24h -> 4d 4h" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Ctx $B0 0% · 7d $B60 60% (~4d 4h)")"
 rm -rf "$E"
+
+# session duration ⏱ (cost.total_duration_ms 4980000ms -> "1h 23m", end of Line 2)
+T="$(mktemp -d)"; wd="$T/myproj"; mkdir -p "$wd/.forge"
+j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":0},\"cost\":{\"total_duration_ms\":4980000}}"
+check "session duration present" "$wd" "$j" "$(printf '%s\n%s' 'myproj' "Ctx $B0 0% · ⏱ (1h 23m)")"
+rm -rf "$T"
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "STATUSLINE-FULL PARITY OK"; exit 0

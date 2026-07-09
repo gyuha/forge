@@ -6,19 +6,21 @@
 # thin forge fragment below a third-party statusline). See fg-statusline/SKILL.md.
 #
 # Layout (each line independent; a field renders only when present):
-#   Line 1: <model> | <effort> | <dir> | <branch [+staged] [!modified] [?untracked]>
-#   Line 2: Context <bar> N% [| Usage <bar> N% (resets in H)] [| Weekly <bar> N% (resets in H)]
-#   Line 3: forge | <slug> | <ask→run→learn→done> | <flag>   (DELEGATED to forge-statusline.sh)
-#   Line 4: 📋 N queued · 📝 M awaiting retro                  (DELEGATED to forge-statusline.sh)
+#   Line 1: <model> · <effort> · <dir> · ⎇ <branch [↑ahead] [↓behind] [+staged] [!modified] [?untracked]>
+#   Line 2: Ctx <bar> N% [· 5h <bar> N% (~H)] [· 7d <bar> N% (~H)] [· ⏱ (D)]
+#   Line 3: ⚒ <slug> · <ask→run→learn→done>[ · <flag>]   (DELEGATED to forge-statusline.sh)
+#   Line 4: 📋 N queued · 📝 M awaiting retro             (DELEGATED to forge-statusline.sh)
 # The two SYSTEM lines always render (system info is independent of forge). The
-# forge lines are the fragment's own output with FORGE_SL_PREFIX='forge | ', so
+# forge lines are the fragment's own output with its default '⚒ ' prefix, so
 # the stage-gating is REUSED, never re-implemented (drift guarded by the reuse +
 # forge-statusline-full.parity.test.sh / forge-statusline.parity.test.sh).
 #
 # jq-free: system JSON is parsed with defensive sed. used_percentage appears in
 # THREE places (context_window / rate_limits.five_hour / seven_day) and resets_at
 # in TWO, so a first-match grab is WRONG — each leaf is read from its PARENT
-# object's flat body (json_obj), the node twin uses JSON.parse (ADR-0022).
+# object's flat body (json_obj), the node twin uses JSON.parse (ADR-0022). The ⏱
+# segment humanizes cost.total_duration_ms (floored to seconds) and is omitted
+# when cost/total_duration_ms is absent.
 #
 # Bars: 10 cells, filled = round(pct/10) via integer (pct+5)/10 clamped 0..10.
 # Colors are threshold-based (<70 green / 70–89 yellow / ≥90 red) but live-tuned
@@ -49,7 +51,7 @@ str_in() { printf '%s' "$1" | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^
 num_in() { printf '%s' "$1" | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\\([0-9][0-9.]*\\).*/\\1/p" | head -1; }
 
 floor_int() { local r="${1%%.*}"; case "$r" in ""|*[!0-9]*) printf '0' ;; *) printf '%s' "$r" ;; esac; }
-join_bar() { local out="" first=1 p; for p in "$@"; do if [ "$first" = 1 ]; then out="$p"; first=0; else out="$out | $p"; fi; done; printf '%s' "$out"; }
+join_bar() { local out="" first=1 p; for p in "$@"; do if [ "$first" = 1 ]; then out="$p"; first=0; else out="$out · $p"; fi; done; printf '%s' "$out"; }
 
 bar() { # <pctInt> -> "<colored 10-cell bar> N%"
   local p="$1" filled empty i out="" col
@@ -78,7 +80,7 @@ if [ -n "$oneline" ]; then
   [ -n "$cwd" ] && [ -d "$cwd" ] && cd "$cwd" 2>/dev/null || true
 fi
 
-# --- Line 1: model | effort | dir | git --------------------------------------
+# --- Line 1: model · effort · dir · ⎇ git ------------------------------------
 model="$(str_in "$(json_obj model)" display_name)"
 effort="$(str_in "$(json_obj effort)" level)"
 dir="$(basename "$(pwd)")"
@@ -93,7 +95,17 @@ if [ -n "$branch" ] && [ "$branch" != "HEAD" ]; then
   st="$(git diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')"
   md="$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')"
   ut="$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')"
-  gitseg="$branch"
+  # ahead/behind vs upstream: left-right count emits "<behind>\t<ahead>"
+  # (left = upstream-only, right = HEAD-only). No upstream -> command fails
+  # (stderr suppressed) -> ab empty -> ↑↓ omitted entirely.
+  ab="$(git rev-list --left-right --count '@{upstream}...HEAD' 2>/dev/null || true)"
+  gitseg="⎇ $branch"
+  if [ -n "$ab" ]; then
+    set -- $ab
+    behind="${1:-0}"; ahead="${2:-0}"
+    [ "${ahead:-0}" -gt 0 ] && gitseg="$gitseg ↑$ahead"
+    [ "${behind:-0}" -gt 0 ] && gitseg="$gitseg ↓$behind"
+  fi
   [ "${st:-0}" -gt 0 ] && gitseg="$gitseg +$st"
   [ "${md:-0}" -gt 0 ] && gitseg="$gitseg !$md"
   [ "${ut:-0}" -gt 0 ] && gitseg="$gitseg ?$ut"
@@ -101,29 +113,37 @@ if [ -n "$branch" ] && [ "$branch" != "HEAD" ]; then
 fi
 line1="$(join_bar "${seg1[@]}")"
 
-# --- Line 2: Context | Usage | Weekly ----------------------------------------
+# --- Line 2: Ctx · 5h · 7d · ⏱ ------------------------------------------------
 ctx="$(floor_int "$(num_in "$(json_obj context_window)" used_percentage)")"
-seg2=("Context $(bar "$ctx")")
+seg2=("Ctx $(bar "$ctx")")
 
 five="$(json_obj five_hour)"
 if [ -n "$five" ]; then
   fp="$(floor_int "$(num_in "$five" used_percentage)")"
   fr="$(floor_int "$(num_in "$five" resets_at)")"
-  seg2+=("Usage $(bar "$fp") (resets in $(humanize $(( fr - now )) ))")
+  seg2+=("5h $(bar "$fp") (~$(humanize $(( fr - now )) ))")
 fi
 
 seven="$(json_obj seven_day)"
 if [ -n "$seven" ]; then
   sp="$(floor_int "$(num_in "$seven" used_percentage)")"
   sr="$(floor_int "$(num_in "$seven" resets_at)")"
-  seg2+=("Weekly $(bar "$sp") (resets in $(humanize $(( sr - now )) ))")
+  seg2+=("7d $(bar "$sp") (~$(humanize $(( sr - now )) ))")
+fi
+
+# ⏱ session elapsed: cost.total_duration_ms floored to seconds, humanized.
+# Omitted when cost/total_duration_ms is absent; an explicit 0 renders "⏱ (0m)".
+cost="$(json_obj cost)"
+if [ -n "$cost" ]; then
+  dms="$(num_in "$cost" total_duration_ms)"
+  [ -n "$dms" ] && seg2+=("⏱ ($(humanize $(( $(floor_int "$dms") / 1000 )) ))")
 fi
 line2="$(join_bar "${seg2[@]}")"
 
-# --- Line 3/4: forge progress, DELEGATED to the fragment (prefix 'forge | ') --
+# --- Line 3/4: forge progress, DELEGATED to the fragment (default '⚒ ' prefix) --
 forge_out=""
 [ -f "$HERE/forge-statusline.sh" ] && \
-  forge_out="$(printf '%s' "$input" | FORGE_SL_PREFIX='forge | ' bash "$HERE/forge-statusline.sh" 2>/dev/null || true)"
+  forge_out="$(printf '%s' "$input" | bash "$HERE/forge-statusline.sh" 2>/dev/null || true)"
 
 # --- Emit: system lines always; forge lines only when non-empty --------------
 printf '%s\n' "$line1"

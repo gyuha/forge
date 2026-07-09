@@ -10,11 +10,19 @@
 //
 // Output (each line shown independently — NOT precedence-hidden):
 //   Line 1 (active slot present):
-//     ⚒ [🔁 rN/cap ]<slug> | ✔ ask → ● run → ○ learn → ○ done | [flag]
+//     ⚒ [🔁 rN/cap ][#N ]<slug> · ✔ ask → ● run → ○ learn → ○ done[ · flag][ · Ⓣ Ⓔ]
+//     (#N comes from the plan's `<!-- task: N -->` marker — omitted when the plan
+//     has none; the " · flag" tail appears only when there is a flag; the trailing
+//     indicator segment shows Ⓣ when the plan has `<!-- tdd: on -->` and Ⓔ when
+//     the TOP-LEVEL .forge/config.json (branch-independent global, ADR-0011) has
+//     "eco": true — space-separated when both are on, only the lit one otherwise,
+//     and the whole segment omitted when neither is, so with no indicators the
+//     line is unchanged and carries no trailing separator)
 //   Line 1 (no active slot, but fg-ask is mid-grilling — ask.md marker present):
-//     ⚒ <working-slug> | ● ask → ○ run → ○ learn → ○ done
+//     ⚒ <working-slug> · ● ask → ○ run → ○ learn → ○ done[ · Ⓔ]
+//     (no #N/Ⓣ at the ask stage — no plan exists yet; Ⓔ still applies)
 //   Line 1 fallback (no active slot, no ask.md, but a goal loop is in flight):
-//     🔁 rN/cap
+//     🔁 rN/cap   (never carries indicators)
 //   Line 2 (backlog and/or executed non-empty, independent of line 1):
 //     📋 N queued · 📝 M awaiting retro   (either half omitted when zero)
 //
@@ -45,8 +53,8 @@ const DOT_UPCOMING = '\x1b[2m';  // dim — upcoming stage
 const RESET = '\x1b[0m';
 
 // The line-1 prefix, default "⚒ ". The "merge" mode unified script
-// (forge-statusline-full.js, ADR-0029) sets FORGE_SL_PREFIX="forge | " to REUSE
-// this stage-gating for its forge line. Unset in method-1 usage -> unchanged.
+// (forge-statusline-full.js, ADR-0029) REUSES this stage-gating for its forge
+// line, invoking it as-is (default "⚒ " — it no longer sets FORGE_SL_PREFIX).
 const PREFIX = process.env.FORGE_SL_PREFIX || '⚒ ';
 
 // buildPipeline('ask'|'run'|'learn') -> "✔ ask → ● run → ○ learn → ○ done" (colored)
@@ -93,6 +101,19 @@ const read = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch (_) { ret
 
 if (!isDir(root)) process.exit(0);
 
+// --- Eco indicator source (Ⓔ): TOP-LEVEL .forge/config.json -------------------
+// Branch-independent global exception (ADR-0011) — the same top-level cfg
+// resolveForgeRoot reads for defaultBranch, so strip any /branch/<branch> tail
+// off the resolved root. fg-eco owns the key; this only reads it. JSON.parse
+// first, tolerant regex fallback for a malformed-but-greppable config (parity
+// with the .sh twin's sed read — ADR-0022).
+let eco = false;
+const cfgTxt = read(path.join(root.replace(/(\.forge)[\/\\]branch[\/\\].*$/, '$1'), 'config.json'));
+if (cfgTxt) {
+  try { eco = JSON.parse(cfgTxt).eco === true; }
+  catch (_) { eco = /"eco"\s*:\s*true/.test(cfgTxt); }
+}
+
 // --- Loop indicator -----------------------------------------------------------
 let loopIndicator = '';
 const loopPath = path.join(root, 'loop.md');
@@ -107,7 +128,13 @@ if (isFile(loopPath)) {
 let line1 = '';
 const planPath = path.join(root, 'plan.md');
 if (isFile(planPath)) {
-  let slug = (read(planPath).match(/forge-slug:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'plan';
+  const planTxt = read(planPath);
+  const slug = (planTxt.match(/forge-slug:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'plan';
+  // #N from the plan's `<!-- task: N -->` marker (marker-anchored, same style as
+  // the forge-slug parse above) — omitted when the plan carries no marker.
+  const taskN = (planTxt.match(/<!--[\t ]*task:[\t ]*([0-9]+)[\t ]*-->/) || [])[1] || '';
+  // Ⓣ only for an explicit `<!-- tdd: on -->` marker ("tdd: off" must not light up).
+  const tdd = /<!--[\t ]*tdd:[\t ]*on[\t ]*-->/.test(planTxt);
   let stage, flag = '';
   if (isFile(path.join(root, 'run.md'))) {
     const st = path.join(root, 'STATUS.md');
@@ -116,22 +143,27 @@ if (isFile(planPath)) {
     // verified not yet sealable (pending/failed/missing) -> still fg-run's territory
     // (fg-learn's own retro gate refuses these); sealable -> retro gate passed, learn is current.
     switch (v) {
-      case 'yes': flag = ' ✓'; stage = 'learn'; break;
-      case 'failed': flag = ' ✗'; stage = 'run'; break;
-      case 'pending': case '': flag = ' ⏳'; stage = 'run'; break;
+      case 'yes': flag = '✓'; stage = 'learn'; break;
+      case 'failed': flag = '✗'; stage = 'run'; break;
+      case 'pending': case '': flag = '⏳'; stage = 'run'; break;
       case 'skipped': case 'n/a': flag = ''; stage = 'learn'; break;
-      default: flag = ' ⏳'; stage = 'run';
+      default: flag = '⏳'; stage = 'run';
     }
   } else {
     stage = 'run';
   }
   const pipeline = buildPipeline(stage);
   const prefixBit = loopIndicator ? `${loopIndicator} ` : '';
-  line1 = `${PREFIX}${prefixBit}${slug} | ${pipeline} |${flag}`;
+  const numBit = taskN ? `#${taskN} ` : '';
+  // Trailing indicator segment " · Ⓣ Ⓔ" — space-separated, only the lit ones,
+  // whole segment omitted when neither is on (no trailing separator otherwise).
+  const indicators = [tdd ? 'Ⓣ' : '', eco ? 'Ⓔ' : ''].filter(Boolean).join(' ');
+  line1 = `${PREFIX}${prefixBit}${numBit}${slug} · ${pipeline}${flag ? ` · ${flag}` : ''}${indicators ? ` · ${indicators}` : ''}`;
 } else if (isFile(path.join(root, 'ask.md'))) {
   const workingSlug = (read(path.join(root, 'ask.md')).match(/forge-ask:[\t ]*(\S*)[\t ]*-->/) || [])[1] || 'ask';
   const pipeline = buildPipeline('ask');
-  line1 = `${PREFIX}${workingSlug} | ${pipeline} |`;
+  // No #N/Ⓣ at the ask stage (no plan yet); Ⓔ still applies to the ask line.
+  line1 = `${PREFIX}${workingSlug} · ${pipeline}${eco ? ' · Ⓔ' : ''}`;
 } else if (loopIndicator) {
   line1 = loopIndicator;
 }

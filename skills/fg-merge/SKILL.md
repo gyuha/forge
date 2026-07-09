@@ -19,6 +19,16 @@ fg-merge does **not** run git — that is a non-goal. The expected order (ADR-00
 
 If `.forge/branch/<branch>/` is not present on the default branch (e.g. you haven't merged yet, or the name is wrong), stop and say so — there is nothing to integrate.
 
+## Which branch to integrate (argument vs. no-argument)
+
+`fg-merge <branch>` names the branch explicitly. When invoked with **no argument** (`fg-merge`), resolve the branch by enumerating the branch roots under `.forge/branch/`:
+
+- **exactly one** → propose it ("integrate `.forge/branch/<branch>/`?") and proceed on confirmation.
+- **several** → ask which one to integrate (list them); do not guess.
+- **none** → there is nothing to integrate; say so and stop (same as the missing-folder case above).
+
+A slashed branch name nests (`feature/x` → `.forge/branch/feature/x/`), so enumerate leaf roots (a directory that directly contains the forge docs), not the intermediate `feature/` grouping directory.
+
 ## What it integrates (and what it does not)
 
 Resolve nothing here — fg-merge always reads the literal `.forge/branch/<branch>/` (source) and writes the literal top-level `.forge/` (target). It integrates the branch root's **permanent docs**:
@@ -28,6 +38,7 @@ Resolve nothing here — fg-merge always reads the literal `.forge/branch/<branc
 - **CONTEXT.md** (`.forge/branch/<branch>/CONTEXT.md`) → glossary terms merged **term-by-term** into `.forge/CONTEXT.md` (append new terms; a term defined in both is a conflict — see the gate).
 - **done/ history** (`.forge/branch/<branch>/done/*`) → moved into `.forge/done/` (local archive record; disambiguate dir names on collision).
 - **Backlog plans** (`.forge/branch/<branch>/backlog/*.md`) → moved into the top-level `.forge/backlog/`; on a slug collision append `-2` (updating the `forge-slug` comment), and reassign each plan's `task: N` marker to the next free number against the target root's markers (backlog/active slot/executed/done — see PLAN-FORMAT.md) — the same deferred-numbering rationale as ADR renumbering.
+- **dropped/ archive** (`.forge/branch/<branch>/dropped/*`) → moved into the top-level `.forge/dropped/` (the discarded-work archive fg-drop keeps; disambiguate dir names with `-2` on collision, create `.forge/dropped/` lazily if absent). This does **not** trigger the in-flight halt below — dropped work was deliberately abandoned, so it never blocks integration; it is **moved rather than silently deleted** with the branch folder so the archive survives the integration. (It stays volatile — the target `.forge/dropped/` is gitignored, same as any dropped archive; the move just preserves it in the working tree instead of destroying it.)
 
 **Create each target directory lazily.** If `.forge/adr/`, `.forge/retro/`, or `.forge/done/` does not yet exist on the default branch (e.g. a fresh repo whose first sealed/decided work happened on the branch), create it on the way in — its absence is not an error, just the lazy-creation convention. (Verified by the fg-merge lifecycle e2e test: a target missing `done/` would otherwise drop the folded history.)
 
@@ -43,8 +54,9 @@ ADR numbers are assigned at creation as `max+1` per root, so a branch and the de
 2. Take the branch's incoming ADRs **in ascending order of their current number** and assign them the next free numbers in sequence (`0012`, `0013`, …). **Build the complete old→new map for ALL incoming ADRs first — rename and rewrite nothing until the whole map exists.**
 3. Apply the map in **one simultaneous pass**, scoped to the **incoming branch docs only**: the incoming ADR bodies, the moved retros, the branch `CONTEXT.md` (before its terms are appended to the target), and the `done/` plan/run notes being folded in. Rewrite each **`ADR-NNNN`** (and `NNNN-slug` filename) reference via a unique placeholder first, then placeholders to final numbers — old and new ranges overlap (a branch's `0001` always collides with the target's), so a sequential in-place rewrite would cascade (`0001→0012` later re-hit by `0012→0023`). **Never rewrite target-side docs** — pre-existing `ADR-NNNN` references in the target's own ADRs and target `CONTEXT.md` point at the target's numbers and must stay untouched. A reference left pointing at the old number is a silent breakage.
 4. After renumbering, grep the **moved incoming docs** for stale old-number references (the map's old side) and report any that remain.
+5. **Also grep the non-`.forge/` project files this merge brought in** — the preceding `git merge` may have pulled in project docs/code (CLAUDE.md, README, `docs/`, source comments) that cite the branch's ADRs by their **old** numbers. Scope the grep to the merge-changed files (`git diff --name-only ORIG_HEAD..HEAD`, excluding `.forge/` paths), **not** the whole repo, so unrelated pre-existing citations don't surface as false positives. **Warn only — never rewrite these.** Outside `.forge/` an `ADR-NNNN` citation cannot be disambiguated: a branch's low incoming number always overlaps a target number, so the same `ADR-0003` string might mean "the branch ADR just renumbered" or "the target's own ADR-0003" — only a human knows which. Report each hit (file · line · old→new mapping) and leave the rewrite to the human.
 
-> **Warn loudly if cross-reference rewriting is incomplete.** The whole value of deferring numbering to merge time is lost if a renamed ADR is still referenced by its old number somewhere. Surface unresolved references rather than sealing silently.
+> **Warn loudly if cross-reference rewriting is incomplete.** The whole value of deferring numbering to merge time is lost if a renamed ADR is still referenced by its old number somewhere. Surface unresolved references — both the auto-rewritten incoming docs (step 4) and the warn-only external project files (step 5) — rather than sealing silently.
 
 ## Mechanical-auto, conversational-on-conflict
 
@@ -57,28 +69,31 @@ Everything non-conflicting proceeds without a question.
 
 ## Finish: remove the branch folder
 
-Once integration is confirmed, delete `.forge/branch/<branch>/` so the branch root does not linger as a duplicate of what now lives in `.forge/`. Then summarize what was integrated (N ADRs renumbered to which numbers, retros moved, terms merged, done entries and backlog plans folded) in the user's language — and remind the user to **commit the integration result** (the renumbered/moved docs plus the branch-folder deletion): fg-merge does not run git, so until committed the integration exists only in the working tree.
+Once integration is confirmed, delete `.forge/branch/<branch>/` so the branch root does not linger as a duplicate of what now lives in `.forge/`. **For a slashed branch name (`feature/x`), also remove the now-empty parent directory (`.forge/branch/feature/`)** once nothing else remains under it — otherwise the empty grouping directory lingers as a phantom branch root that the no-argument enumeration above would trip over. Then summarize what was integrated (N ADRs renumbered to which numbers, retros moved, terms merged, done entries and backlog plans folded, dropped/ archive preserved) in the user's language — and remind the user to **commit the integration result** (the renumbered/moved docs plus the branch-folder deletion): fg-merge does not run git, so until committed the integration exists only in the working tree.
 
 ```
-fg-merge <branch>   (run AFTER `git merge <branch>` on the default branch)
+fg-merge [<branch>]   (run AFTER `git merge <branch>` on the default branch)
    │
+   ▼
+branch given?  ── no ──▶ enumerate leaf roots under .forge/branch/ ─ one ▶ propose · several ▶ ask which · none ▶ stop
+   │ yes / resolved
    ▼
 .forge/branch/<branch>/ present?  ── no ──▶ stop ("nothing to integrate — git merge first?")
    │ yes
    ▼
 In-flight task in the branch root (active slot · executed/ · pending quick entry · `loop.md`)?  ── yes ──▶ halt, warn (seal/recover/resume-or-abandon on the branch first)
-   │ no
+   │ no   (dropped/ does NOT halt — it is moved, not blocked)
    ▼
-Auto (mechanical): renumber ADRs (map first, one pass, incoming docs only) · move retros · append non-conflicting CONTEXT terms · fold done/ · fold backlog plans (renumber task:)
+Auto (mechanical): renumber ADRs (map first, one pass, incoming docs only; then warn-only grep of merge-changed non-.forge/ files) · move retros · append non-conflicting CONTEXT terms · fold done/ · fold backlog plans (renumber task:) · move dropped/ archive
    │
    ├── genuine conflict (term redefined · ADR contradiction) ──▶ HALT, show both, ask the human ──▶ apply choice
    │
    ▼
-Remove .forge/branch/<branch>/  →  summarize integration (in the user's language)
+Remove .forge/branch/<branch>/ (+ empty slashed parent)  →  summarize integration (in the user's language)
 ```
 
 ## Document impact
 
-- Writes into the target `.forge/adr/`, `.forge/retro/`, `.forge/CONTEXT.md`, `.forge/done/`, `.forge/backlog/` (the integrated docs).
-- Removes `.forge/branch/<branch>/` after integration.
+- Writes into the target `.forge/adr/`, `.forge/retro/`, `.forge/CONTEXT.md`, `.forge/done/`, `.forge/backlog/`, `.forge/dropped/` (the integrated docs and preserved archive).
+- Removes `.forge/branch/<branch>/` after integration (plus the empty slashed parent directory, if any).
 - Does **not** touch `.forge/config.json` or `.forge/codebase/` (global exemptions), and does **not** run git.
