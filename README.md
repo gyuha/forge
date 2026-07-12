@@ -1,6 +1,6 @@
 # forge
 
-![forge loop: ask → run → learn → done](./docs/workflow.png)
+![forge](./docs/icon-sm.png)
 
 > A development loop that takes one task through a single cycle of **ask·plan → execute → retro → done**.
 > A loop-style workflow plugin built from eighteen `fg-`-prefixed Claude Code skills — four that form the loop, plus fourteen utilities outside it.
