@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.5.12] - 2026-07-12
+
+### Changed
+- **`fg-loop`의 `verified: failed`을 active-slot 제자리 수리로 전환 ([ADR-0016](./.forge/adr/0016-fg-loop-goal-driven-bounded-replan.md) 개정 2026-07-11).** 실패한 작업이 유일한 active slot을 점유한 채 새 backlog plan을 생성하면 fg-run이 그것을 승격할 수 없던 제어흐름 결함을 제거 — 같은 active task를 fg-run의 failed 분기(fix → fresh run.md → re-verify)로 **제자리 수리**하고 `<!-- repaired-by: fg-loop -->` provenance 마커만 더한다(slug/task/goal 불변). cap·scope·safety 게이트를 수리 전 통과시키며, tension의 `regressed:` 귀속은 `generated-by`·`repaired-by` 두 마커를 모두 인정한다. active slot이 빈 stop-check 실패만 종전처럼 `generated-by` backlog plan을 생성한다. 흐름도를 seal 경유가 명확한 텍스트 흐름도로 재작성.
+- **`fg-run` 미실행 plan 4개 이상 선택 UI.** `AskUserQuestion`의 4옵션 상한 때문에 2–3개는 대화 메뉴, 4개 이상은 번호 텍스트 목록(task 번호/slug/목록 번호/`all`)으로 제시해 후보를 잘라내지 않는다. 동순위 정렬은 `part: N/M` 다음 slug.
+- **`fg-merge` incoming task 번호를 done/+backlog 통합 재부여.** backlog만 재부여하면 done/ 아카이브에 중복 task 번호가 남아 fg-doctor uniqueness(error)와 fg-status 표시를 깨던 문제 — incoming plan 전체를 한 map으로 target 루트 마커에 대해 재부여한다.
+- **`fg-drop` 항목 수별 선택 UI + goal 루프 통째 drop.** 1개는 drop/cancel 2지, 2–4개는 체크박스, 5개 이상은 번호 목록. goal 루프 drop은 `loop.md` + 모든 멤버 task의 미완 상태(backlog/active/executed)를 함께 제거하고 done·비멤버는 불변. 비-기본 브랜치 루트의 `dropped/`는 추적·fg-merge 보존.
+- **`fg-done` 봉인 타깃 해석 규칙 명시.** active slot은 `--slug` 생략, parked/half-sealed는 `--slug`, active가 비고 parked가 여럿이면 먼저 선택(1개 자동·2–4 대화·5+ 목록). `all` 모드도 active는 `--slug` 생략·parked만 `--slug`.
+- **`fg-adversarial-review` fix-forward 실행 순서.** 코드 결함 fix-forward는 원 작업이 active slot을 점유하는 동안 fg-run이 승격 못 하므로, 원 작업을 먼저 `fg-learn`→`fg-done`으로 봉인해 슬롯을 비운 뒤 `fg-run`이 fix plan을 집어간다.
+- **`fg-next all` 전체 drive-set 스냅샷.** 새 backlog뿐 아니라 active slot·executed/ 작업(각 `verified:` 상태 + 회고 auto-skip·봉인 예정)을 먼저 보여, 이미 실행된 작업의 회고 waiver가 비공개로 넘어가지 않게 한다.
+- **`fg-status` 고정 라벨만 로컬라이즈.** 스크립트의 행·순서·값·기호를 canonical로 취급하고 고정 라벨(No./Date/Task/Stage/Verify/Retro 등)만 사용자 언어로 번역 — 표를 재조사·재구성하지 않는다.
+- **`fg-statusline` 쓰기 전 read-only preflight.** copy/chmod 전에 settings 위치·기존 statusLine·모드/밀도/OS 드리프트를 먼저 확인하고 밀도를 그 뒤 결정한다. Windows의 기존 wrapper는 유효한 refresh가 아니라 OS 드리프트로 보고 방법 2를 제안.
+
+### Fixed
+- **`fg-statusline` 방법 2의 Context 사용률이 항상 0%로 표시되던 버그.** 실제 세션 JSON의 `context_window`가 중첩 하위객체 `current_usage`를 `used_percentage` **앞**에 담는데, `.sh` 통합 스크립트의 `json_obj`가 평평한 객체만 파싱해 `used_percentage`를 놓쳤다(`.js` 트윈은 `JSON.parse`라 정상). `json_obj`를 한 단계 중첩을 위치 무관하게 허용하도록 고쳐 순서 독립으로 만들고, current_usage 앞/뒤 픽스처를 behavior·parity 테스트에 추가했다.
+- **소비자 문서 정합 드리프트 일괄 수정(이 리포의 반복 실패 모드 — 단일 정의 vs 본문 갈라짐).** `fg-drop` frontmatter 선택 UI 설명(2분기→3분기), `docs/state-contract.md`의 `dropped/` 브랜치 추적 조건, README 이중언어 fg-run 행, `docs/forge-vs-loop-engineering.md`의 safety/tension 벽 스코프(생성·제자리수리 fix-forward), `docs/index.html` fg-run 선택 설명(이중언어)을 단일 정의에 맞춰 정렬했다.
+
 ## [0.5.11] - 2026-07-10
 
 ### Added
