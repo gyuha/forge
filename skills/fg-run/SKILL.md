@@ -1,6 +1,6 @@
 ---
 name: fg-run
-description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds exactly one unexecuted plan, runs it right away without a confirmation question; when it holds several, presents a guide dialog of the unfinished ones (last option 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge run', '계획 실행', '이거 워크플로우로 돌려줘' (the old trigger 'forge execute' is still recognized as an alias). Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
+description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds exactly one unexecuted plan, runs it right away without a confirmation question; when it holds several, presents a priority-sorted selection (with 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge run', '계획 실행', '이거 워크플로우로 돌려줘' (the old trigger 'forge execute' is still recognized as an alias). Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
 ---
 
 # fg-run — ② Execute (Dynamic Workflow)
@@ -25,7 +25,10 @@ A workflow spins up many subagents, so it burns a lot of tokens. Running the sam
 
 - **0** — There is no plan to execute. Point to fg-ask and stop (the stage that defines the task, grills it, and produces a plan). Do not guess a plan into existence and run it.
 - **1** — **No menu, no confirmation question: promote and run it right away.** Announce in one line what is being run ("Running the only unexecuted plan from fg-ask: <title>") and proceed — the orchestration-script approval in step 2 of the main body still gates the actual workflow, so this skips only the redundant pre-confirmation.
-- **2 or more** — Show a guide dialog via `AskUserQuestion`, framed as "these are the plans fg-ask produced that haven't run yet — which one shall I execute?". **Sort the options by priority**: read each plan's `<!-- priority: high|medium|low -->` marker (see PLAN-FORMAT.md) and order them `high → medium → low`; a plan with no marker is treated as `medium`; ties within the same priority break by slug alphabetical. The options = each unfinished plan in that order (label: `#<task> [<priority>] <title>` — prefix the plan's stable `task:` number, or `#—` if it has none; description: one-line goal + slice count), and **the last option, at the very bottom, is "Run all (N sequential)"**. This is a sort of the menu only — there is **no auto-selection**; the user still picks. The user may also refer to a task by its number (e.g. "run #7") — match it against the plans' `task:` markers. The `#<task>` number is a stable identifier for selection, not the sort key (sort stays priority → part → slug). Show the dialog in conversation, outside the workflow.
+- **2 or more** — Present a priority-sorted selection, framed as "these are the plans fg-ask produced that haven't run yet — which one shall I execute?". **Sort every candidate first**: read each plan's `<!-- priority: high|medium|low -->` marker (see PLAN-FORMAT.md) and order them `high → medium → low`; a plan with no marker is treated as `medium`; ties within the same priority use numeric `part: N/M` order, then slug alphabetical. Show each unfinished plan as `#<task> [<priority>] <title>` (stable `task:` number, or `#—`; include the one-line goal + slice count), with "Run all (N sequential)" last. The selection UI depends on count because `AskUserQuestion` accepts at most four options:
+  - **2–3 plans** → use `AskUserQuestion`; the plan options plus the final "Run all" option total at most four.
+  - **4 or more plans** → print a numbered text list in the same order, append `all — Run all (N sequential)`, and ask the user to type a stable task number, slug, list number, or `all`. Do not truncate candidates to fit the dialog.
+  This is ordering only — there is **no auto-selection**; the user still picks. A direct reference such as "run #7" matches the plans' `task:` markers. The `#<task>` number is a stable identifier for selection, not the sort key. Keep the selection in conversation, outside the workflow.
 
 **Part-plans (split tasks).** If plans carry a `<!-- part: N/M -->` marker (a big task fg-ask split into an ordered series — see PLAN-FORMAT.md), append `(part N/M)` to their label and keep them in sequence order (ordered by the numeric N in their `part: N/M` markers — slug alphabetical misorders 10+ parts). Recommend completing them one at a time, in order, each as its own full `execute → learn → done` loop. This is a **soft order** — do not block a later part because an earlier one isn't sealed; the user may still pick any item.
 
@@ -58,7 +61,8 @@ Active slot (.forge/plan.md) present?
    │            │ no (or user declines) ──▶ Scan .forge/backlog/ → candidate count:
    │                                          • 0  ──▶ stop, point to fg-ask
    │                                          • 1  ──▶ promote backlog→plan.md (+ verify ADR exists) ──▶ build workflow
-   │                                          • 2+ ──▶ AskUserQuestion menu (last option: Run all)
+   │                                          • 2–3 ──▶ AskUserQuestion (plans + final Run all, ≤4 options)
+   │                                          • 4+  ──▶ numbered text list (task/slug/list number/all)
    │                                                     └─ single choice ──▶ build workflow │ Run all ──▶ Run-all procedure (RUN-ALL.md)
 ```
 

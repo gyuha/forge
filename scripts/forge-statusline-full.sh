@@ -77,7 +77,8 @@ input=""
 [ ! -t 0 ] && input="$(cat 2>/dev/null || true)"
 oneline="$(printf '%s' "$input" | tr '\n' ' ')"
 
-json_obj() { printf '%s' "$oneline" | sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*{\\([^{}]*\\)}.*/\\1/p" | head -1; }
+# object value; tolerates one level of nested objects (e.g. context_window.current_usage) in any position — order-independent
+json_obj() { printf '%s' "$oneline" | sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*{\\(\\([^{}]*{[^{}]*}\\)*[^{}]*\\)}.*/\\1/p" | head -1; }
 str_in() { printf '%s' "$1" | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" | head -1; }
 num_in() { printf '%s' "$1" | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\\([0-9][0-9.]*\\).*/\\1/p" | head -1; }
 

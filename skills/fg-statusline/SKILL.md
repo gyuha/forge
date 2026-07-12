@@ -98,6 +98,8 @@ Both twins emit identical output (ANSI stripped), guarded by `scripts/forge-stat
 
 Run these steps in conversation (the skill runs in the main session, so it can read files, show diffs, and ask for confirmation). The script sources live under `${CLAUDE_PLUGIN_ROOT}/scripts/` — the fragment (`forge-statusline.sh`/`.js`), the method-1 wrapper (`forge-statusline-wrapper.sh`), and the method-2 unified script (`forge-statusline-full.sh`/`.js`) — all available here, in the skill context, *not* in the statusLine shell later. Let `CFG` be the Claude config dir (`$CLAUDE_CONFIG_DIR` if set, else `$HOME/.claude`); resolve it to an **absolute path** now, because every `settings.json` reference must be absolute (no `~`).
 
+**Mandatory read-only preflight before any copy or chmod:** perform step 2 first — locate settings, read the existing command, detect the current mode/OS drift, and **read the existing `statusLine` before choosing density**. Decide whether this is a refresh, a mode switch, or a new install; obtain any confirmation the path requires. Only then perform step 1's writes and the final settings write. This prevents a declined install from overwriting stable scripts, and it is the only way a refresh can preserve the density already stored in the command.
+
 ### 1. Install the scripts to stable paths
 
 Copy all of these and `chmod +x` them (idempotent — a **refresh** after a forge update is just re-running this; copy the whole list regardless of the chosen mode, so a later mode switch needs no extra copy):
@@ -120,7 +122,7 @@ Both the fragment and the unified script ship in two forms — `.sh` (bash, prim
 - **Unix (Darwin / Linux, incl. WSL)** → `STATUSLINE_CMD = <CFG>/forge-statusline-full.sh`
 - **Windows** → `STATUSLINE_CMD = node <CFG>/forge-statusline-full.js` — node always runs on Windows and dodges a blocked/absent PowerShell; do **not** assume the Windows system shell has bash even when Git Bash exists for the Bash tool. (`<CFG>/forge-statusline.js` + `<CFG>/resolve-forge-root.js` must sit beside it — see the copy list.)
 
-**Density (method 2 only): ask once, then append it to `STATUSLINE_CMD`.** Method 2 renders in `full` (4 lines — system + session / usage bars / forge / queue) or `compact` (2 lines — system + bars on one line, forge folded into a single group; the session group is dropped). Ask the user which they want (default **`full`** — no arg, byte-compatible with an existing full install), and append the density as a positional arg to the command **only when `compact`** (full = no arg): `STATUSLINE_CMD = <CFG>/forge-statusline-full.sh compact` (Unix) / `node <CFG>/forge-statusline-full.js compact` (Windows). Density is stored in the wired command itself — **no new `config.json` key** (ADR-0029). On a **refresh**, read the density from the existing wired command and preserve it (don't silently flip it); a density switch is an explicit re-ask, like a mode switch. Method 1 has no density (the wrapper always appends the fragment's full-density output).
+**Density (method 2 only): decide after the settings preflight, then append it to `STATUSLINE_CMD`.** Method 2 renders in `full` (4 lines — system + session / usage bars / forge / queue) or `compact` (2 lines — system + bars on one line, forge folded into a single group; the session group is dropped). For a new method-2 install or an explicit switch into method 2, ask once (default **`full`** — no arg); append the positional arg only for `compact`: `STATUSLINE_CMD = <CFG>/forge-statusline-full.sh compact` (Unix) / `node <CFG>/forge-statusline-full.js compact` (Windows). For an existing forge-full refresh, parse and preserve the current arg without asking or silently flipping it; re-ask only when the user requests a density change. Density is stored in the wired command itself — **no new `config.json` key** (ADR-0029). Method 1 has no density (the wrapper always appends the fragment's full-density output).
 
 State the detected OS, the chosen density, and the resulting `STATUSLINE_CMD` to the user when you wire it, so the choice is auditable.
 
@@ -142,7 +144,7 @@ Decide which `settings.json` to edit. Prefer the file that **already** defines a
   - **Method 1 (append)** → the auto-wrap case (step 3a). Preserve the original into the wrapper's orig file.
   - **Method 2 (merge)** → replace the command with `<STATUSLINE_CMD>`, but first **preserve the original** for restore (step 3b).
 
-- **An existing forge wrapper** (command references `forge-statusline-wrapper.sh`) → **method 1 already wired**. Do **not** wrap again (guard against double-wrapping). Step 1 already refreshed the scripts; if the command still uses a `~` path, rewrite it to the absolute path (the one fix worth applying). Report it's up to date (offer switching to method 2 only if the user asks) and stop.
+- **An existing forge wrapper** (command references `forge-statusline-wrapper.sh`) → **method 1 already wired**. Do **not** wrap again (guard against double-wrapping). On Unix, refresh after the preflight; if the command still uses a `~` path, rewrite it to the absolute path (the one settings fix worth applying), report it up to date, and stop. **An existing wrapper on Windows is OS drift, not a valid refresh**: method 1 is bash-only, so offer a two-choice decision — switch to method 2 (preserving the original for restore), or keep the existing wiring and stop without copying/rewriting. Never silently report the wrapper as working on Windows.
 
 - **An existing forge unified script** (command references `forge-statusline-full`) → **method 2 already wired**. Step 1 already refreshed the scripts; fix a `~` path to absolute if needed, and on Unix↔Windows drift correct the `.sh`/`node .js` form to match the host. Report it's up to date and stop.
 
@@ -180,11 +182,15 @@ The unified script is already installed (step 1). Wiring method 2 is a single se
 Procedure flow:
 
 ```
+READ-ONLY preflight: locate settings.json + read existing statusLine → detect mode, density, and HOST OS drift
+   ↓
+confirm new install / mode switch where required (decline → no copies, no settings write)
+   ↓
 copy fragment(.sh+.js) + wrapper + full(.sh+.js) + resolve-forge-root.js → <CFG>/  (chmod +x, absolute)  [refresh: re-copy all]
    ↓
-resolve STATUSLINE_CMD (merge cmd) once by HOST OS (uname -s):  Unix → <CFG>/forge-statusline-full.sh  ·  Windows → node <CFG>/forge-statusline-full.js
+resolve STATUSLINE_CMD by HOST OS + preserved/chosen density: Unix → <CFG>/forge-statusline-full.sh [compact] · Windows → node <CFG>/forge-statusline-full.js [compact]
    ↓
-locate settings.json + read existing statusLine → detect mode by command path
+apply the detected-mode branch
    ├── none                → method 2: command = <STATUSLINE_CMD> (absolute)   (confirm, write)
    ├── forge-wrapper       → method 1 already wired; refreshed in step 1; fix ~→absolute if needed; report & stop
    ├── forge-full          → method 2 already wired; refreshed in step 1; fix ~→absolute / OS .sh↔node .js if needed; report & stop

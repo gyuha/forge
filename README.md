@@ -66,7 +66,7 @@ The four loop stages, then the fourteen utilities outside the loop:
 | Skill | Stage | One-line role |
 | --- | --- | --- |
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
-| `fg-run` | ② Execute | Runs the plan as a Dynamic Workflow (one plan runs immediately, several show a selection menu) |
+| `fg-run` | ② Execute | Runs the plan as a Dynamic Workflow (one plan runs immediately, several show a priority-sorted selection) |
 | `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry |
 | `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path (ADR-0030). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |

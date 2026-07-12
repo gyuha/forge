@@ -29,6 +29,12 @@ Dual dispatch (ADR-0022): prefer bash, fall back to node.
 - `--docs-updated "<value>"` — the STATUS `docs updated:` field (which CONTEXT/ADR this loop touched — LLM knowledge). Default `none`; on the skip path it is usually `none` (promotion deferred to a later fg-learn).
 - `--completed <YYYY-MM-DD>` — seal date; defaults to today (an arg so tests are deterministic).
 
+**Resolve the target before invoking the script.** The script defaults only to the active slot; it does not choose among parked tasks:
+- An explicit user `--slug <slug>` targets that parked/half-sealed task.
+- If an active `plan.md` exists and no slug was requested, target the active slot. **active-slot target: omit `--slug`** — passing it is reserved for `executed/` or half-sealed `done/` targets.
+- If the active slot is empty, collect parked `executed/<slug>` candidates that can be routed by this invocation. With **exactly one parked candidate**, target it with `--slug <slug>` automatically. With 2–4, ask which via `AskUserQuestion`; with 5+, print a numbered list and ask for the task number/slug/list number. Do not call the script with no slug and then report `EMPTY` while a parked target exists.
+- If neither the active slot nor a parked target exists, run without `--slug` and route the script's exit 2 normally.
+
 **Exit codes → routing (this is the skill's job):**
 
 | Exit | Meaning | Route (see "Before starting" for the full rule) |
@@ -72,7 +78,7 @@ run forge-done.sh (bash) | forge-done.js (no bash)
 
 The script does the mechanical seal in one call (**close out STATUS in place → archive into `.forge/done/<date-slug>/` → empty the source bucket**, in that order so an interruption always leaves a recoverable source bucket). Your job around it:
 
-**1) Decide the arguments (judgment), then run the script.** Pick the target (active slot by default; `--slug` for a parked `executed/<slug>`), decide whether the retro is being skipped (`--skip-retro "<reason>"` — see the retro guard), and fill `--docs-updated "<value>"` with the CONTEXT/ADR this loop touched (default `none`). Then invoke the script via dual dispatch (bash, else node). Do **not** hand-move files or hand-edit STATUS — the script owns that.
+**1) Decide the arguments (judgment), then run the script.** Resolve the target with the rule above (active slot → no `--slug`; parked/half-sealed → `--slug`; active empty with multiple parked tasks → select one first), decide whether the retro is being skipped (`--skip-retro "<reason>"` — see the retro guard), and fill `--docs-updated "<value>"` with the CONTEXT/ADR this loop touched (default `none`). Then invoke the script via dual dispatch (bash, else node). Do **not** hand-move files or hand-edit STATUS — the script owns that.
 
 The script writes the closed-out `STATUS.md` in this fixed shape (documented here as the script's output contract — keep in sync with the script if it changes, per ADR-0020's consequence):
 
@@ -130,7 +136,7 @@ It relaxes exactly **one** gate — the retro guard (via `--skip-retro` on every
 - **Scope: seal-only.** Targets = the active slot + every `.forge/executed/<slug>/`. The backlog is **out of scope** — `all` never promotes/runs an unexecuted plan (that is `fg-next all`). Keep this sharp: if the user wants backlog work run too, point to `fg-next all`.
 - **The verification gate (ADR-0009) is untouched.** `all` skips the retro, **not** verification — it just passes `--skip-retro` per task; the script still refuses (exit 3) any task whose `verified:` is not sealable. A `verified: failed` task is **never** sealed — set it aside and route to **fg-run**, keep sealing the others. A `pending`/missing task takes the **same cleanup-time UAT recovery as the single-task path** (run the UAT here; sealable → seal, else set aside).
 - **The retro is auto-skipped unconditionally**, regardless of divergence — the same waiver `fg-next all`/`fg-loop` take (ADR-0010). Pass `--skip-retro "fg-done all — 학습은 run.md, 승급은 추후 fg-learn"` (in the user's language) so the skip is auditable and the learnings stay in the archived run.md for a later human fg-learn.
-- **One upfront confirmation, then no per-task prompts.** Before sealing anything, list **once**: the tasks that will be sealed (each with its `verified:` value and "retro will be skipped") **and** the tasks set aside (failed → fg-run, unverifiable → still pending) — the deciding of this list is judgment (which tasks, what will happen), which is why it stays here and not in the script. Get a single go-ahead. After it, loop over the qualifying tasks, calling the script once per task (`--slug <slug> --skip-retro "…"`). (Under `fg-next all`, the drive's upfront go-ahead already covers this — do not re-prompt; see fg-next's DRIVE.md.)
+- **One upfront confirmation, then no per-task prompts.** Before sealing anything, list **once**: the tasks that will be sealed (each with its `verified:` value and "retro will be skipped") **and** the tasks set aside (failed → fg-run, unverifiable → still pending) — the deciding of this list is judgment (which tasks, what will happen), which is why it stays here and not in the script. Get a single go-ahead. After it, loop over the qualifying tasks, calling the script once per task: **for the active-slot target omit `--slug`; for each parked `executed/<slug>` target pass `--slug <slug>`**, and pass `--skip-retro "…"` to both. Passing `--slug` indiscriminately would make the active task look absent to the script. (Under `fg-next all`, the drive's upfront go-ahead already covers this — do not re-prompt; see fg-next's DRIVE.md.)
 - **The unit is unchanged.** Each task is sealed into its own `.forge/done/<date-slug>/` by its own script call — `all` only skips retros in bulk, it does not bundle tasks.
 - **The notice stays terse.** `all` emits the per-task completion notice + set-aside list only — **never** the explicit-single-seal summary chapter (the seal-summary block in step 3, ADR-0032). Batch sealing favors momentum, so a summary per task would be a wall of text.
 
@@ -143,7 +149,7 @@ per task — check verified (route failed→fg-run, pending→cleanup UAT) ; bui
    ▼
 show ONE confirmation (to-seal w/ retro:skipped · set-aside) → one go-ahead
    ▼
-for each qualifying task: run forge-done.sh --slug <slug> --skip-retro "<reason>" [--docs-updated …]
+for each qualifying task: active slot → forge-done.sh --skip-retro "<reason>" ; executed/<slug> → forge-done.sh --slug <slug> --skip-retro "<reason>"
    ▼
 completion notice (per-task summary + set-aside list)
 ```

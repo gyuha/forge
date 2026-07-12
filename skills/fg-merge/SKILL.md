@@ -1,6 +1,6 @@
 ---
 name: fg-merge
-description: Integrates a non-default branch's forge content (`.forge/branch/<branch>/`) into the default-branch `.forge/` after a git merge — renumbering the branch's ADRs to the next free numbers (rewriting cross-references), moving retros, merging CONTEXT.md glossary terms, folding in done/ history, then removing the branch folder. Mechanical parts run automatically; genuine conflicts (a term redefined, an incoming ADR that contradicts one added on the default branch) halt and ask the human. It does NOT run git — you `git merge` first, then run fg-merge. An on-demand utility outside the loop. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘'.
+description: Integrates a non-default branch's forge content (`.forge/branch/<branch>/`) into the default-branch `.forge/` after a git merge — renumbering incoming ADRs and task numbers, moving retros, merging CONTEXT.md glossary terms, folding in done/backlog history, then removing the branch folder. Mechanical parts run automatically; genuine conflicts (a term redefined, an incoming ADR that contradicts one added on the default branch) halt and ask the human. It does NOT run git — you `git merge` first, then run fg-merge. An on-demand utility outside the loop. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘'.
 ---
 
 # fg-merge — integrate a branch's forge content into `.forge/` (outside the loop)
@@ -36,8 +36,9 @@ Resolve nothing here — fg-merge always reads the literal `.forge/branch/<branc
 - **ADRs** (`.forge/branch/<branch>/adr/*`) → renumbered into `.forge/adr/` (see the procedure below).
 - **Retros** (`.forge/branch/<branch>/retro/*`) → moved into `.forge/retro/`; on a filename (`YYYY-MM-DD-slug`) collision, disambiguate with a `-2` suffix.
 - **CONTEXT.md** (`.forge/branch/<branch>/CONTEXT.md`) → glossary terms merged **term-by-term** into `.forge/CONTEXT.md` (append new terms; a term defined in both is a conflict — see the gate).
-- **done/ history** (`.forge/branch/<branch>/done/*`) → moved into `.forge/done/` (local archive record; disambiguate dir names on collision).
-- **Backlog plans** (`.forge/branch/<branch>/backlog/*.md`) → moved into the top-level `.forge/backlog/`; on a slug collision append `-2` (updating the `forge-slug` comment), and reassign each plan's `task: N` marker to the next free number against the target root's markers (backlog/active slot/executed/done — see PLAN-FORMAT.md) — the same deferred-numbering rationale as ADR renumbering.
+- **done/ history** (`.forge/branch/<branch>/done/*`) → moved into `.forge/done/` (local archive record; disambiguate dir names on collision). Its archived `plan.md` participates in the shared incoming task-number remap below — moving it with the branch-local `task: N` unchanged can collide with a task independently created on the default branch.
+- **Backlog plans** (`.forge/branch/<branch>/backlog/*.md`) → moved into the top-level `.forge/backlog/`; on a slug collision append `-2` (updating the `forge-slug` comment).
+- **Incoming task numbers (`done/ and backlog`)** → before moving either bucket, build one complete **task-number map** for every incoming plan against all target-root markers (backlog/active slot/executed/done). Take incoming plans in ascending old `task: N` order (stable tie by bucket + slug), assign the next free target numbers, then rewrite each incoming plan's marker once. This preserves uniqueness across history as well as runnable backlog work; remapping only backlog plans would leave duplicate numbers in `done/`, breaking fg-status display and fg-doctor's uniqueness check.
 - **dropped/ archive** (`.forge/branch/<branch>/dropped/*`) → moved into the top-level `.forge/dropped/` (the discarded-work archive fg-drop keeps; disambiguate dir names with `-2` on collision, create `.forge/dropped/` lazily if absent). This does **not** trigger the in-flight halt below — dropped work was deliberately abandoned, so it never blocks integration; it is **moved rather than silently deleted** with the branch folder so the archive survives the integration. (It stays volatile — the target `.forge/dropped/` is gitignored, same as any dropped archive; the move just preserves it in the working tree instead of destroying it.)
 
 **Create each target directory lazily.** If `.forge/adr/`, `.forge/retro/`, or `.forge/done/` does not yet exist on the default branch (e.g. a fresh repo whose first sealed/decided work happened on the branch), create it on the way in — its absence is not an error, just the lazy-creation convention. (Verified by the fg-merge lifecycle e2e test: a target missing `done/` would otherwise drop the folded history.)
@@ -60,7 +61,7 @@ ADR numbers are assigned at creation as `max+1` per root, so a branch and the de
 
 ## Mechanical-auto, conversational-on-conflict
 
-Run the safe mechanical parts automatically: renumber ADRs, move retros, append non-conflicting CONTEXT terms, fold in done/ and backlog plans, and (last) remove the branch folder. **Stop and ask the human only at a genuine conflict** — this is a merge-time mini fg-learn, not an autonomous rewrite:
+Run the safe mechanical parts automatically: renumber ADRs, build and apply the incoming task-number map across done/ and backlog, move retros, append non-conflicting CONTEXT terms, fold in done/ and backlog plans, and (last) remove the branch folder. **Stop and ask the human only at a genuine conflict** — this is a merge-time mini fg-learn, not an autonomous rewrite:
 
 - **CONTEXT term redefinition** — the same glossary term is defined differently in the branch's CONTEXT.md and the target's. Don't pick silently; show both and ask which wins (or how to reconcile).
 - **Decision contradiction** — an incoming branch ADR contradicts an ADR added on the default branch in parallel. Surface both and ask whether the incoming one supersedes, is superseded, or both stand with a note.
@@ -84,7 +85,7 @@ branch given?  ── no ──▶ enumerate leaf roots under .forge/branch/ ─
 In-flight task in the branch root (active slot · executed/ · pending quick entry · `loop.md`)?  ── yes ──▶ halt, warn (seal/recover/resume-or-abandon on the branch first)
    │ no   (dropped/ does NOT halt — it is moved, not blocked)
    ▼
-Auto (mechanical): renumber ADRs (map first, one pass, incoming docs only; then warn-only grep of merge-changed non-.forge/ files) · move retros · append non-conflicting CONTEXT terms · fold done/ · fold backlog plans (renumber task:) · move dropped/ archive
+Auto (mechanical): renumber ADRs (map first, one pass, incoming docs only; then warn-only grep of merge-changed non-.forge/ files) · build/apply task-number map across incoming done/ + backlog · move retros · append non-conflicting CONTEXT terms · fold done/ · fold backlog plans · move dropped/ archive
    │
    ├── genuine conflict (term redefined · ADR contradiction) ──▶ HALT, show both, ask the human ──▶ apply choice
    │

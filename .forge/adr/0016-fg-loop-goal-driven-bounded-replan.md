@@ -87,3 +87,13 @@ Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)
 **[medium] safety 게이트가 `verified: failed` 자동 경로를 우회했다.** 7차의 safety 게이트는 backlog-empty replan 경로에만 다이어그램으로 드러났고, `verified: failed` 자동 fix-forward bullet과 그 다이어그램 화살표는 게이트를 통과하지 않았다. `/goal`이 `verified: failed`에선 멈추지 말라고 지시하므로, 게이트 누락 시 *승인 범위 안의 비가역* 수정이 무인 자동 실행될 수 있다(최고위험 경로의 제어흐름 모호성). **결정**: safety 분류를 **모든 fix-forward 생성의 필수 전제조건**으로 통합 명시한다 — backlog-empty replan과 `verified: failed` 자동 케이스가 동일 게이트를 통과하고, 다이어그램의 `verified: failed` 화살표도 `safety-class?`를 경유한다.
 
 **소비자 무변경(근거).** wall enum 소비자(CLAUDE.md·docs/skills.md·docs/forge-vs-loop-engineering.md·README 양판)의 tension 설명은 7차 작성 시점부터 이미 "fix-forward가 깨뜨리는"으로, safety 설명은 "fix-forward 생성 시점"으로 (옳게) 스코프돼 있었다 — 어긋난 것은 SKILL.md 메커니즘뿐이라 이 보정은 메커니즘을 그 설명들에 정렬한다(소비자 편집 불요). **불변**: 두 벽의 이름·`wall:` enum·cap·authorized replan 범위·ADR-0009·활성 슬롯·회고 auto-skip·Reflexion·fg-next all 비적용은 전부 그대로.
+
+## 개정 (2026-07-11) — `verified: failed`는 별도 backlog plan이 아니라 active-slot in-place repair
+
+기존 문구는 `verified: failed`에서 새 fix-forward plan을 backlog에 생성한 뒤 계속 주행한다고 했지만, 실패한 원래 작업이 유일한 active slot을 점유한 채 남는다. fg-run은 active slot을 항상 backlog보다 먼저 처리하므로 새 plan을 승격할 수 없고, 결과적으로 생성된 plan은 실행되지 않거나 원래 작업 수리 뒤 중복 실행된다. 이는 "활성 슬롯 1개" 불변과 자동 fix-forward를 동시에 만족하지 못하는 제어흐름 결함이었다.
+
+**결정**: `verified: failed` 자동 케이스는 새 task/slug를 만들지 않고 **같은 active task를 제자리 수리**한다. 시도 전에 `replan-round`를 올려 cap을 적용하고, 실패 체크의 `tried`·`reflection`에서 다른 접근을 도출한 뒤 authorized scope와 safety 게이트를 통과시킨다. active plan에는 내용·식별자를 바꾸지 않는 `<!-- repaired-by: fg-loop -->` provenance marker만 더하고, fg-run의 기존 failed 분기(수정 → fresh run.md → 재검증)를 사용한다. 시도명(`<slug>-repair-rN`)은 `loop.md` 원장에 남긴다. active slot이 비어 있고 stop-condition만 실패한 경우에만 종전처럼 새 `generated-by: fg-loop` backlog plan을 만든다. tension의 fix-forward 귀속은 두 marker(`generated-by` 또는 `repaired-by`)를 모두 인정한다.
+
+`verified: failed` active task → round+1/cap 확인 → scope·safety 확인 → `repaired-by` marker + fg-run in-place repair → fresh UAT
+
+**불변**: ADR-0009(실패 작업 봉인 금지), active slot 1개, 재계획 범위·cap, no-progress·tension·safety 벽, 회고 auto-skip은 그대로다. 바뀐 것은 failed fix-forward의 저장 위치와 실행 순서뿐이다.

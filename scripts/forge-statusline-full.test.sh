@@ -99,6 +99,22 @@ exp="$(printf '%s\n%s' "[Opus 4.8] [myproj]" "[🟢 Context $B0 0%]")"
 assert "context-missing-to-0" "$exp" "$(run_full "$wd" "$json")"
 rm -rf "$t"
 
+# (e4) REAL schema: context_window carries a nested current_usage object -> still parses
+#      (regression for the always-0% bug: the .sh flat-object parser must not choke on the nesting)
+t=$(mktmp); wd="$t/myproj"; mkdir -p "$wd/.forge"
+json="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"context_window\":{\"total_input_tokens\":90000,\"total_output_tokens\":5000,\"context_window_size\":200000,\"used_percentage\":45,\"remaining_percentage\":55,\"current_usage\":{\"input_tokens\":90000,\"output_tokens\":5000,\"cache_creation_input_tokens\":0,\"cache_read_input_tokens\":80000}}}"
+exp="$(printf '%s\n%s' "[Opus 4.8] [myproj]" "[⚡ Context/200K $B45 45%]")"
+assert "context-nested-current_usage" "$exp" "$(run_full "$wd" "$json")"
+rm -rf "$t"
+
+# (e5) nested current_usage placed FIRST (real Claude Code key order) -> must still read used_percentage
+#      this is the order that actually broke it: a prefix-only parser reads 0% here, so parsing must be order-independent
+t=$(mktmp); wd="$t/myproj"; mkdir -p "$wd/.forge"
+json="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"context_window\":{\"current_usage\":{\"input_tokens\":90000,\"cache_read_input_tokens\":80000},\"context_window_size\":200000,\"used_percentage\":45,\"remaining_percentage\":55}}"
+exp="$(printf '%s\n%s' "[Opus 4.8] [myproj]" "[⚡ Context/200K $B45 45%]")"
+assert "context-nested-current_usage-first" "$exp" "$(run_full "$wd" "$json")"
+rm -rf "$t"
+
 # (f) full system + forge idle -> only the 2 system lines
 t=$(mktmp); wd="$t/myproj"; mkdir -p "$wd/.forge/backlog" "$wd/.forge/executed"
 json="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"effort\":{\"level\":\"max\"},\"context_window\":{\"used_percentage\":45}}"

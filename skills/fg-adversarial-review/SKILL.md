@@ -17,7 +17,7 @@ Its stance is deliberately hostile: the reviewer takes the position of the **att
 
 Run it after fg-run has executed a plan — i.e. the **active slot** holds a `run.md` — when you want a hostile second look before sealing. It is **purely optional** — skipping it never blocks the seal (the seal gates are `verified:` and the retro, never `reviewed:`).
 
-**The review targets the active slot only.** This keeps findings storage unambiguous: they always belong to the one task in the active slot. A task parked in `executed/<slug>/` (Run-all work awaiting retro) is **not** a review target — if you want to adversarially review one, recover it to the active slot first via fg-run's unpark, then run this. (Supporting per-task `executed/<slug>/review.md` storage was considered and rejected — it would add fg-learn/fg-done branching for a rare case; ADR-0018.)
+**The review targets the active slot only.** This keeps findings storage unambiguous: they always belong to the one task in the active slot. A task parked in `executed/<slug>/` (Run-all work awaiting retro) is **not** a review target, and **fg-run cannot unpark a sealable parked task** — its unpark path is deliberately limited to `verified: failed` recovery. Therefore run this review before choosing Run all / before the task parks. If it is already parked and sealable, finish its retro/seal; this skill does not invent a temporary unpark path. (Supporting per-task `executed/<slug>/review.md` storage was considered and rejected — it would add fg-learn/fg-done branching for a rare case; ADR-0018.)
 
 If there is no `run.md` in the active slot, there is nothing to review — say so in one line and point to fg-run — do not invent a review target.
 
@@ -64,7 +64,7 @@ Also record a `reviewed:` marker in the active-slot `.forge/STATUS.md` — **for
 
 Because the workflow can't take human input mid-run, the judgment happens here, conversationally. Present the findings and let the human decide each fix-needed one. Route by nature (reusing the existing fix loop — ADR-0009 routing, but driven from review findings):
 
-- **Code-level defects** (security, performance, bugs in the implementation) → a **fix-forward** plan: on the human's approval, write a new `.forge/backlog/<slug>-fix.md` (or a descriptive slug) carrying `<!-- generated-by: fg-adversarial-review -->` and a fresh **monotonic** `<!-- task: N -->` (scan all `task:` markers across backlog/active/executed/done, max+1 — same rule as fg-ask / fg-loop fix-forward, ADR-0016). fg-run picks it up next. The original task can still seal independently.
+- **Code-level defects** (security, performance, bugs in the implementation) → a **fix-forward** plan: on the human's approval, write a new `.forge/backlog/<slug>-fix.md` (or a descriptive slug) carrying `<!-- generated-by: fg-adversarial-review -->` and a fresh **monotonic** `<!-- task: N -->` (scan all `task:` markers across backlog/active/executed/done, max+1 — same rule as fg-ask / fg-loop fix-forward, ADR-0016). The original reviewed task still occupies the active slot, so **seal the original task first** (`fg-learn` → `fg-done`) and only then invoke `fg-run` for the fix-forward backlog plan. Calling fg-run first would hit the original task's duplicate-run guard instead of promoting the fix.
 - **Design / requirement defects** (the plan itself was wrong, a requirement was misread) → this is not a code fix; point to **fg-ask** to re-grill the plan. A fix-forward plan can't paper over a wrong premise.
 - **Accepted / minor** → no action; the findings stay in `.forge/review.md` and feed the retro (fg-learn promotes anything worth keeping).
 
@@ -74,8 +74,8 @@ Because the workflow can't take human input mid-run, the judgment happens here, 
 
 The adversarial review is done; the loop resumes where it was. State (do not ask) the next step:
 
-- If a fix-forward plan was created → it waits in the backlog; **fg-run** will run it.
-- For the original task → it is still at "verified, un-retro'd" — **fg-learn** to retro (the review findings are now retro fuel), then **fg-done** to seal. Give the triggers.
+- For the original task → it is still at "verified, un-retro'd" — **fg-learn** to retro (the review findings are now retro fuel), then **fg-done** to seal and free the active slot. Give the triggers.
+- If a fix-forward plan was created → it waits safely in the backlog; **after the original seal**, `fg-run` promotes and runs it. State this order explicitly — original retro/seal first, fix-forward run second.
 
 Do not chain into the next skill yourself (chaining is `fg-next`'s job — ADR-0015); state the trigger and stop.
 
@@ -84,7 +84,7 @@ fg-adversarial-review
    │
    ▼
 active-slot run.md present?
-   │ no  ──▶ "nothing to review" → point to fg-run (parked task → unpark first) → stop
+   │ no  ──▶ "nothing to review" → point to fg-run (parked sealable tasks are unsupported here; review before parking) → stop
    │ yes
    ▼
 Gather inputs (plan · run.md · git diff+untracked · CONTEXT/ADR)
@@ -94,11 +94,11 @@ Build Dynamic Workflow: 6 lenses fan out in parallel (+ optional adversarial-ver
 Consolidate findings → .forge/review.md  (+ STATUS reviewed:, record-only)
    ▼
 Handoff (conversational — workflow took no human input mid-run):
-   • code defect      ──▶ (human approves) new fix-forward backlog plan (generated-by marker, monotonic task) ──▶ fg-run
+   • code defect      ──▶ (human approves) new fix-forward backlog plan (generated-by marker, monotonic task)
    • design/req defect ──▶ point to fg-ask (re-grill — a wrong premise can't be patched)
    • accepted/minor   ──▶ stays in review.md → retro fuel
    ▼
-Point back: fix-forward → fg-run · original task → fg-learn → fg-done  (state triggers, don't chain)
+Point back: original task → fg-learn → fg-done (free active slot) → then fix-forward → fg-run  (state triggers, don't chain)
 ```
 
 ## Automatic mode — always skipped

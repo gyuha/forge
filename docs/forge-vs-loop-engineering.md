@@ -37,9 +37,9 @@ Osmani가 후반부에 쏟는 경고들은 forge에서 권고가 아니라 **게
 Osmani 글에 더해, Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)(69개 루프 레시피)의 **공통 가드레일 DNA**에 대고 fg-loop를 다시 감사했다. DNA의 대부분 — 기계 검증 정지 조건 · "AI가 됐다고 생각함"은 정지 아님 · no-progress 2라운드 · Reflexion · evidence ledger · stateless 재개 · 독립 기계 checker — 은 이미 보유했고, 진짜 빈틈 둘만 차용했다(ADR-0016 7차 개정):
 
 - **tension 벽** — fix-forward가 이미 통과한 다른 정지 체크를 깨뜨리는 oscillation을 원장의 pass→fail 회귀(`regressed: ×N`)로 **기계 감지**해, cap 소진 전에 충돌 쌍을 보고하며 조기 정지(lenient + 1회 재시도). 기존 no-progress 벽(`×N`)이 핑퐁을 놓치던 사각지대를 메운다 — Loop Library #034가 oscillation을 1급 정지 사유로 명시.
-- **safety 벽** — 승인 범위 *안*이라도 비가역/파괴적/외부 액션 클래스(기본 7종)면 fix-forward **생성 시점**에 정지. Loop Library 전반의 approval-gate DNA를 계약 수준에 명시(하니스 권한 게이트가 넓은 권한에서 놓치는 in-scope-destructive 갭). best-effort 자기분류라는 한계는 ADR에 솔직히 기록.
+- **safety 벽** — 승인 범위 *안*이라도 비가역/파괴적/외부 액션 클래스(기본 7종)면 모든 fix-forward 시도(생성 backlog plan·`verified: failed` 제자리 수리) **적용 전**에 정지. Loop Library 전반의 approval-gate DNA를 계약 수준에 명시(하니스 권한 게이트가 넓은 권한에서 놓치는 in-scope-destructive 갭). best-effort 자기분류라는 한계는 ADR에 솔직히 기록.
 
-budget(replan-cap과 별개의 토큰/시간) 분리·체크 상태 다변화(proved/weak/contradicted)는 YAGNI로 기각. 두 벽은 *생성된* fix-forward에서만 발생해 **fg-loop 전용**(fg-next all 비적용).
+budget(replan-cap과 별개의 토큰/시간) 분리·체크 상태 다변화(proved/weak/contradicted)는 YAGNI로 기각. 두 벽은 *생성·제자리수리된* fix-forward에서만 발생해 **fg-loop 전용**(fg-next all 비적용).
 
 ## 도입하지 않은 것과 그 이유
 

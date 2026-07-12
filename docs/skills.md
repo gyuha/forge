@@ -7,22 +7,22 @@
 | 스킬 | 단계 | 한 줄 역할 | 입력 | 출력 | 다음 |
 | --- | --- | --- | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-run` |
-| `fg-run` | ② 실행 | 계획을 Dynamic Workflow로 실행 — 미실행 plan이 하나면 메뉴 없이 즉시 실행, 여럿이면 선택 메뉴 제시(마지막 옵션 "모두 실행") | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` + `STATUS.md` (또는 `executed/`) | `fg-learn` |
+| `fg-run` | ② 실행 | 계획을 Dynamic Workflow로 실행 — 미실행 plan이 하나면 즉시 실행, 2–3개면 선택 메뉴, 4개 이상이면 번호 목록(모두 실행 포함) | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` + `STATUS.md` (또는 `executed/`) | `fg-learn` |
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-done` (크게 어긋났으면 `fg-ask`로 재그릴링) |
 | `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기. 기계적 봉인은 결정론 스크립트(`forge-done.sh`/`.js`)가 처리(ADR-0030). `all` 모드는 실행된 작업 일괄 봉인(회고 skip·백로그 불가침) | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 | `fg-map` | 유틸리티(루프 밖) | 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드를 다시 탐색하지 않고 지도를 읽게 한다(context rot 감소) | 코드베이스 | `.forge/codebase/*.md` (7개 문서) | — (`fg-ask`가 소비) |
 | `fg-quick` | 경량 차선(루프 밖) | 사소한 작업용 — 가볍게 그릴링한 뒤 형식 산출물(ADR/plan/회고) 없이 바로 실행; 비-trivial로 드러나면 `fg-ask`로 bail | 사용자 요청 | `.forge/quick/LOG.md`에 항목 하나 | — (자체 완결) |
 | `fg-status` | 리포터(루프 밖) | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 지금 필요한 다음 단계 하나를 출력; 아무것도 쓰지 않고 자동 실행도 안 함 | `.forge/*` (읽기 전용) | 출력 보고(파일 없음) | — (다음 단계 제안) |
 | `fg-next` | 오케스트레이터(루프 밖) | fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행 — 보고만 하지 않음, one-shot; fg-status는 보고, fg-next는 행동 | `.forge/*` (자신은 읽기 전용) | 없음 — 호출한 스킬에 위임 | — (다음 스킬을 호출) |
-| `fg-loop` | 오케스트레이터(루프 밖) | goal 주도 한정 재계획 루프 — 기초 질의로 기계 검증 가능한 정지 체크·fix-forward 재계획 범위·상한(기본 3라운드)을 `.forge/loop.md`에 못 박고, 체크가 전부 통과할 때까지 run → UAT → 회고 자동 skip → 봉인을 주행; 벽에서 멈춤 | goal(질의), `.forge/loop.md`, `backlog/` | 봉인된 작업들 + 생성된 fix-forward plan(`generated-by: fg-loop`) | — (종료 보고; 추후 `fg-learn`으로 일괄 승급) |
+| `fg-loop` | 오케스트레이터(루프 밖) | goal 주도 한정 재계획 루프 — 정지 체크·fix-forward 범위·상한을 못 박고 run → UAT → 회고 skip → 봉인을 주행; failed active task는 제자리 수리, 빈 슬롯의 실패 체크는 새 plan 생성 | goal(질의), `.forge/loop.md`, `backlog/` | 봉인된 작업들 + `repaired-by` 제자리 수리 / `generated-by` fix-forward plan | — (종료 보고; 추후 `fg-learn`으로 일괄 승급) |
 | `fg-tdd` | 토글(루프 밖) | `.forge/config.json`의 TDD 모드를 켜고 끔 — `fg-ask`가 작업마다 이 설정을 기본 답으로 질문하고, plan의 marker가 켜져 있으면 `fg-run`이 test-first로 실행 | `on`/`off`/(없음) | `.forge/config.json`(`tdd`) | — (설정만) |
 | `fg-eco` | 토글(루프 밖) | eco 모드 토글 — 켜면 (1) `fg-run` 위임 서브에이전트를 `sonnet`으로 캡(내리기만; 세션 모델 불변), (2) Eco laziness-first 절제 규율(`ECO.md`)을 fg-run 서브에이전트·fg-ask 그릴링·현 세션에 주입 | `on`/`off`/(없음) | `.forge/config.json`(`eco`) | — (설정만) |
-| `fg-merge` | 통합기(루프 밖) | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — ADR 번호 재부여(+교차참조)·CONTEXT 용어 병합·done 합침·브랜치 폴더 제거, 진짜 충돌 시 멈춤. git은 직접 안 돌림 | `.forge/branch/<branch>/` | 통합된 `.forge/` 문서 | — (통합 단계) |
+| `fg-merge` | 통합기(루프 밖) | `git merge` 뒤 브랜치 forge root 통합 — ADR 번호·incoming done/backlog task 번호 재부여, CONTEXT/retro/done/backlog 병합, 진짜 충돌 시 멈춤. git은 직접 안 돌림 | `.forge/branch/<branch>/` | 통합된 `.forge/` 문서 | — (통합 단계) |
 | `fg-cleanup` | 은퇴기(루프 밖) | 오래된/대체된 ADR을 활성 결정 집합에서 은퇴 — 후보를 근거와 함께 제시하고, 승인 시 각 ADR을 `.forge/adr/retired/<NNNN>-slug.md`로 이동+supersede/retire 마킹. 번호 불변·재사용 금지·삭제 안 함. fg-ask는 `retired/`를 정답소스로 안 읽음 | `.forge/adr/*.md` | `.forge/adr/retired/*` | — (ADR 정비) |
 | `fg-statusline` | 설정 유틸리티(루프 밖) | statusline에 forge 진행 상태를 두 모드 중 하나로 표시 — 방법 1(append)은 기존 statusline을 아래 별도 줄로 자동 래핑(얇은 forge fragment, ADR-0017), 방법 2(merge)는 daleseo식 시스템 정보(모델·디렉터리·⎇git·Context/크기+그라디언트 바+$비용/±라인/경과)+forge 진행을 의미 단위 그룹 대괄호로 한 스크립트에 출력하며 compact/full 밀도 토글(command 인자)까지 갖춘 통합 스크립트 설치(ADR-0029) | 기존 `settings.json` | `~/.claude/`의 statusline 스크립트 + `statusLine` 설정 | — (터미널 표시) |
-| `fg-adversarial-review` | 리뷰 유틸리티(루프 밖) | fg-run↔fg-learn 사이 선택적 적대적 리뷰 — 결과가 틀렸다고 가정하고 6개 렌즈를 워크플로우 서브에이전트로 병렬 팬아웃, findings를 `.forge/review.md`에 기록하고 수정 필요 건은 승인 후 fix-forward plan으로; 봉인 게이트 아님, 무인 주행에선 자동 skip | `plan.md`·`run.md`·작업트리 diff·CONTEXT/ADR | `.forge/review.md` + (승인 시) fix-forward backlog plan | — (`fg-learn`/`fg-run`으로 복귀) |
+| `fg-adversarial-review` | 리뷰 유틸리티(루프 밖) | fg-run↔fg-learn 사이 선택적 적대적 리뷰 — findings 기록, 승인된 코드 결함은 fix-forward plan으로 적재; 원 작업을 회고·봉인해 슬롯을 비운 뒤 fix plan 실행 | active `plan.md`·`run.md`·작업트리 diff·CONTEXT/ADR | `.forge/review.md` + (승인 시) fix-forward backlog plan | `fg-learn` → `fg-done` → `fg-run` |
 | `fg-doctor` | health check(루프 밖) | 읽기 전용 무결성 검사 — `.forge/` 상태 계약(고아·STATUS 필드·slug 페어링·half-sealed)과 문서/매니페스트 정합(버전 3곳 동기·README 이중언어·CLAUDE.md 스킬 목록)을 검사해 위반을 severity·actionable 수정 안내와 함께 보고; 아무것도 안 쓰고 자동 수정 안 함 | `.forge/*`·매니페스트·README·CLAUDE.md (읽기 전용) | 출력 보고(파일 없음) | — (`fg-quick`/`fg-ask`로 수정) |
-| `fg-drop` | 폐기 유틸리티(루프 밖) | 미완(미봉인) 작업 폐기 — backlog/활성 슬롯/`executed/` 회고대기/멈춘 goal 루프를 항목별 위험도와 함께 제시한 뒤 하드 삭제(기본·흔적 없음) 또는 `.forge/dropped/`로 보관; forge 상태만 지움(git·코드 불변) | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
+| `fg-drop` | 폐기 유틸리티(루프 밖) | 미완 작업 폐기 — 단일/소수/다수에 맞는 선택 UI, goal 루프는 loop.md+멤버 미완 상태를 통째로 삭제/보관(done·비멤버 불변); forge 상태만 지움 | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
 | `fg-agents` | 생성 유틸리티(루프 밖) | 대화형 그릴링으로 프로젝트 도메인을 캐 역할을 도출하고 표준 `.claude/agents/<role>.md` 카드 생성(`description`에 "언제 쓰이나" 포함 → fg-run이 slice↔role 자동 매핑). 활성 ADR을 연료로 읽어 카드에 프로젝트 결정을 가볍게 반영. 카드는 세션 시작 시 로드되므로 생성 후 **재시작 필요**(ADR-0024). graceful·선택적 | `.forge/codebase/`·`CONTEXT.md`·활성 `.forge/adr/`(선택 연료) | `.claude/agents/<role>.md` 카드 | — (재시작 후 fg-run이 활용) |
 
 ## 루프 스킬 (4단계)
@@ -33,7 +33,7 @@
 
 ### fg-run — ② 실행
 
-계획(`.forge/plan.md`, 또는 `.forge/backlog/`의 대기 plan)을 Claude Code Dynamic Workflow로 실행한다. 백로그에 미실행 plan이 정확히 하나면 확인 질문 없이 바로 실행하고, 여럿이면 미완료 목록을 선택 메뉴(마지막 옵션 "모두 실행")로 제시한 뒤 고른 작업을 활성 슬롯으로 승격해 실행한다. "forge run", "계획 실행", "이거 워크플로우로 돌려줘"에서 트리거된다(기존 "forge execute"도 alias). 실행할 plan이 없으면 돌지 않고, 이미 실행된 plan의 재실행을 경고한다.
+계획(`.forge/plan.md`, 또는 `.forge/backlog/`의 대기 plan)을 Claude Code Dynamic Workflow로 실행한다. 백로그에 미실행 plan이 정확히 하나면 확인 질문 없이 바로 실행한다. 2–3개면 `AskUserQuestion` 선택 메뉴(마지막 옵션 "모두 실행"), 4개 이상이면 우선순위대로 번호 텍스트 목록+`all` 입력을 사용한다 — 도구의 4옵션 상한 때문에 후보를 잘라내지 않는다. 고른 작업만 활성 슬롯으로 승격해 실행한다. "forge run", "계획 실행", "이거 워크플로우로 돌려줘"에서 트리거된다(기존 "forge execute"도 alias). 실행할 plan이 없으면 돌지 않고, 이미 실행된 plan의 재실행을 경고한다.
 
 프로젝트에 도메인 에이전트(`.claude/agents/`, 예: `fg-agents`가 생성)가 있으면 워크플로가 slice에 맞는 role을 `agentType`으로 호출해 실행한다 — role 카드 `description`의 "언제 쓰이나"로 매핑한다. **없으면 기존과 100% 동일**(기본 워크플로 서브에이전트, graceful). 단 `.claude/agents/`는 **세션 시작 시 1회 로드**되므로 세션 중 새로 만든 카드는 재시작해야 호출 가능하고, eco가 켜지면 `agentType` 호출도 sonnet 캡·ECO.md 주입을 받되 role 카드의 `model:` 명시가 우선한다([ADR-0024](../.forge/adr/0024-fg-agents-and-domain-agent-execution.md)).
 
@@ -71,7 +71,7 @@
 
 ### fg-loop
 
-`fg-loop`는 **goal 주도의 세 번째 차선으로, 역시 루프 밖**이다 — 기초 질의(대화)로 **기계 검증 가능한 정지 조건**(에이전트가 실행 가능한 체크 — "AI가 만족되었다고 생각함"은 인정 안 됨), **승인된 fix-forward 재계획 범위**, **재계획 상한**(기본 3라운드)을 `.forge/loop.md`에 못 박고 초기 백로그 plan을 적재한 뒤, 체크가 전부 통과할 때까지 작업 루프 전체(run → UAT → 회고 항상 자동 skip → 봉인, `fg-next all`의 기계를 참조로 재사용)를 주행한다 — 실패한 체크에 직접 추적되는 fix-forward 작업을 승인 범위·상한 안에서만 자동 생성하고(각각 `generated-by: fg-loop` 마커가 달린 정상 PLAN-FORMAT plan), `verified: failed`는 단단한 벽 대신 자동 fix-forward 케이스가 된다. 벽 — 검증 불가 UAT·진짜 fork(범위 밖 수정 포함)·상한 소진·같은 체크 2연속 무진전·tension(fix-forward가 이미 통과한 체크를 깨뜨리는 regression 핑퐁)·safety(승인 범위 안이라도 비가역 액션 클래스) — 에서는 멈춰 사람에게 넘기고, goal 충족 시 요약을 보고하고 `loop.md`를 삭제한다. 기둥 1의 의도적·경계 있는 완화다 ([ADR-0016](../.forge/adr/0016-fg-loop-goal-driven-bounded-replan.md)); 회고 학습은 아카이브된 run.md에 남아 추후 사람이 `fg-learn`으로 일괄 승급한다. `loop.md`는 체크별 진행 원장(`## Check progress` — 결과·`×N` 연속 무진전·**`regressed: ×N`**(pass→fail 회귀 횟수)·last-evidence·시도 slug·**`reflection`**)과 `wall:` 필드를 영속화한다: **Reflexion**(실패를 언어화해 다음 fix-forward에 주입 — fg-loop은 stateless 재개라 영속 필수)으로 다음 fix-forward가 *같은 접근을 반복하지 않고 다르게* 시도하게 만들고, no-progress 벽은 in-session 기억이 아닌 원장의 `×N≥2`로 판정하며, `fg-status`는 이 필드들을 읽어 *왜* 멈췄는지(맨 "재개"가 아니라) 보고한다(ADR-0016 2026-06-18 개정 2건). `reflection`은 드라이브 내 휘발 작업기억이지 회고가 아니다. "forge loop", "루프 시작", "조건 충족까지 반복" 같은 발화에서 트리거된다.
+`fg-loop`는 **goal 주도의 세 번째 차선으로, 역시 루프 밖**이다 — 기초 질의(대화)로 **기계 검증 가능한 정지 조건**(에이전트가 실행 가능한 체크 — "AI가 만족되었다고 생각함"은 인정 안 됨), **승인된 fix-forward 재계획 범위**, **재계획 상한**(기본 3라운드)을 `.forge/loop.md`에 못 박고 초기 백로그 plan을 적재한 뒤, 체크가 전부 통과할 때까지 작업 루프 전체(run → UAT → 회고 항상 자동 skip → 봉인, `fg-next all`의 기계를 참조로 재사용)를 주행한다. active slot이 비어 있는 stop-check 실패는 `generated-by: fg-loop` 정상 PLAN-FORMAT plan으로 만들고, **`verified: failed`는 별도 backlog plan을 만들지 않고** cap·scope·safety를 먼저 확인한 뒤 같은 active task를 `repaired-by: fg-loop` marker와 함께 제자리 수리해 fg-run의 failed 분기로 재실행한다. 이 구분이 활성 슬롯 1개 계약을 지키면서 `verified: failed`를 자동 fix-forward 케이스로 유지한다. 벽 — 검증 불가 UAT·진짜 fork(범위 밖 수정 포함)·상한 소진·같은 체크 2연속 무진전·tension(fix-forward가 이미 통과한 체크를 깨뜨리는 regression 핑퐁)·safety(승인 범위 안이라도 비가역 액션 클래스) — 에서는 멈춰 사람에게 넘기고, goal 충족 시 요약을 보고하고 `loop.md`를 삭제한다. 기둥 1의 의도적·경계 있는 완화다 ([ADR-0016](../.forge/adr/0016-fg-loop-goal-driven-bounded-replan.md)); 회고 학습은 아카이브된 run.md에 남아 추후 사람이 `fg-learn`으로 일괄 승급한다. `loop.md`는 체크별 진행 원장(`## Check progress` — 결과·`×N` 연속 무진전·**`regressed: ×N`**(pass→fail 회귀 횟수)·last-evidence·시도 slug·**`reflection`**)과 `wall:` 필드를 영속화한다: **Reflexion**(실패를 언어화해 다음 fix-forward에 주입 — fg-loop은 stateless 재개라 영속 필수)으로 다음 fix-forward가 *같은 접근을 반복하지 않고 다르게* 시도하게 만들고, no-progress 벽은 in-session 기억이 아닌 원장의 `×N≥2`로 판정하며, `fg-status`는 이 필드들을 읽어 *왜* 멈췄는지(맨 "재개"가 아니라) 보고한다(ADR-0016 2026-06-18 개정 2건). `reflection`은 드라이브 내 휘발 작업기억이지 회고가 아니다. "forge loop", "루프 시작", "조건 충족까지 반복" 같은 발화에서 트리거된다.
 
 ### fg-tdd
 
@@ -88,7 +88,7 @@
 
 ### fg-merge
 
-`fg-merge`는 **브랜치 격리의 통합 유틸리티로, 역시 루프 밖**이다 — 피처 브랜치를 `git merge`한 뒤, 그 브랜치의 `.forge/branch/<branch>/`를 기본 브랜치의 `.forge/`로 합친다: 브랜치 ADR을 다음 빈 번호로 재부여(교차참조 갱신)하고 CONTEXT 용어를 병합하며 `done/` 이력을 합치고 브랜치 폴더를 제거한다. 기계적 부분은 자동, 진짜 충돌(용어 재정의·ADR 모순)에서만 멈춰 묻고, git은 직접 돌리지 않는다. "forge merge", "fg-merge \<branch\>", "브랜치 통합" 같은 발화에서 트리거된다 ([ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md)).
+`fg-merge`는 **브랜치 격리의 통합 유틸리티로, 역시 루프 밖**이다 — 피처 브랜치를 `git merge`한 뒤, 그 브랜치의 `.forge/branch/<branch>/`를 기본 브랜치의 `.forge/`로 합친다: 브랜치 ADR을 다음 빈 번호로 재부여(교차참조 갱신)하고, incoming `done/`+`backlog/` plan의 `task:` 번호도 target 전체와 겹치지 않게 한 map으로 재부여한 뒤 CONTEXT·retro·done·backlog를 합치고 브랜치 폴더를 제거한다. 기계적 부분은 자동, 진짜 충돌(용어 재정의·ADR 모순)에서만 멈춰 묻고, git은 직접 돌리지 않는다. "forge merge", "fg-merge \<branch\>", "브랜치 통합" 같은 발화에서 트리거된다 ([ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md)).
 
 ### fg-cleanup
 
@@ -105,7 +105,7 @@
 
 ### fg-adversarial-review
 
-`fg-adversarial-review`는 **선택적 리뷰 유틸리티로, 역시 루프 밖**이다 — `fg-run`과 `fg-learn` 사이에서 봉인 전 의도적으로 적대적인 두 번째 검토를 돌린다. 검토자는 공격자·반대자 입장을 취해 "이 결과가 틀렸다고 가정하고 증거를 찾자"에서 출발하며, 6개 렌즈 — 실패 지점·숨은 가정·요구사항 오해·보안/성능/데이터 손실·예상 못한 오용·약하거나 미검증된 근거 — 를 Dynamic Workflow의 서브에이전트로 병렬 팬아웃한다(실행 중 사람 입력이 필요 없어 기둥 1에 걸리지 않는다). findings는 `.forge/review.md`에 기록되고, 핸드오프에서 사람이 각 건을 판단한다 — 코드 결함은 (승인 후) fix-forward backlog plan(`generated-by: fg-adversarial-review`)이 되어 `fg-run`이 집어가고, 설계·요구사항 결함은 `fg-ask` 재그릴링으로 돌아가며, 수용된 findings는 회고로 들어간다. 순수 선택이고 봉인 게이트가 아니며(게이트는 `verified:`와 회고뿐), `fg-next all`·`fg-loop`는 findings 판단이 사람 몫이라 항상 skip한다. "adversarial review", "적대적 리뷰", "허점 찾아줘" 같은 발화에서 트리거된다 ([ADR-0018](../.forge/adr/0018-fg-adversarial-review.md)).
+`fg-adversarial-review`는 **선택적 리뷰 유틸리티로, 역시 루프 밖**이다 — `fg-run`과 `fg-learn` 사이에서 봉인 전 의도적으로 적대적인 두 번째 검토를 돌린다. 검토자는 공격자·반대자 입장을 취해 "이 결과가 틀렸다고 가정하고 증거를 찾자"에서 출발하며, 6개 렌즈 — 실패 지점·숨은 가정·요구사항 오해·보안/성능/데이터 손실·예상 못한 오용·약하거나 미검증된 근거 — 를 Dynamic Workflow의 서브에이전트로 병렬 팬아웃한다(실행 중 사람 입력이 필요 없어 기둥 1에 걸리지 않는다). findings는 `.forge/review.md`에 기록되고, 핸드오프에서 사람이 각 건을 판단한다 — 코드 결함은 (승인 후) fix-forward backlog plan(`generated-by: fg-adversarial-review`)이 되지만 원 작업이 active slot을 점유하므로 **원 작업을 먼저 `fg-learn`→`fg-done`으로 봉인한 뒤** `fg-run`이 fix plan을 집어간다. 설계·요구사항 결함은 `fg-ask` 재그릴링으로 돌아가며, 수용된 findings는 회고로 들어간다. 순수 선택이고 봉인 게이트가 아니며(게이트는 `verified:`와 회고뿐), `fg-next all`·`fg-loop`는 findings 판단이 사람 몫이라 항상 skip한다. "adversarial review", "적대적 리뷰", "허점 찾아줘" 같은 발화에서 트리거된다 ([ADR-0018](../.forge/adr/0018-fg-adversarial-review.md)).
 
 ### fg-doctor
 
@@ -113,7 +113,7 @@
 
 ### fg-drop
 
-`fg-drop`은 **폐기 유틸리티로, 역시 루프 밖**이다 — 더 이상 원하지 않는 **미완(미봉인) 작업**을 지운다: backlog plan·활성 슬롯·`executed/`의 회고 대기 작업·멈춘 goal `loop.md`가 대상이다(봉인된 `done/`은 대상 아님 — 그건 `fg-done`의 영역). 먼저 미완 항목을 **항목별 위험도**와 함께 제시하고(≤4개면 체크박스 대화, ≥5개면 번호 텍스트 목록), 별도 후속 질문으로 **하드 삭제**(기본·흔적 없음)와 `.forge/dropped/<slug>/` **보관** 중 하나를 고르게 한다. 불가역 삭제 전 확인 게이트가 한 번 더 막고, **이미 실행된 작업의 바뀐 코드는 되돌리지 않음**을 경고한다 — fg-drop은 forge 상태만 지우고 git·코드는 건드리지 않는다. 멈춘 goal 루프는 **통째로만** drop하며 멤버 task를 개별 제외하지 않는다(loop.md 멤버십 재동기화 로직을 만들지 않기 위함). `.forge/dropped/`는 휘발(gitignore)이라 `fg-doctor`는 관용하고 `fg-status`는 무시한다. "forge drop", "fg-drop", "작업 버리기", "이 작업 취소", "계획 지워", "백로그 비워", "drop task", "discard plan" 같은 발화에서 트리거된다 ([ADR-0021](../.forge/adr/0021-fg-drop-discard-incomplete-work.md)).
+`fg-drop`은 **폐기 유틸리티로, 역시 루프 밖**이다 — 더 이상 원하지 않는 **미완(미봉인) 작업**을 지운다: backlog plan·활성 슬롯·`executed/`의 회고 대기 작업·멈춘 goal `loop.md`가 대상이다(봉인된 `done/`은 대상 아님 — 그건 `fg-done`의 영역). 먼저 미완 항목을 **항목별 위험도**와 함께 제시한다(1개면 drop/cancel 2지, 2–4개면 체크박스, 5개 이상이면 번호 텍스트 목록). 별도 후속 질문으로 **하드 삭제**(기본·흔적 없음)와 `.forge/dropped/<slug>/` **보관** 중 하나를 고르게 한다. 불가역 삭제 전 확인 게이트가 한 번 더 막고, **이미 실행된 작업의 바뀐 코드는 되돌리지 않음**을 경고한다 — fg-drop은 forge 상태만 지우고 git·코드는 건드리지 않는다. 멈춘 goal 루프는 **통째로만** drop하며 멤버 task를 개별 제외하지 않는다(loop.md 멤버십 재동기화 로직을 만들지 않기 위함). `.forge/dropped/`는 휘발(gitignore)이라 `fg-doctor`는 관용하고 `fg-status`는 무시한다. "forge drop", "fg-drop", "작업 버리기", "이 작업 취소", "계획 지워", "백로그 비워", "drop task", "discard plan" 같은 발화에서 트리거된다 ([ADR-0021](../.forge/adr/0021-fg-drop-discard-incomplete-work.md)).
 
 ### fg-agents
 

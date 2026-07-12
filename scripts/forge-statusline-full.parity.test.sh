@@ -63,6 +63,12 @@ j="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":null}}"
 check "context null -> 0" "$wd" "$j" "$(printf '%s\n%s' '[myproj]' "[🟢 Context $B0 0%]")"
 rm -rf "$C_"
 
+# context_window with nested current_usage placed FIRST (real Claude Code key order) -> .sh & .js agree
+CU="$(mktemp -d)"; wd="$CU/myproj"; mkdir -p "$wd/.forge"
+j="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"context_window\":{\"current_usage\":{\"input_tokens\":90000,\"cache_read_input_tokens\":80000},\"context_window_size\":200000,\"used_percentage\":45,\"remaining_percentage\":55}}"
+check "context nested current_usage first" "$wd" "$j" "$(printf '%s\n%s' '[Opus 4.8] [myproj]' "[⚡ Context/200K $B45 45%]")"
+rm -rf "$CU"
+
 # git status counts + ahead/behind
 if command -v git >/dev/null 2>&1; then
   G="$(mktemp -d)"; wd="$G/gitproj"; mkdir -p "$wd"

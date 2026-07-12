@@ -27,7 +27,7 @@ repo/
     ├── executed/<slug>/       # "모두 실행" 후 회고 대기 (plan+run+STATUS, 미회고)
     ├── done/<날짜-slug>/       # ④ fg-done 봉인 아카이브 (plan+run+STATUS, status: done)
     ├── quick/LOG.md           # fg-quick 차선 로그(빠른 작업당 한 줄)
-    ├── dropped/<slug>/        # fg-drop이 "보관"으로 폐기한 미완 작업 (휘발·gitignore; doctor 관용·status 무시 — ADR-0021)
+    ├── dropped/<slug>/        # fg-drop이 "보관"으로 폐기한 미완 작업 (기본 브랜치 휘발·gitignore; 비-기본 브랜치 루트에선 추적·fg-merge 보존; doctor 관용·status 무시 — ADR-0021)
     └── branch/<branch>/       # 비-기본 브랜치는 forge 루트 전체를 여기서 운영(git 추적); fg-merge가 .forge/로 통합 (ADR-0011)
 ```
 
