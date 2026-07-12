@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.14] - 2026-07-13
+
+### Changed
+- **`fg-ask` 시작 시 "완료 안 된 작업 체크"를 명시적 STEP 0으로 재배치.** 해당 지시가 자기 본문엔 "retro/map 읽기보다 먼저 하라"고 적혀 있으면서도 정작 그 읽기 불릿들보다 *뒤에* 놓여, 위→아래로 읽는 LLM이 무거운 읽기를 먼저 하고 체크를 건너뛰던 **순서 역전**을 제거 — 불릿을 "Forge root" 뒤·retro 읽기 앞으로 옮기고 명령형 STEP 0("you MUST first check for existing work")으로 강화, 방향어 `reads above`→`reads below` 정정. (a)/(b)/(1b)/(2) 판단·라우팅 semantics는 이전과 동일하다.
+
 ## [0.5.13] - 2026-07-12
 
 ### Changed
