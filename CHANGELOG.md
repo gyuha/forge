@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.13] - 2026-07-12
+
+### Changed
+- **README 대표 이미지를 forge 로고로 교체.** 기존 루프 다이어그램(`workflow.png`) 대신 앤빌+해머+loop 화살표 로고(`docs/icon.png`)를 256px로 축소한 신규 `docs/icon-sm.png`를 대표 이미지로 사용(`README.md`·`README.ko.md` 이중언어 동기).
+
 ## [0.5.12] - 2026-07-12
 
 ### Changed
