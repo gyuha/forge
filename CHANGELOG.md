@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.15] - 2026-07-14
+
+### Fixed
+- **`fg-next all`(및 이를 공유하는 `fg-loop`)이 회고 skip+봉인 대신 "fg-learn 하라"고 멈추던 결함 수정.** 공유 상태 머신(fg-status)이 retro-owed 작업에서 다음 스텝을 문자 그대로 `fg-learn`으로 도출하는데, fg-next의 일반 규칙(§2 "대화형 스킬 호출")이 all 모드의 "회고 항상 auto-skip"(ADR-0010) override를 이겨 fg-learn을 호출/안내하고 멈추던 문제 — 상태가 안 바뀌니 재실행해도 동일(두 번 연속 fg-learn). `skills/fg-next/SKILL.md` all 모드에 "도출된 `fg-learn` → 호출/안내 금지, 회고 skip+봉인으로 매핑(§2 override)"을 명시하고, §2에 교차참조 추가. `skills/fg-next/DRIVE.md` Part 1에 delegated fg-run/fg-done 핸드오프의 회고 추천("next: fg-learn")을 사용자에게 relay하지 말고 이어서 skip+봉인하라는 규율 추가(fg-loop이 DRIVE.md·all 모드를 by-reference로 공유하므로 자동 전파). 텍스트만 수정 — 상태계약·스크립트·새 ADR 없음(ADR-0010 강제).
+
 ## [0.5.14] - 2026-07-13
 
 ### Changed
