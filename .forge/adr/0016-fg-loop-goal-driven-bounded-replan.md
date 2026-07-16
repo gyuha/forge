@@ -97,3 +97,13 @@ Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)
 `verified: failed` active task → round+1/cap 확인 → scope·safety 확인 → `repaired-by` marker + fg-run in-place repair → fresh UAT
 
 **불변**: ADR-0009(실패 작업 봉인 금지), active slot 1개, 재계획 범위·cap, no-progress·tension·safety 벽, 회고 auto-skip은 그대로다. 바뀐 것은 failed fix-forward의 저장 위치와 실행 순서뿐이다.
+
+## 개정 (2026-07-16) — stop-condition 체크 "충실성(faithfulness)" 적대 그릴링 (lean 예외)
+
+무인 드라이브에서 "done"을 판정하는 유일한 기준은 `## Stop-condition checks`의 기계 검증 체크다. 그런데 이 체크는 목표의 *프록시*라, 게임 가능(Goodhart)하거나 불완전하면 드라이브가 "all checks pass → loop.md 삭제 → 완료"로 **거짓 승리**를 선언한다(아무도 안 보는 무인 주행일수록 치명적). 무인 자율 계약(2026-06-13 개정)의 "초기 inquiry를 LEAN하게" 지시는 inquiry를 *빠른 시작*에 최적화하는데, 이 leanness가 체크 정의에까지 적용되면 정작 가장 중요한 것(체크가 목표의 *충실한* 프록시인지)을 대충 못 박게 된다. 사용자 지적: fg-loop의 핵심은 끝나는 조건이고, 그 조건을 그릴링하는 것이 지속적 loop 엔지니어링의 전제다.
+
+**결정**: fg-loop §1에 **체크 충실성 적대 그릴링**을 추가하고, 이 부분만 "lean" 지시에서 **명시적으로 카브아웃**한다(주변부 — scope·cap·TDD·slug·분해 — 는 lean, 체크 자체는 하드 그릴). 각 체크(및 집합)를 네 렌즈로 한 질문씩 적대적으로 그릴해 통과할 때까지 재작성/확장한다: **① 게임 가능성(Goodhart)** — 통과하는데 목표 미달? → 존재가 아니라 행동/결과 단언으로 조임 · **② 완전성/regression 누수** — 전부 통과하는데 중요한 게 깨짐? → anti-regression 체크 추가(기존 tension/regression 기계에 그대로 먹이) · **③ 충실 vs 편한 프록시** — 진짜 의도를 재나 grep 쉬운 걸 재나? · **④ in-scope 도달성** — 승인된 replan scope 안에서 달성 가능? → 아니면 cap 태우기 전 fork 조기 표면화(§3). 충실+in-scope 도달 가능한 체크로 못 만들면 non-runnable goal과 동일 처리(sharpen 또는 fg-ask 라우팅). 산출물은 `## Stop-condition checks`의 강화·확장된 체크 집합뿐 — **새 loop.md 필드 없음**(상태 계약 ripple 회피, 2026-06-12 loop-md-contract-gaps 회고).
+
+**정합(모순 아님)**: 같은 무인 자율 계약이 이미 "이 레인이 보존하는 사람 판단 = 정지 조건을 앞에서 못 박기"라 했다. 체크를 하드하게 그릴하는 것이 *바로 그 판단의 올바른 수행*이다 — leanness의 위반이 아니라 그 경계다.
+
+**기각·경계(불변)**: 렌즈 4(in-scope 도달성)를 "충실성"과 분리해 별도 게이트로 두는 안은 YAGNI로 기각(같은 up-front 그릴링에서 함께 판정하는 게 자연스럽고, 도달 불가 체크의 조기 fork는 기존 §3 fork-early와 연결). per-check "faithfulness rationale"를 loop.md에 영속하는 안도 기각(새 필드 = ripple 부담, 드라이브는 체크만 실행하면 되므로 근거 영속 불요). 드라이브·walls·ledger·Reflexion(§2/§3/§4)·cap·authorized replan 범위·ADR-0009·활성 슬롯 1개·회고 auto-skip은 전부 불변 — 이 개정은 체크를 *어떻게 정의하는가*(앞단)만 강화하고 *어떻게 돌리는가*는 안 건드린다. fg-ask도 무변경(4렌즈는 "체크=프록시"라는 fg-loop 고유 문제라 fg-loop 본문에만 둠).
