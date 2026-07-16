@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.17] - 2026-07-16
+
+팀(3~20명, feature 브랜치 + PR + fg-merge) 사용을 위한 개선 — ADR 다중 작성자 견고화 + AI 없는 CI.
+
+### Changed
+- **ADR ID를 순차 `NNNN`에서 시간 기반(`YYMMDD-HH`+소문자 순번, 예 `ADR-260716-14a`)으로 전환** ([ADR-260716-13a](./.forge/adr/260716-13a-adr-time-based-id-scheme.md)). 순차 번호는 전역 카운터라 병렬 브랜치에서 `max+1` 충돌 → fg-merge cascade 재번호를 강제했다. 시계에서 민팅하면 조율 없이 충돌-불가에 가깝고 ID가 생성 시점에 확정돼 교차참조가 안 깨진다. 기존 32개 `NNNN`은 grandfather(동결)로 공존. 충돌은 "다음 빈 글자"로 국소 해소(cascade 제거). task 번호는 순차 유지.
+- **ADR provenance** — frontmatter `author`(git config user.name 자동)·`decided` 추가(신규 ADR만). fg-merge 파일 이동·PR squash로 흐려지는 git blame과 달리 파일 내용에 실려 보존된다.
+- **`fg-ask` ADR 그릴링 연료 읽기를 앞 2줄 트리아지로** — 활성 ADR을 전부 본문 읽지 않고 제목+첫 문장+frontmatter로 트리아지한 뒤 관련분만 fetch(장기 프로젝트 토큰 팽창 완화). 파생 인덱스 없음.
+- **`fg-merge`를 결정론 스크립트(`forge-merge.sh`/`.js`)로 백킹** ([ADR-260716-16a](./.forge/adr/260716-16a-scriptify-fg-merge-fg-doctor-for-ci.md)). 브랜치 forge 통합이 AI 없이 CI에서 동작. 시간ID ADR 이동(충돌→다음 글자)·retro·CONTEXT term 병합·done/backlog task remap·dropped·브랜치 폴더 제거. 구조 충돌(용어 재정의·NNNN 충돌·in-flight)에서 nonzero exit; 의미 ADR 모순은 PR 리뷰. behavior 34 + parity 12 테스트.
+- **`fg-doctor`를 결정론 스크립트(`forge-doctor.sh`/`.js`)로 백킹**. CI 검증 게이트(exit 0 clean/1 warn/2 error). **고아 브랜치 루트 감지(A8)** = git merge 후 fg-merge 잊음 감지, **두 형식 ADR ID 인지**(시간ID를 NNNN gap으로 오탐 안 함 + 시간ID 유일성). read-only 불변. behavior 26 + parity 4 테스트.
+
+### Added
+- `scripts/forge-merge.{sh,js}` + `scripts/forge-doctor.{sh,js}` (각 behavior·parity 테스트 트윈).
+- `docs/team-workflow.md` — 팀 merge 정책(의식·충돌 권한·공유 ADR 개정 경로·다중 브랜치 순서·git 비소유 경계·CI).
+- `docs/examples/github-actions-forge-check.yml` — forge 스크립트를 CI 게이트로 엮는 예제 워크플로 템플릿(forge 자체는 CI 없음 — 팀이 복사).
+
 ## [0.5.16] - 2026-07-16
 
 ### Changed
