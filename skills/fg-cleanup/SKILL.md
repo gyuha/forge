@@ -29,8 +29,8 @@ For each approved ADR:
 
 - **Move it to `.forge/adr/retired/<NNNN>-slug.md`** — same filename, keep the directory under `adr/` (so the `!.forge/adr/` gitignore whitelist still tracks it; create `retired/` lazily on first retirement).
 - **Add a one-line status marking at the top**: `Status: Superseded by ADR-NNNN` when there is a successor, or `Status: Retired (<reason>)` when the decision simply no longer applies (no successor required).
-- **Numbers never change and are never reused.** ADR-0003 stays 0003 even under `retired/`; the next new ADR is still `max+1`, leaving a gap (same monotonic-number rule as ADR-0005). Renumbering is fg-merge's job for branch merges — a different situation — and is **not** done here.
-- **Do not rewrite inbound cross-references.** Other docs cite ADRs by *number* (`ADR-0003`), so moving the file to `retired/` does not break those citations — path rewriting (fg-merge style) would be over-engineering.
+- **IDs never change and are never reused.** ADR-0003 stays `0003` even under `retired/`. New ADRs no longer mint from a `max+1` counter — they use **time-based IDs** (`YYMMDD-HH`+letter; see ADR-FORMAT.md), so there is no "gap" left behind by retirement; but a retired ID (whether a grandfathered `NNNN` or a time-based one) is **still never reused** — when minting a new letter for a given hour, the `retired/` scan must be included to avoid a collision. Reconciling a merge-time ID collision (next-free-letter, not a cascade renumber) is fg-merge's job for branch merges — a different situation — and is **not** done here.
+- **Do not rewrite inbound cross-references.** Other docs cite ADRs by *ID* (`ADR-0003` or `ADR-260716-14a`), so moving the file to `retired/` does not break those citations — path rewriting (fg-merge style) would be over-engineering.
 
 Retired ADRs drop out of fg-ask's grilling fuel: fg-ask reads only `.forge/adr/*.md` (top level) as source of truth and does **not** read `retired/`. The history stays on disk for archaeology ("why did we decide that back then?") — retirement is removal from the *active set*, not deletion.
 

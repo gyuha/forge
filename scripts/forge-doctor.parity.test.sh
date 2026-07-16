@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Parity test (ADR-0022): forge-doctor.sh and forge-doctor.js must, for the same
+# state, produce the SAME output AND exit code. forge-doctor is READ-ONLY (mutates
+# nothing), so parity is checked by running BOTH in the SAME fixture dir and
+# diffing stdout + comparing exit codes (not a file-tree diff like forge-done/merge).
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+SH="$HERE/forge-doctor.sh"; JS="$HERE/forge-doctor.js"
+fails=0
+mktmp() { mktemp -d "${TMPDIR:-/tmp}/fgdocp.XXXXXX"; }
+
+# normalize cosmetic path-format only (bash string vs node path.join): collapse
+# `./` and repeated slashes. Findings/severity/exit are what parity actually checks.
+norm() { printf '%s' "$1" | sed -e 's#\./##g' -e 's#//*#/#g'; }
+check() { # <desc> <seed-fn>
+  local desc="$1" seedfn="$2"; local D O_SH O_JS rc_sh rc_js
+  D=$(mktmp); "$seedfn" "$D"
+  O_SH="$( cd "$D" && bash "$SH" 2>&1 )"; rc_sh=$?
+  O_JS="$( cd "$D" && node "$JS" 2>&1 )"; rc_js=$?
+  if [ "$rc_sh" != "$rc_js" ]; then echo "FAIL - $desc  rc sh=$rc_sh js=$rc_js"; fails=$((fails+1)); rm -rf "$D"; return; fi
+  if [ "$(norm "$O_SH")" = "$(norm "$O_JS")" ]; then echo "ok   - $desc  (rc=$rc_sh)"
+  else echo "FAIL - $desc  findings differ:"; diff <(norm "$O_SH") <(norm "$O_JS") | head -20; fails=$((fails+1)); fi
+  rm -rf "$D"
+}
+
+s_status() { printf '# S\nslug: %s\nstatus: %s\nverified: %s\nretro: %s\n' "$2" "$3" "$4" "$5" > "$1"; }
+seed_clean()  { mkdir -p "$1/.forge"; }
+seed_mixed()  { # several findings across groups
+  mkdir -p "$1/.forge/done/2026-07-01-x" "$1/.forge/backlog" "$1/.forge/adr" "$1/.claude-plugin" "$1/skills/foo" "$1/scripts"
+  s_status "$1/.forge/done/2026-07-01-x/STATUS.md" x executed "yes (t)" "skipped (r)"; printf 'p\n' > "$1/.forge/done/2026-07-01-x/plan.md"  # A4
+  printf '<!-- forge-slug: a -->\n<!-- task: 4 -->\n' > "$1/.forge/backlog/a.md"; printf '<!-- forge-slug: b -->\n<!-- task: 4 -->\n' > "$1/.forge/backlog/b.md"  # A6 dup
+  printf '# a\n' > "$1/.forge/adr/0001-a.md"; printf '# c\n' > "$1/.forge/adr/0003-c.md"  # B14 gap
+  printf '# 1\n' > "$1/.forge/adr/260716-14a-p.md"; printf '# 2\n' > "$1/.forge/adr/260716-14a-q.md"  # B14 time dup
+  printf '{"version":"1.0.0"}\n' > "$1/.claude-plugin/plugin.json"
+  printf '{"metadata":{"version":"1.0.0"},"plugins":[{"version":"9.9.9"}]}\n' > "$1/.claude-plugin/marketplace.json"  # B8
+  printf '# no name\n' > "$1/skills/foo/SKILL.md"  # B10
+  printf '#!/bin/bash\n' > "$1/scripts/lonely.sh"  # B15
+  mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# t\n' > "$1/.forge/branch/feat-x/adr/260716-15a-z.md"  # A8
+}
+seed_orphan() { mkdir -p "$1/.forge"; printf 'x\n' > "$1/.forge/run.md"; }  # A1
+seed_t3()     { mkdir -p "$1/.forge/adr"; printf '# a\n' > "$1/.forge/adr/0001-a.md"; printf '# t\n' > "$1/.forge/adr/260716-14a-z.md"; }  # no false gap
+
+check "clean"                 seed_clean
+check "mixed findings"        seed_mixed
+check "A1 orphan"             seed_orphan
+check "T3 no-false-gap"       seed_t3
+
+echo ""
+if [ "$fails" -eq 0 ]; then echo "FORGE-DOCTOR PARITY OK"; exit 0
+else echo "FORGE-DOCTOR PARITY FAILED ($fails)"; exit 1; fi

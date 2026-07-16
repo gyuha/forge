@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Fixture-based tests for forge-merge.sh — deterministic branch-forge integration
+# (task forge-merge-script-extract). Covers the exit-code contract + every
+# mechanical integration op + the gates (in-flight, CONTEXT redefinition, NNNN
+# collision) which must NON-DESTRUCTIVELY refuse.
+#
+# Exit codes:  0 integrated · 2 nothing · 3 in-flight · 4 conflict (context
+#              redefinition / NNNN collision) · 6 ambiguous
+#
+# Run:  bash scripts/forge-merge.test.sh   (or FGMERGE_IMPL=.../forge-merge.js)
+
+set -u
+SCRIPT="${FGMERGE_IMPL:-$(cd "$(dirname "$0")" && pwd)/forge-merge.sh}"
+pass=0; fail=0
+mktmp() { mktemp -d "${TMPDIR:-/tmp}/fgmerge.XXXXXX"; }
+assert()        { if [ "$2" = "$3" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s\n    exp:[%s]\n    act:[%s]\n' "$1" "$2" "$3"; fi; }
+assert_file()   { if [ -e "$2" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (missing: %s)\n' "$1" "$2"; fi; }
+assert_nofile() { if [ ! -e "$2" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (should NOT exist: %s)\n' "$1" "$2"; fi; }
+assert_grep()   { if grep -qF "$3" "$2" 2>/dev/null; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (%s not in %s)\n' "$1" "$3" "$2"; fi; }
+
+run_merge() { local wd="$1"; shift
+  case "$SCRIPT" in
+    *.js) OUT="$( cd "$wd" && node "$SCRIPT" "$@" 2>&1 )"; RC=$? ;;
+    *)    OUT="$( cd "$wd" && bash "$SCRIPT" "$@" 2>&1 )"; RC=$? ;;
+  esac
+}
+seed_adr() { mkdir -p "$1/.forge/branch/$2/adr"; printf '# t\n' > "$1/.forge/branch/$2/adr/$3"; }
+
+# --- (a) nothing to integrate -> exit 2 --------------------------------------
+t=$(mktmp); mkdir -p "$t/.forge"; run_merge "$t"; assert "a-empty-rc2" 2 "$RC"; rm -rf "$t"
+# --- (b) named branch absent -> exit 2 ---------------------------------------
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; run_merge "$t" nope; assert "b-missing-rc2" 2 "$RC"; rm -rf "$t"
+# --- (c) in-flight active slot -> exit 3, nothing moved ----------------------
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; printf '<!-- forge-slug: x -->\n' > "$t/.forge/branch/feat-x/plan.md"
+run_merge "$t" feat-x; assert "c-inflight-plan-rc3" 3 "$RC"
+assert_file "c-adr-untouched" "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"; assert_nofile "c-target-none" "$t/.forge/adr/260716-14a-foo.md"; rm -rf "$t"
+# --- (d) in-flight loop.md -> exit 3 -----------------------------------------
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; printf 'g\n' > "$t/.forge/branch/feat-x/loop.md"
+run_merge "$t" feat-x; assert "d-inflight-loop-rc3" 3 "$RC"; rm -rf "$t"
+# --- (e) clean move + branch folder removed -> exit 0 ------------------------
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md
+run_merge "$t" feat-x; assert "e-clean-rc0" 0 "$RC"
+assert_file "e-adr-moved" "$t/.forge/adr/260716-14a-foo.md"; assert_nofile "e-branch-gone" "$t/.forge/branch/feat-x"; rm -rf "$t"
+# --- (f) time-ID collision -> bump to 14b + cross-ref rewrite in moved docs ---
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md
+mkdir -p "$t/.forge/adr"; printf '# existing\n' > "$t/.forge/adr/260716-14a-existing.md"
+mkdir -p "$t/.forge/branch/feat-x/retro"; printf 'see ADR-260716-14a for why\n' > "$t/.forge/branch/feat-x/retro/2026-07-16-foo.md"
+run_merge "$t" feat-x; assert "f-collision-rc0" 0 "$RC"
+assert_file "f-existing-kept" "$t/.forge/adr/260716-14a-existing.md"
+assert_file "f-incoming-bumped" "$t/.forge/adr/260716-14b-foo.md"
+assert_nofile "f-no-overwrite" "$t/.forge/adr/260716-14a-foo.md"
+assert_grep "f-crossref-rewritten" "$t/.forge/retro/2026-07-16-foo.md" "ADR-260716-14b"; rm -rf "$t"
+# --- (g) ambiguous -> exit 6 -------------------------------------------------
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; seed_adr "$t" feat-y 260716-15a-bar.md
+run_merge "$t"; assert "g-ambiguous-rc6" 6 "$RC"; rm -rf "$t"
+# --- (h) retro move + filename collision -> -2 -------------------------------
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x/retro" "$t/.forge/retro"
+printf 'branch\n' > "$t/.forge/branch/feat-x/retro/2026-07-16-dup.md"; printf 'existing\n' > "$t/.forge/retro/2026-07-16-dup.md"
+run_merge "$t" feat-x; assert "h-retro-rc0" 0 "$RC"
+assert_file "h-retro-existing" "$t/.forge/retro/2026-07-16-dup.md"; assert_file "h-retro-disambig" "$t/.forge/retro/2026-07-16-dup-2.md"; rm -rf "$t"
+# --- (i) CONTEXT new term appended, identical term is a no-op ----------------
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"; printf '# Glossary\n\n## Alpha\nsame body\n\n## Beta\nnew term\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# Glossary\n\n## Alpha\nsame body\n' > "$t/.forge/CONTEXT.md"
+run_merge "$t" feat-x; assert "i-context-rc0" 0 "$RC"
+assert_grep "i-beta-appended" "$t/.forge/CONTEXT.md" "## Beta"; rm -rf "$t"
+# --- (j) CONTEXT term redefinition -> exit 4, nothing moved ------------------
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"; seed_adr "$t" feat-x 260716-14a-foo.md
+printf '# G\n\n## Alpha\nBRANCH definition\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# G\n\n## Alpha\nMAIN definition\n' > "$t/.forge/CONTEXT.md"
+run_merge "$t" feat-x; assert "j-redef-rc4" 4 "$RC"
+assert_file "j-adr-untouched" "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"; assert_nofile "j-target-adr-none" "$t/.forge/adr/260716-14a-foo.md"; rm -rf "$t"
+# --- (k) incoming NNNN, no collision -> move as-is, exit 0 -------------------
+t=$(mktmp); seed_adr "$t" feat-x 0033-legacy.md
+run_merge "$t" feat-x; assert "k-nnnn-rc0" 0 "$RC"; assert_file "k-nnnn-moved" "$t/.forge/adr/0033-legacy.md"; rm -rf "$t"
+# --- (l) incoming NNNN collides with frozen target -> exit 4, nothing moved ---
+t=$(mktmp); seed_adr "$t" feat-x 0011-dup.md; mkdir -p "$t/.forge/adr"; printf '# frozen\n' > "$t/.forge/adr/0011-frozen.md"
+run_merge "$t" feat-x; assert "l-nnnn-collide-rc4" 4 "$RC"
+assert_file "l-branch-adr-untouched" "$t/.forge/branch/feat-x/adr/0011-dup.md"; assert_file "l-frozen-kept" "$t/.forge/adr/0011-frozen.md"; rm -rf "$t"
+# --- (m) done + backlog folded with ONE monotonic task-number remap ----------
+t=$(mktmp)
+mkdir -p "$t/.forge/backlog"; printf '<!-- forge-slug: keep -->\n<!-- task: 5 -->\n# keep\n' > "$t/.forge/backlog/keep.md"   # target max = 5
+mkdir -p "$t/.forge/branch/feat-x/done/2026-01-01-a" "$t/.forge/branch/feat-x/backlog"
+printf '<!-- forge-slug: a -->\n<!-- task: 2 -->\n# a\n' > "$t/.forge/branch/feat-x/done/2026-01-01-a/plan.md"
+printf '<!-- forge-slug: b -->\n<!-- task: 3 -->\n# b\n' > "$t/.forge/branch/feat-x/backlog/b.md"
+run_merge "$t" feat-x; assert "m-remap-rc0" 0 "$RC"
+assert_grep "m-done-a-remapped-6" "$t/.forge/done/2026-01-01-a/plan.md" "task: 6"
+assert_grep "m-backlog-b-remapped-7" "$t/.forge/backlog/b.md" "task: 7"
+assert_grep "m-target-keep-unchanged" "$t/.forge/backlog/keep.md" "task: 5"; rm -rf "$t"
+# --- (n) dropped moved (never blocks) ----------------------------------------
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x/dropped/gone"; printf 'x\n' > "$t/.forge/branch/feat-x/dropped/gone/plan.md"
+run_merge "$t" feat-x; assert "n-dropped-rc0" 0 "$RC"; assert_file "n-dropped-moved" "$t/.forge/dropped/gone/plan.md"; rm -rf "$t"
+
+printf '\nforge-merge: %d passed, %d failed\n' "$pass" "$fail"
+[ "$fail" -eq 0 ]

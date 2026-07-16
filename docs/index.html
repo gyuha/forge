@@ -264,7 +264,7 @@
       </div>
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-merge</div>
-        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">git merge 후 브랜치의 .forge/branch/&lt;b&gt;/를 .forge/로 통합. ADR 재번호·CONTEXT 병합·done 이력 접기. git은 실행하지 않음.</span><span data-l="en">After a git merge, folds a branch's .forge/branch/&lt;b&gt;/ into .forge/ — renumbers ADRs, merges CONTEXT, folds done history. Never runs git.</span></p>
+        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">git merge 후 브랜치의 .forge/branch/&lt;b&gt;/를 .forge/로 통합(결정론 스크립트, AI 없이 CI 게이트 가능). 시간ID ADR 이동(충돌 시 다음 글자, 재번호 없음)·CONTEXT 병합·done 이력 접기. git은 실행하지 않음.</span><span data-l="en">After a git merge, folds a branch's .forge/branch/&lt;b&gt;/ into .forge/ (a deterministic script, usable AI-free as a CI gate). Moves time-based ADR IDs (collision → next letter, no renumber), merges CONTEXT, folds done history. Never runs git.</span></p>
       </div>
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-cleanup</div>

@@ -46,7 +46,7 @@ repo/
 ```
 
 - 각 스킬은 입력 파일을 `.forge/`에서 읽고 산출을 `.forge/`에 쓴다(브랜치별로 해석 — 아래 참조). `fg-run`만 따로 불러도 백로그·활성 슬롯을 찾아 이어간다.
-- **브랜치 격리 ([ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md)).** 비-기본 브랜치에서는 forge 루트 전체가 `.forge/branch/<branch>/`(git 추적)로 옮겨가, 병렬 브랜치가 `.forge` 상태에서 충돌하지 않는다 — ADR/task 번호·CONTEXT.md·휘발 상태가 모두 브랜치별로 네임스페이스된다. 영속 연료(CONTEXT.md·ADR·회고)의 읽기는 최상위 베이스 문서 위에 오버레이되어(브랜치 우선) 갓 만든 브랜치도 main의 용어·결정 위에서 그릴링하고, 쓰기는 브랜치 루트에만 간다. `git merge` 뒤 `fg-merge`가 브랜치 루트를 `.forge/`로 통합한다(ADR 번호 재부여·retro 이동·CONTEXT 용어 병합 후 브랜치 폴더 제거). 기본 브랜치는 종전과 같다. 해석 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번만 정의된다.
+- **브랜치 격리 ([ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md)).** 비-기본 브랜치에서는 forge 루트 전체가 `.forge/branch/<branch>/`(git 추적)로 옮겨가, 병렬 브랜치가 `.forge` 상태에서 충돌하지 않는다 — ADR/task 번호·CONTEXT.md·휘발 상태가 모두 브랜치별로 네임스페이스된다. 영속 연료(CONTEXT.md·ADR·회고)의 읽기는 최상위 베이스 문서 위에 오버레이되어(브랜치 우선) 갓 만든 브랜치도 main의 용어·결정 위에서 그릴링하고, 쓰기는 브랜치 루트에만 간다. `git merge` 뒤 `fg-merge`가 브랜치 루트를 `.forge/`로 통합한다(**결정론 스크립트 `forge-merge.sh`/`.js`** — 시간ID ADR 이동[충돌 시 다음 글자, cascade 재번호 없음]·task 번호 재부여·retro 이동·CONTEXT 용어 병합 후 브랜치 폴더 제거, AI 없이 CI 게이트 가능). 기본 브랜치는 종전과 같다. 해석 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번만 정의된다.
 - `fg-run`는 백로그에 작업이 여럿이면 미완료 목록을 선택 메뉴로 제시한다(마지막 옵션 "모두 실행"). 활성 슬롯은 항상 1개 — 한 plan.md = 한 run.md = 한 봉인.
 - 입력 파일이 없으면 스킬은 앞 단계를 안내한다.
 - 활성 슬롯·백로그·회고 대기열이 모두 비어 있으면 = 진행 중 작업 없음. `fg-run`는 빈 상태에서 실행하지 않는다(재실행 방지). 완료 판별은 `done/*/STATUS.md`(status: done)다.

@@ -1,0 +1,59 @@
+# Example GitHub Actions workflow — copy into YOUR repo's .github/workflows/.
+#
+# forge itself ships no CI (it is a plugin repo — see CLAUDE.md); this is a
+# TEMPLATE for teams using forge, wiring forge's AI-free deterministic scripts as
+# CI gates. Adjust ${CLAUDE_PLUGIN_ROOT} to wherever the forge scripts live in your
+# checkout (or vendor scripts/forge-*.sh into your repo).
+#
+# What it gates:
+#   • forge-doctor.sh — state & docs integrity (exit 0 clean · 1 warnings · 2 errors).
+#       Catches an orphaned branch root you forgot to fg-merge (A8), version drift,
+#       broken STATUS, duplicate ADR IDs, etc. — all AI-free.
+#   • the forge script test suites (behavior + .sh/.js parity).
+#   • (optional, commented) forge-merge.sh — integrate a merged branch's .forge state;
+#       non-zero exit = a human is needed (conflict/in-flight), fail the build.
+#
+# Semantic ADR contradictions are NOT script-detectable by design — they stay with
+# PR review (a human), not this gate.
+
+name: forge check
+on: [push, pull_request]
+
+jobs:
+  forge-integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- state & docs integrity gate --------------------------------------
+      # Default policy: fail only on ERRORS (exit 2); print warnings non-blocking.
+      # For a strict gate (no warnings allowed), replace the block with:
+      #   - run: bash scripts/forge-doctor.sh
+      - name: forge-doctor (integrity gate)
+        run: |
+          set +e
+          bash scripts/forge-doctor.sh; rc=$?
+          if [ "$rc" -ge 2 ]; then echo "::error::forge-doctor found errors"; exit 1; fi
+          [ "$rc" -eq 1 ] && echo "::warning::forge-doctor reported warnings (non-blocking)"
+          exit 0
+
+      # --- deterministic script twins pass ----------------------------------
+      - name: forge script tests (behavior + parity)
+        run: |
+          set -e
+          for t in scripts/*.test.sh; do echo "== $t"; bash "$t"; done
+
+  # --- OPTIONAL: post-merge branch-forge integration ------------------------
+  # Enable if your team uses forge branch isolation (.forge/branch/<b>/, ADR-0011).
+  # Run AFTER a branch is merged; forge-merge.sh integrates that branch's forge
+  # state into .forge/ and exits non-zero on a conflict/in-flight state that needs
+  # a human (CONTEXT term redefinition, NNNN collision, unsealed work). Fail the
+  # build on non-zero → resolve locally with `fg-merge <branch>`, then re-push.
+  #
+  # forge-integrate:
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: forge-merge (integrate merged branch forge state)
+  #       run: bash scripts/forge-merge.sh "${BRANCH:?set BRANCH to the merged branch}"
