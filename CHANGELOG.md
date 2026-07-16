@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.16] - 2026-07-16
+
+### Changed
+- **`fg-loop` 초기 inquiry에 stop-condition 체크 "충실성(faithfulness)" 4-렌즈 적대 그릴링 추가 ([ADR-0016](./.forge/adr/0016-fg-loop-goal-driven-bounded-replan.md) 개정 2026-07-16).** machine-verifiable 체크는 목표의 *프록시*라, 게임 가능(Goodhart)하거나 불완전하면 무인 주행이 "all checks pass → loop.md 삭제 → 완료"로 **거짓 승리**를 선언한다(아무도 안 보는 무인 주행일수록 치명적). `skills/fg-loop/SKILL.md` §1에 각 체크(및 집합)를 네 렌즈 — ① 게임 가능성(Goodhart, 존재가 아니라 행동/결과 단언으로 조임) ② 완전성/regression 누수(anti-regression 체크 추가 → 기존 tension/regression 기계에 그대로 먹이) ③ 충실 vs 편한 프록시 ④ in-scope 도달성(→ 벽 대신 fork 조기 표면화) — 로 통과할 때까지 적대적으로 그릴하는 단계를 추가하고, Autonomy contract의 "초기 inquiry를 LEAN하게" 지시에서 **체크 충실성만 명시적으로 카브아웃**(주변부 — scope·cap·TDD·slug·분해 — 는 lean, 체크는 하드 그릴)했다. "runnable 체크로 못 박으면 fg-ask 라우팅" 규칙을 "**충실+in-scope 도달 가능한 체크로 못 만들면** 같은 라우팅"으로 확장. 산출물은 기존 `## Stop-condition checks` 절의 강화·확장된 체크 집합뿐 — **새 loop.md 필드 없음**(상태 계약 ripple 회피). 텍스트만 수정(+18/-0 순수 additive) — drive·§2/§3/§4 기계·ledger·Reflexion·walls·fg-ask 전부 무변경.
+
 ## [0.5.15] - 2026-07-14
 
 ### Fixed
