@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.18] - 2026-07-17
+
+`/fg` 메뉴 가독성 개선 + `fg-merge` 편의(git merge 통합) + 문서 정합.
+
+### Added
+- **`fg-merge <branch>` opt-in git-merge 모드** ([ADR-260717-10a](./.forge/adr/260717-10a-fg-merge-optin-git-merge-mode.md)). 인자를 주면 `git merge <branch>`를 먼저 대신 돌린 뒤 `.forge/`를 통합 — 두 단계를 한 번에. 무인자 `fg-merge`는 종전대로 통합만. git은 **대화형 스킬 계층에서만** 돌고 코어 `forge-merge.sh`/`.js`·CI 경로는 git-free 유지([ADR-0011](./.forge/adr/0011-branch-isolated-forge-root.md) 개정). merge 충돌은 그 자리에 남기고 정지(통합 안 함), 이미 merge됐거나 브랜치 삭제 시 통합-only로 스마트 라우팅, 기본 브랜치에서만.
+- **`fg-doctor` description 길이 lint**. SKILL.md `description`이 임계를 넘으면 warning — 트리거-코어 규약(아래) 위반을 health check/CI 게이트가 감지.
+
+### Changed
+- **18개 스킬 `description`을 트리거-코어로 트림** ([ADR-260716-22a](./.forge/adr/260716-22a-skill-description-dual-use-trigger-core.md)). `/fg` 슬래시 메뉴가 각 스킬의 긴 description을 그대로 보여줘 "벽 같은 설명"이었다. description은 **메뉴 표시 + 자동-발동 트리거의 이중 용도**(같은 1,536자 cap)라, 트리거 문구(한국어 발화 포함)·형제 구분만 남기고 ADR 참조·상세 동작·근거는 SKILL 본문으로 이동. 1229/1139자 벽 → 279–591자(완결·스캔 가능).
+- **문서 동기화** — README(이중언어)·`docs/skills`·`docs/state-contract`·`docs/team-workflow`·`CLAUDE.md`를 팀 사용/CI와 fg-merge git 모드에 맞춰 갱신·정합("코어는 git-free / 대화형 인자모드만 git merge"의 2-layer 서술).
+
 ## [0.5.17] - 2026-07-16
 
 팀(3~20명, feature 브랜치 + PR + fg-merge) 사용을 위한 개선 — ADR 다중 작성자 견고화 + AI 없는 CI.
