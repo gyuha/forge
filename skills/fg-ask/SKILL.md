@@ -1,6 +1,6 @@
 ---
 name: fg-ask
-description: Grilling session that challenges your plan against the existing domain model, sharpens terminology, and updates documentation (CONTEXT.md, ADRs) inline as decisions crystallise. Use when user wants to stress-test a plan against their project's language and documented decisions. The entry point of the forge loop and its plan-grilling stage — use in contexts like "start a new task", "start with forge", "let's work on this", '새 작업 시작', 'forge로 시작', '이거 작업하자', '계획 다듬자', '이 계획 그릴링해줘'. Once an agreed plan is loaded into .forge/backlog/<slug>.md, fg-run picks it up and runs it. Always conducted as a conversation in this session (outside any workflow).
+description: Grilling session that stress-tests your plan against the project's domain model, terminology, and documented decisions, updating CONTEXT.md/ADRs inline. The forge loop's entry point (the plan-grilling stage), always conversational. Use to start or refine a task — "start a new task", "start with forge", "let's work on this", "refine the plan", '새 작업 시작', '계획 다듬자', '이 계획 그릴링해줘'.
 ---
 
 <what-to-do>

@@ -1,6 +1,6 @@
 ---
 name: fg-statusline
-description: Set up (or refresh) a Claude Code statusline showing forge's loop progress, in one of two install modes. Method 1 (append) auto-wraps your existing statusLine so forge shows as extra rows below it (original preserved) — the thin forge-only fragment. Method 2 (merge) installs a forge-owned unified script that renders daleseo-style system info (model/effort/dir/⎇git · Context/size + gradient usage bars + $cost/±lines/elapsed) AND forge progress in one command, laid out in bracketed groups, with a compact/full density toggle stored as a command arg (no config key). If you already have a statusline it asks which mode; if you have none it installs method 2; on Windows-with-an-existing-statusline it offers method 2 only (the wrapper is bash-only). An on-demand setup utility outside the loop. Use in contexts like 'forge statusline', 'statusline 설정', '상태바', '상태 표시줄', 'add forge to statusline'.
+description: Set up (or refresh) a Claude Code statusline showing forge's loop progress, in one of two modes — method 1 (append) wraps your existing statusLine as extra rows (original preserved); method 2 (merge) installs a forge-owned unified script with daleseo-style system info (model/dir/git/context/usage bars) + forge progress, with a compact/full density toggle. On-demand setup utility outside the loop. Use in contexts like 'forge statusline', 'statusline 설정', '상태바', '상태 표시줄', 'add forge to statusline'.
 ---
 
 # fg-statusline — set up the forge progress statusline (outside the loop)

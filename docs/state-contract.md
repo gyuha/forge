@@ -46,7 +46,7 @@ repo/
 ```
 
 - 각 스킬은 입력 파일을 `.forge/`에서 읽고 산출을 `.forge/`에 쓴다(브랜치별로 해석 — 아래 참조). `fg-run`만 따로 불러도 백로그·활성 슬롯을 찾아 이어간다.
-- **브랜치 격리 ([ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md)).** 비-기본 브랜치에서는 forge 루트 전체가 `.forge/branch/<branch>/`(git 추적)로 옮겨가, 병렬 브랜치가 `.forge` 상태에서 충돌하지 않는다 — ADR/task 번호·CONTEXT.md·휘발 상태가 모두 브랜치별로 네임스페이스된다. 영속 연료(CONTEXT.md·ADR·회고)의 읽기는 최상위 베이스 문서 위에 오버레이되어(브랜치 우선) 갓 만든 브랜치도 main의 용어·결정 위에서 그릴링하고, 쓰기는 브랜치 루트에만 간다. `git merge` 뒤 `fg-merge`가 브랜치 루트를 `.forge/`로 통합한다(**결정론 스크립트 `forge-merge.sh`/`.js`** — 시간ID ADR 이동[충돌 시 다음 글자, cascade 재번호 없음]·task 번호 재부여·retro 이동·CONTEXT 용어 병합 후 브랜치 폴더 제거, AI 없이 CI 게이트 가능). 기본 브랜치는 종전과 같다. 해석 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번만 정의된다.
+- **브랜치 격리 ([ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md)).** 비-기본 브랜치에서는 forge 루트 전체가 `.forge/branch/<branch>/`(git 추적)로 옮겨가, 병렬 브랜치가 `.forge` 상태에서 충돌하지 않는다 — ADR/task 번호·CONTEXT.md·휘발 상태가 모두 브랜치별로 네임스페이스된다. 영속 연료(CONTEXT.md·ADR·회고)의 읽기는 최상위 베이스 문서 위에 오버레이되어(브랜치 우선) 갓 만든 브랜치도 main의 용어·결정 위에서 그릴링하고, 쓰기는 브랜치 루트에만 간다. `git merge` 뒤 `fg-merge`(무인자)가 브랜치 루트를 `.forge/`로 통합한다(무인자 모드 — `fg-merge <branch>`는 대화형에서 `git merge`까지 대신 돌린다, ADR `260717-10a`; **결정론 스크립트 `forge-merge.sh`/`.js`** — 시간ID ADR 이동[충돌 시 다음 글자, cascade 재번호 없음]·task 번호 재부여·retro 이동·CONTEXT 용어 병합 후 브랜치 폴더 제거, AI 없이 CI 게이트 가능). 기본 브랜치는 종전과 같다. 해석 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번만 정의된다.
 - `fg-run`는 백로그에 작업이 여럿이면 미완료 목록을 선택 메뉴로 제시한다(마지막 옵션 "모두 실행"). 활성 슬롯은 항상 1개 — 한 plan.md = 한 run.md = 한 봉인.
 - 입력 파일이 없으면 스킬은 앞 단계를 안내한다.
 - 활성 슬롯·백로그·회고 대기열이 모두 비어 있으면 = 진행 중 작업 없음. `fg-run`는 빈 상태에서 실행하지 않는다(재실행 방지). 완료 판별은 `done/*/STATUS.md`(status: done)다.
@@ -70,7 +70,7 @@ repo/
 | `loop.md` (goal 계약) | fg-loop | fg-loop(재개·멤버십 필터 주행)·fg-status(한 줄 보고+상태 머신 step 0)·fg-ask(벽에 멈춘 루프 경고)·fg-next(all 모드 양보)·fg-merge(브랜치 잔존 시 in-flight halt) |
 
 - **STATUS.md는 이중 장부가 아니라 동반 마커다.** 상태의 원천은 파일 위치이고, STATUS.md는 plan/run과 함께 활성 슬롯 → `executed/` → `done/`을 따라 이동한다. plan 첫 줄의 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자다(파일이 이동해도 영속).
-- **은퇴된 ADR(`adr/retired/`)은 그릴링 연료에서 빠진다** — `fg-ask`는 `retired/`를 정답소스로 읽지 않으므로, `fg-cleanup`이 옮긴 결정은 디스크에 남되 활성 결정 집합에서 제외된다 (ADR-0012·ADR-0011 개정).
+- **은퇴된 ADR(`adr/retired/`)은 그릴링 연료에서 빠진다** — `fg-ask`는 `retired/`를 정답소스로 읽지 않으므로, `fg-cleanup`이 옮긴 결정은 디스크에 남되 활성 결정 집합에서 제외된다 ([ADR-0012](../.forge/adr/0012-fg-cleanup-renamed-to-fg-done-cleanup-retires-adrs.md)·ADR-0011 개정).
 
 ## 전체 흐름 상세도
 

@@ -49,13 +49,14 @@ Reach for the right sequence by situation. The everyday and unattended rows poin
 
 | Situation | Flow |
 | --- | --- |
-| **First-time setup** (new project/codebase) | `fg-map` (map the code) → `fg-agents` (generate domain agents — **restart the session** so they load, ADR-0024) → `fg-ask` (first task) → the loop |
+| **First-time setup** (new project/codebase) | `fg-map` (map the code) → `fg-agents` (generate domain agents — **restart the session** so they load, [ADR-0024](./.forge/adr/0024-fg-agents-and-domain-agent-execution.md)) → `fg-ask` (first task) → the loop |
 | **Everyday task** | `fg-ask → fg-run → fg-next` — see *Quick start* above |
 | **Tiny one-off** (typo, version bump) | `fg-quick` — grills lightly, runs directly, no formal artifacts |
 | **Unattended to done** | a grilled queue: `fg-ask` ×N → `fg-next all` · a machine-verifiable goal: `fg-loop` — see *Choosing a lane* (L3) |
 | **Re-entry / health** | *where am I*: `fg-status` (shows) / `fg-next` (does the next step) · *is the state healthy*: `fg-doctor` |
 | **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-learn` (retro) → `fg-done` (seal) → type `배포` (deploy) |
 | **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · toggles `fg-tdd`/`fg-eco` · statusline `fg-statusline` |
+| **Team use** (branches + CI) | seal on the branch → `git merge` → `fg-merge` (or `fg-merge <branch>` to do both; `forge-merge.sh` in CI) · `forge-doctor` as an AI-free CI gate — see **[docs/team-workflow.md](./docs/team-workflow.md)** |
 
 First-time setup is the one sequence *Quick start* skips: on a fresh project, map the code and (optionally) generate domain agents **before** your first `fg-ask` — `fg-agents` cards load only at session start, so restart once after generating them (ADR-0024).
 
@@ -68,7 +69,7 @@ The four loop stages, then the fourteen utilities outside the loop:
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
 | `fg-run` | ② Execute | Runs the plan as a Dynamic Workflow (one plan runs immediately, several show a priority-sorted selection) |
 | `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry |
-| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path (ADR-0030). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
+| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
@@ -76,11 +77,11 @@ The four loop stages, then the fourteen utilities outside the loop:
 | `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass |
 | `fg-tdd` | Utility | Toggles persistent TDD mode in `.forge/config.json` |
 | `fg-eco` | Utility | Toggles eco mode — when on, caps delegated workflow subagents at `sonnet` **and** activates the embedded Eco laziness-first discipline (`ECO.md` — code simplicity + terse-communication output): injected into fg-run subagents, woven into fg-ask grilling as a YAGNI lens, adopted by the session |
-| `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` |
+| `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
 | `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and fg-learn — six lenses, fix-forward findings |
-| `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync |
+| `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync — script-backed, usable as an AI-free CI gate |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
 | `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
 

@@ -1,6 +1,6 @@
 ---
 name: fg-quick
-description: A lightweight lane outside the forge loop for trivial tasks (typo fixes, path tweaks, version bumps, small renames). It still grills — but lightly and conversationally — then records one line to .forge/quick/LOG.md and runs the change directly, with no formal artifacts (no ADR, no plan.md/run.md/STATUS, no retro) and without touching the main loop's active slot. If the task turns out non-trivial mid-grill, it bails to fg-ask. Use in contexts like 'forge quick', '빠르게 처리', '이거 빨리 해줘', 'quick task'.
+description: A lightweight lane outside the forge loop for trivial tasks (typo fixes, path tweaks, version bumps, small renames) — grills lightly, then runs the change directly with no formal artifacts (no ADR/plan/run/STATUS/retro). Bails to fg-ask if the task turns out non-trivial. Use in contexts like 'forge quick', '빠르게 처리', '이거 빨리 해줘', 'quick task'.
 ---
 
 # fg-quick — lightweight lane (outside the loop)

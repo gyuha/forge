@@ -1,6 +1,6 @@
 ---
 name: fg-map
-description: Maps the codebase with parallel subagents into structured documents under .forge/codebase/, so later grilling reads a map instead of re-exploring the code from scratch (cuts context rot). An on-demand utility outside the forge loop, not one of its stages. Use in contexts like "map the codebase", "analyze the codebase", "코드베이스 분석", "코드베이스 지도", "context rot 줄여줘". Run it when the codebase has changed enough that the existing map is stale.
+description: Maps the codebase with parallel subagents into structured documents under .forge/codebase/, so later grilling reads a map instead of re-exploring the code (cuts context rot). On-demand utility outside the loop. Use in contexts like "map the codebase", "analyze the codebase", "코드베이스 분석", "코드베이스 지도".
 ---
 
 # fg-map — codebase mapping (loop-side utility)

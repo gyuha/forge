@@ -1,6 +1,6 @@
 ---
 name: fg-learn
-description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, and the retro log (.forge/retro), then surface the next inquiry. Use when you want to record what you learned into docs after a task — in the context of 'forge learn', '회고하자', '이번 작업 정리해줘'. Always conversational, and respects the promotion discipline.
+description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, and the retro log (.forge/retro), then surface the next inquiry. Always conversational; respects the promotion discipline. Use to record what you learned after a task — 'forge learn', '회고하자', '이번 작업 정리해줘'.
 ---
 
 # fg-learn — ③ Retro (reflect into docs)

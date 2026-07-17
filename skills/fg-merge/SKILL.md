@@ -1,6 +1,6 @@
 ---
 name: fg-merge
-description: Integrates a non-default branch's forge content (`.forge/branch/<branch>/`) into the default-branch `.forge/` after a git merge — the mechanical integration runs as a deterministic script (forge-merge.sh/.js) so it also works AI-free in CI, renumbering nothing: incoming time-based ADR IDs move as-is (an exact-ID clash takes the next free letter, no cascade), retros move, CONTEXT.md terms merge, done/backlog fold with one task-number remap, dropped/ moves, then the branch folder is removed. Genuine conflicts (a term redefined, an incoming NNNN colliding with a frozen ID) halt with a non-zero exit for a human; semantic ADR contradictions are left to PR review. It does NOT run git — you `git merge` first, then run fg-merge. An on-demand utility outside the loop. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘'.
+description: Integrates a merged branch's forge content (.forge/branch/<branch>/) into .forge/. Two modes: `fg-merge` (no arg) integrates only; `fg-merge <branch>` also runs `git merge <branch>` for you first, then integrates (default branch only; on conflict it stops, leaving the conflict in place). A deterministic script (forge-merge.sh/.js) does the git-free integration — usable AI-free in CI. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘', '머지하고 통합'.
 ---
 
 # fg-merge — integrate a branch's forge content into `.forge/` (outside the loop)
@@ -9,15 +9,29 @@ This is **not** a stage of the forge loop. It is the integration step for branch
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The integration summary and any conflict question are written in the user's language.
 
-## Precondition: git merge first, fg-merge second
+## Two modes: integrate-only vs. merge-and-integrate
 
-fg-merge does **not** run git — that is a non-goal. The expected order (ADR-0011):
+fg-merge has two modes, chosen by whether you pass a branch argument (ADR `260717-10a`):
 
-1. You finish and seal the branch's loop (its `done/` lives under `.forge/branch/<branch>/done/`).
-2. **You** `git merge <branch>` into the default branch. Because `.forge/branch/<branch>/` is namespaced, git brings the whole folder in **without conflict** (the default branch had no such path).
-3. **Then** run `fg-merge <branch>` on the default branch. It reads `.forge/branch/<branch>/` and integrates its permanent docs into the top-level `.forge/`.
+- **`fg-merge` (no argument) — integrate only.** The default-branch `.forge/` already has the branch root `.forge/branch/<branch>/` present (you ran `git merge <branch>` yourself, or CI did). fg-merge just integrates it. This is the original behavior, and the **only** mode CI uses.
+- **`fg-merge <branch>` — merge, then integrate.** For convenience, the skill runs **`git merge <branch>` for you first**, then integrates that branch's root. This runs **only on the default branch** (the integration target is the top-level `.forge/`).
 
-If `.forge/branch/<branch>/` is not present on the default branch (e.g. you haven't merged yet, or the name is wrong), the script reports nothing to integrate (exit 2).
+**The git merge runs in this skill (a Bash step), never in the core script.** The deterministic `forge-merge.sh`/`.js` that does the integration **never runs git** — that is what keeps it usable AI-free in CI (CI does its own merge, then calls the script). Only the interactive skill, and only when given a branch argument, runs `git merge`. This is the bounded relaxation of ADR-0011's "fg-merge does not run git" (ADR `260717-10a`); the core script's git-abstinence is unchanged.
+
+### The merge step (only when a `<branch>` argument is given)
+
+Before integrating, run `git merge <branch>` and route on the result:
+
+- **Clean merge (or fast-forward)** → git makes its merge commit; the branch root is now in the tree → proceed to integrate.
+- **"Already up to date"** → `<branch>` was merged already → skip straight to integrate (smart routing).
+- **Merge conflict** → **leave the conflict in place and STOP — do not integrate.** The tree is mid-merge, and integration must never run on a dirty/conflicted tree. Tell the human (in their language): resolve the conflicts, `git commit` the merge, then run `fg-merge` (no argument) to integrate. Do **not** `git merge --abort` — that discards their merge and forces a redo.
+- **`<branch>` is not a valid git ref** (e.g. the branch was deleted after a PR merge) **but `.forge/branch/<branch>/` is present** → the work is already merged; skip the git step and integrate that root, noting the branch ref is gone (smart routing).
+- **Neither a mergeable ref nor a present branch root** → error: nothing to merge or integrate.
+- **Not on the default branch** → stop: merge-and-integrate targets the top-level `.forge/`, so it runs only on the default branch.
+
+fg-merge does **not** commit the integration and does **not** push — exactly as in integrate-only mode. `git merge` makes its own merge commit; the integration changes are left uncommitted for you to review and commit (see the handoff).
+
+If `.forge/branch/<branch>/` is not present on the default branch after the merge step (or in integrate-only mode with no root at all), the script reports nothing to integrate (exit 2).
 
 ## How it runs (script-backed integration)
 
@@ -29,14 +43,14 @@ Dual dispatch (ADR-0022): prefer bash, fall back to node.
 - **Has bash**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-merge.sh" [<branch>]`
 - **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-merge.js" [<branch>]` — identical behavior (exit codes, resulting `.forge/` tree), guarded by the parity test.
 
-**Argument**: `<branch>` names the branch root explicitly. Omit it to let the script resolve — exactly one leaf root → that one; several → it exits 6 with the list, and you ask the user which, then re-invoke with that branch.
+**Argument**: passing `<branch>` selects that branch root **and** triggers the merge step above (git merge → integrate). Omitting it means integrate-only, letting the script resolve the root — exactly one leaf root → that one; several → it exits 6 with the list, and you ask the user which, then re-invoke. (Because merge-and-integrate always names the branch, exit 6's ambiguity only arises in integrate-only mode.)
 
 **Exit codes → routing (this is the skill's job):**
 
 | Exit | Meaning | Route |
 | --- | --- | --- |
 | 0 | integrated OK (branch folder removed) | relay the integration summary + commit reminder |
-| 2 | nothing to integrate (no branch root / named branch absent / empty) | say so; remind "git merge first, then fg-merge" |
+| 2 | nothing to integrate (no branch root / named branch absent / empty) | say so; in integrate-only mode remind that `git merge` (or `fg-merge <branch>`) must bring the branch root in first |
 | 3 | in-flight branch state (active slot · executed/ · pending quick · loop.md) | tell the human to seal/recover/resume **on the branch** first (fg-done / fg-run / fg-loop), then re-run |
 | 4 | genuine conflict needs a human | resolve it conversationally, then re-run (see below) |
 | 6 | ambiguous (several branch roots, no `<branch>`) | list them, ask which, re-invoke with that branch |
@@ -79,30 +93,39 @@ A non-zero exit **fails the build**: exit 3 (in-flight) / 4 (conflict) / 6 (ambi
 
 ## Behavior
 
-**1) Decide the argument (judgment), then run the script.** Resolve `<branch>` (explicit arg, or let the script enumerate and route its exit 6), then invoke via dual dispatch (bash, else node). Do **not** hand-move files or hand-`sed` IDs — the script owns that.
+**1) Decide the mode, then (if merging) run the merge step, then run the script.** If a `<branch>` argument was given, first run the **merge step** above — `git merge <branch>`, routing on clean / already-up-to-date / conflict / deleted-ref / not-default-branch. Only a clean or already-merged result proceeds; a **conflict stops here** (leave it in place, do not integrate) and a **not-default-branch stops here**. With no argument, skip straight to integrate-only. Then resolve the branch root (explicit, or let the script enumerate and route its exit 6) and invoke the integration via dual dispatch (bash, else node). Do **not** hand-move files or hand-`sed` IDs — the script owns the integration; you own only the `git merge` orchestration.
 
 **2) Route on the exit code (judgment).** Exit 0 → the integration summary below. Non-zero → route per the table / conflict section above and stop (nothing was moved — the script refused before mutating).
 
 **3) On a genuine conflict (exit 4), resolve conversationally — a merge-time mini fg-learn.** Show the two sides (the redefined term's two bodies, or the colliding NNNN and what occupies it), ask the human how to reconcile, apply their choice to the branch/target doc, then **re-run the script**. Plan/doc edits are human-approved — never auto-pick a term's winning definition.
 
-**4) On success (exit 0), summarize + remind to commit.** Relay what the script integrated (N ADRs, any letter bumps, retros moved, terms merged, done/backlog folded with the task-number remap, dropped preserved, branch folder removed) in the user's language, then remind the user to **commit the integration result** (the moved docs — any collision-bumped ADR re-lettered — plus the branch-folder deletion) — fg-merge does not run git, so until committed it exists only in the working tree. If the script printed any `WARN external ref …` lines, surface them: those are non-`.forge/` citations of a bumped ADR the human must rewrite by hand.
+**4) On success (exit 0), summarize + remind to commit.** Relay what the script integrated (N ADRs, any letter bumps, retros moved, terms merged, done/backlog folded with the task-number remap, dropped preserved, branch folder removed) in the user's language, then remind the user to **commit the integration result** (the moved docs — any collision-bumped ADR re-lettered — plus the branch-folder deletion). In **merge-and-integrate** mode, note that `git merge` already made its merge commit, but the **integration is still uncommitted** — fg-merge never commits the integration, so remind them to commit it (the merge commit + the integration land as two commits, or squash them by hand). If the script printed any `WARN external ref …` lines, surface them: those are non-`.forge/` citations of a bumped ADR the human must rewrite by hand.
 
 ```
-fg-merge [<branch>]   (run AFTER `git merge <branch>` on the default branch)
-   │  decide <branch> (explicit, or let the script resolve)
-   ▼
-run forge-merge.sh (bash) | forge-merge.js (no bash)
+fg-merge [<branch>]
+   │
+   ├── no <branch> ──▶ integrate-only (branch root already merged in)
+   │                      │  (let the script resolve the root; exit 6 if several)
+   │                      ▼
+   └── <branch> given ─▶ merge step (default branch only):  git merge <branch>
+                            ├── clean / already up to date ──▶ integrate
+                            ├── conflict ──▶ LEAVE in place, STOP → "resolve, commit, then fg-merge (no arg)"
+                            ├── ref gone but branch root present ──▶ skip git, integrate + note
+                            ├── nothing to merge/integrate ──▶ error
+                            └── not on default branch ──▶ stop
+                            ▼
+run forge-merge.sh (bash) | forge-merge.js (no bash)   ← git-free integration, unchanged
    ├── exit 0 ──▶ relay integration summary → remind to commit (+ surface WARN external refs)
-   ├── exit 2 ──▶ "nothing to integrate — git merge first?"
+   ├── exit 2 ──▶ "nothing to integrate" (integrate-only: git merge / fg-merge <branch> first?)
    ├── exit 3 ──▶ in-flight on the branch → seal/recover/resume there (fg-done/fg-run/fg-loop) → re-run
    ├── exit 4 ──▶ genuine conflict → show both sides, human reconciles → re-run
-   └── exit 6 ──▶ several branch roots → ask which → re-invoke with that branch
+   └── exit 6 ──▶ (integrate-only) several branch roots → ask which → re-invoke with that branch
 ```
 
 ## Document impact
 
 - Writes into the target `.forge/adr/`, `.forge/retro/`, `.forge/CONTEXT.md`, `.forge/done/`, `.forge/backlog/`, `.forge/dropped/` (the integrated docs), and removes `.forge/branch/<branch>/` — all done by the script.
-- Does **not** touch `.forge/config.json` or `.forge/codebase/` (global exemptions), and does **not** run git (except a best-effort read-only `git diff` for the warn-only external-ref grep).
+- Does **not** touch `.forge/config.json` or `.forge/codebase/` (global exemptions). The **core script** does **not** run git (except a best-effort read-only `git diff` for the warn-only external-ref grep). The **skill** runs `git merge` only in merge-and-integrate mode (`fg-merge <branch>`, default branch) — never the script, never a commit, never a push (ADR `260717-10a`).
 - The mechanical integration is `scripts/forge-merge.sh` / `.js` — this skill invokes it and routes; it does not hand-move files.
 
 For the ADR/CONTEXT formats, read `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` / `CONTEXT-FORMAT.md` (skill-relative `../fg-ask/`) — do not copy them here.

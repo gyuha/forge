@@ -39,11 +39,13 @@ seed_mixed()  { # several findings across groups
 }
 seed_orphan() { mkdir -p "$1/.forge"; printf 'x\n' > "$1/.forge/run.md"; }  # A1
 seed_t3()     { mkdir -p "$1/.forge/adr"; printf '# a\n' > "$1/.forge/adr/0001-a.md"; printf '# t\n' > "$1/.forge/adr/260716-14a-z.md"; }  # no false gap
+seed_desclen() { mkdir -p "$1/.forge" "$1/skills/foo"; local d; d="$(head -c 700 < /dev/zero | tr '\0' x)"; printf 'name: foo\ndescription: %s\n' "$d" > "$1/skills/foo/SKILL.md"; }  # B16 over-length
 
 check "clean"                 seed_clean
 check "mixed findings"        seed_mixed
 check "A1 orphan"             seed_orphan
 check "T3 no-false-gap"       seed_t3
+check "B16 desc length"       seed_desclen
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DOCTOR PARITY OK"; exit 0

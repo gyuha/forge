@@ -1,6 +1,6 @@
 ---
 name: fg-status
-description: A read-only status reporter for the forge loop. Surveys .forge/ and prints where every task stands — the active slot, the backlog of unexecuted ASKs, work awaiting retro, sealed/done history, and quick-lane entries — then derives and shows the single next step you need (with its trigger). It writes nothing and never auto-runs the next step; it only reports. An on-demand utility outside the loop. Use in contexts like 'forge status', '상태', '어디까지 했지', '진행 상황', 'where am I'.
+description: A read-only status reporter for the forge loop — surveys .forge/ and shows where every task stands (active slot, backlog, awaiting-retro, done history, quick lane) plus the single next step you need, with its trigger. Writes nothing, never auto-runs (fg-status reports; fg-next acts). On-demand utility outside the loop. Use in contexts like 'forge status', '상태', '어디까지 했지', '진행 상황', 'where am I'.
 ---
 
 # fg-status — read-only status reporter (outside the loop)

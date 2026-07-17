@@ -4,7 +4,7 @@ forge는 원래 1인 루프 도구지만, 브랜치 격리(ADR-0011)와 AI 없�
 
 ## 경계 — forge는 git 정책을 소유하지 않는다
 
-가장 먼저 못 박을 것: **forge는 git을 실행하지도, 강제하지도 않는다.** PR 승인 규칙·브랜치 보호·머지 타이밍은 GitHub(또는 너희 호스트)의 몫이다. forge가 하는 일은 오직 브랜치가 합쳐질 때 **`.forge/` 공유 문서(ADR·CONTEXT·retro·done)를 화해**시키는 것뿐이다. `fg-merge`는 명시적으로 `git merge`를 돌리지 않는다 — 사람이 먼저 `git merge`하고, 그 뒤 forge가 forge 상태만 통합한다.
+가장 먼저 못 박을 것: **forge의 통합 코어(결정론 스크립트·CI 경로)는 git을 실행하지도, 강제하지도 않는다.** PR 승인 규칙·브랜치 보호·머지 타이밍은 GitHub(또는 너희 호스트)의 몫이다. forge가 하는 일은 오직 브랜치가 합쳐질 때 **`.forge/` 공유 문서(ADR·CONTEXT·retro·done)를 화해**시키는 것뿐이다. CI에서 `forge-merge.sh`는 `git merge`를 돌리지 않는다 — 사람(또는 CI)이 먼저 `git merge`하고, 그 뒤 forge가 forge 상태만 통합한다. (로컬 편의로는 대화형 `fg-merge <branch>`가 `git merge`를 대신 돌려줄 수 있으나, 이는 **스킬 계층 한정**이고 코어 스크립트·CI 경로는 git-free 그대로다 — ADR `260717-10a`.)
 
 이 경계를 흐리지 마라. forge에 PR 워크플로를 얹으려 하지 말고, git 협업은 git 도구에 맡겨라.
 

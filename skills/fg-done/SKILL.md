@@ -1,6 +1,6 @@
 ---
 name: fg-done
-description: Tidies up the residue of one loop — confirms the retro, marks STATUS.md done, archives the task, empties the active .forge state, and closes the loop. The mechanical seal runs as a deterministic script (forge-done.sh/.js, ADR-0030) shared by every seal path; this skill supplies the judgment (gate-failure routing, fg-map offer, handoff). With the `all` argument (`fg-done all`), it batch-seals every already-executed task at once — auto-skipping each retro, never promoting or running backlog work, and keeping the verification gate intact (seal-only counterpart to fg-next all — ADR-0023). Use when you want to seal a finished task whose retro is already done, in contexts like '작업 완료', '봉인', '이거 마무리', 'fg-done all', '봉인 all', '모두 봉인' (the old triggers '작업 정리' and 'forge complete' are still recognized as aliases; note 'forge cleanup' now routes to the separate ADR-retirement skill, not here). Emptying the active state is what blocks the same plan from re-running.
+description: Seals a finished task — confirms the retro, marks STATUS.md done, archives it, empties the active .forge state, and closes the loop (which blocks the same plan from re-running). `fg-done all` batch-seals every already-executed task at once (retros skipped, backlog untouched, verification gate intact). Use when a task's retro is done — '작업 완료', '봉인', '이거 마무리', '작업 정리', 'forge complete', 'fg-done all', '봉인 all', '모두 봉인'. (Note: 'forge cleanup' routes to fg-cleanup, not here.)
 ---
 
 # fg-done — ④ Done (tidy-up / re-run guard)

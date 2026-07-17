@@ -1,6 +1,6 @@
 ---
 name: fg-tdd
-description: Toggle forge's TDD mode on or off — a persistent project setting stored in .forge/config.json. `fg-tdd on` / `fg-tdd off` set it; with no argument it shows the current state. fg-ask asks "build this task TDD-style?" per task with this setting as the default answer, and fg-run runs test-first when the plan's tdd marker is on. An on-demand utility outside the loop. Use in contexts like 'forge tdd', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼', 'tdd 상태'.
+description: Toggle forge's TDD mode on/off — a persistent setting in .forge/config.json. `fg-tdd on`/`off` set it; no arg shows the current state. When on, fg-ask defaults to asking per task and fg-run runs test-first. On-demand utility outside the loop. Use in contexts like 'forge tdd', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼', 'tdd 상태'.
 ---
 
 # fg-tdd — toggle TDD mode (outside the loop)

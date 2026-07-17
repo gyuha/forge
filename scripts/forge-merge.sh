@@ -6,8 +6,11 @@
 # in fg-merge's skill.
 #
 # Runs AFTER `git merge <branch>` brought `.forge/branch/<branch>/` into the
-# default branch. It does NOT run git. It integrates the branch root's permanent
-# forge docs into the top-level `.forge/`:
+# default branch. It does NOT run git. (The interactive fg-merge skill may run
+# `git merge` itself before calling this, in its merge-and-integrate mode — ADR
+# 260717-10a — but this script never does; that git-free property is what keeps
+# it usable AI-free in CI.) It integrates the branch root's permanent forge docs
+# into the top-level `.forge/`:
 #   ADRs   — time-based IDs moved as-is; exact-ID collision -> next free letter,
 #            NO cascade renumber (the #77 scheme); incoming grandfathered NNNN
 #            moved as-is, but a collision with a frozen target NNNN halts (exit 4).

@@ -159,6 +159,15 @@ for (const f of ls(path.join(repo, 'scripts'))) {
   const sh = path.join(repo, 'scripts', f.replace(/\.js$/, '.sh'));
   if (!isFile(sh)) finding('warning', 'B15 missing .sh twin', path.join(repo, 'scripts', f), 'add the bash primary (dual dispatch, ADR-0022)');
 }
+// B16 SKILL.md description length (trigger-core drift lint, ADR 260716-22a) — twin of .sh.
+// [...desc].length counts Unicode codepoints, matching the .sh locale-independent count exactly.
+const DESC_MAX = 600;
+for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
+  const m = read(sf).match(/^description:[ \t]*(.*)$/m); if (!m) continue;
+  const desc = m[1].replace(/\r/g, ''); if (!desc) continue;
+  const n = [...desc].length;
+  if (n > DESC_MAX) finding('warning', 'B16 description length', `${sf} (${n} chars > ${DESC_MAX})`, 'trim the SKILL.md frontmatter description toward the trigger core — it drives /fg menu readability (ADR 260716-22a)');
+}
 
 process.stdout.write(`\n🩺 forge-doctor — ${errN} errors, ${warnN} warnings, ${infoN} info\n`);
 process.exit(errN > 0 ? 2 : warnN > 0 ? 1 : 0);

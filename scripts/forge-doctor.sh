@@ -155,6 +155,24 @@ done
 for js in "$repo"/scripts/*.js; do [ -f "$js" ] || continue
   sh="${js%.js}.sh"; [ -f "$sh" ] || finding warning "B15 missing .sh twin" "$js" "add the bash primary (dual dispatch, ADR-0022)"
 done
+# B16 SKILL.md description length (drift lint for the trigger-core discipline, ADR 260716-22a):
+# description is dual-use (/fg menu display + auto-invocation trigger, same char cap), so it
+# must stay a terse trigger core. Warn (not error — bloat is drift, not breakage) when it
+# regrows past DESC_MAX. Measured in Unicode codepoints via a locale-independent count
+# (bytes − UTF-8 continuation bytes) so it matches the /fg char cap and the .js twin exactly.
+DESC_MAX=600
+desclen() { # <string> -> codepoint count
+  local s="$1" b c
+  b="$(printf '%s' "$s" | wc -c)"; b="${b//[![:digit:]]/}"
+  c="$(printf '%s' "$s" | LC_ALL=C tr -dc '\200-\277' | wc -c)"; c="${c//[![:digit:]]/}"
+  echo $(( b - c ))
+}
+for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue
+  desc="$(sed -n 's/^description:[[:space:]]*//p' "$s" | head -1 | tr -d '\r')"
+  [ -n "$desc" ] || continue
+  n="$(desclen "$desc")"
+  [ "$n" -gt "$DESC_MAX" ] && finding warning "B16 description length" "$s ($n chars > $DESC_MAX)" "trim the SKILL.md frontmatter description toward the trigger core — it drives /fg menu readability (ADR 260716-22a)"
+done
 
 # =============================================================================
 # Verdict

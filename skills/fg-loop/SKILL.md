@@ -1,6 +1,6 @@
 ---
 name: fg-loop
-description: Goal-driven momentum loop with bounded replan (ADR-0016). An initial conversational inquiry pins a machine-verifiable stop condition, a pre-authorized fix-forward scope, and a replan cap (default 3 rounds) into .forge/loop.md, then drives tasks unattended (run → UAT → auto-skip retro → seal) until the checks pass. Failed active tasks are repaired in place; empty-backlog check failures may generate new fix-forward plans. Halts only at the walls (unverifiable UAT, genuine design fork, cap exhausted, no progress) and hands back to the human. An on-demand orchestrator outside the loop. Use in contexts like 'forge loop', '루프 시작', '조건 충족까지 반복', 'goal loop'.
+description: Goal-driven momentum loop with bounded replan — an initial conversational inquiry pins a machine-verifiable stop condition, a fix-forward scope, and a replan cap (default 3) into .forge/loop.md, then drives tasks unattended (run → UAT → auto-skip retro → seal) until the checks pass, halting only at the walls (unverifiable UAT, genuine fork, cap exhausted, no progress). On-demand orchestrator outside the loop. Use in contexts like 'forge loop', '루프 시작', '조건 충족까지 반복', 'goal loop'.
 ---
 
 # fg-loop — goal-driven loop with bounded replan (outside the loop)

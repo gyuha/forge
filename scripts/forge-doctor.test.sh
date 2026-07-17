@@ -63,6 +63,12 @@ run_doc "$t"; assert "B14gap-rc1" 1 "$RC"; assert_grep "B14gap-msg" "$OUT" "B14 
 # --- B15 missing .js twin -> warning -----------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge" "$t/scripts"; printf '#!/bin/bash\n' > "$t/scripts/lonely.sh"
 run_doc "$t"; assert "B15-rc1" 1 "$RC"; assert_grep "B15-msg" "$OUT" "B15 missing .js twin"; rm -rf "$t"
+# --- B16 description too long (> 600 chars) -> warning ------------------------
+t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/foo"; longdesc="$(head -c 700 < /dev/zero | tr '\0' x)"; printf 'name: foo\ndescription: %s\n' "$longdesc" > "$t/skills/foo/SKILL.md"
+run_doc "$t"; assert "B16-rc1" 1 "$RC"; assert_grep "B16-msg" "$OUT" "B16 description length"; rm -rf "$t"
+# --- B16 short description -> no B16 finding, clean ---------------------------
+t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/bar"; printf 'name: bar\ndescription: short and sweet trigger core\n' > "$t/skills/bar/SKILL.md"
+run_doc "$t"; assert "B16short-rc0" 0 "$RC"; rm -rf "$t"
 
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

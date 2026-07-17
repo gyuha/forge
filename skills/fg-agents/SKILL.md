@@ -1,6 +1,6 @@
 ---
 name: fg-agents
-description: Generates a project's domain agents — conversational grilling (outside any workflow) derives the recurring roles in your project, then writes standard Claude Code subagent definitions to `.claude/agents/<role>.md`, each `description` carrying a "when to use" so fg-run can later dispatch a matching role as `agentType`. An on-demand utility outside the forge loop, not one of its stages. Cards are loaded only at session start, so after generating them you must RESTART the session before fg-run can use them (ADR-0024). Use in contexts like 'forge agents', '도메인 에이전트 만들어', '에이전트 팀 구성', 'create project agents', 'domain agents', 'agent roles'.
+description: Generates a project's domain agents — conversational grilling derives the recurring roles, then writes standard Claude Code subagent cards to .claude/agents/<role>.md (each `description` carrying a "when to use" so fg-run can dispatch a matching role as agentType). Cards load only at session start, so RESTART the session after generating them before fg-run can use them. On-demand utility outside the loop. Use in contexts like 'forge agents', '도메인 에이전트 만들어', '에이전트 팀 구성', 'create project agents', 'domain agents', 'agent roles'.
 ---
 
 # fg-agents — generate project domain agents (outside the loop)

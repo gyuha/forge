@@ -1,6 +1,6 @@
 ---
 name: fg-drop
-description: Discards incomplete (not-yet-sealed) forge work you no longer want — backlog plans, the active slot, awaiting-retro tasks in executed/, or a halted goal loop. Presents the incomplete items with a per-item risk level (a two-choice dialog for 1 item, a checkbox dialog for 2–4, a numbered text list for 5+), then a separate follow-up question to either hard-delete (default, no trace) or archive to .forge/dropped/<slug>/. A final confirmation gate guards the irreversible delete, and warns that for already-run work the changed code is NOT reverted. It removes forge state only — never touches git or your code. A halted goal loop can only be dropped whole; its member tasks are excluded from individual drop. An on-demand utility outside the loop (sealing a finished task is fg-done, not this — ADR-0021). Use in contexts like 'forge drop', 'fg-drop', '작업 버리기', '이 작업 취소', '계획 지워', '백로그 비워', 'drop task', 'discard plan'.
+description: Discards incomplete (not-yet-sealed) forge work you no longer want — backlog plans, the active slot, awaiting-retro tasks, or a halted goal loop. Presents the items with a per-item risk level, then hard-delete (default) or archive to .forge/dropped/, behind a confirmation gate (already-run code is NOT reverted). Removes forge state only — never git or your code. Outside the loop (sealing a task is fg-done). Use in contexts like 'forge drop', 'fg-drop', '작업 버리기', '계획 지워', '백로그 비워', 'discard plan'.
 ---
 
 # fg-drop — discard incomplete work (outside the loop)
@@ -90,7 +90,7 @@ Report what was dropped/archived → end
 
 ## Constraints
 
-- **forge state only — never git, never your code.** fg-drop deletes/moves `.forge/` state and nothing else. It does **not** revert commits or working-tree changes (the same principle as fg-merge not running git). If the user wants already-changed code reverted, that is theirs to do via git — say so when it is relevant. (On a **non-default branch** the dropped `.forge/branch/<branch>/` files are themselves git-tracked — ADR-0011 — so the deletion appears as an unstaged change; fg-drop still does not run git, the user commits or `git restore`s it.)
+- **forge state only — never git, never your code.** fg-drop deletes/moves `.forge/` state and nothing else. It does **not** revert commits or working-tree changes (the same principle as fg-merge's git-free integration core — note fg-merge does have an opt-in `git merge` mode via `fg-merge <branch>`, but fg-drop never touches git at all). If the user wants already-changed code reverted, that is theirs to do via git — say so when it is relevant. (On a **non-default branch** the dropped `.forge/branch/<branch>/` files are themselves git-tracked — ADR-0011 — so the deletion appears as an unstaged change; fg-drop still does not run git, the user commits or `git restore`s it.)
 - **No auto-run, no chaining.** Like fg-status/fg-doctor/fg-cleanup, fg-drop runs only on demand; it does not invoke other skills and nothing invokes it.
 - **Loop members are not individually droppable** while `loop.md` exists — drop the loop whole, which includes all member tasks' incomplete state while preserving `done/` and non-members (the membership-resync logic is deliberately not built).
 - **Confirmation is mandatory** before any destructive action — there is no "drop without confirming" path.

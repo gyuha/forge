@@ -1,6 +1,6 @@
 ---
 name: fg-cleanup
-description: Retires stale or superseded ADRs out of the active decision set — proposes retirement candidates with rationale, and on your approval moves each approved ADR to `.forge/adr/retired/<NNNN>-slug.md` with a one-line supersede/retire marking. Numbers never change and are never reused; nothing is deleted (the "why" is preserved). fg-ask stops reading `retired/` as source of truth, so retired decisions drop out of grilling fuel while staying on disk. An on-demand utility outside the loop — sealing a finished task is fg-done, not this. Use in contexts like 'forge cleanup', 'ADR 정리', 'ADR 은퇴', '오래된 ADR 치워'.
+description: Retires stale or superseded ADRs out of the active decision set — proposes candidates with rationale, and on your approval moves each to .forge/adr/retired/ (IDs never reused, nothing deleted). fg-ask stops reading retired/ as source of truth, so retired decisions drop out of grilling fuel. On-demand utility outside the loop (sealing a task is fg-done, not this). Use in contexts like 'forge cleanup', 'ADR 정리', '오래된 ADR 치워'.
 ---
 
 # fg-cleanup — retire stale ADRs (outside the loop)

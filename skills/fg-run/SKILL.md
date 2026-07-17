@@ -1,6 +1,6 @@
 ---
 name: fg-run
-description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow. When the backlog holds exactly one unexecuted plan, runs it right away without a confirmation question; when it holds several, presents a priority-sorted selection (with 'Run all') and promotes the chosen task into the active slot to run it. Use in contexts like 'forge run', '계획 실행', '이거 워크플로우로 돌려줘' (the old trigger 'forge execute' is still recognized as an alias). Does not run when there is no plan to execute, and warns about re-running a plan that has already run.
+description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/backlog/) as a Claude Code Dynamic Workflow — one unexecuted plan runs right away; several show a priority-sorted selection (with 'Run all'), then the chosen task is promoted into the active slot. Warns before re-running a plan that already ran. Use in contexts like 'forge run', 'forge execute', '계획 실행', '이거 워크플로우로 돌려줘'.
 ---
 
 # fg-run — ② Execute (Dynamic Workflow)

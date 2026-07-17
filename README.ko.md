@@ -49,13 +49,14 @@
 
 | 상황 | 흐름 |
 | --- | --- |
-| **처음 셋업** (새 프로젝트/코드베이스) | `fg-map`(코드 지도) → `fg-agents`(도메인 에이전트 생성 — 로드되려면 **세션 재시작**, ADR-0024) → `fg-ask`(첫 작업) → 루프 |
+| **처음 셋업** (새 프로젝트/코드베이스) | `fg-map`(코드 지도) → `fg-agents`(도메인 에이전트 생성 — 로드되려면 **세션 재시작**, [ADR-0024](./.forge/adr/0024-fg-agents-and-domain-agent-execution.md)) → `fg-ask`(첫 작업) → 루프 |
 | **일상 작업** | `fg-ask → fg-run → fg-next` — 위 *빠른 시작* 참조 |
 | **사소한 1회 변경** (오타·버전 범프) | `fg-quick` — 가볍게 그릴링, 형식 산출물 없이 바로 실행 |
 | **무인 주행 완료까지** | 그릴된 큐: `fg-ask` ×N → `fg-next all` · 기계 검증 가능 목표: `fg-loop` — *차선 고르기*(L3) 참조 |
 | **재진입 / 점검** | *어디까지 했지*: `fg-status`(보여줌) / `fg-next`(다음 단계 실행) · *상태 건강한가*: `fg-doctor` |
 | **마무리 / 배포** | (선택 적대적 검토: `fg-adversarial-review`) → `fg-learn`(회고) → `fg-done`(봉인) → `배포` 입력 |
 | **유지보수** | 오래된 ADR 은퇴 `fg-cleanup` · 머지된 브랜치 통합 `fg-merge` · 미완 작업 폐기 `fg-drop` · 토글 `fg-tdd`/`fg-eco` · 상태바 `fg-statusline` |
+| **팀 사용** (브랜치 + CI) | 브랜치에서 봉인 → `git merge` → `fg-merge`(또는 `fg-merge <branch>`로 둘 다 한 번에; CI에선 `forge-merge.sh`) · `forge-doctor` AI 없는 CI 게이트 — **[docs/team-workflow.md](./docs/team-workflow.md)** 참조 |
 
 처음 셋업은 *빠른 시작*이 건너뛰는 유일한 순서다: 새 프로젝트에선 코드를 매핑하고 (선택적으로) 도메인 에이전트를 첫 `fg-ask` **전에** 만든다 — `fg-agents` 카드는 세션 시작 시에만 로드되므로 생성 후 한 번 재시작한다(ADR-0024).
 
@@ -68,7 +69,7 @@
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 |
 | `fg-run` | ② 실행 | 계획을 Dynamic Workflow로 실행(plan 하나면 즉시, 여럿이면 우선순위 선택 목록) |
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 |
-| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리(ADR-0030). `all` 모드는 이미 실행된 작업을 일괄 봉인(회고 skip·백로그 불가침·검증 게이트 유지) |
+| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 일괄 봉인(회고 skip·백로그 불가침·검증 게이트 유지) |
 | `fg-map` | 유틸리티 | 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드 재탐색 대신 지도를 읽게 함 |
 | `fg-quick` | 유틸리티 | 사소한 작업용 경량 차선 — 가볍게 그릴링한 뒤 형식 산출물 없이 바로 실행 |
 | `fg-status` | 유틸리티 | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 다음 단계 하나를 출력 |
@@ -76,11 +77,11 @@
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행 |
 | `fg-tdd` | 유틸리티 | `.forge/config.json`의 영속 TDD 모드 토글 |
 | `fg-eco` | 유틸리티 | eco 모드 토글 — 켜면 위임 서브에이전트를 `sonnet`으로 캡하고, 임베드된 Eco laziness-first 규율(`ECO.md` — 코드 단순성 + 출력 prose 압축)을 활성화(fg-run 주입·fg-ask YAGNI 렌즈·현 세션 채택) |
-| `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 |
+| `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
 | `fg-adversarial-review` | 유틸리티 | fg-run↔fg-learn 사이 선택적 적대적 검토 — 6개 렌즈, fix-forward findings |
-| `fg-doctor` | 유틸리티 | `.forge/` 상태 계약과 문서/매니페스트 정합의 읽기 전용 무결성 검사 |
+| `fg-doctor` | 유틸리티 | `.forge/` 상태 계약과 문서/매니페스트 정합의 읽기 전용 무결성 검사 — 스크립트-백킹, AI 없는 CI 게이트로 사용 가능 |
 | `fg-drop` | 유틸리티 | 미완 작업(backlog/활성/executed/멈춘 루프) 폐기 — 위험도 표기 목록, 하드 삭제 또는 `.forge/dropped/` 보관 |
 | `fg-agents` | 유틸리티 | 대화형 그릴링으로 프로젝트 도메인 에이전트(`.claude/agents/<role>.md`) 생성 — 세션 재시작 후 fg-run이 매칭 role을 `agentType`으로 호출 |
 

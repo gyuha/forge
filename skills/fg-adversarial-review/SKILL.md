@@ -1,6 +1,6 @@
 ---
 name: fg-adversarial-review
-description: Optional adversarial review that runs after fg-run and before fg-learn — a reviewer deliberately takes the attacker/contrarian/failure-seeking stance and assumes the result is WRONG, then hunts for evidence. It fans out the six lenses (where it fails, hidden assumptions, misread requirements, security/performance/data-loss, unexpected misuse, weak/unverified decisions) as parallel subagents in a Dynamic Workflow, records findings to .forge/review.md, and on your approval turns fix-needed findings into a new fix-forward backlog plan so you can run fg-run again. An on-demand utility OUTSIDE the loop (the 4-stage loop is unchanged) — optional, never a seal gate, always auto-skipped in fg-next all / fg-loop unattended drives. Use in contexts like 'forge adversarial review', 'adversarial review', '적대적 리뷰', '이 결과 공격적으로 검토', '허점 찾아줘', 'red team this'. See ADR-0018.
+description: Optional adversarial review between fg-run and fg-learn — a reviewer assumes the result is WRONG and hunts for evidence across six lenses (failure points, hidden assumptions, misread requirements, security/perf/data-loss, unexpected misuse, weak decisions), fanning out as parallel subagents; fix-needed findings become a fix-forward plan on your approval. Outside the loop, never a seal gate, always skipped in fg-next all / fg-loop. Use in contexts like 'adversarial review', '적대적 리뷰', '이 결과 공격적으로 검토', '허점 찾아줘', 'red team this'.
 ---
 
 # fg-adversarial-review — optional adversarial review (outside the loop)
