@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > A development loop that takes one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from eighteen `fg-`-prefixed Claude Code skills — four that form the loop, plus fourteen utilities outside it.
+> A loop-style workflow plugin built from nineteen `fg-`-prefixed Claude Code skills — four that form the loop, plus fifteen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -11,7 +11,7 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 
 ## Quick start — you mostly only need three
 
-Eighteen skills look like a lot, but day to day you drive with **three**:
+Nineteen skills look like a lot, but day to day you drive with **three**:
 
 ```
 /fg-ask   →   /fg-run   →   /fg-next
@@ -62,7 +62,7 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The four loop stages, then the fourteen utilities outside the loop:
+The four loop stages, then the fifteen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -84,6 +84,7 @@ The four loop stages, then the fourteen utilities outside the loop:
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync — script-backed, usable as an AI-free CI gate |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
 | `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
+| `fg-visual` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and records your clicks as events read back; offered just-in-time during fg-ask grilling, `fg-visual stop` shuts it down |
 
 Per-skill detail — input/output/next, triggers, and the rationale ADRs — is in **[docs/skills.md](./docs/skills.md) (Korean)**. `fg-ask` is the loop's entry point (it triggers on "start with forge", "new task", "refine the plan"); the utilities are on-demand, each triggered by its own utterances.
 

@@ -24,6 +24,7 @@
 | `fg-doctor` | health check(루프 밖) | 읽기 전용 무결성 검사 — **결정론 스크립트(forge-doctor.sh/.js, exit 0/1/2로 AI 없이 CI 게이트)**가 `.forge/` 상태 계약(고아·STATUS 필드·slug 페어링·half-sealed·**고아 브랜치 루트=fg-merge 잊음**)과 문서/매니페스트 정합(버전 3곳 동기·README 이중언어·CLAUDE.md 스킬 목록·**두 형식 ADR ID 유일성**)을 검사해 위반을 severity·수정 안내와 함께 보고; 아무것도 안 쓰고 자동 수정 안 함 | `.forge/*`·매니페스트·README·CLAUDE.md (읽기 전용) | 출력 보고(파일 없음) | — (`fg-quick`/`fg-ask`로 수정) |
 | `fg-drop` | 폐기 유틸리티(루프 밖) | 미완 작업 폐기 — 단일/소수/다수에 맞는 선택 UI, goal 루프는 loop.md+멤버 미완 상태를 통째로 삭제/보관(done·비멤버 불변); forge 상태만 지움 | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
 | `fg-agents` | 생성 유틸리티(루프 밖) | 대화형 그릴링으로 프로젝트 도메인을 캐 역할을 도출하고 표준 `.claude/agents/<role>.md` 카드 생성(`description`에 "언제 쓰이나" 포함 → fg-run이 slice↔role 자동 매핑). 활성 ADR을 연료로 읽어 카드에 프로젝트 결정을 가볍게 반영. 카드는 세션 시작 시 로드되므로 생성 후 **재시작 필요**(ADR-0024). graceful·선택적 | `.forge/codebase/`·`CONTEXT.md`·활성 `.forge/adr/`(선택 연료) | `.claude/agents/<role>.md` 카드 | — (재시작 후 fg-run이 활용) |
+| `fg-visual` | 시각 유틸리티(루프 밖) | 브라우저 시각 컴패니언 — obra/superpowers v6.1.1 Visual Companion vendoring(MIT 귀속). zero-dependency Node 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 브라우저 탭에 실시간 표시하고 사용자 클릭을 이벤트(JSONL)로 수집해 에이전트가 되읽음. fg-ask 그릴링 중 시각적 질문에서 just-in-time 1회 제안(거절 시 재제안 없음), 이 스킬은 단독 진입점(ADR `260719-224442`) | 에이전트가 push하는 HTML | 모든 브랜치 최상위 `.forge/visual/<세션>/`(휘발·전역 예외) + 클릭 이벤트(JSONL) | — (`fg-visual stop`으로 종료) |
 
 ## 루프 스킬 (4단계)
 
@@ -51,7 +52,7 @@
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트([ADR-0009](../.forge/adr/0009-verification-gate-before-seal.md))는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (14개)
+## 루프 밖 유틸리티 (15개)
 
 ### fg-map
 
@@ -118,3 +119,7 @@
 ### fg-agents
 
 `fg-agents`는 **생성 유틸리티로, 역시 루프 밖**이다 — 프로젝트의 **도메인 에이전트**를 만든다. 대화형 그릴링(기둥 1, 워크플로 밖)으로 프로젝트에서 반복되는·분리 가능한 작업 종류를 캐내 역할을 도출하고, 표준 Claude Code 서브에이전트 정의 `.claude/agents/<role>.md`(role 카드)를 자체 생성한다. 카드의 `description`에는 **"언제 쓰이나"를 반드시 담는다** — `fg-run`의 워크플로 빌더가 이 설명으로 plan의 work slice를 role에 자동 매핑하기 때문이다(ADR-0024는 plan 쪽 매핑 마커 대신 자동 매핑을 택했다). `.forge/codebase/` 지도·`CONTEXT.md`·**활성 `.forge/adr/`**가 있으면 그릴링 연료로 읽고, 없으면 직접 탐색하거나 사용자 설명만으로 진행한다(graceful·하드 의존 없음). ADR은 프로젝트의 문서화된 결정이므로, 관련 결정을 카드 system prompt에 **가볍게 반영**해(번호를 기계적으로 인용하지 않고 prose로) 카드가 generic하지 않고 프로젝트에 정합하게 한다 — `retired/`는 안 읽고(ADR-0012), 비기본 브랜치는 read-overlay(ADR-0011)로 fg-ask의 ADR 읽기 규율과 동일하다. 역할은 사람이 승인한 부분집합만 카드가 되며, 마땅한 seam이 없으면 **0개**도 정직한 결과다(역할을 억지로 만들지 않음 — fg-cleanup의 절제와 동형). **핵심 제약(ADR-0024)**: `.claude/agents/`는 **세션 시작 시 1회 로드**되므로 세션 중 만든 카드는 동적 픽업되지 않는다 — fg-agents가 생성한 카드는 **세션을 재시작해야** fg-run이 로드·`agentType` 호출한다. 운영 흐름은 **생성 → 재시작 → 활용**이며, 재시작은 프로젝트 셋업 시 1회뿐이다. 생성한 카드는 forge `.forge/` 상태가 아니라 프로젝트 자산이라 git으로 커밋한다(git은 직접 안 돌림). **루프 스킬이 fg-agents를 안내한다**: `fg-ask`(그릴링 중)·`fg-run`(실행 중)은 특화 역할이 반복적으로 도움될 것으로 판단되고 프로젝트에 맞는 카드가 없을 때 fg-agents를 **좁게·offered로** 한 번 안내한다(자동 호출 아님, 재시작 게이트 명시) — fg-agents의 "역할은 제 몫을 해야 한다" 절제와 동형. "forge agents", "도메인 에이전트 만들어", "에이전트 팀 구성", "create project agents", "domain agents", "agent roles" 같은 발화에서 트리거된다 ([ADR-0024](../.forge/adr/0024-fg-agents-and-domain-agent-execution.md)).
+
+### fg-visual
+
+`fg-visual`은 **시각 컴패니언 유틸리티로, 역시 루프 밖**이다 — obra/superpowers v6.1.1의 **Visual Companion**을 MIT 귀속과 함께 vendoring했다. zero-dependency Node 서버(`scripts/server.cjs` 등 5파일)가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 브라우저 탭에 실시간 표시하고, 사용자의 클릭을 이벤트(JSONL)로 수집해 에이전트가 되읽는다. 세션 파일은 **모든 브랜치에서 최상위** `.forge/visual/<세션>/`(휘발·gitignore)에 둔다 — `.forge/config.json`·`.forge/codebase/`와 같은 전역 예외로, 브랜치 루트로 이동하지 않는다. 세션 키 URL 인증·서버 재시작/브라우저 재연결 생존·4시간 유휴 자동 종료를 갖추며, 텔레메트리·원격 자원은 없다. **fg-ask 통합**: 그릴링 중 시각적 질문이 처음 나올 때 just-in-time으로 **1회만** 제안한다(단독 메시지, 거절 시 재제안 없음). 수락하면 fg-ask가 `../fg-visual/VISUAL.md`와 `scripts/`를 **파일 참조**로 직접 사용하고(ECO.md·FORGE-ROOT.md와 같은 단일 정의 관례 — 복붙 금지), Output(핸드오프) 시 서버를 종료한다. 이 스킬 자체는 단독 진입점이다 — `fg-visual`로 시작, `fg-visual stop`으로 종료. "forge visual", "visual companion", "시각적으로 보여줘", "목업 보여줘", "브라우저로 보여줘", "화면으로 비교해줘" 같은 발화에서 트리거된다 (ADR `260719-224442`).
