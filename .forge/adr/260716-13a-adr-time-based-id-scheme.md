@@ -22,3 +22,7 @@ forge를 팀(3~20명, feature 브랜치 + PR + fg-merge)에서 쓰려면 ADR이 
 - fg-merge의 ADR cascade 재번호 절차는 "충돌 시 다음 글자" 국소 규칙으로 대체된다(구현은 별도 작업 `forge-merge-script-extract`). 이 ADR 봉인과 그 작업 봉인 사이에는 ADR-FORMAT(신 규칙)과 fg-merge 본문(구 cascade 서술)이 일시적으로 어긋나는 전이 상태가 존재하며, 후속 작업이 해소한다.
 - 이 결정은 **ADR-0011을 부분 개정**한다 — ADR-0011의 "번호 충돌을 생성→머지 재부여로 미룸"(:18)·"timestamp id 거부"(:28)·"브랜치 채번 `max+1`"(:32) 하위 결정을 뒤집는다(브랜치 격리·fg-merge 통합이라는 ADR-0011 핵심 결정은 그대로 유지). 단일 정의 `skills/fg-run/FORGE-ROOT.md`의 채번 절과 ADR-0011:32에 개정 포인터를 함께 남긴다.
 - 이 ADR 자체가 forge의 **첫 시간 기반 ID**로, 새 스킴을 dogfood한다.
+
+## 개정 (2026-07-19) — 초 단위로 상향 + done/retro까지 확장
+
+위 "시 단위 + 항상 글자"(초 단위 `HHMMSS`를 가독성 대가로 거부, :17)는 개정됐다. 실사용에서 (1) done/·retro/가 날짜만(`YYYY-MM-DD-slug`)이라 같은 날 완료 순서가 안 보이고, (2) ADR(`YYMMDD-HH`)과 done/retro(`YYYY-MM-DD`) 형식이 불일치하는 불편이 드러났다. 그래서 ADR ID·done·retro를 **`YYMMDD-HHMMSS` + 충돌 시에만 시리얼 글자**로 통일하고 `decided`에 시각(분 단위)을 추가한다. 시간기반·coordination-free·provenance·`NNNN` grandfather 원칙은 그대로 유지되며, granularity(시→초)·글자 규칙(항상→충돌 시만)만 바뀌고 done/retro로 확장된다. 상세·트레이드오프는 ADR `260719-161701` 참조.
