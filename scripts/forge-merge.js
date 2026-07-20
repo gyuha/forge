@@ -134,7 +134,11 @@ const mv = (src, dest) => fs.renameSync(src, dest);
 
 function nextFreeLetter(dir, base) {
   const used = new Set();
-  for (const f of ls(dir)) { const m = f.match(new RegExp('^' + base + '([a-z]+)-')); if (m) used.add(m[1]); }
+  const re = new RegExp('^' + base + '([a-z]+)-');
+  // scan BOTH the active adr/ and adr/retired/ — a retired id is frozen and must
+  // never be reused, so a bumped letter must skip letters taken in either place.
+  const scan = (d) => { for (const f of ls(d)) { const m = f.match(re); if (m) used.add(m[1]); } };
+  scan(dir); scan(path.join(dir, 'retired'));
   for (const c of 'abcdefghijklmnopqrstuvwxyz') if (!used.has(c)) return c;
   return 'aa';
 }
@@ -155,7 +159,9 @@ function integrateAdrs() {
         rest = bn.replace(/^\d{6}-\d{2}[a-z]+-/, '');
         base = id.replace(/(\d{6}-\d{2})[a-z]+/, '$1');
       }
-      const collide = exists(path.join(TARGET, 'adr', bn)) || ls(path.join(TARGET, 'adr')).some((x) => x.startsWith(id + '-'));
+      // collision against active adr/ AND adr/retired/ (retired ids are frozen, never reused)
+      const inDir = (d) => exists(path.join(d, bn)) || ls(d).some((x) => x.startsWith(id + '-'));
+      const collide = inDir(path.join(TARGET, 'adr')) || inDir(path.join(TARGET, 'adr', 'retired'));
       if (collide) {
         const letter = nextFreeLetter(path.join(TARGET, 'adr'), base);
         const newid = base + letter, dest = path.join(TARGET, 'adr', `${newid}-${rest}`);

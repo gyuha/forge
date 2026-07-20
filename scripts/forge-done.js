@@ -33,6 +33,13 @@ if (!sealedId) {
   const d = new Date(); const p = (n) => String(n).padStart(2, '0');
   sealedId = `${String(d.getFullYear()).slice(-2)}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
+// --sealed-id is spliced into the done/ dir path, so it MUST be a bare YYMMDD-HHMMSS
+// (the serial letter, if any, is appended by this script on collision). A malformed
+// value (separators, .., slashes) could escape done/ — reject it BEFORE any mutation.
+if (!/^\d{6}-\d{6}$/.test(sealedId)) {
+  process.stderr.write(`forge-done: invalid --sealed-id (need bare YYMMDD-HHMMSS): ${sealedId}\n`);
+  process.exit(64);
+}
 
 const die = (msg, code) => { process.stdout.write(msg + '\n'); process.exit(code); };
 

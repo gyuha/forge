@@ -74,6 +74,8 @@ check "executed parked seal"           seed_executed  --slug p-ex --completed 20
 check "half-sealed completion"         seed_halfsealed --slug p-hs --completed 2026-07-05 --sealed-id 260705-120000
 check "duplicate already-sealed"       seed_dup       --completed 2026-07-05 --sealed-id 260705-120000
 check "empty state"                    seed_empty     --completed 2026-07-05 --sealed-id 260705-120000
+check "invalid sealed-id (traversal)"  seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "../../x"
+check "invalid sealed-id (slash)"      seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "260705/120000"
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DONE PARITY OK"; exit 0

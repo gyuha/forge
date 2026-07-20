@@ -132,9 +132,11 @@ MOVED=""              # newline-list of destination paths of moved incoming docs
 track() { MOVED="$MOVED$1"$'\n'; }
 BUMPS=""              # newline-list of "oldid newid" for cross-ref rewrite
 
-next_free_letter() { # $1=adr-dir $2=base(YYMMDD-HH)
+next_free_letter() { # $1=adr-dir $2=base(YYMMDD-HH or YYMMDD-HHMMSS)
   local dir="$1" base="$2" used c
-  used="$(ls "$dir"/"$base"[a-z]*-*.md 2>/dev/null | sed -n "s#.*/$base\([a-z]\{1,\}\)-.*#\1#p")"
+  # scan BOTH active adr/ and adr/retired/ — retired ids are frozen and never
+  # reused, so a bumped letter must skip letters taken in either place.
+  used="$( { ls "$dir"/"$base"[a-z]*-*.md 2>/dev/null; ls "$dir"/retired/"$base"[a-z]*-*.md 2>/dev/null; } | sed -n "s#.*/$base\([a-z]\{1,\}\)-.*#\1#p")"
   for c in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
     printf '%s\n' "$used" | grep -qx "$c" || { echo "$c"; return 0; }
   done
@@ -157,7 +159,8 @@ integrate_adrs() {
         rest="$(printf '%s' "$bn" | sed -E 's/^[0-9]{6}-[0-9]{2}[a-z]+-(.*)/\1/')"
         base="$(printf '%s' "$id" | sed -E 's/([0-9]{6}-[0-9]{2})[a-z]+/\1/')"
       fi
-      if [ -e "$TARGET/adr/$bn" ] || ls "$TARGET"/adr/"$id"-*.md >/dev/null 2>&1; then
+      if [ -e "$TARGET/adr/$bn" ] || ls "$TARGET"/adr/"$id"-*.md >/dev/null 2>&1 \
+         || [ -e "$TARGET/adr/retired/$bn" ] || ls "$TARGET"/adr/retired/"$id"-*.md >/dev/null 2>&1; then
         letter="$(next_free_letter "$TARGET/adr" "$base")"; newid="${base}${letter}"
         dest="$TARGET/adr/${newid}-${rest}"
         echo "  adr collision: $id -> $newid"

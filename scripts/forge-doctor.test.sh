@@ -75,6 +75,14 @@ run_doc "$t"; assert "B16-rc1" 1 "$RC"; assert_grep "B16-msg" "$OUT" "B16 descri
 # --- B16 short description -> no B16 finding, clean ---------------------------
 t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/bar"; printf 'name: bar\ndescription: short and sweet trigger core\n' > "$t/skills/bar/SKILL.md"
 run_doc "$t"; assert "B16short-rc0" 0 "$RC"; rm -rf "$t"
+# --- B14 active<->retired time-ID duplicate -> error (retired ids never reused) ---
+t=$(mktmp); mkdir -p "$t/.forge/adr/retired"
+printf '# a\n' > "$t/.forge/adr/260719-161701-active.md"; printf '# r\n' > "$t/.forge/adr/retired/260719-161701-old.md"
+run_doc "$t"; assert "B14-active-retired-dup-rc2" 2 "$RC"; assert_grep "B14-ar-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+# --- B14 distinct active + retired time-IDs -> no false dup, clean ------------
+t=$(mktmp); mkdir -p "$t/.forge/adr/retired"
+printf '# a\n' > "$t/.forge/adr/260719-161701-active.md"; printf '# r\n' > "$t/.forge/adr/retired/260719-161702-old.md"
+run_doc "$t"; assert "B14-ar-distinct-rc0" 0 "$RC"; rm -rf "$t"
 
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

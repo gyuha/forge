@@ -134,9 +134,13 @@ const ADRD = path.join(root, 'adr');
 if (isDir(ADRD)) {
   // time-ID uniqueness across BOTH granularities (grandfathered YYMMDD-HH+letter,
   // and current YYMMDD-HHMMSS[+letter] — ADR 260719-161701); globs mutually exclusive by digit count
-  const tids = ls(ADRD)
+  // scan active adr/ AND adr/retired/ — a retired time-id is frozen/never reused,
+  // so an active<->retired duplicate is an error (mirrors the NNNN gap scan below,
+  // which already includes retired/).
+  const collectTids = (d) => ls(d)
     .filter((f) => /^\d{6}-\d{2}[a-z]+-.*\.md$/.test(f) || /^\d{6}-\d{6}[a-z]?-.*\.md$/.test(f))
     .map((f) => (f.match(/^(\d{6}-\d{2}[a-z]+)-/) || f.match(/^(\d{6}-\d{6}[a-z]?)-/))[1]);
+  const tids = [...collectTids(ADRD), ...collectTids(path.join(ADRD, 'retired'))];
   const tseen = {}, tdups = [];
   for (const t of tids) tseen[t] = (tseen[t] || 0) + 1;
   for (const t of Object.keys(tseen).sort()) if (tseen[t] > 1) tdups.push(t);

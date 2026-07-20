@@ -54,6 +54,13 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$completed" ] || completed="$(date +%F 2>/dev/null || echo 0000-00-00)"
 [ -n "$sealed_id" ] || sealed_id="$(date +%y%m%d-%H%M%S 2>/dev/null || echo 000000-000000)"
+# --sealed-id is spliced into the done/ dir path, so it MUST be a bare YYMMDD-HHMMSS
+# (the serial letter, if any, is appended by this script on collision). A malformed
+# value (separators, .., slashes) could escape done/ — reject it BEFORE any mutation.
+case "$sealed_id" in
+  [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]) : ;;
+  *) echo "forge-done: invalid --sealed-id (need bare YYMMDD-HHMMSS): $sealed_id" >&2; exit 64 ;;
+esac
 
 # --- resolve forge root (ADR-0011 / ADR-0022) --------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

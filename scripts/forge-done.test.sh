@@ -203,5 +203,35 @@ else
   printf '  skip branch-root case (git not found)\n'
 fi
 
+# --- (l) invalid --sealed-id -> exit 64, NON-destructive (path-traversal defense) ---
+# The sealed-id is spliced into the done/ dir path, so a malformed value (separators,
+# .. , slashes) must be rejected BEFORE any mutation. Valid form is bare YYMMDD-HHMMSS.
+t=$(mktmp); seed_active "$t" "task-l" "yes (ok)" "pending"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "../../etc"
+assert "l-traversal-rc64" 64 "$RC"
+assert_file "l-plan-untouched" "$t/.forge/plan.md"
+assert_grep "l-status-still-executed" "$t/.forge/STATUS.md" "status: executed"
+assert_nofile "l-no-done-dir" "$t/.forge/done"
+rm -rf "$t"
+
+t=$(mktmp); seed_active "$t" "task-l2" "yes (ok)" "pending"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "260705/120000"
+assert "l2-slash-rc64" 64 "$RC"
+assert_file "l2-plan-untouched" "$t/.forge/plan.md"
+rm -rf "$t"
+
+t=$(mktmp); seed_active "$t" "task-l3" "yes (ok)" "pending"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "26070-120000"   # 5-digit date
+assert "l3-malformed-rc64" 64 "$RC"
+assert_file "l3-plan-untouched" "$t/.forge/plan.md"
+rm -rf "$t"
+
+# valid bare id still seals normally (no false rejection)
+t=$(mktmp); seed_active "$t" "task-l4" "yes (ok)" "pending"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "260705-120000"
+assert "l4-valid-rc0" 0 "$RC"
+assert_file "l4-archived" "$t/.forge/done/260705-120000-task-l4/plan.md"
+rm -rf "$t"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

@@ -63,6 +63,20 @@ assert_file "f2-existing-kept" "$t/.forge/adr/260719-161701-existing.md"
 assert_file "f2-incoming-bumped" "$t/.forge/adr/260719-161701a-foo.md"
 assert_nofile "f2-no-overwrite" "$t/.forge/adr/260719-161701-foo.md"
 assert_grep "f2-crossref-rewritten" "$t/.forge/retro/260719-161701-foo.md" "ADR-260719-161701a"; rm -rf "$t"
+# --- (f3) time-ID collides with a RETIRED target id -> bump (retired ids never reused) ---
+t=$(mktmp); seed_adr "$t" feat-x 260719-161701-foo.md
+mkdir -p "$t/.forge/adr/retired"; printf '# retired\n' > "$t/.forge/adr/retired/260719-161701-old.md"
+run_merge "$t" feat-x; assert "f3-retired-collision-rc0" 0 "$RC"
+assert_file "f3-retired-kept" "$t/.forge/adr/retired/260719-161701-old.md"
+assert_file "f3-incoming-bumped" "$t/.forge/adr/260719-161701a-foo.md"
+assert_nofile "f3-no-reuse" "$t/.forge/adr/260719-161701-foo.md"; rm -rf "$t"
+# --- (f4) bump letter also skips a letter already used in retired/ ------------
+t=$(mktmp); seed_adr "$t" feat-x 260719-161701-foo.md
+mkdir -p "$t/.forge/adr"; printf '# e\n' > "$t/.forge/adr/260719-161701-existing.md"          # active bare-id collision -> must bump
+mkdir -p "$t/.forge/adr/retired"; printf '# ra\n' > "$t/.forge/adr/retired/260719-161701a-old.md"  # letter 'a' taken by retired
+run_merge "$t" feat-x; assert "f4-rc0" 0 "$RC"
+assert_file "f4-bumped-to-b" "$t/.forge/adr/260719-161701b-foo.md"
+assert_nofile "f4-not-a" "$t/.forge/adr/260719-161701a-foo.md"; rm -rf "$t"
 # --- (g) ambiguous -> exit 6 -------------------------------------------------
 t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; seed_adr "$t" feat-y 260716-15a-bar.md
 run_merge "$t"; assert "g-ambiguous-rc6" 6 "$RC"; rm -rf "$t"

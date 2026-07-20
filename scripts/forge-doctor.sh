@@ -134,10 +134,12 @@ fi
 # grandfathered YYMMDD-HH+letter and the current YYMMDD-HHMMSS[+letter] (ADR 260719-161701).
 ADRD="$root/adr"
 if [ -d "$ADRD" ]; then
-  # time-ID uniqueness — collect both granularities (mutually exclusive globs by digit count)
-  tids_hh="$(ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][a-z]*-*.md 2>/dev/null | sed -E 's#.*/([0-9]{6}-[0-9]{2}[a-z]+)-.*#\1#')"
-  # two globs: bare YYMMDD-HHMMSS (glob [a-z]* needs >=1 letter, so bare needs its own), and lettered
-  tids_hms="$( { ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]-*.md 2>/dev/null; ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]*-*.md 2>/dev/null; } | sed -E 's#.*/([0-9]{6}-[0-9]{6}[a-z]?)-.*#\1#')"
+  # time-ID uniqueness — collect both granularities (mutually exclusive globs by digit
+  # count), across active adr/ AND adr/retired/ (a retired time-id is frozen/never reused,
+  # so an active<->retired duplicate is an error — mirrors the NNNN gap scan's retired/ include).
+  tids_hh="$( { ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][a-z]*-*.md 2>/dev/null; ls "$ADRD"/retired/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][a-z]*-*.md 2>/dev/null; } | sed -E 's#.*/([0-9]{6}-[0-9]{2}[a-z]+)-.*#\1#')"
+  # two globs: bare YYMMDD-HHMMSS (glob [a-z]* needs >=1 letter, so bare needs its own), and lettered — each over adr/ + retired/
+  tids_hms="$( { ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]-*.md 2>/dev/null; ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]*-*.md 2>/dev/null; ls "$ADRD"/retired/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]-*.md 2>/dev/null; ls "$ADRD"/retired/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]*-*.md 2>/dev/null; } | sed -E 's#.*/([0-9]{6}-[0-9]{6}[a-z]?)-.*#\1#')"
   tids="$(printf '%s\n%s\n' "$tids_hh" "$tids_hms" | grep -v '^$')"
   tdup="$(printf '%s\n' "$tids" | sort | uniq -d | grep -c .)"
   [ "${tdup:-0}" -gt 0 ] && finding error "B14 duplicate time-ID" "$(printf '%s\n' "$tids" | sort | uniq -d | tr '\n' ' ')" "two ADRs share a time-based id — bump one to the next free letter"
