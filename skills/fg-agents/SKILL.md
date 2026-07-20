@@ -49,9 +49,21 @@ Drive a focused conversation to surface the project's **recurring, separable kin
 
 The bar for a role is the same bar forge uses for any abstraction: it must earn its place against a real, recurring need. A project with no clear seams may warrant **zero** new agents — say so honestly rather than inventing roles.
 
+**As each role surfaces, also note its character along two axes** — these become the card's `tools` / `model` / `effort` at write time (§4), *derived from the grilling you are already doing*, not asked as separate questions:
+
+- **Access** — does the role only *read* (review, analysis, audit) or does it *write* (author, modify files)? Read-only roles get a restricted tool set; writers keep full access.
+- **Reasoning weight** — is the work deep/high-stakes (careful review, design) or mechanical/repetitive? This informs `effort` (and, rarely, `model`).
+
+Both fall straight out of "what recurring work does this role own?" — capture them as you go; don't turn them into extra interrogation.
+
 ### 3. Propose the role set, the human picks
 
-Present the candidate roles, one line each, with rationale and the slice-of-work each would own — e.g. *"migration-author — owns DB schema changes and backfills; recurs every release, distinct safety rules (your call)."* The human approves any subset (possibly none). Only approved roles become cards.
+Present the candidate roles, one line each, with rationale, the slice-of-work each would own, **and the two derived properties from §2** (access → `tools`; reasoning weight → `effort`, rarely `model`) so the human confirms or overrides all of them at the pick — e.g.:
+
+- *"migration-author — owns DB schema changes and backfills; **read-write** (tools inherited), model/effort default; recurs every release, distinct safety rules (your call — adjust any)."*
+- *"contract-reviewer — reviews API contracts for breaking changes; **read-only** (`Read, Grep, Glob, Bash`), effort high; recurs on every API change (your call)."*
+
+The human approves any subset (possibly none) and may override any property. Only approved roles become cards.
 
 ### 4. Write each approved role to `.claude/agents/<role>.md`
 
@@ -61,6 +73,9 @@ For each approved role, write a standard Claude Code subagent definition. The fo
 ---
 name: <role-kebab-case>
 description: <what this role does AND when to use it — the "when to use" is load-bearing>
+tools: Read, Grep, Glob, Bash        # read-only roles ONLY; OMIT for write roles (full inherit)
+effort: high|low                     # only when reasoning weight is clearly high or low; omit otherwise
+model: <tier>                        # rare — explicit user opt-in only; see the eco caveat below
 ---
 
 <system prompt: who this agent is, what it owns, how it should work in this project,
@@ -70,9 +85,11 @@ description: <what this role does AND when to use it — the "when to use" is lo
 - **`name`** — kebab-case ASCII identifier; this is what fg-run passes as `agentType: '<role>'`. Must be unique under `.claude/agents/`.
 - **`description` — include "when to use".** This is not decoration: fg-run's workflow builder auto-maps a plan's work slice to a role by reading these `description`s (ADR-0024 chose auto-mapping over a plan-side marker). A description that only says *what* the role is, without *when it applies*, can't be matched to a slice. Write both — e.g. *"Reviews database migrations for safety. Use when a slice touches schema changes, backfills, or data transformations."*
 - **System-prompt body** — ground it in *this* project: its conventions (pull from `.forge/codebase/CONVENTIONS.md` / `CONTEXT.md` when present), the files the role owns, and what the agent should return. Keep it focused on the role's slice; don't restate forge's loop.
-- **Optional `model:`** — include a `model:` line only if the user wants this role pinned to a specific tier. Note the eco interaction: when eco is on, fg-run caps a dispatched role at `sonnet` and prepends ECO.md — **unless** the card declares its own `model:`, which is an explicit user choice and wins (eco only ever lowers). So set `model:` only when you mean to override eco's cap.
+- **`tools` — least privilege (the ACI axis; ADR-0024 2026-07-20 amendment).** From the role's **access** character (§2): a **read-only role** (review, analysis, audit) gets the fixed safe set `tools: Read, Grep, Glob, Bash` — the same set ECC's reviewer uses, and every entry always resolves, so the card can't hit the **launch-fail trap** (a `tools` entry that resolves to no tool makes the subagent fail to launch). A **write role** (author/modify) **omits `tools`** entirely, inheriting all tools exactly as before. The goal is **preventing role drift, not a security boundary** (a read-only role can still write via `Bash` — accepted). **Never pin MCP tool names** in a card — they are environment-dependent, and a missing one launch-fails the whole card.
+- **`model` is restrained, `effort` is free — an asymmetry (ADR-0024 amendment).** Pinning `model:` **defeats eco for that role**: eco only ever lowers and a card's own `model:` wins (the eco interaction above), so a generated `model:` silently overrides eco's `sonnet` cap on every dispatch. So set `model:` **only** on explicit user opt-in, for a role whose character clearly demands a fixed tier; **default is to omit** (inherit — eco cap preserved). `effort:`, by contrast, is **independent of eco's model cap** (it doesn't change the model), so set it freely from the role's **reasoning weight** (deep/high-stakes review → `high`, mechanical repetition → `low`); omit it when neither is clear.
+- **Out of scope for card generation** — `skills` preload, `memory`, `maxTurns` are **not** set by fg-agents: no concrete recurring pain justifies them yet (the same "specific, reproduced pain" bar as ADR-0013). Add them by hand if a real need appears.
 
-Don't overwrite an existing card silently — if `.claude/agents/<role>.md` already exists, surface it and confirm before replacing.
+Don't overwrite an existing card silently — if `.claude/agents/<role>.md` already exists, surface it and confirm before replacing (re-running fg-agents after this amendment is how an older, over-permissioned card gets tightened to the least-privilege `tools` set).
 
 ```
 forge agents

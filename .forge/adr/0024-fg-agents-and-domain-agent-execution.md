@@ -29,3 +29,12 @@ ADR-0013은 **forge 플러그인 자체**에 투기적 영속 서브에이전트
 - **전제 (PoC로 검증·보정 — 2026-06-26)**: 프로젝트 로컬 `.claude/agents/<role>.md`는 **세션 시작 시 1회 로드**되며, 그렇게 로드된 카드는 `subagent_type`/`agentType`으로 정상 호출된다(통합 메커니즘 유효 — 공식 문서 "Subagents are loaded at session start" 확인). **단 세션 중 파일로 만든 카드는 동적 픽업되지 않는다**(`/agents` interactive 인터페이스만 즉시 반영하나 스킬이 프로그램적으로 못 씀). 따라서 **fg-agents가 파일로 생성한 role 카드는 세션을 재시작해야 fg-run이 로드**하고, "생성 → 같은 세션 즉시 호출" e2e는 불가하다. 운영 흐름은 **fg-agents 생성 → 세션 재시작 → fg-run 활용**이며(graceful과 정합 — fg-run은 세션 시작 시 로드된 것만 본다), 이 재시작은 프로젝트 셋업 시 1회뿐이고 이후 모든 fg-run이 활용한다.
 - 스킬이 18개가 된다(매니페스트 3곳·README 이중언어·`docs/skills.md`·CLAUDE.md 스킬 목록·STRUCTURE.md·fg-doctor 카운트 동기 필요).
 - 작업은 두 part-plan으로 분할한다(fg-run 확장 먼저 → fg-agents). 각 part는 독립 sealable.
+
+## 개정 (2026-07-20) — 카드 생성 규율: 최소 권한(tools) + model/effort 축
+
+초판의 fg-agents는 role 카드에 `name`·`description`·(선택) `model`만 채웠다 — 그 결과 모든 카드가 전체 도구를 상속했다(읽기 전용이어야 할 리뷰·분석 역할에도 Write/Edit가 열림). Anthropic *Building Effective Agents*(ACI에 프롬프트만큼 투자·단순성·복잡도는 명증한 개선일 때만), Claude Code subagents 공식 스펙(`tools`/`disallowedTools`/`model`/`effort` 등 지원, 단 `tools` 항목이 도구로 해석 안 되면 **launch 실패**), affaan-m/ECC(67개 에이전트를 역할별 도구 제한·성격별 model로 정의)를 참고해 카드 **생성 품질**을 다음 규율로 정련한다(fg-run 디스패치 경로·slice↔role 자동 매핑은 불변 — 카드가 좋아지면 디스패치도 자동으로 좋아짐).
+
+- **최소 권한 `tools` (핵심)**: 그릴링이 역할 성격을 판별한다 — **읽기 전용 역할**(리뷰·분석·조사)은 고정 안전 세트 `tools: Read, Grep, Glob, Bash`로 제한(ECC의 code-reviewer와 동형·항상 해석되므로 launch-fail 함정 회피); **쓰기 역할**(작성·수정)은 `tools`를 **생략**해 전체 상속(현행 유지). 목적은 보안 경계가 아니라 **역할 이탈 방지**(Bash로 쓰기가 가능한 허점은 수용). MCP 도구는 환경 의존이라 카드에 명시하지 않는다.
+- **`model`은 절제, `effort`는 자유 — 비대칭**: `model:`을 박으면 위 eco 조항("eco는 내리기만, 카드 model이 이김")에 의해 **그 역할의 eco 절감이 죽는다**. 그래서 model은 성격이 명확히 요구하고 사용자가 옵트인할 때만 박고 기본은 생략(=inherit, eco 캡 보존). 반면 `effort`는 eco의 model 캡과 독립(모델을 안 바꿈)이라 성격이 뚜렷하면(심층 리뷰=high, 기계 반복=low) 더 편하게 제안한다. 이 비대칭을 SKILL.md에 서술한다.
+- **흐름 편입**: tools/model/effort는 별도 질문을 늘리지 않고 역할 **제안 라인에 파생 속성으로 노출**하고 사람이 선택 단계에서 확정·덮어쓴다(도구·모델 성격은 도메인 그릴링이 이미 드러내는 정보). 재실행 시 기존 카드는 surface→confirm-before-replace 경로로 새 기준에 맞춰 갱신 가능.
+- **비-목표**: `skills` 프리로드·`memory`·`maxTurns`는 도입하지 않는다(해결할 구체적 통증이 아직 없음 — ADR-0013의 "구체적·재현된 통증" 바와 같은 절제). 범위는 카드 생성 규율뿐, fg-run 매핑 로직은 손대지 않는다.
