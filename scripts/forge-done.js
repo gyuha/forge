@@ -95,6 +95,13 @@ function findRetro(slug) {
 let slug = slugArg;
 if (!slug && isFile(path.join(root, 'plan.md'))) slug = slugof(path.join(root, 'plan.md'));
 if (!slug) die('EMPTY no-task-to-seal (no --slug and no active plan)', 2);
+// slug is the OTHER half spliced into DEST (done/<sealed-id>-<slug>/). --sealed-id is
+// already format-checked; guard slug too so the final path can't escape done/. Reject a
+// path-separator, .., or leading-dot slug BEFORE the dup scan and any mutation (gate-first).
+if (/[/\\]/.test(slug) || slug.includes('..') || slug.startsWith('.')) {
+  process.stderr.write(`forge-done: invalid slug (path traversal): ${slug}\n`);
+  process.exit(64);
+}
 
 // --- duplicate / half-sealed check (two-format aware: grandfathered
 //     YYYY-MM-DD-slug, or YYMMDD-HHMMSS[letter]-slug) ------------------------

@@ -78,7 +78,7 @@ run_doc "$t"; assert "B16short-rc0" 0 "$RC"; rm -rf "$t"
 # --- B14 active<->retired time-ID duplicate -> error (retired ids never reused) ---
 t=$(mktmp); mkdir -p "$t/.forge/adr/retired"
 printf '# a\n' > "$t/.forge/adr/260719-161701-active.md"; printf '# r\n' > "$t/.forge/adr/retired/260719-161701-old.md"
-run_doc "$t"; assert "B14-active-retired-dup-rc2" 2 "$RC"; assert_grep "B14-ar-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+run_doc "$t"; assert "B14-active-retired-dup-rc2" 2 "$RC"; assert_grep "B14-ar-msg" "$OUT" "B14 duplicate time-ID"; assert_grep "B14-ar-id" "$OUT" "260719-161701"; rm -rf "$t"
 # --- B14 distinct active + retired time-IDs -> no false dup, clean ------------
 t=$(mktmp); mkdir -p "$t/.forge/adr/retired"
 printf '# a\n' > "$t/.forge/adr/260719-161701-active.md"; printf '# r\n' > "$t/.forge/adr/retired/260719-161702-old.md"

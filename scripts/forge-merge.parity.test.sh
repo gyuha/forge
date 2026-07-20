@@ -41,6 +41,10 @@ seed_dropped() { mkdir -p "$1/.forge/branch/feat-x/dropped/gone"; printf 'x\n' >
 seed_retired_collide() { mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# t\n' > "$1/.forge/branch/feat-x/adr/260719-161701-foo.md"
   mkdir -p "$1/.forge/adr/retired"; printf '# r\n' > "$1/.forge/adr/retired/260719-161701-old.md"
   mkdir -p "$1/.forge/branch/feat-x/retro"; printf 'see ADR-260719-161701\n' > "$1/.forge/branch/feat-x/retro/260719-161701-foo.md"; }
+seed_retired_letterskip() { mkdir -p "$1/.forge/branch/feat-x/adr" "$1/.forge/adr" "$1/.forge/adr/retired"
+  printf '# t\n' > "$1/.forge/branch/feat-x/adr/260719-161701-foo.md"        # incoming (bare) — collides with active bare
+  printf '# e\n' > "$1/.forge/adr/260719-161701-existing.md"                  # active collision -> must bump
+  printf '# ra\n' > "$1/.forge/adr/retired/260719-161701a-old.md"; }          # letter 'a' taken by retired -> must skip to 'b'
 seed_inflight(){ s_adr "$1"; printf '<!-- forge-slug: x -->\n' > "$1/.forge/branch/feat-x/plan.md"; }
 seed_ambig()   { s_adr "$1"; mkdir -p "$1/.forge/branch/feat-y/adr"; printf '# t\n' > "$1/.forge/branch/feat-y/adr/260716-15a-bar.md"; }
 seed_empty()   { mkdir -p "$1/.forge"; }
@@ -49,6 +53,7 @@ check "clean move + folder removed"   seed_clean    feat-x
 check "time-ID collision + xref"      seed_collide  feat-x
 check "NEW-fmt time-ID collision"     seed_collide_new feat-x
 check "retired-id collision -> bump"  seed_retired_collide feat-x
+check "retired letter-skip -> b"      seed_retired_letterskip feat-x
 check "retro move + -2 disambig"      seed_retro    feat-x
 check "CONTEXT append new term"       seed_ctx_add  feat-x
 check "CONTEXT redefinition -> 4"     seed_ctx_redef feat-x

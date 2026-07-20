@@ -62,6 +62,7 @@ seed_dup() {
   mkdir -p "$1/.forge/done/2026-07-01-p-dup"; printf 'slug: p-dup\nstatus: done\n' > "$1/.forge/done/2026-07-01-p-dup/STATUS.md"
 }
 seed_empty() { mkdir -p "$1/.forge"; }
+seed_badslug() { seed_active "$1" "x/../../../../PWNED" "yes (t)" "pending"; }
 
 check "normal seal (retro file)"       seed_normal    --completed 2026-07-05 --sealed-id 260705-120000
 check "skip seal (--skip-retro)"       seed_skip      --skip-retro "auto" --completed 2026-07-05 --sealed-id 260705-120000
@@ -76,6 +77,7 @@ check "duplicate already-sealed"       seed_dup       --completed 2026-07-05 --s
 check "empty state"                    seed_empty     --completed 2026-07-05 --sealed-id 260705-120000
 check "invalid sealed-id (traversal)"  seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "../../x"
 check "invalid sealed-id (slash)"      seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "260705/120000"
+check "slug traversal (forge-slug)"    seed_badslug   --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DONE PARITY OK"; exit 0

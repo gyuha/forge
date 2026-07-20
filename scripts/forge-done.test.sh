@@ -233,5 +233,22 @@ assert "l4-valid-rc0" 0 "$RC"
 assert_file "l4-archived" "$t/.forge/done/260705-120000-task-l4/plan.md"
 rm -rf "$t"
 
+# --- (m) slug path traversal -> exit 64, NON-destructive (the OTHER half of DEST) ---
+# DEST is done/<sealed-id>-<slug>; sealed-id is validated but slug (from the plan's
+# forge-slug comment, or --slug) is the other unguarded half. A poisoned slug must be
+# rejected before mutation so the final path can't escape done/ (completes #87's DoD).
+t=$(mktmp); seed_active "$t" "x/../../../../PWNED" "yes (ok)" "pending"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "260705-120000"
+assert "m-slug-forge-slug-rc64" 64 "$RC"
+assert_file "m-plan-untouched" "$t/.forge/plan.md"
+assert_grep "m-status-still-executed" "$t/.forge/STATUS.md" "status: executed"
+rm -rf "$t"
+
+t=$(mktmp); seed_active "$t" "clean-slug" "yes (ok)" "pending"
+run_done "$t" --slug "../../x" --skip-retro "x" --completed 2026-07-05 --sealed-id "260705-120000"
+assert "m2-arg-slug-rc64" 64 "$RC"
+assert_file "m2-plan-untouched" "$t/.forge/plan.md"
+rm -rf "$t"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

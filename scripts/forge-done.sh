@@ -98,6 +98,12 @@ close_out_status() { # $1=status-file $2=slug $3=retro-out $4=reviewed-line(or e
 slug="$slug_arg"
 [ -z "$slug" ] && [ -f "$root/plan.md" ] && slug="$(slugof "$root/plan.md")"
 [ -z "$slug" ] && { echo "EMPTY no-task-to-seal (no --slug and no active plan)"; exit 2; }
+# slug is the OTHER half spliced into DEST (done/<sealed-id>-<slug>/). --sealed-id is
+# already format-checked; guard slug too so the final path can't escape done/. Reject a
+# path-separator, .., or leading-dot slug BEFORE the dup scan and any mutation (gate-first).
+case "$slug" in
+  */*|*\\*|*..*|.*) echo "forge-done: invalid slug (path traversal): $slug" >&2; exit 64 ;;
+esac
 
 # --- duplicate / half-sealed check (precise date-prefix match, no glob suffix) -
 if [ -d "$root/done" ]; then
