@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.19] - 2026-07-20
+
+신규 `fg-visual` 스킬(브라우저 시각 컴패니언) + ADR·done·retro ID 초 단위 통일 + git 운영 가이드.
+
+### Added
+- **신규 `fg-visual` 스킬 — 브라우저 시각 컴패니언** ([ADR-260719-224442](./.forge/adr/260719-224442-vendor-superpowers-visual-companion.md)). obra/superpowers의 Visual Companion을 MIT 귀속과 함께 vendoring. zero-dependency Node 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 브라우저 탭에 실시간 표시하고 사용자 클릭을 이벤트(JSONL)로 수집한다. 세션 파일은 모든 브랜치에서 **최상위** `.forge/visual/`(휘발·gitignore — 전역 예외). fg-ask 그릴링 중 시각적 질문이 처음 나올 때 just-in-time 1회 제안, 수락 시 사용·핸드오프 시 서버 종료. 단독 진입점(`fg-visual` / `fg-visual stop`). 스킬 18 → 19개.
+- **`docs/git-workflow.md` — forge git 운영 가이드**. git-abstinence 모델(forge는 `.forge/` 상태만 쓰고 commit/push/branch는 사용자 몫)·스킬별 git 접점 맵·커밋 시점 플레이북·피처 브랜치 워크스루(git CLI)·worktree 병렬 작업. README 이중언어에서 링크.
+
+### Changed
+- **ADR·done·retro ID를 초 단위 시각(`YYMMDD-HHMMSS`)으로 통일** ([ADR-260719-161701](./.forge/adr/260719-161701-time-precise-naming.md), [ADR-260716-13a](./.forge/adr/260716-13a-adr-time-based-id-scheme.md) 개정). 기존 `YYMMDD-HH`+글자는 같은-시 충돌이 흔해 글자가 항상 필요했다. 초 granularity로 바꿔 일반 케이스는 bare ID(글자 없음)·같은-초 충돌 시에만 글자, `decided`에 분까지 기록. done 디렉터리는 `<YYMMDD-HHMMSS>-<slug>`, retro는 `YYMMDD-HHMMSS-slug`. 구 `YYMMDD-HH`+글자·`YYYY-MM-DD`·`NNNN`은 grandfather 공존. 스크립트 4종(forge-doctor·done·merge·status)이 두 세대 모두 인식하고, forge-status는 done 행 날짜를 STATUS 필드에서 읽어 format-agnostic화(dirname 슬라이스 파싱 버그 수정).
+- **랜딩 페이지 제작 출처 표기** — `docs/index.html`은 superpowers Visual Companion으로 제작했음을 README 이중언어에 각주로 명기.
+
 ## [0.5.18] - 2026-07-17
 
 `/fg` 메뉴 가독성 개선 + `fg-merge` 편의(git merge 통합) + 문서 정합.
