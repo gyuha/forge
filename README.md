@@ -130,6 +130,8 @@ State is passed through files so the flow continues even when stages are invoked
 
 The full directory layout, the `.gitignore` pattern, branch isolation, the retro-skip rule ([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), and the verification-before-seal gate ([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md)) are documented in **[docs/state-contract.md](./docs/state-contract.md) (Korean)**.
 
+How git and branches are operated with forge — the git-abstinence model, the commit points, and a feature-branch walkthrough with git CLI — is in **[docs/git-workflow.md](./docs/git-workflow.md) (Korean)**.
+
 ## The two pillars
 
 1. **Grilling (planning) is conversational, outside the Dynamic Workflow.** A Dynamic Workflow cannot take user input mid-run, so question-by-question grilling never goes inside a workflow.
@@ -179,3 +181,5 @@ The grilling/documentation pattern of `fg-ask` (including the verbatim original)
 The code-simplicity discipline used by **eco mode** (`fg-eco`) — the laziness-first decision ladder embedded in `skills/fg-eco/ECO.md` and injected into fg-run subagents / fg-ask grilling — is adapted from the [Ponytail skill by DietrichGebert](https://github.com/DietrichGebert/ponytail).
 
 The terse-communication output rules in the same `ECO.md` — compressing execution/reporting prose to save context while keeping code/errors verbatim and leaving grilling questions and generated docs in full — are adapted from the [caveman skill by JuliusBrussee](https://github.com/JuliusBrussee/caveman).
+
+The landing page (`docs/index.html`) was built with the **Visual Companion** of [Superpowers by Jesse Vincent (obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md) — its browser-preview design tool that lays out mockup, layout, and color options before the page is coded.
