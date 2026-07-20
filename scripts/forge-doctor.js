@@ -132,11 +132,15 @@ if (isFile(RE) && isFile(RK)) {
 }
 const ADRD = path.join(root, 'adr');
 if (isDir(ADRD)) {
-  const tids = ls(ADRD).filter((f) => /^\d{6}-\d{2}[a-z]+-.*\.md$/.test(f)).map((f) => f.match(/^(\d{6}-\d{2}[a-z]+)-/)[1]);
+  // time-ID uniqueness across BOTH granularities (grandfathered YYMMDD-HH+letter,
+  // and current YYMMDD-HHMMSS[+letter] — ADR 260719-161701); globs mutually exclusive by digit count
+  const tids = ls(ADRD)
+    .filter((f) => /^\d{6}-\d{2}[a-z]+-.*\.md$/.test(f) || /^\d{6}-\d{6}[a-z]?-.*\.md$/.test(f))
+    .map((f) => (f.match(/^(\d{6}-\d{2}[a-z]+)-/) || f.match(/^(\d{6}-\d{6}[a-z]?)-/))[1]);
   const tseen = {}, tdups = [];
   for (const t of tids) tseen[t] = (tseen[t] || 0) + 1;
   for (const t of Object.keys(tseen).sort()) if (tseen[t] > 1) tdups.push(t);
-  if (tdups.length) finding('error', 'B14 duplicate time-ID', tdups.join(' ') + ' ', 'two ADRs share a YYMMDD-HH+letter id — bump one to the next free letter');
+  if (tdups.length) finding('error', 'B14 duplicate time-ID', tdups.join(' ') + ' ', 'two ADRs share a time-based id — bump one to the next free letter');
   const nnSet = new Set();
   for (const f of ls(ADRD)) { const m = f.match(/^(\d{4})-.*\.md$/); if (m) nnSet.add(m[1]); }
   for (const f of ls(path.join(ADRD, 'retired'))) { const m = f.match(/^(\d{4})-.*\.md$/); if (m) nnSet.add(m[1]); }

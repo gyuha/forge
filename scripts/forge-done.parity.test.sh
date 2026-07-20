@@ -63,17 +63,17 @@ seed_dup() {
 }
 seed_empty() { mkdir -p "$1/.forge"; }
 
-check "normal seal (retro file)"       seed_normal    --completed 2026-07-05
-check "skip seal (--skip-retro)"       seed_skip      --skip-retro "auto" --completed 2026-07-05
-check "docs-updated arg"               seed_skip      --skip-retro "auto" --docs-updated "ADR-0030" --completed 2026-07-05
-check "verify gate: failed -> refuse"  seed_vfail     --skip-retro "x" --completed 2026-07-05
-check "verify gate: pending -> refuse" seed_vpend     --skip-retro "x" --completed 2026-07-05
-check "retro gate: owed -> refuse"     seed_retro_owed --completed 2026-07-05
-check "review.md moved + reviewed"     seed_review    --skip-retro "x" --completed 2026-07-05
-check "executed parked seal"           seed_executed  --slug p-ex --completed 2026-07-05
-check "half-sealed completion"         seed_halfsealed --slug p-hs --completed 2026-07-05
-check "duplicate already-sealed"       seed_dup       --completed 2026-07-05
-check "empty state"                    seed_empty     --completed 2026-07-05
+check "normal seal (retro file)"       seed_normal    --completed 2026-07-05 --sealed-id 260705-120000
+check "skip seal (--skip-retro)"       seed_skip      --skip-retro "auto" --completed 2026-07-05 --sealed-id 260705-120000
+check "docs-updated arg"               seed_skip      --skip-retro "auto" --docs-updated "ADR-0030" --completed 2026-07-05 --sealed-id 260705-120000
+check "verify gate: failed -> refuse"  seed_vfail     --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
+check "verify gate: pending -> refuse" seed_vpend     --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
+check "retro gate: owed -> refuse"     seed_retro_owed --completed 2026-07-05 --sealed-id 260705-120000
+check "review.md moved + reviewed"     seed_review    --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
+check "executed parked seal"           seed_executed  --slug p-ex --completed 2026-07-05 --sealed-id 260705-120000
+check "half-sealed completion"         seed_halfsealed --slug p-hs --completed 2026-07-05 --sealed-id 260705-120000
+check "duplicate already-sealed"       seed_dup       --completed 2026-07-05 --sealed-id 260705-120000
+check "empty state"                    seed_empty     --completed 2026-07-05 --sealed-id 260705-120000
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DONE PARITY OK"; exit 0

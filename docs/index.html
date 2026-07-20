@@ -228,7 +228,7 @@
           <span style="font-size:11px;font-weight:600;color:#86868b;background:#f5f5f7;padding:3px 9px;border-radius:980px">④ Done</span>
         </div>
         <div style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#1d1d1f;margin-bottom:8px"><span data-l="ko">봉인 · 재실행 가드</span><span data-l="en">Seal · re-run guard</span></div>
-        <p style="margin:0;font-size:13.5px;line-height:1.5;color:rgba(0,0,0,0.62)"><span data-l="ko">회고를 확인하고 STATUS를 done으로 닫아 아카이브. 활성 상태를 비우고 루프를 닫습니다. all 모드는 이미 실행된 작업을 일괄 봉인합니다.</span><span data-l="en">Confirms the retro, closes STATUS as done, and archives. Empties active state and closes the loop. <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">all</code> mode batch-seals already-executed tasks.</span></p>
+        <p style="margin:0;font-size:13.5px;line-height:1.5;color:rgba(0,0,0,0.62)"><span data-l="ko">회고를 확인하고 STATUS를 done으로 닫아 아카이브. 활성 상태를 비우고 루프를 닫습니다. 기계적 봉인은 결정론 스크립트(forge-done.sh/.js)가 처리합니다. all 모드는 이미 실행된 작업을 일괄 봉인합니다.</span><span data-l="en">Confirms the retro, closes STATUS as done, and archives. Empties active state and closes the loop; the mechanical seal runs as a deterministic script (forge-done.sh/.js). <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">all</code> mode batch-seals already-executed tasks.</span></p>
       </div>
     </div>
 
@@ -276,7 +276,7 @@
       </div>
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-doctor</div>
-        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">.forge/ 상태 계약과 문서·매니페스트 정합을 훑는 읽기 전용 무결성 검사. 고아 파일·깨진 STATUS·버전 드리프트를 심각도와 함께 보고합니다.</span><span data-l="en">Read-only integrity check of the .forge/ state contract and docs/manifest sync. Reports orphaned files, broken STATUS, and version drift with severity.</span></p>
+        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">.forge/ 상태 계약과 문서·매니페스트 정합을 훑는 읽기 전용 무결성 검사(결정론 스크립트, AI 없이 CI 게이트 가능). 고아 파일·깨진 STATUS·버전 드리프트를 심각도와 함께 보고합니다.</span><span data-l="en">Read-only integrity check of the .forge/ state contract and docs/manifest sync (a deterministic script, usable AI-free as a CI gate). Reports orphaned files, broken STATUS, and version drift with severity.</span></p>
       </div>
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-drop</div>

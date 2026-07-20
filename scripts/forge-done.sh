@@ -15,13 +15,19 @@
 #
 # Usage:
 #   forge-done.sh [--slug <slug>] [--skip-retro "<reason>"] \
-#                 [--docs-updated "<value>"] [--completed <YYYY-MM-DD>]
+#                 [--docs-updated "<value>"] [--completed <YYYY-MM-DD>] \
+#                 [--sealed-id <YYMMDD-HHMMSS>]
 #   --slug         target a parked executed/<slug> or a half-sealed done/*-<slug>;
 #                  default = the active slot's plan.
 #   --skip-retro   record `retro: skipped (<reason>)` (the orchestrator decided to
 #                  skip; the script only records it). Without it, a retro file is required.
 #   --docs-updated STATUS `docs updated:` field (default: none).
-#   --completed    seal date (default: today) — an arg so tests are deterministic.
+#   --completed    seal DATE for the STATUS `completed:` field (default: today, YYYY-MM-DD)
+#                  — an arg so tests are deterministic.
+#   --sealed-id    the done-dir timestamp prefix, YYMMDD-HHMMSS (default: now, 24h local
+#                  wall clock; ADR 260719-161701). The dir is `done/<sealed-id>-<slug>/`,
+#                  with a serial letter appended only on a same-second same-slug collision.
+#                  An arg so tests are deterministic.
 #
 # Exit codes (fg-done routes on these):
 #   0  sealed OK (or a half-sealed dir completed idempotently)
@@ -35,17 +41,19 @@
 set -u
 
 # --- args --------------------------------------------------------------------
-slug_arg=""; skip_retro=""; skip_given=0; docs="none"; completed=""
+slug_arg=""; skip_retro=""; skip_given=0; docs="none"; completed=""; sealed_id=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --slug)         slug_arg="${2:-}"; shift 2 ;;
     --skip-retro)   skip_retro="${2:-}"; skip_given=1; shift 2 ;;
     --docs-updated) docs="${2:-none}"; shift 2 ;;
     --completed)    completed="${2:-}"; shift 2 ;;
+    --sealed-id)    sealed_id="${2:-}"; shift 2 ;;
     *) echo "forge-done: unknown arg: $1" >&2; exit 64 ;;
   esac
 done
 [ -n "$completed" ] || completed="$(date +%F 2>/dev/null || echo 0000-00-00)"
+[ -n "$sealed_id" ] || sealed_id="$(date +%y%m%d-%H%M%S 2>/dev/null || echo 000000-000000)"
 
 # --- resolve forge root (ADR-0011 / ADR-0022) --------------------------------
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -89,7 +97,11 @@ if [ -d "$root/done" ]; then
   for d in "$root"/done/*/; do
     [ -d "$d" ] || continue
     bn="$(basename "$d")"
-    [ "${bn#????-??-??-}" = "$slug" ] || continue
+    # two-format aware: grandfathered YYYY-MM-DD-slug, or YYMMDD-HHMMSS[letter]-slug
+    case "$bn" in
+      ????-??-??-"$slug"|??????-??????-"$slug"|??????-??????[a-z]-"$slug") : ;;
+      *) continue ;;
+    esac
     if [ "$(field "$d/STATUS.md" status)" = "done" ]; then
       echo "DUP already-sealed slug=$slug at $d"; exit 5
     fi
@@ -137,8 +149,15 @@ reviewed=""
 [ -f "$V" ] && reviewed="$V"
 # 1) close out STATUS in place first (so an interruption leaves it recoverable)
 close_out_status "$S" "$slug" "$retro_out" "$reviewed"
-# 2) archive into done/<completed>-<slug>/
-DEST="$root/done/${completed}-${slug}"
+# 2) archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
+#    same-second same-slug collision — rare, since the dup scan above already caught
+#    an existing seal of this slug)
+DEST="$root/done/${sealed_id}-${slug}"
+if [ -e "$DEST" ]; then
+  for c in a b c d e f g h i j k l m n o p q r s t u v w x y z; do
+    [ -e "$root/done/${sealed_id}${c}-${slug}" ] || { DEST="$root/done/${sealed_id}${c}-${slug}"; break; }
+  done
+fi
 mkdir -p "$DEST"
 mv "$P" "$DEST/" 2>/dev/null || true
 [ -f "$R" ] && mv "$R" "$DEST/"

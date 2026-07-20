@@ -133,10 +133,12 @@ if (isDir(doneRoot)) {
   const recent = dirs.slice().sort().reverse().slice(0, DONE_ROWS);
   for (const name of recent) {
     const dir = path.join(doneRoot, name);
-    const date = name.slice(0, 10);
     const p = path.join(dir, 'plan.md');
     const st = path.join(dir, 'STATUS.md');
-    let slug = slugof(p) || name.slice(11);
+    // Date from STATUS (format-agnostic YYYY-MM-DD); fall back to the legacy dirname prefix.
+    // The dir name is a timestamp prefix (YYMMDD-HHMMSS or old YYYY-MM-DD), NOT always a date.
+    const date = field(st, 'completed') || field(st, 'executed') || name.slice(0, 10);
+    let slug = slugof(p) || field(st, 'slug') || name.slice(11);
     let no = taskof(p); no = no ? `#${no}` : '-';
     addRow(no, date, `${slug}${looptag(p)}`, 'done', vsym(field(st, 'verified')), rsym(field(st, 'retro'), slug));
   }

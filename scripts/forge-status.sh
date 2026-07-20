@@ -131,9 +131,11 @@ if [ -d "$root/done" ]; then
   while IFS= read -r dir; do
     [ -n "$dir" ] || continue
     name="$(basename "$dir")"
-    date="${name:0:10}"
     p="$dir/plan.md"; st="$dir/STATUS.md"
-    slug="$(slugof "$p")"; [ -z "$slug" ] && slug="${name:11}"
+    # Date from STATUS (format-agnostic YYYY-MM-DD); fall back to the legacy dirname prefix.
+    # The dir name is a timestamp prefix (YYMMDD-HHMMSS or old YYYY-MM-DD), NOT always a date.
+    date="$(field "$st" completed)"; [ -z "$date" ] && date="$(field "$st" executed)"; [ -z "$date" ] && date="${name:0:10}"
+    slug="$(slugof "$p")"; [ -z "$slug" ] && slug="$(field "$st" slug)"; [ -z "$slug" ] && slug="${name:11}"
     no="$(taskof "$p")"; [ -z "$no" ] && no="-" || no="#$no"
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
     add_row "$no" "$date" "${slug}$(looptag "$p")" "done" "$(vsym "$v")" "$(rsym "$r" "$slug")"

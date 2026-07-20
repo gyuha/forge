@@ -89,7 +89,7 @@ status: done
 executed: {YYYY-MM-DD}
 completed: {YYYY-MM-DD}
 verified: yes (<evidence>)   # preserved from fg-run; or skipped/n/a
-retro: .forge/retro/{YYYY-MM-DD}-{slug}.md   # or: skipped (<reason>)
+retro: .forge/retro/{YYMMDD-HHMMSS}-{slug}.md   # or: skipped (<reason>)
 reviewed: .forge/review.md   # only when an adversarial review left one (ADR-0018); omitted otherwise
 docs updated: {CONTEXT.md terms / ADR-NNNN / none}   # from --docs-updated
 ```

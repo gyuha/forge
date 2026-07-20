@@ -13,7 +13,7 @@ const path = require('path');
 const { resolveForgeRoot } = require('./resolve-forge-root.js');
 
 // --- args --------------------------------------------------------------------
-let slugArg = '', skipRetro = '', skipGiven = false, docs = 'none', completed = '';
+let slugArg = '', skipRetro = '', skipGiven = false, docs = 'none', completed = '', sealedId = '';
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   switch (argv[i]) {
@@ -21,12 +21,17 @@ for (let i = 0; i < argv.length; i++) {
     case '--skip-retro': skipRetro = argv[++i] || ''; skipGiven = true; break;
     case '--docs-updated': docs = argv[++i] || 'none'; break;
     case '--completed': completed = argv[++i] || ''; break;
+    case '--sealed-id': sealedId = argv[++i] || ''; break;
     default: process.stderr.write(`forge-done: unknown arg: ${argv[i]}\n`); process.exit(64);
   }
 }
 if (!completed) {
   const d = new Date();
   completed = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+if (!sealedId) {
+  const d = new Date(); const p = (n) => String(n).padStart(2, '0');
+  sealedId = `${String(d.getFullYear()).slice(-2)}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;
 }
 
 const die = (msg, code) => { process.stdout.write(msg + '\n'); process.exit(code); };
@@ -84,14 +89,16 @@ let slug = slugArg;
 if (!slug && isFile(path.join(root, 'plan.md'))) slug = slugof(path.join(root, 'plan.md'));
 if (!slug) die('EMPTY no-task-to-seal (no --slug and no active plan)', 2);
 
-// --- duplicate / half-sealed check (precise YYYY-MM-DD- prefix match) --------
+// --- duplicate / half-sealed check (two-format aware: grandfathered
+//     YYYY-MM-DD-slug, or YYMMDD-HHMMSS[letter]-slug) ------------------------
 const doneDir = path.join(root, 'done');
 if (isDir(doneDir)) {
   for (const name of fs.readdirSync(doneDir).sort()) {
     const d = path.join(doneDir, name);
     if (!isDir(d)) continue;
-    const m = /^.{4}-.{2}-.{2}-(.*)$/.exec(name);
-    const rest = m ? m[1] : name;
+    const mOld = /^.{4}-.{2}-.{2}-(.*)$/.exec(name);
+    const mNew = /^.{6}-.{6}[a-z]?-(.*)$/.exec(name);
+    const rest = mOld ? mOld[1] : (mNew ? mNew[1] : name);
     if (rest !== slug) continue;
     const sf = path.join(d, 'STATUS.md');
     if (field(sf, 'status') === 'done') die(`DUP already-sealed slug=${slug} at ${d}/`, 5);
@@ -133,7 +140,15 @@ if (skipGiven) {
 // --- SEAL (mutation only past this point) ------------------------------------
 const reviewed = isFile(V) ? V : '';
 closeOutStatus(S, slug, retroOut, reviewed);
-const DEST = path.join(root, 'done', `${completed}-${slug}`);
+// archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
+// same-second same-slug collision — rare, the dup scan already caught prior seals)
+let DEST = path.join(root, 'done', `${sealedId}-${slug}`);
+if (fs.existsSync(DEST)) {
+  for (const c of 'abcdefghijklmnopqrstuvwxyz') {
+    const alt = path.join(root, 'done', `${sealedId}${c}-${slug}`);
+    if (!fs.existsSync(alt)) { DEST = alt; break; }
+  }
+}
 fs.mkdirSync(DEST, { recursive: true });
 const move = (src) => { if (isFile(src)) fs.renameSync(src, path.join(DEST, path.basename(src))); };
 move(P); move(R); move(S); move(V);

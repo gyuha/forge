@@ -71,7 +71,7 @@ if (branchArg) {
 // --- helpers -----------------------------------------------------------------
 const slugof = (f) => { const m = read(f).match(/forge-slug:[ \t]*(\S*)[ \t]*-->/); return m ? m[1].replace(/\r/g, '') : ''; };
 const taskof = (f) => { const m = read(f).match(/task:[ \t]*(\d+)/); return m ? m[1] : ''; };
-const isTimebased = (bn) => /^\d{6}-\d{2}[a-z]+-/.test(bn);
+const isTimebased = (bn) => /^\d{6}-\d{2}[a-z]+-/.test(bn) || /^\d{6}-\d{6}[a-z]?-/.test(bn);
 const isNnnn = (bn) => /^\d{4}-/.test(bn);
 function ctxTerms(f) {
   if (!exists(f)) return [];
@@ -145,9 +145,16 @@ function integrateAdrs() {
     const f = path.join(srcAdr, bn);
     if (!fs.statSync(f).isFile()) continue;
     if (isTimebased(bn)) {
-      const id = bn.match(/^(\d{6}-\d{2}[a-z]+)-/)[1];
-      const rest = bn.replace(/^\d{6}-\d{2}[a-z]+-/, '');
-      const base = id.replace(/(\d{6}-\d{2})[a-z]+/, '$1');
+      let id, rest, base;
+      if (/^\d{6}-\d{6}[a-z]?-/.test(bn)) {                 // second-granularity (current)
+        id = bn.match(/^(\d{6}-\d{6}[a-z]?)-/)[1];
+        rest = bn.replace(/^\d{6}-\d{6}[a-z]?-/, '');
+        base = id.replace(/(\d{6}-\d{6})[a-z]?/, '$1');
+      } else {                                              // hour-granularity (grandfathered)
+        id = bn.match(/^(\d{6}-\d{2}[a-z]+)-/)[1];
+        rest = bn.replace(/^\d{6}-\d{2}[a-z]+-/, '');
+        base = id.replace(/(\d{6}-\d{2})[a-z]+/, '$1');
+      }
       const collide = exists(path.join(TARGET, 'adr', bn)) || ls(path.join(TARGET, 'adr')).some((x) => x.startsWith(id + '-'));
       if (collide) {
         const letter = nextFreeLetter(path.join(TARGET, 'adr'), base);

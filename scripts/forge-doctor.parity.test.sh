@@ -30,7 +30,8 @@ seed_mixed()  { # several findings across groups
   s_status "$1/.forge/done/2026-07-01-x/STATUS.md" x executed "yes (t)" "skipped (r)"; printf 'p\n' > "$1/.forge/done/2026-07-01-x/plan.md"  # A4
   printf '<!-- forge-slug: a -->\n<!-- task: 4 -->\n' > "$1/.forge/backlog/a.md"; printf '<!-- forge-slug: b -->\n<!-- task: 4 -->\n' > "$1/.forge/backlog/b.md"  # A6 dup
   printf '# a\n' > "$1/.forge/adr/0001-a.md"; printf '# c\n' > "$1/.forge/adr/0003-c.md"  # B14 gap
-  printf '# 1\n' > "$1/.forge/adr/260716-14a-p.md"; printf '# 2\n' > "$1/.forge/adr/260716-14a-q.md"  # B14 time dup
+  printf '# 1\n' > "$1/.forge/adr/260716-14a-p.md"; printf '# 2\n' > "$1/.forge/adr/260716-14a-q.md"  # B14 time dup (hour granularity)
+  printf '# 3\n' > "$1/.forge/adr/260719-161701-r.md"; printf '# 4\n' > "$1/.forge/adr/260719-161701-s.md"  # B14 time dup (second granularity)
   printf '{"version":"1.0.0"}\n' > "$1/.claude-plugin/plugin.json"
   printf '{"metadata":{"version":"1.0.0"},"plugins":[{"version":"9.9.9"}]}\n' > "$1/.claude-plugin/marketplace.json"  # B8
   printf '# no name\n' > "$1/skills/foo/SKILL.md"  # B10

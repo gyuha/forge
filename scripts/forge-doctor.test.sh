@@ -54,6 +54,12 @@ run_doc "$t"; assert "B10-rc2" 2 "$RC"; assert_grep "B10-msg" "$OUT" "B10 skill 
 # --- B14 duplicate time-ID -> error ------------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge/adr"; printf '# a\n' > "$t/.forge/adr/260716-14a-x.md"; printf '# b\n' > "$t/.forge/adr/260716-14a-y.md"
 run_doc "$t"; assert "B14dup-rc2" 2 "$RC"; assert_grep "B14dup-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+# --- B14 duplicate time-ID, NEW granularity (YYMMDD-HHMMSS) -> error ----------
+t=$(mktmp); mkdir -p "$t/.forge/adr"; printf '# a\n' > "$t/.forge/adr/260719-161701-x.md"; printf '# b\n' > "$t/.forge/adr/260719-161701-y.md"
+run_doc "$t"; assert "B14dup-hms-rc2" 2 "$RC"; assert_grep "B14dup-hms-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+# --- B14 old + new granularity coexist, no false dup -> clean -----------------
+t=$(mktmp); mkdir -p "$t/.forge/adr"; printf '# a\n' > "$t/.forge/adr/260716-14a-old.md"; printf '# b\n' > "$t/.forge/adr/260719-161701-new.md"; printf '# c\n' > "$t/.forge/adr/260719-161702-new2.md"
+run_doc "$t"; assert "B14-mixed-gran-rc0" 0 "$RC"; rm -rf "$t"
 # --- B14 time-based ADR is NOT a NNNN gap (T3) -> no false gap, clean ---------
 t=$(mktmp); mkdir -p "$t/.forge/adr"; printf '# a\n' > "$t/.forge/adr/0001-a.md"; printf '# t\n' > "$t/.forge/adr/260716-14a-z.md"
 run_doc "$t"; assert "B14-no-false-gap-rc0" 0 "$RC"; rm -rf "$t"

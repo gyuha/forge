@@ -2,8 +2,9 @@
 
 ADRs live in `.forge/adr/`. Each has a unique **ID** used as its filename prefix (`<id>-slug.md`) and its citation (`ADR-<id>`). Two ID formats coexist (see Numbering):
 
-- **Time-based** (current) — `YYMMDD-HH` + a lowercase sequence letter, e.g. `260716-14a`. Coordination-free: minted from the wall clock, so parallel branches never collide on a shared counter, and the ID is fixed at creation, so cross-references almost never need rewriting — the one exception is the rare same-hour cross-branch clash (see Numbering).
-- **Sequential `NNNN`** (grandfathered) — `0001`, `0002`, … The ADRs created before the time-based scheme keep their numbers, frozen; no new ADR is minted this way.
+- **Time-based** (current) — `YYMMDD-HHMMSS` (2-digit year/month/day + 24-hour hour/minute/second from the wall clock), plus a lowercase serial letter **only on a same-second collision**, e.g. `260719-161701` (bare, the common case) or `260719-161701a` (a second ADR minted in the same second). Coordination-free: minted from the wall clock, so parallel branches never collide on a shared counter, and the ID is fixed at creation, so cross-references almost never need rewriting — the one exception is the rare same-second cross-branch clash (see Numbering).
+- **Time-based, hour-granularity** (grandfathered) — an earlier variant, `YYMMDD-HH` + an **always-present** letter, e.g. `260716-14a`. The ADRs minted before the second-granularity switch keep these IDs, frozen (ADR `260719-161701`); no new ADR is minted this way.
+- **Sequential `NNNN`** (grandfathered) — `0001`, `0002`, … The ADRs created before any time-based scheme keep their numbers, frozen; no new ADR is minted this way.
 
 Create the `.forge/adr/` directory lazily — only when the first ADR is needed.
 
@@ -12,7 +13,7 @@ Create the `.forge/adr/` directory lazily — only when the first ADR is needed.
 ```md
 ---
 author: {git config user.name at creation — the person who made the decision}
-decided: {YYYY-MM-DD}
+decided: {YYYY-MM-DD HH:MM}
 ---
 # {Short title of the decision}
 
@@ -21,7 +22,7 @@ decided: {YYYY-MM-DD}
 
 That's it. An ADR can be a single paragraph. The value is in recording *that* a decision was made and *why* — not in filling out sections.
 
-The `author`/`decided` frontmatter is the decision's **provenance** — who made it and when. It is filled at creation (`author` from `git config user.name`, `decided` = that day) and travels in the file body, so it survives fg-merge moving/renaming the file — unlike git blame, which fg-merge's file moves and a PR squash/rebase can blur. Grandfathered `NNNN` ADRs predate this and simply have no such frontmatter (not backfilled).
+The `author`/`decided` frontmatter is the decision's **provenance** — who made it and when. It is filled at creation (`author` from `git config user.name`, `decided` = the date and time **to the minute**, e.g. `2026-07-19 16:17`) and travels in the file body, so it survives fg-merge moving/renaming the file — unlike git blame, which fg-merge's file moves and a PR squash/rebase can blur. Grandfathered `NNNN` ADRs predate this and simply have no such frontmatter (not backfilled); grandfathered hour-granularity ADRs may carry a date-only `decided`.
 
 ## Optional sections
 
@@ -33,13 +34,13 @@ Only include these when they add genuine value. Most ADRs won't need them.
 
 ## Numbering (ID minting)
 
-New ADRs use the **time-based ID**: `YYMMDD-HH` (2-digit year, month, day, hour from the wall clock at creation) plus a lowercase **sequence letter**. Mint it so:
+New ADRs use the **time-based ID**: `YYMMDD-HHMMSS` (2-digit year, month, day + 24-hour hour, minute, second from the wall clock at creation), plus a lowercase **serial letter only on a same-second collision**. Mint it so:
 
-1. Compute the `YYMMDD-HH` prefix from the current time.
-2. Scan every existing ADR ID **for that same hour** — **including `retired/`** — and assign the next free letter (`a` if none, else `b`, `c`, …; roll to `aa` past 26, not expected). The letter is **always present**, even for the only ADR that hour, because same-hour ADRs are common.
-3. On any collision with an existing ID — a batch of ADRs written in the same hour, or a cross-branch clash surfaced at merge — the rule is the same: **take the next free letter**. There is no sequential cascade renumbering; the ID is stable from creation, so cross-references do not break — except in the rare same-hour cross-branch clash, where only the bumped ADR's own citations need updating (one letter, not a cascade).
+1. Compute the `YYMMDD-HHMMSS` prefix from the current time (local wall clock, 24-hour).
+2. If no existing ADR ID has that exact prefix — **including `retired/`** — use it **bare** (no letter). This is the common case: second-granularity makes collisions rare, so a bare ID means "nothing else was minted this second."
+3. On a same-second collision — a batch of ADRs minted within one second, or a cross-branch clash surfaced at merge — append the **next free lowercase letter** (`a`, then `b`, …) to the colliding ADR (the one already written stays as-is). There is no sequential cascade renumbering; the ID is stable from creation, so cross-references do not break — except in the rare same-second cross-branch clash, where only the bumped ADR's own citations need updating (one letter, not a cascade).
 
-**Grandfathered `NNNN` ADRs are frozen** — never renumbered, never reused — and the two formats coexist. Because IDs are minted from the clock rather than a global `max+1` counter, parallel branches mint non-colliding IDs without coordination. fg-merge integrates incoming ADRs by moving them as-is (bumping the letter only on the rare exact-hour clash) rather than a cascade renumber — done by the deterministic `forge-merge.sh`/`.js` (which also lets CI integrate branches AI-free). Retired IDs (either format) are never reused (see fg-cleanup).
+**Two grandfathered formats are frozen and coexist with the current one** — never renumbered, never reused: the hour-granularity time-based IDs (`YYMMDD-HH` + an always-present letter, e.g. `260716-14a`) and the sequential `NNNN`. Because IDs are minted from the clock rather than a global `max+1` counter, parallel branches mint non-colliding IDs without coordination. fg-merge integrates incoming ADRs by moving them as-is (bumping the letter only on the rare exact-second clash) rather than a cascade renumber — done by the deterministic `forge-merge.sh`/`.js` (which also lets CI integrate branches AI-free). Retired IDs (any format) are never reused (see fg-cleanup).
 
 ## When to offer an ADR
 

@@ -25,6 +25,8 @@ s_adr() { mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# t\n' > "$1/.forge/br
 seed_clean()   { s_adr "$1"; }
 seed_collide() { s_adr "$1"; mkdir -p "$1/.forge/adr"; printf '# e\n' > "$1/.forge/adr/260716-14a-existing.md"
   mkdir -p "$1/.forge/branch/feat-x/retro"; printf 'see ADR-260716-14a\n' > "$1/.forge/branch/feat-x/retro/2026-07-16-foo.md"; }
+seed_collide_new() { mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# t\n' > "$1/.forge/branch/feat-x/adr/260719-161701-foo.md"; mkdir -p "$1/.forge/adr"; printf '# e\n' > "$1/.forge/adr/260719-161701-existing.md"
+  mkdir -p "$1/.forge/branch/feat-x/retro"; printf 'see ADR-260719-161701\n' > "$1/.forge/branch/feat-x/retro/260719-161701-foo.md"; }
 seed_retro()   { mkdir -p "$1/.forge/branch/feat-x/retro" "$1/.forge/retro"
   printf 'b\n' > "$1/.forge/branch/feat-x/retro/2026-07-16-dup.md"; printf 'e\n' > "$1/.forge/retro/2026-07-16-dup.md"; }
 seed_ctx_add() { mkdir -p "$1/.forge/branch/feat-x"; printf '# G\n\n## Alpha\nsame\n\n## Beta\nnew\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# G\n\n## Alpha\nsame\n' > "$1/.forge/CONTEXT.md"; }
@@ -42,6 +44,7 @@ seed_empty()   { mkdir -p "$1/.forge"; }
 
 check "clean move + folder removed"   seed_clean    feat-x
 check "time-ID collision + xref"      seed_collide  feat-x
+check "NEW-fmt time-ID collision"     seed_collide_new feat-x
 check "retro move + -2 disambig"      seed_retro    feat-x
 check "CONTEXT append new term"       seed_ctx_add  feat-x
 check "CONTEXT redefinition -> 4"     seed_ctx_redef feat-x

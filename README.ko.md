@@ -130,6 +130,8 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 
 전체 디렉터리 구조, `.gitignore` 패턴, 브랜치 격리, 회고 스킵 규칙([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), 봉인 전 검증 게이트([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md))는 **[docs/state-contract.md](./docs/state-contract.md)** 에 문서화돼 있다.
 
+forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델, 커밋 시점, 피처 브랜치 단계별 git CLI 워크스루 — 은 **[docs/git-workflow.md](./docs/git-workflow.md)** 에 있다.
+
 ## 두 기둥
 
 1. **그릴링(계획)은 Dynamic Workflow 밖의 대화형으로.** Dynamic Workflow는 실행 중 사용자 입력을 못 받으므로, 한 질문씩 주고받는 그릴링을 워크플로우 안에 넣지 않는다.
@@ -179,3 +181,5 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 **eco 모드**(`fg-eco`)가 쓰는 코드 단순성 규율 — `skills/fg-eco/ECO.md`에 임베드되어 fg-run 서브에이전트·fg-ask 그릴링에 주입되는 laziness-first 결정 사다리 — 은 [DietrichGebert의 Ponytail 스킬](https://github.com/DietrichGebert/ponytail)에서 차용·각색했다.
 
 같은 `ECO.md`의 출력 prose 압축 규칙 — 코드/에러는 verbatim으로 두고 그릴링 질문·생성 문서는 full로 보존하되 실행·보고 prose를 간결화해 컨텍스트를 아낀다 — 은 [JuliusBrussee의 caveman 스킬](https://github.com/JuliusBrussee/caveman)에서 차용·각색했다.
+
+랜딩 페이지(`docs/index.html`)는 [Superpowers(Jesse Vincent, obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md)의 **Visual Companion** — 코드를 짜기 전에 목업·레이아웃·색상 옵션을 브라우저 미리보기로 펼쳐 보여주는 디자인 도구 — 로 제작했다.

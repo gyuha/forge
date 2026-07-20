@@ -73,8 +73,8 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 휘발 상태와 같은 `.forge/` 지붕 아래 있지만, 이들은 **영속이며 루프의 "연료"**다. `.gitignore`가 `.forge/`를 기본 제외(`​.forge/*`)하되 이 영속 문서들만 화이트리스트로 되살려 추적한다(`!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json`). 즉 **위치는 `.forge/` 안, 구분은 git 추적 여부**다. 전부 **lazy 생성**(쓸 내용이 생길 때만).
 
 - `.forge/CONTEXT.md` / 루트 `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신. **멀티 컨텍스트만 예외** — 컨텍스트별 `CONTEXT.md`는 코드 옆(`src/<context>/`)에, `CONTEXT-MAP.md`는 루트에 둔다(`.forge/` 통합 대상 아님). 단일 컨텍스트만 `.forge/CONTEXT.md`.
-- `.forge/adr/<id>-slug.md` — 아키텍처 결정. ID는 시간기반(`YYMMDD-HH`+소문자 글자; 기존 순차 `NNNN`은 grandfather로 공존, ADR-FORMAT.md). 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
-- `.forge/retro/YYYY-MM-DD-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
+- `.forge/adr/<id>-slug.md` — 아키텍처 결정. ID는 시간기반(`YYMMDD-HHMMSS`+같은-초 충돌 시에만 소문자 글자; 기존 `YYMMDD-HH`+글자·순차 `NNNN`은 grandfather로 공존, ADR-FORMAT.md). `decided`에 시각(분)까지 기록. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
+- `.forge/retro/YYMMDD-HHMMSS-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
 - `.forge/codebase/*.md` — fg-map(루프 밖 유틸리티)이 생성하는 코드베이스 지도(7문서). fg-ask가 그릴링 전 읽어 context rot을 줄인다.
 
 형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-run/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-done 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.

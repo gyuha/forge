@@ -50,6 +50,19 @@ assert_file "f-existing-kept" "$t/.forge/adr/260716-14a-existing.md"
 assert_file "f-incoming-bumped" "$t/.forge/adr/260716-14b-foo.md"
 assert_nofile "f-no-overwrite" "$t/.forge/adr/260716-14a-foo.md"
 assert_grep "f-crossref-rewritten" "$t/.forge/retro/2026-07-16-foo.md" "ADR-260716-14b"; rm -rf "$t"
+# --- (e2) NEW-format ADR (YYMMDD-HHMMSS, bare) moves as-is -> exit 0 ----------
+t=$(mktmp); seed_adr "$t" feat-x 260719-161701-foo.md
+run_merge "$t" feat-x; assert "e2-new-rc0" 0 "$RC"
+assert_file "e2-new-moved" "$t/.forge/adr/260719-161701-foo.md"; rm -rf "$t"
+# --- (f2) NEW-format collision -> bump to 161701a + cross-ref rewrite ---------
+t=$(mktmp); seed_adr "$t" feat-x 260719-161701-foo.md
+mkdir -p "$t/.forge/adr"; printf '# existing\n' > "$t/.forge/adr/260719-161701-existing.md"
+mkdir -p "$t/.forge/branch/feat-x/retro"; printf 'see ADR-260719-161701 for why\n' > "$t/.forge/branch/feat-x/retro/260719-161701-foo.md"
+run_merge "$t" feat-x; assert "f2-collision-rc0" 0 "$RC"
+assert_file "f2-existing-kept" "$t/.forge/adr/260719-161701-existing.md"
+assert_file "f2-incoming-bumped" "$t/.forge/adr/260719-161701a-foo.md"
+assert_nofile "f2-no-overwrite" "$t/.forge/adr/260719-161701-foo.md"
+assert_grep "f2-crossref-rewritten" "$t/.forge/retro/260719-161701-foo.md" "ADR-260719-161701a"; rm -rf "$t"
 # --- (g) ambiguous -> exit 6 -------------------------------------------------
 t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; seed_adr "$t" feat-y 260716-15a-bar.md
 run_merge "$t"; assert "g-ambiguous-rc6" 6 "$RC"; rm -rf "$t"

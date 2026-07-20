@@ -14,7 +14,7 @@ repo/
     ├── CONTEXT.md             # 글로서리 (단일 컨텍스트)
     ├── adr/0001-*.md          # 아키텍처 결정
     ├── adr/retired/           # 은퇴/대체된 ADR (fg-cleanup이 이동)
-    ├── retro/YYYY-MM-DD-*.md  # 회고 로그
+    ├── retro/YYMMDD-HHMMSS-*.md  # 회고 로그 (구 YYYY-MM-DD-*는 grandfather)
     ├── codebase/*.md          # fg-map이 만든 코드베이스 지도
     ├── config.json            # 프로젝트 설정(tdd · eco · defaultBranch) — 전역, 브랜치 해석 안 함
     │                          # ── 휘발 루프 상태 (gitignore) ──
