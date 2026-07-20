@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.5.20] - 2026-07-21
+
+적대적 리뷰(#87)가 찾은 결정론 스크립트 보안 결함 완전 수정 + fg-agents 카드 생성에 최소 권한 축 도입.
+
+### Added
+- **`script-twin-engineer` 역할 카드** — fg-run이 결정론 스크립트 트윈(`forge-*.sh`/`.js` + behavior/parity 테스트) slice를 디스패치할 수 있는 도메인 에이전트. ADR-0022 규약·TESTING.md 테스트 규율 반영.
+
+### Changed
+- **`fg-agents` 카드 생성에 최소 권한(tools)·model/effort 축 도입** ([ADR-0024](./.forge/adr/0024-fg-agents-and-domain-agent-execution.md) 개정). 역할 성격(읽기전용/쓰기·심층/기계)에서 tools(읽기전용=Read,Grep,Glob,Bash / 쓰기=생략)·effort·(절제된) model을 도출해 카드에 기입한다. model은 박으면 eco 절감이 죽으므로 필요할 때만·기본 생략, effort는 eco 캡과 독립이라 자유— 비대칭 서술.
+
+### Fixed
+- **`forge-done` 슬러그 경로 탈출 가드 완성 (#87)** — 봉인 경로 `done/<sealed-id>-<slug>/`에서 sealed-id는 검증되나 slug(plan `forge-slug`/`--slug`)가 무검증이라 오염 slug(`x/../../../../PWNED`)로 파일이 `done/`·리포 밖으로 이동하던 결함을 차단. `/`·`\`·`..`·선행 `.` 슬러그를 mutation 이전 exit 64로 거부해 DEST가 `done/` 내부임을 보장.
+- **`forge-merge`·`forge-doctor` 시간ID 유일성 검사에 `retired/` 포함** — active↔retired 중복 감지 누락 수정(retired와 충돌 시 bump·retired가 쓴 글자 skip). `forge-done --sealed-id`도 형식(`^\d{6}-\d{6}$`)을 mutation 이전 검증.
+
 ## [0.5.19] - 2026-07-20
 
 신규 `fg-visual` 스킬(브라우저 시각 컴패니언) + ADR·done·retro ID 초 단위 통일 + git 운영 가이드.
