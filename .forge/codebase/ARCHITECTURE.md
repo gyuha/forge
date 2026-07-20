@@ -1,176 +1,151 @@
 ---
-last_mapped_commit: 8aaed407ae96e0d59f87de00424a18a652577950
-mapped: 2026-06-27
+last_mapped_commit: 553484ae395d6ca3df973f5b0cf5762029fd94ec
+mapped: 2026-07-20
 ---
 
-# forge 아키텍처
+# ARCHITECTURE
 
-## 진입점
+## 무엇을 빌드하는가 (패턴)
 
-모든 작업은 **`fg-ask`** 에서 시작한다. fg-ask는 대화형 그릴링을 거쳐 `.forge/backlog/<slug>.md` 에 계획(plan)을 만들어 두고, fg-run이 그 계획을 실행한다.
+이 리포는 코드를 빌드하지 않는다. **Claude Code 플러그인**이자 그 자신이 곧 **마켓플레이스**인 단일 리포다(`harness` 플러그인과 동일 패턴). 산출물은 전부 Markdown(`SKILL.md`, `*-FORMAT.md`, 규율 문서)과 JSON(매니페스트), 그리고 결정론 로직을 담는 셸/노드 스크립트다. 빌드·테스트·린트·CI 파이프라인은 없다 — `package.json`·`Makefile` 없음. "개발"은 Markdown/JSON/스크립트를 편집하는 것이고, 유일한 자동 검증은 매니페스트 JSON 파싱과 `scripts/*.test.sh`뿐이다.
 
-## 4단계 루프
+플러그인 루트 = 리포 루트다. `.claude-plugin/plugin.json`이 플러그인 매니페스트, `.claude-plugin/marketplace.json`이 이 리포를 마켓플레이스로 등록한다(`plugins[].source: "./"`). 스킬은 `skills/<name>/SKILL.md`로 **자동 탐색**되며, `plugin.json`에 `skills` 필드는 없다. 스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name:`이다.
 
-루프는 한 작업을 한 바퀴 돌리는 단방향 파이프라인이다.
+## 핵심 아키텍처 — forge 루프 (4단계)
 
-```
-① fg-ask → ② fg-run → ③ fg-learn → ④ fg-done → (새 작업) ① fg-ask
-```
-
-각 단계는 독립 실행되며, `.forge/` 파일을 매개로 상태를 전달한다.
-
-### ① fg-ask — 질의·그릴링·계획
-
-- 대화 중 `CONTEXT.md`, ADR을 인라인으로 갱신한다.
-- `.forge/codebase/*.md` 를 먼저 읽어 컨텍스트 로트를 줄인다.
-- 작업 완료 시 `.forge/backlog/<slug>.md` 를 생성한다.
-- 항상 워크플로우 밖 대화로 진행한다 (기둥 #1).
-- `.forge/config.json` 의 `tdd` 설정을 기본값으로 TDD 여부를 묻는다.
-- `fg-loop` 가 생성한 `.forge/loop.md` 가 있으면 활성 goal 루프 진행 중임을 경고한다.
-
-### ② fg-run — 실행 (Dynamic Workflow)
-
-- `.forge/backlog/` 에서 계획을 선택해 `.forge/plan.md` (활성 슬롯)으로 승격한다.
-- Claude Code Dynamic Workflow로 실행 후 `.forge/run.md` 에 계획↔실제 차이를 기록한다.
-- 실행 완료 후 UAT를 수행해 `.forge/STATUS.md` 의 `verified:` 필드를 기록한다.
-- 검증 게이트(ADR-0009): `verified: yes/skipped/n/a` 면 봉인 가능, `pending/failed` 이면 차단.
-- `eco` 가 `true` 이면 위임 서브에이전트를 `sonnet` 으로 캡하고 `ECO.md` 규율을 주입한다.
-- **도메인 에이전트 디스패치**: 프로젝트에 `.claude/agents/<role>.md` 카드가 있으면 슬라이스를 `agentType: '<role>'` 로 디스패치한다. 없으면 동작 변화 없다(graceful/optional — ADR-0024).
-- 핸드오프는 진술형 — "다음은 fg-learn"을 알리고 멈춘다(ADR-0015).
-
-### ③ fg-learn — 회고 (Retro)
-
-- `.forge/run.md` 와 `.forge/plan.md` 를 비교해 divergence를 분류한다.
-- 학습을 `CONTEXT.md`, ADR, `.forge/retro/YYYY-MM-DD-<slug>.md` 로 승급한다.
-- 검증 게이트: `verified: pending` 이면 fg-run으로, `failed` 이면 fg-run (실패 작업 복구)으로 라우팅.
-- divergence가 낮으면 회고 건너뛰기 제시 → 건너뛰면 `STATUS.md: retro: skipped (사유)` 기록(ADR-0002).
-- 항상 대화형으로 진행한다 — 워크플로우로 자동 생성하지 않는다.
-
-### ④ fg-done — 완료·봉인
-
-- 검증 게이트(먼저) + 회고 게이트(다음) 순서로 확인한다.
-- 통과하면 `.forge/done/<날짜-slug>/` 에 `plan.md`, `run.md`, `STATUS.md` 를 보관하고 활성 슬롯을 비운다.
-- `STATUS.md` 의 `status:` 를 `done` 으로 마감한다.
-- 활성 슬롯을 비우는 것이 재실행 방지의 핵심 메커니즘이다.
-- `fg-done all` 은 이미 실행된 작업 전부를 회고 자동 skip하고 일괄 봉인한다(ADR-0023).
-
-## 상태 계약 — `.forge/` 파일 흐름
-
-### 활성 슬롯 (항상 1개)
-
-활성 슬롯은 `.forge/plan.md` 하나뿐이다. 슬롯이 비어 있으면 작업 없음 = fg-run 실행 불가.
+forge의 본질은 작업 하나를 한 바퀴 돌리는 4단계 루프다. 각 스킬은 **독립 실행**되며, 상태를 `.forge/` 파일로 주고받아 흐름을 잇는다(스킬끼리 직접 호출하지 않음 — 상태 파일이 유일한 결합면).
 
 ```
-.forge/backlog/<slug>.md    ← fg-ask 생성
-        │ fg-run 승격
-        ▼
-.forge/plan.md              ← 활성 슬롯 (한 번에 1개)
-.forge/run.md               ← fg-run 기록 (계획↔실제 차이)
-.forge/STATUS.md            ← 동반 마커 (status/verified/retro 필드)
-        │ "Run all" 배치 파킹
-        ▼
-.forge/executed/<slug>/     ← 실행됐으나 미회고 상태
- plan.md / run.md / STATUS.md
-        │ fg-learn 회고 + fg-done 봉인
-        ▼
-.forge/done/<날짜-slug>/    ← 봉인 완료 (STATUS.md: status: done)
- plan.md / run.md / STATUS.md
+fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회고) → fg-done(④완료·봉인) → (새 작업) fg-ask
 ```
 
-`.forge/review.md` 는 `fg-adversarial-review` 가 생성하는 휘발 파일 — 활성 슬롯과 동행하며 선택적·비-게이트.
+- `fg-ask` — grill-with-docs식 대화형 그릴링. 반드시 **본 세션 대화**로 진행(워크플로 밖). 산출: `.forge/backlog/<slug>.md`.
+- `fg-run` — 백로그 plan을 활성 슬롯(`.forge/plan.md`)으로 승격해 Claude Code Dynamic Workflow로 실행. 계획↔실제 차이를 `.forge/run.md`에, 상태를 `.forge/STATUS.md`에 기록.
+- `fg-learn` — 학습을 분류·승급(CONTEXT/ADR/retro). 항상 대화형.
+- `fg-done` — 봉인·재실행 방지. 기계적 봉인은 결정론 스크립트가 처리.
 
-### STATUS.md 필드
+## 데이터 흐름 — `.forge/` 상태 계약 (생산자/소비자)
 
-| 필드 | 값 | 의미 |
-|------|-----|------|
-| `status:` | `executed` / `done` | 실행 완료 / 봉인 완료 |
-| `verified:` | `yes(증거)` / `skipped(사유)` / `n/a(사유)` | 봉인 가능 |
-| `verified:` | `pending` / `failed(사유)` | 봉인 차단 |
-| `retro:` | 경로 / `skipped(사유)` | 회고 완료 or 건너뜀 |
-| `reviewed:` | 경로 (선택적) | 적대적 리뷰 기록 — 봉인 게이트 아님 |
+스킬 간 결합은 오직 `.forge/` 파일의 입출력 계약으로 이뤄진다. 아래 경로는 모두 **해석된 forge 루트 기준**(브랜치 격리 절 참고).
 
-### 식별자
+| 파일 | 생산자 | 소비자 |
+| --- | --- | --- |
+| `.forge/ask.md` (표시용 마커) | fg-ask | fg-statusline(표시 전용) |
+| `.forge/backlog/<slug>.md` | fg-ask | fg-run(선택·승격) |
+| `.forge/plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run·fg-learn |
+| `.forge/run.md` | fg-run | fg-learn |
+| `.forge/review.md` (적대적 리뷰 findings, 선택·비-게이트) | fg-adversarial-review | fg-learn·fg-done(아카이브) |
+| `.forge/STATUS.md` (동반 마커) | fg-run | fg-run·fg-learn·fg-done |
+| `.forge/executed/<slug>/` | fg-run(Run all park) | fg-learn·fg-done |
+| `.forge/done/<날짜-slug>/` | fg-done | fg-ask(slug 충돌)·fg-run·fg-learn·fg-done |
+| `.forge/loop.md` (goal 계약) | fg-loop | fg-loop·fg-status·fg-ask·fg-next·fg-merge |
+| `.forge/quick/LOG.md` (경량 차선 로그) | fg-quick | (읽기 참조) |
 
-- **slug** — plan 첫 줄의 `<!-- forge-slug: <slug> -->` 주석. 파일 이동 후에도 영속.
-- **task 번호** — plan의 `task:` 마커. 단조 증가, 재사용 금지.
+## 상태 머신 — 활성 슬롯 / 백로그 / executed / done
 
-## Forge Root 분기 (ADR-0011)
-
-기본 브랜치(`config.json:defaultBranch`, 없으면 `main`) 면 forge root = `.forge/`, 다른 브랜치면 `.forge/branch/<branch>/`.
-
-전역 예외 2개 — 모든 브랜치에서 항상 최상위 `.forge/` 사용:
-- `.forge/config.json` — 브랜치 독립 전역 설정 (`tdd`, `eco`, `defaultBranch`).
-- `.forge/codebase/` — fg-map이 생성하는 공유 코드베이스 맵.
-
-`scripts/resolve-forge-root.sh` / `scripts/resolve-forge-root.js` 가 결정론적 스크립트 구현체다(ADR-0022, 이중 디스패치: bash 우선, node 폴백).
-
-비-기본 브랜치 상태는 git 추적된다 (`.gitignore` 가 `.forge/branch/` 화이트리스트). 기본 브랜치 휘발 상태는 gitignored.
-
-## 두 기둥
-
-1. **그릴링은 절대 Dynamic Workflow 안에 넣지 않는다.** fg-ask는 항상 대화. 워크플로우는 실행 중 사용자 입력을 받지 못한다.
-2. **문서는 산출물이 아니라 루프의 연료다.** `CONTEXT.md` 용어 → 실행 기준 → 회고 학습 → 다음 계획의 출발점.
-
-## 도메인 에이전트 실행 경로 (ADR-0024)
-
-프로젝트별 도메인 에이전트는 `.claude/agents/<role>.md` 에 둔다. 각 카드는 YAML frontmatter(`name`, `description`) + 시스템 프롬프트 본문으로 구성된다.
+작업의 상태 원천은 **파일 위치**이며, `STATUS.md`는 작업 파일과 함께 이동하는 동반 마커다(이중 장부 아님).
 
 ```
-fg-agents 그릴링 (대화)
-      │ 역할 승인
-      ▼
-.claude/agents/<role>.md 생성
-      │ 세션 재시작 필요 (카드는 세션 시작 시 1회만 로드)
-      ▼
-fg-run이 슬라이스에 agentType: '<role>' 로 디스패치
-      │ 카드 description의 "when to use"로 슬라이스↔역할 매칭
-      ▼
-해당 role 에이전트가 슬라이스를 실행
+fg-ask ──> backlog/<slug>.md
+                │ fg-run 승격
+                v
+          plan.md (활성 슬롯 — 항상 1개) ──> run.md + STATUS.md(status: executed, verified: pending, retro: pending)
+                │                                  │ Run all: 파킹
+                │ (단일 작업)                       v
+                │                            executed/<slug>/ (실행됐으나 미회고)
+                │                                  │
+                v                                  v
+          [검증 게이트] ─fail─> fg-run unpark(fix & re-run) 또는 fg-ask 재그릴
+                │ verified: yes/skipped/n/a
+                v
+          fg-learn(회고) ──> retro/ 승급 (또는 retro: skipped)
+                │
+                v
+          fg-done ──> done/<날짜-slug>/ (status: done) + 활성 .forge 비움 = 루프 닫힘
 ```
 
-두 가지 하드 사실:
-1. 세션 시작 시 한 번만 로드 — 중간에 생성한 카드는 재시작 전까지 fg-run이 디스패치 불가.
-2. 에이전트는 **사용자 프로젝트 소속** — forge 플러그인이 소유하거나 강제하지 않는다(ADR-0013 비충돌).
+- **활성 슬롯은 항상 1개**: 한 `plan.md` = 한 `run.md` = 한 봉인. plan 첫 줄 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자(파일 이동에도 영속).
+- **활성 슬롯·백로그·executed가 모두 비어 있으면 = 진행 중 작업 없음.** fg-run은 빈 상태에서 실행하지 않는다(재실행 방지). 완료 판별 = `done/*/STATUS.md`의 `status: done`.
 
-forge 자체 dogfood 에이전트 (`.claude/agents/`): `skill-author.md`, `manifest-doc-syncer.md` — forge 리포 내 스킬 문서 작성과 매니페스트 동기화 전담.
+## 봉인 전 검증 게이트 (ADR-0009)
 
-## 루프 밖 유틸리티 — 스킬 간 핸드오프 없음
+루프 순서는 **run → verify → learn → done**. fg-run 핸드오프가 plan 목표에 대고 UAT를 수행해 STATUS `verified:`를 기록한다.
 
-루프 밖 스킬은 `.forge/` 를 읽거나 쓰되 루프 단계에 속하지 않으며 fg-next / fg-loop 자동 오케스트레이션에서 건너뛴다.
+- **봉인 가능**: `yes` / `skipped (사유)` / `n/a (사유)`
+- **차단**: `pending`(미검증 — fg-run 검증 전용 재진입으로) / `failed (사유)`(검증했으나 깨짐 — fg-run parked-failed 회수·fix-and-re-run 또는 fg-ask 재그릴로 라우팅)
 
-| 스킬 | 입력 | 출력 | 비고 |
-|------|------|------|------|
-| `fg-map` | 코드베이스 | `.forge/codebase/*.md` | 7문서 병렬 생성 |
-| `fg-quick` | 대화 | `.forge/quick/LOG.md` 한 줄 | trivial 작업 경량 차선(ADR-0003) |
-| `fg-status` | `.forge/` | 읽기 전용 보고 | 아무것도 쓰지 않음 |
-| `fg-next` | `.forge/` | 다음 단계 실행 | `all` 모드: 벽까지 자동 진행(ADR-0010) |
-| `fg-loop` | 대화 + `.forge/` | `.forge/loop.md` + 루프 주행 | 목표 주도 유한 재계획(ADR-0016) |
-| `fg-tdd` | 대화 | `.forge/config.json` | TDD 모드 토글 |
-| `fg-eco` | 대화 | `.forge/config.json` | Eco 모드 토글(ADR-0014) |
-| `fg-merge` | `.forge/branch/<branch>/` | `.forge/` | git merge 후 forge 상태 통합(ADR-0011) |
-| `fg-cleanup` | `.forge/adr/` | `.forge/adr/retired/` | 폐기된 ADR 은퇴(ADR-0012) |
-| `fg-statusline` | `.forge/` | `settings.json` + 스크립트 설치 | 터미널 상태바 설정(ADR-0017) |
-| `fg-adversarial-review` | `.forge/run.md` | `.forge/review.md` | 선택적·비-게이트(ADR-0018) |
-| `fg-doctor` | `.forge/` + 매니페스트 | 읽기 전용 보고 | 무결성 점검(ADR-0019) |
-| `fg-drop` | `.forge/` | 불완전 작업 삭제 또는 `.forge/dropped/` | 폐기 유틸리티(ADR-0021) |
-| `fg-agents` | 대화 + `.forge/codebase/` | `.claude/agents/<role>.md` | 도메인 에이전트 생성(ADR-0024) |
+fg-done은 **검증 게이트를 회고 게이트보다 먼저** 확인한다(no-seal-without-verification). `failed`는 waiver로 통과시키지 않고 fresh re-run 재검증으로만 봉인된다. ADR-0009 이전 봉인은 `verified: n/a (legacy pre-ADR-0009)`로 백필. 회고는 저-divergence 사소한 작업에 한해 skip 가능(ADR-0002) — `retro: skipped (사유)`가 봉인 가드를 통과.
 
-## 검증 게이트 (ADR-0009)
+## 브랜치 격리 forge 루트 (ADR-0011)
 
-루프 순서: run → verify → learn → done. fg-done은 검증 게이트를 회고 게이트보다 먼저 확인한다.
+모든 `.forge/...` 경로는 **해석된 forge 루트** 기준이다.
 
-```
-verified: yes/skipped/n/a  →  봉인 가능
-verified: pending           →  fg-run 검증 전용 재진입 (재실행 없음)
-verified: failed            →  fg-run fix-and-re-run 또는 fg-ask 재그릴
-```
+- 기본 브랜치(`config.json`의 `defaultBranch`, 없으면 `main`) → 루트 = `.forge/`
+- 그 외 브랜치 → 루트 = `.forge/branch/<branch>/` (예: 현재 `feature/visual-compose` → `.forge/branch/feature/visual-compose/`)
+- **전역 예외**(모든 브랜치에서 항상 최상위 `.forge/`): `.forge/config.json`, `.forge/codebase/`, 그리고 `.forge/visual/`(fg-visual 세션, 휘발·gitignore).
 
-`failed` 파킹 작업의 unpark는 fg-run 단독 소유 (`executed/<slug>/` → 활성 슬롯).
+비-기본 브랜치의 루트는 **통째로 git 추적**된다(`.gitignore`가 `!.forge/branch/`로 화이트리스트). 경로가 브랜치별로 네임스페이스되어 두 브랜치가 같은 파일을 안 건드리므로 git merge 충돌이 없고, `git merge` 뒤 fg-merge가 `.forge/`로 통합한다. 단일 정의는 `skills/fg-run/FORGE-ROOT.md`이고, 런타임 해석은 결정론 스크립트 `scripts/resolve-forge-root.sh`/`.js`가 담당(git 리포 루트에 앵커, `config.json` 파싱, 항상 exit 0).
 
-## 회고 건너뛰기 (ADR-0002)
+## 스크립트 백킹 — 결정론 봉인·상태·머지·건강 (ADR-0022·0030·0031)
 
-fg-run 핸드오프에서 divergence가 낮을 때만 "회고 / 건너뛰기" 선택지를 제시한다. 건너뛰면 `STATUS.md: retro: skipped (사유)`. fg-done 봉인 가드는 retro 파일 존재 **또는** `retro: skipped` 를 통과 조건으로 인정한다.
+기계적(비-AI) 작업은 셸+노드 **트윈 스크립트**로 백킹한다. 스킬은 exit code로 라우팅만 하고 의미 판단만 대화로 남긴다. 각 스크립트는 `.sh`(bash 프라이머리) + `.js`(node 폴백)의 dual dispatch이며, `.test.sh`(동작)와 `.parity.test.sh`(sh/js 동치)를 동반한다.
 
-## 현재 ADR 수
+- `scripts/forge-done.sh` / `.js` — 봉인(사전점검·게이트 강제·STATUS 마감·아카이브·슬롯 비우기), 세 봉인 경로 공유·게이트-우선-비파괴 (ADR-0030).
+- `scripts/forge-status.sh` / `.js` — 읽기 전용 상태 리포트 + 다음 단계 상태 머신 (ADR-0020).
+- `scripts/forge-merge.sh` / `.js` — 브랜치 forge 통합(시간ID ADR 이동·task 번호 재부여·retro 이동·CONTEXT 병합·done 합침·폴더 제거). **git 조작 안 함**(CI git-free); `fg-merge <branch>` 인자 모드만 스킬 계층에서 `git merge`를 대신 돌림.
+- `scripts/forge-doctor.sh` / `.js` — 상태·문서 무결성 health check, exit 0/1/2로 AI-free CI 게이트 (ADR-0019).
+- `scripts/forge-statusline.sh` / `.js` — statusline forge fragment(방법 1 append용).
+- `scripts/forge-statusline-full.sh` / `.js` — daleseo식 통합 statusline(방법 2 merge), forge 부분은 fragment에 위임(3중 복제 금지, ADR-0029).
+- `scripts/forge-statusline-wrapper.sh` — 기존 statusline을 별도 줄로 래핑(원본 보존, ADR-0017).
+- `scripts/resolve-forge-root.sh` / `.js` — forge 루트 해석.
 
-`.forge/adr/` 에 0001–0025 총 25개. `retired/` 폴더에 은퇴된 ADR이 별도 보관된다. ADR 번호는 단조 증가하며 재사용·삭제하지 않는다.
+## 단일 정의·복붙 금지 규약 (형식·규율 문서)
+
+형식/규율 문서는 한 벌만 존재하며 소유 스킬 디렉터리에 둔다. 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 **참조**하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 **폐지됨**.
+
+- `skills/fg-ask/CONTEXT-FORMAT.md` · `skills/fg-ask/ADR-FORMAT.md` — grill-with-docs 원본 형식.
+- `skills/fg-run/PLAN-FORMAT.md` — plan.md 형식 + 분할 규칙(생산자는 fg-ask지만 소비자 쪽에 둠).
+- `skills/fg-run/RUN-ALL.md` — Run all 배치 규율.
+- `skills/fg-run/FORGE-ROOT.md` — forge 루트 해석 규율(모든 루프 스킬 참조, ADR-0011).
+- `skills/fg-learn/RETRO-FORMAT.md` — 회고 형식.
+- `skills/fg-next/DRIVE.md` — 무인 주행 규율(fg-next `all`·fg-loop이 참조, 각자 자기 벽 집합 채움, ADR-0028).
+- `skills/fg-eco/ECO.md` — Eco laziness-first 규율(독립 스킬 없이 fg-eco에만 살며 eco가 유일한 활성화 경로, ADR-0014).
+- `skills/fg-visual/VISUAL.md` + `skills/fg-visual/scripts/` — Visual Companion 정의(fg-ask가 파일 참조로 사용).
+
+## 설계 원칙 (두 기둥 — 깨면 forge가 아니게 됨)
+
+1. **그릴링은 절대 Dynamic Workflow 안에 넣지 않는다.** 워크플로는 실행 중 사용자 입력을 못 받는다. 한 질문씩 주고받는 그릴링(fg-ask)은 반드시 워크플로 밖 대화로.
+2. **문서는 산출물이 아니라 루프의 연료다.** 계획에서 다듬은 용어가 실행의 기준이 되고, 회고의 학습이 다음 계획의 출발점이 된다.
+
+핸드오프 규약: 각 스킬은 끝에서 "방금 한 것 / 다음 단계 / 시작하는 법"을 대화체 **진술형**으로 전하고 멈춘다("진행할까요?"로 묻지 않음). 체이닝(동의 시 다음 스킬 자동 호출)은 **fg-next 전담**(단 fg-learn→fg-done 자동 체인은 ADR-0026 예외).
+
+## 진입점 (entry points)
+
+**루프 4단계 스킬:**
+- `skills/fg-ask/SKILL.md` (①)
+- `skills/fg-run/SKILL.md` (②)
+- `skills/fg-learn/SKILL.md` (③)
+- `skills/fg-done/SKILL.md` (④, `fg-done all` 배치 봉인 — ADR-0023)
+
+**루프 밖 유틸리티 스킬(15개):**
+- `skills/fg-map/SKILL.md` — 코드베이스 지도(병렬 서브에이전트 → `.forge/codebase/`). **이 문서를 생성하는 스킬.**
+- `skills/fg-status/SKILL.md` — 읽기 전용 상태 리포터(보고만).
+- `skills/fg-next/SKILL.md` — 다음 단계 오케스트레이터(행동까지, `all` 무인 주행 — ADR-0010).
+- `skills/fg-loop/SKILL.md` — goal 주도 한정 재계획 루프(ADR-0016).
+- `skills/fg-merge/SKILL.md` — 브랜치 forge 통합(ADR-0011·260717-10a).
+- `skills/fg-cleanup/SKILL.md` — ADR 은퇴(→ `.forge/adr/retired/`, ADR-0012).
+- `skills/fg-quick/SKILL.md` — 경량 차선(형식 산출물 없음, ADR-0003).
+- `skills/fg-doctor/SKILL.md` — 무결성 health check(ADR-0019).
+- `skills/fg-drop/SKILL.md` — 미완 작업 폐기(ADR-0021).
+- `skills/fg-agents/SKILL.md` — 도메인 에이전트 카드 생성(→ `.claude/agents/`, ADR-0024).
+- `skills/fg-tdd/SKILL.md` — TDD 모드 토글(`config.json`, ADR-0008).
+- `skills/fg-eco/SKILL.md` — eco 모드 토글(`config.json`, ADR-0014).
+- `skills/fg-adversarial-review/SKILL.md` — 선택적 적대적 리뷰(ADR-0018).
+- `skills/fg-statusline/SKILL.md` — statusline 설정(ADR-0017·0029).
+- `skills/fg-visual/SKILL.md` — 브라우저 시각 컴패니언(ADR 260719-224442).
+
+**스크립트 트윈 진입점:** `scripts/forge-done.{sh,js}` · `scripts/forge-status.{sh,js}` · `scripts/forge-merge.{sh,js}` · `scripts/forge-doctor.{sh,js}` · `scripts/forge-statusline.{sh,js}` · `scripts/forge-statusline-full.{sh,js}` · `scripts/forge-statusline-wrapper.sh` · `scripts/resolve-forge-root.{sh,js}` (각 `*.test.sh`·`*.parity.test.sh` 동반).
+
+**fg-visual 런타임:** `skills/fg-visual/scripts/server.cjs`(zero-dependency Node 서버) · `start-server.sh` · `stop-server.sh` · `helper.js` · `frame-template.html`.
+
+**매니페스트:** `.claude-plugin/plugin.json`(플러그인) · `.claude-plugin/marketplace.json`(마켓플레이스). 스킬 개수·설명은 두 파일을 함께 갱신(둘 다 사람이 읽는 설명). 설치는 GitHub 기본 브랜치(main)를 당긴다.

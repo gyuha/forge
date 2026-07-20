@@ -1,104 +1,64 @@
 ---
-last_mapped_commit: 8aaed407ae96e0d59f87de00424a18a652577950
-mapped: 2026-06-27
+last_mapped_commit: 553484ae395d6ca3df973f5b0cf5762029fd94ec
+mapped: 2026-07-20
 ---
 
-# INTEGRATIONS.md — forge의 외부 접점
+# INTEGRATIONS — 외부 API·데이터·인증·접점
 
-forge는 외부 시스템과의 통합이 거의 없는 자기완결 플러그인이다. 네트워크 API 호출, 데이터베이스, 외부 서비스, MCP 서버 의존이 **하나도 없다**. 실제 외부 접점은 Claude Code 호스트 자체와의 인터페이스뿐이다. 아래가 전부이며, 빈약해 보인다면 그것이 정확한 현실이다.
+이 리포는 서버 백엔드가 아니라 Claude Code 플러그인이다. 전통적 의미의 외부 API 클라이언트·DB·인증 제공자·웹훅은 **없다**. 실제 외부 접점은 (1) GitHub 설치/배포 경로, (2) `gh` CLI 이슈 연동, (3) vendored 브라우저 컴패니언 localhost 서버, (4) 실행 기질(substrate)로서의 Claude Code Dynamic Workflow, (5) 설정된 MCP 서버(런타임 환경 제공, 이 리포 자체 코드 아님)다.
 
-## 1. Claude Code 플러그인/마켓플레이스 설치 메커니즘 (GitHub main을 당김)
+## 1. GitHub — 설치·배포 경로
 
-forge는 Claude Code 플러그인 시스템에 두 매니페스트로 등록된다.
+- **마켓플레이스 설치는 GitHub 기본 브랜치(main)를 당긴다.** 설치를 테스트하려면 변경이 main에 push되어 있어야 한다. 사용자 흐름:
+  - `/plugin marketplace add gyuha/forge` (또는 로컬 경로)
+  - `/plugin install forge@forge`
+- `/plugin install`·`/plugin marketplace update`는 **interactive 명령이라 에이전트가 실행 못 한다**(사용자가 직접 침).
+- 에이전트가 검증 가능한 건 설치 전제뿐:
+  - `curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/{plugin,marketplace}.json` — 원격 main의 버전 3곳 확인.
+  - `awk '/^name:/'`로 `skills/*/SKILL.md` frontmatter `name`(자동 탐색 대상) 누락 확인.
+- 리포 좌표: `github.com/gyuha/forge` (매니페스트 `homepage`/`repository`). 라이선스 MIT. 현 로컬 원격 identity는 git worktree(`.git` → `gitdir: .../forge/.git/worktrees/forge-visual-compose`).
+- 배포 = commit + push(설치가 main을 당기므로). `chore(release): vX.Y.Z` 커밋으로 `main` push.
 
-- `.claude-plugin/marketplace.json` — `/plugin marketplace add gyuha/forge`로 이 리포를 마켓플레이스로 등록.
-- `.claude-plugin/plugin.json` — `/plugin install forge@forge`로 플러그인 설치.
+## 2. `gh` CLI — 이슈 연동 작업 봉인 (프로젝트 규칙)
 
-설치는 **GitHub 기본 브랜치(`main`)를 당긴다**. 따라서 설치/업데이트 테스트를 하려면 변경이 `main`에 push돼 있어야 한다(배포 = push까지). `/plugin install`·`/plugin marketplace update`는 interactive 명령이라 에이전트가 실행할 수 없고, 에이전트가 검증 가능한 것은 설치 전제뿐이다:
+이건 스킬 코드가 아니라 **프로젝트 CLAUDE.md 규칙**이다(스킬 `SKILL.md`엔 `gh issue` 호출이 없음 — 봉인 시점에 규칙으로 실행). fg-done이 작업을 봉인(`status: done`)할 때 그 작업 plan의 `## Source of truth`에 `이슈 추적: GitHub 이슈 #N` 표기가 있으면 **확인 질문 없이 자동** 수행:
 
-```bash
-curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/plugin.json
-curl -fsSL raw.githubusercontent.com/gyuha/forge/main/.claude-plugin/marketplace.json
-```
+1. **커밋** — 이 작업이 바꾼 파일만, 메시지에 `(Fixes #N)`(GitHub 자동 링크·자동 닫힘). 전체 릴리스 절차와 다른, 커밋+push만의 가벼운 배포.
+2. **push** — `git push origin main`.
+3. **이슈 코멘트** — `gh issue comment N`으로 커밋 해시·수정 요약·검증 근거.
+4. **닫힘 확인** — `gh issue view N --json state`로 실제 닫혔는지 확인, 안 닫혔으면 `gh issue close N`.
 
-설치 경로는 업데이트마다 바뀐다(`~/.claude/plugins/cache/<hash>/`).
+안전장치: 작업 트리에 무관한 미커밋 변경이 섞이면 멈추고 확인받는다. (참고 스킬: `issue-triage` — 읽기 전용 gh 이슈 트리아지, 별개.)
 
-## 2. `${CLAUDE_PLUGIN_ROOT}` 참조 (스킬 간 형식 문서 공유)
+## 3. Vendored Visual Companion — localhost-only 브라우저 서버
 
-스킬 본문은 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 환경변수로 설치 위치를 해석해 형식 문서를 참조한다. 18개 SKILL.md 전부가 이 변수를 사용한다. 용례는 소유 스킬의 형식 문서를 가리키는 것이다:
+`skills/fg-visual/scripts/server.cjs` (obra/superpowers v6.1.1 vendored, MIT, ADR `260719-224442`). 유일한 네트워크 리스너지만 **외부 서비스 호출은 전무** — 텔레메트리·원격 자원·CDN 없음. `server.cjs` 헤더가 명시: "superpowers branding/telemetry removed (the server makes no remote requests)". 브랜딩은 정적 로컬(`⚒ forge — Visual Companion`, no remote assets).
 
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/PLAN-FORMAT.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/RUN-ALL.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-learn/RETRO-FORMAT.md`
-- `${CLAUDE_PLUGIN_ROOT}/skills/fg-eco/ECO.md`
+- **바인드**: 기본 `127.0.0.1`(loopback)의 랜덤 high port(49152–65534). 컨테이너/원격 환경용으로 `--host 0.0.0.0` 옵션 있음(그때만 loopback 밖 노출).
+- **인증 = 세션 키(URL ?key=)**: per-session secret 키가 서빙 URL에 `?key=`로 실리고 첫 로드 때 쿠키로 미러됨(same-origin subresource·WebSocket이 무상태로 키를 나름). loopback·tunnel·remote 바인드 전반에서 실제 클라이언트를 균일 인증하고 DNS rebinding을 무력화한다(Host/Origin allowlist가 못 하는 것). bare `host:port`는 설계상 403. **키드 URL 전체를 사용자에게 넘겨야 접근된다.**
+- **세션 파일**: 최상위 `.forge/visual/<pid-epoch>/{content,state}/`(모든 브랜치 전역·휘발·gitignored). `.forge/visual/.last-port`·`.last-token`으로 재시작 시 같은 port·key 재사용 → 열려 있던 브라우저 탭이 유효 쿠키로 재연결.
+- **재시작/재연결 생존**: 브라우저측 `helper.js`가 WebSocket 지수 backoff(500ms→30s) 재연결, 15s 초과 시 "Companion paused" tombstone, 서버 복귀 시 키드 부트스트랩으로 reload.
+- **수명**: 4시간(240분) 유휴 자동 종료(`--idle-timeout-minutes`로 override, `BRAINSTORM_IDLE_TIMEOUT_MS`). owner 프로세스(harness) 사망 감시(60s 주기 watchdog) — Windows/MSYS2는 PID 검증 불가라 watchdog 비활성·유휴 타임아웃만 유일 종료 트리거.
+- **프로토콜**: HTTP + WebSocket(RFC 6455 직접 구현, 프레임 payload 상한 10MB). 에이전트가 push한 HTML을 브라우저 탭에 표시, 사용자 클릭을 JSONL 이벤트(`state_dir/events`)로 수집 → 에이전트가 read.
+- **호출 관계**: `fg-visual`이 단독 진입점(`fg-visual` 시작 / `fg-visual stop` 종료). fg-ask가 그릴링 중 just-in-time 1회 제안 후 수락 시 `../fg-visual/VISUAL.md`·`scripts/`를 파일 참조로 직접 구동하고 Output(핸드오프) 시 서버 종료.
 
-**중요한 제약**: `${CLAUDE_PLUGIN_ROOT}`는 스킬이 실행되는 메인 세션 컨텍스트에서만 가용하다. statusLine 셸에는 주입되지 않으므로 statusline 스크립트는 이 변수를 쓸 수 없다(아래 3 참조).
+## 4. Claude Code Dynamic Workflow — 실행 기질(substrate)
 
-## 3. settings.json 와이어링 (fg-statusline)
+forge의 실행 단계는 Claude Code의 **Dynamic Workflow**를 실행 substrate로 삼는다(외부 API가 아니라 호스트 런타임 기능). 접점:
 
-`fg-statusline`이 유일하게 `settings.json`을 건드리는 스킬이다. Claude Code의 statusLine은 플러그인이 등록할 수 없고 오직 `settings.json`의 `statusLine` 키로만 설정되며, 그 command는 세션 JSON을 stdin으로 받아 텍스트를 찍는 비-interactive 셸 명령이다(스킬을 호출할 수 없음). 그래서 forge는 실제 bash/node 스크립트를 출하한다.
+- **`fg-run`** — `.forge/plan.md`를 Dynamic Workflow로 실행. 워크플로우 안에선 사용자 입력을 못 받으므로 그릴링(fg-ask)은 절대 워크플로우 밖(설계 기둥 1).
+- **`fg-adversarial-review`** — 6개 렌즈를 워크플로우 서브에이전트로 병렬 팬아웃(`dimensions → find → adversarially-verify` 패턴). 사람 입력 없는 분석이라 기둥 1 비위반.
+- **`fg-agents` + `fg-run`(ADR-0024)** — `.claude/agents/<role>.md` 표준 Claude Code 서브에이전트 카드를 생성하고, fg-run이 워크플로우 `agent()` 호출의 `agentType`으로 slice↔role 매핑. **카드는 세션 시작 시 1회 로드**라 생성 후 **세션 재시작**해야 픽업. 매칭 role 없는 slice는 기본 서브에이전트로 graceful degrade.
+- **`fg-map`** — 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑(이 문서 생산자).
+- **`fg-eco`(ADR-0014)** — 켜면 fg-run 위임 워크플로우 서브에이전트를 **sonnet으로 캡**(내리기만·세션 모델 불변).
 
-- `scripts/forge-statusline.sh` / `scripts/forge-statusline.js` — `.forge/`를 직접 읽어 한 줄 진행 상태를 찍는 display-only 조각(ADR-0017). 두 트윈은 동일 출력을 보장한다(ADR-0022 패리티 테스트).
-- `scripts/forge-statusline-wrapper.sh` — 기존 statusLine을 보존하며 forge 조각을 별도 줄로 합성하는 래퍼(bash 전용; no-bash 환경에선 forge를 단독 statusLine으로만 연결).
+## 5. MCP 서버 — 런타임 환경 제공(리포 자체 자산 아님)
 
-설치 동작(fg-statusline이 대화형으로 수행):
+이 리포엔 MCP 서버 정의·설정이 **없다**(플러그인 매니페스트에 `mcpServers` 없음). 현재 세션 런타임 환경에 붙어 있는 MCP 서버들(Context7·Figma·Canva·Notion·Vercel·Microsoft 365/Docs·PlayMCP·playwriter 등)은 forge 플러그인의 의존이 아니라 사용자의 Claude Code 환경 자산이다. 리포 코드가 이들을 참조하는 곳은 없고, `docs/forge-vs-loop-engineering.md`가 산문에서 MCP를 언급할 뿐이다. **forge 스킬은 어떤 MCP 서버에도 하드 의존하지 않는다.**
 
-1. 두 스크립트를 안정 경로(`$CLAUDE_CONFIG_DIR` 또는 `~/.claude`, 이하 `<CFG>`)로 복사하고 `chmod +x`. 플러그인 캐시 경로가 업데이트마다 바뀌고 `${CLAUDE_PLUGIN_ROOT}`가 statusLine 셸에 없기 때문에 in-place 참조가 아니라 복사한다.
-2. `settings.json`의 `statusLine.command`를 **절대경로**로 기록(`~` 금지 — tilde 확장 불보장으로 statusline이 조용히 비는 클래식 실패 원인).
-3. statusLine은 하나뿐이라 기존 것을 교체하지 않고, 원본 command를 `<CFG>/forge-statusline-orig.sh`에 verbatim 보존한 뒤 래퍼를 가리켜 forge를 별도 줄로 래핑(ADR-0017).
+## 없는 것 (명시)
 
-**bash 가용 여부 판정(ADR-0022)**: fg-statusline 설치 시 단 한 번 판정해 `settings.json`에 기록할 STATUSLINE_CMD를 확정한다 — bash 있으면 `<CFG>/forge-statusline.sh`, 없으면 `node <CFG>/forge-statusline.js`. 런타임 내부 위임이 아니라 설치 시점 분기이므로 두 트윈 중 하나만 연결된다. 적용은 Claude Code 재시작 후.
-
-스크립트는 stdin의 세션 JSON에서 `cwd`(없으면 `workspace.current_dir`, 그래도 없으면 `$PWD`)를 파싱해 프로젝트 디렉터리로 `cd`한 뒤 해석된 forge 루트(ADR-0011 브랜치 해석)를 읽는다.
-
-## 4. fg-status/fg-next ↔ 결정론적 상태 스크립트
-
-`fg-status`(와 fg-next)는 `scripts/forge-status.sh`(없으면 폴백으로 `scripts/forge-status.js`)를 Bash 도구로 호출해 `.forge/` 상태를 결정론적으로 조사한다(ADR-0020). 이는 외부 통합이 아니라 리포 내부 스크립트 의존이지만, 셸 스크립트가 스킬 동작의 일부라는 점에서 기록한다. 두 스크립트 모두 `jq` 없이 동작한다.
-
-## 5. Claude Code Dynamic Workflow / 서브에이전트 (fg-run의 실행 기제)
-
-fg-run은 작업 실행을 Claude Code의 Dynamic Workflow(`workflow` 키워드 또는 `ultracode` effort)로 구성한다. 호스트가 제공하는 기능이며 forge가 와이어링하는 외부 통합은 아니다. fg-run이 이 기제에 의존하는 방식:
-
-- 워크플로우 오케스트레이션 스크립트를 빌드해 사용자 승인 후 병렬/직렬 서브에이전트로 실행.
-- 서브에이전트에는 `model`, `agentType`, 프롬프트 prepend(`skills/fg-eco/ECO.md` 내용)를 전달할 수 있다.
-- **eco 모드(ADR-0014)**: 서브에이전트 model을 `sonnet`으로 캡(내리기만), `ECO.md` prepend 주입. 세션 모델은 불변.
-- **도메인 에이전트 dispatch(ADR-0024)**: `.claude/agents/<role>.md` 카드가 세션 시작 시 로드돼 있으면 `agentType: '<role>'`으로 슬라이스를 해당 role에 위임. graceful — 카드 없으면 기본 서브에이전트로 동일 동작.
-- **fallback**: 스케일이 작으면 워크플로우 대신 직접 실행(`skills/fg-run/SKILL.md` Constraints 명시). Workflow 없는 환경에선 대규모 병렬 팬아웃이 직렬/직접으로 degrade되고 루프 자체는 깨지지 않는다(ADR-0025).
-
-## 6. `.claude/agents/` — 도메인 에이전트 dispatch (ADR-0024)
-
-fg-agents 스킬이 프로젝트 도메인을 그릴링해 `.claude/agents/<role>.md`(표준 Claude Code 서브에이전트 정의 카드)를 생성한다. fg-run은 이 카드들을 `agentType`으로 호출해 워크플로우 슬라이스를 전문화된 역할에 위임한다.
-
-두 가지 하드 제약(ADR-0024 PoC 검증):
-
-1. **세션 시작 시 1회 로드** — `.claude/agents/`는 session start에 한 번만 읽힌다. fg-agents가 세션 중 카드를 생성해도 그 카드는 해당 세션에서 fg-run이 dispatch할 수 없다. 운영 흐름: `fg-agents 생성 → 세션 재시작 → fg-run 활용`.
-2. **카드는 사용자 프로젝트 소유** — forge 플러그인이 자체 에이전트를 보유하는 게 아니라, 사용자 프로젝트의 `.claude/agents/`를 fg-run이 `agentType` 경로로 활용한다. forge 리포 자체의 `.claude/agents/`(`manifest-doc-syncer`, `skill-author`)는 forge 개발 전용 카드이며 일반 사용자 프로젝트 패턴과 별개다.
-
-eco ON 시 `agentType` 호출에도 sonnet 캡 + ECO.md 주입이 적용된다. 단 role 카드에 `model`이 명시돼 있으면 사용자 명시로 보고 존중한다(eco는 내리기만).
-
-## 7. 선택적 외부 스킬 참조 (graceful, 하드 의존 아님)
-
-forge는 두 가지 외부 스킬을 조건부 연료로 참조하지만 어느 쪽도 하드 의존이 아니다. 없으면 조용히 건너뛴다.
-
-- **`deep-research`** — fg-ask의 그릴링 전 선택적 참고 연료(ADR-0006). 외부 지식이 필요하거나 사용자가 요청할 때만, fg-ask가 먼저 제안하고 동의 시에만 실행. 없으면 그릴링을 정상 진행.
-- **`code-review`** — fg-run 워크플로우 안의 위험/큰 변경에 한해 선택적으로 활용(ADR-0007). 이식성을 위해 워크플로우 자체 adversarial-verify 서브에이전트가 기본이고, code-review 역량이 가용하면 보강. 없으면 동작 불변.
-
-## 8. MCP / 데이터베이스 / 외부 API / 웹훅
-
-**없다.** 스킬·스크립트 어디에도 MCP 서버 의존이나 외부 API 호출이 없다. `docs/forge-vs-loop-engineering.md`의 산문에 MCP가 언급되지만 통합이 아닌 설명 문맥이다. 데이터베이스, 인증, 웹훅도 없다.
-
-## 요약
-
-실질 외부 접점은 여섯 가지다.
-
-1. GitHub `main` 기반 플러그인 설치 메커니즘
-2. 호스트가 주입하는 `${CLAUDE_PLUGIN_ROOT}` 경로 참조 (스킬 간 형식 문서 공유)
-3. fg-statusline의 `settings.json` 와이어링 (bash/node 스크립트를 안정 경로로 복사)
-4. Claude Code Dynamic Workflow / 서브에이전트 (fg-run의 실행 기제, 호스트 제공)
-5. `.claude/agents/` 도메인 에이전트 dispatch (fg-agents 생성 → 세션 재시작 → fg-run agentType 호출)
-6. 결정론적 상태 스크립트 (`scripts/forge-status.sh`·`.js` — fg-status/fg-next가 Bash 도구로 호출)
-
-네트워크 API·DB·서드파티·MCP 의존은 0이다.
+- **데이터베이스** — 없음. 상태는 파일시스템(`.forge/` 마크다운·JSON)이 전부.
+- **인증 제공자·OAuth** — 없음(위 Visual Companion 세션 키는 로컬 프로세스 인증이지 외부 IdP 아님).
+- **웹훅·아웃바운드 API 클라이언트** — 없음. 유일한 아웃바운드는 배포 시 사람이 치는 `git push`/`gh`와 설치 검증용 `curl raw.githubusercontent.com`.
+- **결제·이메일·큐·분석/텔레메트리** — 없음.

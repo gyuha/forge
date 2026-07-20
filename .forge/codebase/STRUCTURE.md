@@ -1,171 +1,137 @@
 ---
-last_mapped_commit: 8aaed407ae96e0d59f87de00424a18a652577950
-mapped: 2026-06-27
+last_mapped_commit: 553484ae395d6ca3df973f5b0cf5762029fd94ec
+mapped: 2026-07-20
 ---
 
-# forge 디렉터리 구조
+# STRUCTURE
 
-## 리포 루트
+## 최상위 디렉터리 레이아웃
 
 ```
-/Users/gyuha/workspace/forge/
-├── .claude-plugin/
-│   ├── plugin.json          ← 플러그인 매니페스트 (name, version, description, author)
-│   └── marketplace.json     ← 마켓플레이스 등록 (metadata.version + plugins[0].version)
-├── .claude/
-│   └── agents/              ← forge 자체 dogfood 도메인 에이전트 카드
-│       ├── skill-author.md
-│       └── manifest-doc-syncer.md
-├── skills/                  ← 18개 스킬 (디렉터리별 1개)
-│   └── <name>/SKILL.md
-├── docs/                    ← 사용자 문서
-│   ├── skills.md
-│   ├── state-contract.md
-│   └── forge-vs-loop-engineering.md
-├── scripts/                 ← 결정론적 스크립트 (ADR-0022)
-│   ├── resolve-forge-root.sh / .js
-│   ├── forge-status.sh / .js
-│   └── forge-statusline.sh / .js (+ wrapper, parity tests)
-├── README.md                ← 영문 문서
-├── README.ko.md             ← 한글 문서 (README.md 번역 쌍 — 항상 동기)
-├── CLAUDE.md                ← 프로젝트 지침 (Claude Code용)
-└── CHANGELOG.md
+forge-visual-compose/            (리포 루트 = 플러그인 루트 = 마켓플레이스 루트)
+├── .claude-plugin/              매니페스트 2종
+│   ├── plugin.json              플러그인 매니페스트 (version 0.5.18, skills 자동탐색)
+│   └── marketplace.json         마켓플레이스 등록 (metadata.version + plugins[0].version)
+├── skills/                      19개 fg-* 스킬 (각 <name>/SKILL.md + 소유 문서/스크립트)
+├── scripts/                     결정론 셸+노드 트윈 스크립트 + 테스트
+├── .forge/                      forge 루프 상태 (휘발) + 영속 문서 (git 추적 분리)
+├── docs/                        사용자 문서 + GitHub Pages 랜딩(index.html) + 자산
+├── .claude/                     이 리포 자신의 Claude 자산 (agents/, skills/)
+├── CLAUDE.md                    아키텍처 정본 (권위 문서)
+├── README.md / README.ko.md     이중언어 번역 쌍 (동기 갱신 필수)
+├── CHANGELOG.md                 Keep a Changelog 약식
+├── .gitignore / .gitattributes  forge 화이트리스트 규칙 / .sh LF 강제
+└── .git                         (gitdir 파일 — worktree)
 ```
 
-## `.claude-plugin/` — 플러그인 패키징
+`references/` 디렉터리는 **폐지됨**(존재하지 않음). 형식 문서는 소유 스킬 디렉터리로 이동했다.
 
-- `plugin.json` — `version` 필드 + `description` (전 스킬 목록 포함). `skills/` 는 자동 탐색되므로 `skills` 배열 생략 가능.
-- `marketplace.json` — `metadata.version` + `plugins[0].version` + `plugins[0].description`. **버전은 3곳 동기 필수**: `plugin.json:version`, `marketplace.json:metadata.version`, `marketplace.json:plugins[0].version`.
-- `marketplace.json:metadata.description` 은 루프 정의 태그라인 (루프 밖 유틸리티 제외).
-- 스킬 식별자 = frontmatter `name` (디렉터리명 아님).
+## `skills/` — 19개 스킬 (frontmatter `name:` = 스킬 식별자)
 
-## `.claude/agents/` — forge 자체 도메인 에이전트
+디렉터리명과 frontmatter `name:`이 모두 일치한다(확인함). 각 스킬은 `SKILL.md` 하나 + 자기가 소유한 형식/규율 문서·스크립트를 담는다.
 
-forge 리포 자신의 dogfood 에이전트 카드. fg-agents가 사용자 프로젝트에 생성하는 것과 동일한 표준 Claude Code subagent 형식(YAML frontmatter + 시스템 프롬프트).
+| 디렉터리 | frontmatter name | 동반 소유 파일 |
+| --- | --- | --- |
+| `skills/fg-ask/` | fg-ask | `CONTEXT-FORMAT.md`, `ADR-FORMAT.md` |
+| `skills/fg-run/` | fg-run | `PLAN-FORMAT.md`, `RUN-ALL.md`, `FORGE-ROOT.md` |
+| `skills/fg-learn/` | fg-learn | `RETRO-FORMAT.md` |
+| `skills/fg-done/` | fg-done | — |
+| `skills/fg-map/` | fg-map | — |
+| `skills/fg-status/` | fg-status | — |
+| `skills/fg-next/` | fg-next | `DRIVE.md` |
+| `skills/fg-loop/` | fg-loop | — |
+| `skills/fg-merge/` | fg-merge | — |
+| `skills/fg-cleanup/` | fg-cleanup | — |
+| `skills/fg-quick/` | fg-quick | — |
+| `skills/fg-doctor/` | fg-doctor | — |
+| `skills/fg-drop/` | fg-drop | — |
+| `skills/fg-agents/` | fg-agents | — |
+| `skills/fg-tdd/` | fg-tdd | — |
+| `skills/fg-eco/` | fg-eco | `ECO.md` |
+| `skills/fg-adversarial-review/` | fg-adversarial-review | — |
+| `skills/fg-statusline/` | fg-statusline | — |
+| `skills/fg-visual/` | fg-visual | `VISUAL.md`, `LICENSE`, `scripts/`(server.cjs·start-server.sh·stop-server.sh·helper.js·frame-template.html) |
 
-| 카드 파일 | frontmatter `name` | 역할 |
-|----------|-------------------|------|
-| `skill-author.md` | `skill-author` | `skills/*/SKILL.md` 및 형식문서를 forge 컨벤션에 맞게 작성·편집 |
-| `manifest-doc-syncer.md` | `manifest-doc-syncer` | 18-스킬 카탈로그·매니페스트·버전·이중언어 문서 일관 동기화 |
+**개수 확인:** `ls -1 skills/*/SKILL.md | wc -l` = **19**. 매니페스트(`plugin.json`·`marketplace.json`)도 "Nineteen"으로 일치. (CLAUDE.md 본문·`.claude/agents/manifest-doc-syncer.md`는 "18-스킬"로 남아 있어 fg-visual 추가 후 드리프트 — 정확한 수는 19.)
 
-## `skills/` — 18개 스킬
+**루프 4단계:** fg-ask · fg-run · fg-learn · fg-done. **루프 밖 15개:** fg-map · fg-status · fg-next · fg-loop · fg-merge · fg-cleanup · fg-quick · fg-doctor · fg-drop · fg-agents · fg-tdd · fg-eco · fg-adversarial-review · fg-statusline · fg-visual.
 
-### 루프 4단계
+## `scripts/` — 결정론 트윈 스크립트 (ADR-0022 dual dispatch)
 
-| 디렉터리 | frontmatter `name` | 역할 |
-|----------|-------------------|------|
-| `skills/fg-ask/` | `fg-ask` | 대화형 그릴링 + 계획 작성 — 루프 ① 진입점 |
-| `skills/fg-run/` | `fg-run` | Dynamic Workflow 실행 + UAT 검증 — 루프 ② |
-| `skills/fg-learn/` | `fg-learn` | 회고 분류 + 학습 승급 — 루프 ③ |
-| `skills/fg-done/` | `fg-done` | 봉인·정리·활성 슬롯 비우기 — 루프 ④ |
+각 로직은 `<base>.sh`(bash 프라이머리) + `<base>.js`(node 폴백) 트윈이며, 동작 테스트 `<base>.test.sh` + sh/js 동치 테스트 `<base>.parity.test.sh`를 동반한다.
 
-### 루프 밖 유틸리티 14개
+| base 이름 | 용도 |
+| --- | --- |
+| `forge-done` | 봉인 결정론 로직 (ADR-0030) |
+| `forge-status` | 상태 리포트 + 다음 단계 (ADR-0020) |
+| `forge-merge` | 브랜치 forge 통합 (git-free, ADR-0011) |
+| `forge-doctor` | 무결성 health check (exit 0/1/2, ADR-0019) |
+| `forge-statusline` | statusline forge fragment (방법 1) |
+| `forge-statusline-full` | 통합 statusline (방법 2, ADR-0029) |
+| `forge-statusline-wrapper` | 기존 statusline 래핑 (`.sh`만, 테스트 있음) |
+| `resolve-forge-root` | forge 루트 해석 (ADR-0011) |
 
-| 디렉터리 | frontmatter `name` | 역할 |
-|----------|-------------------|------|
-| `skills/fg-map/` | `fg-map` | 코드베이스를 병렬 서브에이전트로 `.forge/codebase/` 7문서에 매핑 |
-| `skills/fg-quick/` | `fg-quick` | trivial 작업 경량 차선 — 그릴링 유지, 형식 산출물 없음, `quick/LOG.md` 한 줄만 |
-| `skills/fg-status/` | `fg-status` | 읽기 전용 상태 보고 + 다음 단계 도출 — 아무것도 쓰지 않음 |
-| `skills/fg-next/` | `fg-next` | fg-status 상태 머신으로 다음 단계 도출 후 즉시 실행. `all` 모드: 벽까지 자동 진행 |
-| `skills/fg-loop/` | `fg-loop` | 목표 주도 유한 재계획 루프 — `loop.md` 에 정지 체크·재계획 상한 고정 후 자동 주행 |
-| `skills/fg-tdd/` | `fg-tdd` | TDD 모드 토글 — `.forge/config.json:tdd` 읽기/쓰기 |
-| `skills/fg-eco/` | `fg-eco` | Eco 모드 토글 — `.forge/config.json:eco` + `ECO.md` 규율 활성화 |
-| `skills/fg-merge/` | `fg-merge` | git merge 후 `.forge/branch/<branch>/` 를 `.forge/` 에 통합 (ADR 재번호·CONTEXT 병합) |
-| `skills/fg-cleanup/` | `fg-cleanup` | 폐기된 ADR을 `.forge/adr/retired/` 로 은퇴 — 번호 불변·삭제 안 함 |
-| `skills/fg-statusline/` | `fg-statusline` | forge 진행 상태를 터미널 statusline에 표시하도록 스크립트 설치 + `settings.json` 연결 |
-| `skills/fg-adversarial-review/` | `fg-adversarial-review` | fg-run ↔ fg-learn 사이 선택적 적대적 리뷰 — 6개 렌즈 병렬 팬아웃, `review.md` 기록 |
-| `skills/fg-doctor/` | `fg-doctor` | `.forge/` 상태 계약 + 문서/매니페스트 무결성 점검 — 읽기 전용 |
-| `skills/fg-drop/` | `fg-drop` | 미완 작업(백로그·활성 슬롯·executed·loop) 폐기 또는 `.forge/dropped/` 보관 |
-| `skills/fg-agents/` | `fg-agents` | 대화형 그릴링으로 프로젝트 도메인 에이전트 `.claude/agents/<role>.md` 생성 (ADR-0024) |
+파일 예: `scripts/forge-done.sh`, `scripts/forge-done.js`, `scripts/forge-done.test.sh`, `scripts/forge-done.parity.test.sh`. (`forge-statusline-wrapper`는 `.js` 트윈 없이 `.sh` + `.test.sh`만 — bash 전용 wrapper.)
 
-## 형식 문서 위치
+## `.forge/` — 상태 + 영속 문서 (git 추적 분리)
 
-각 형식은 소유 스킬 디렉터리에 단일본으로 존재한다. 다른 스킬은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유-스킬>/<파일>` 로 참조하고 복사하지 않는다.
-
-| 파일 | 소유 스킬 | 역할 |
-|------|----------|------|
-| `skills/fg-ask/CONTEXT-FORMAT.md` | fg-ask | CONTEXT.md 용어 항목 형식 |
-| `skills/fg-ask/ADR-FORMAT.md` | fg-ask | ADR 문서 형식 |
-| `skills/fg-run/PLAN-FORMAT.md` | fg-run | plan.md 형식 + 분할 규칙 |
-| `skills/fg-run/FORGE-ROOT.md` | fg-run | forge root 분기 결정론적 규칙 (단일 정의) |
-| `skills/fg-run/RUN-ALL.md` | fg-run | "Run all" 배치 모드 절차 |
-| `skills/fg-learn/RETRO-FORMAT.md` | fg-learn | 회고 문서 형식 |
-| `skills/fg-eco/ECO.md` | fg-eco | Eco laziness-first 규율 (fg-run 서브에이전트 주입용) |
-
-루트 `references/` 디렉터리는 폐지됐다. 모든 형식 문서는 소유 스킬 디렉터리에만 있다.
-
-## `.forge/` — 상태 + 영속 문서
-
-`.gitignore` 가 `.forge/*` 를 기본 제외하고, 영속 문서만 화이트리스트로 git 추적한다.
+`.gitignore`가 `.forge/*`를 기본 제외하고 영속 문서만 화이트리스트(`!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json` · `!.forge/branch/`).
 
 ```
 .forge/
-├── config.json              ← 전역 설정 (tdd, eco, defaultBranch) — 모든 브랜치 공유
-├── codebase/                ← fg-map 생성 맵 7문서 — 모든 브랜치 공유
-│   ├── ARCHITECTURE.md
-│   ├── STRUCTURE.md
-│   ├── STACK.md
-│   ├── CONVENTIONS.md
-│   ├── INTEGRATIONS.md
-│   ├── CONCERNS.md
-│   └── TESTING.md
-├── CONTEXT.md               ← 도메인 글로서리 (git 추적)
-├── adr/                     ← 아키텍처 결정 0001–0025 (git 추적)
-│   ├── NNNN-slug.md
-│   └── retired/NNNN-slug.md
-├── retro/                   ← 회고 로그 (git 추적)
-│   └── YYYY-MM-DD-slug.md
-│
-├── backlog/                 ← 미실행 계획 대기열 (gitignored)
-│   └── <slug>.md
-├── plan.md                  ← 활성 슬롯 (gitignored)
-├── run.md                   ← 실행 기록 (gitignored)
-├── review.md                ← 적대적 리뷰 findings (gitignored, 선택적)
-├── STATUS.md                ← 활성 슬롯 동반 마커 (gitignored)
-├── loop.md                  ← goal 계약 (gitignored, fg-loop 존재 시)
-├── executed/                ← 실행됐으나 미회고 (gitignored)
-│   └── <slug>/plan.md, run.md, STATUS.md
-├── done/                    ← 봉인 완료 아카이브 (gitignored)
-│   └── <날짜-slug>/plan.md, run.md, STATUS.md
-├── quick/                   ← fg-quick 경량 로그 (gitignored)
-│   └── LOG.md
-├── dropped/                 ← fg-drop 보관 (gitignored)
-│   └── <slug>/
-└── branch/                  ← 비-기본 브랜치 forge root (git 추적)
-    └── <branch>/            ← 구조 동일 (backlog/plan/run/STATUS/executed/done/adr/retro/CONTEXT.md)
+├── config.json                 {"eco": false} — 전역 예외(항상 최상위), defaultBranch/tdd/eco 등
+├── adr/                         (git 추적) 아키텍처 결정 — 아래 "ADR 명명" 참고
+├── retro/                       (git 추적) 세션 회고 로그 YYYY-MM-DD-slug.md (현재 다수 존재)
+├── codebase/                    (git 추적) fg-map 산출 지도 — 이 문서(ARCHITECTURE.md/STRUCTURE.md)의 위치, 전역 예외
+├── branch/                      (git 추적) 비-기본 브랜치의 forge 루트
+│   └── feature/visual-compose/  현재 브랜치 루트 (ADR-0011)
+│       ├── CONTEXT.md
+│       ├── adr/260719-224442-vendor-superpowers-visual-companion.md
+│       └── done/260720-074407-fg-visual-companion/  (STATUS.md·plan.md·run.md·review.md)
+└── visual/                      (휘발·gitignore, 전역 예외) fg-visual 세션 <포트>-<타임스탬프>/
 ```
 
-## 명명 규칙
+**휘발 상태(gitignore)**: `.forge/ask.md`, `.forge/backlog/<slug>.md`, `.forge/plan.md`, `.forge/run.md`, `.forge/review.md`, `.forge/STATUS.md`, `.forge/executed/<slug>/`, `.forge/done/<날짜-slug>/`, `.forge/loop.md`, `.forge/quick/LOG.md`, `.forge/dropped/<slug>/`. (기본 브랜치에선 없음, 브랜치 루트에선 통째 추적.) 현재 기본 `.forge/`에는 활성 휘발 상태가 없음(진행 중 작업 없음). `.forge/CONTEXT.md`·루트 `CONTEXT-MAP.md`는 현재 미존재(lazy 생성).
 
-| 대상 | 규칙 | 예시 |
-|------|------|------|
-| 스킬 식별자 | frontmatter `name` (디렉터리명 아님) | `fg-run` |
-| plan slug | kebab-case, `<!-- forge-slug: ... -->` 로 고정 | `add-oauth-login` |
-| ADR 파일 | `NNNN-slug.md` (4자리 단조 증가, 재사용 금지) | `0024-fg-agents-and-domain-agent-execution.md` |
-| done 디렉터리 | `YYYY-MM-DD-<slug>/` | `2026-06-26-add-oauth-login/` |
-| retro 파일 | `YYYY-MM-DD-<slug>.md` | `2026-06-26-add-oauth-login.md` |
-| 도메인 에이전트 카드 | `.claude/agents/<role>.md`, frontmatter `name` = kebab-case ASCII | `backend-api.md` |
+## ADR 명명 — 두 스킴 공존
 
-## 버전 관리
+`.forge/adr/<id>-slug.md`. 두 ID 스킴이 grandfather로 공존한다(형식 정의: `skills/fg-ask/ADR-FORMAT.md`).
 
-배포 시 3곳 동기 필수:
-- `.claude-plugin/plugin.json` — `version`
-- `.claude-plugin/marketplace.json` — `metadata.version`
-- `.claude-plugin/marketplace.json` — `plugins[0].version`
+- **순차 `NNNN`**: `0001-docs-into-forge.md` ~ `0032-fg-done-single-seal-summary.md` (32개).
+- **시간기반 `YYMMDD-HH`+소문자 글자 / `YYMMDD-HHMMSS`**: `260716-13a-adr-time-based-id-scheme.md`, `260716-16a-...`, `260716-22a-...`, `260717-10a-fg-merge-optin-git-merge-mode.md`, `260719-161701-time-precise-naming.md` (5개). 브랜치 루트에도 `260719-224442-...` 1개.
 
-검증 명령:
-```bash
-node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
+번호·ID는 불변·재사용 금지. 은퇴 ADR은 `.forge/adr/retired/<id>-slug.md`로 이동(fg-cleanup, 현재 `retired/` 미존재). 시간ID 충돌 시 다음 글자(cascade 재번호 없음).
+
+## `docs/` — 사용자 문서 + 랜딩 페이지
+
+```
+docs/
+├── index.html                  GitHub Pages 랜딩 (단일 파일 이중언어 data-l="ko"/"en" 토글, ADR-0027)
+├── skills.md                   스킬 카탈로그
+├── state-contract.md           상태 계약 문서
+├── forge-vs-loop-engineering.md
+├── team-workflow.md
+├── examples/github-actions-forge-check.yml   forge-doctor CI 게이트 예시
+├── .nojekyll                   Pages Jekyll 비활성
+└── icon.png · icon-sm.png · workflow.png · footer-forge-bg.png   자산
 ```
 
-## `scripts/` — 결정론적 구현 (ADR-0022)
+## `.claude/` — 이 리포 자신의 Claude 자산
 
-이중 디스패치: bash 우선, node 폴백 (PowerShell 환경 호환).
+```
+.claude/
+├── agents/manifest-doc-syncer.md   매니페스트·이중언어 문서 동기화 서브에이전트
+├── agents/skill-author.md          SKILL.md 작성 서브에이전트
+└── skills/issue-triage/SKILL.md    이슈 트리아지(프로젝트 로컬 스킬)
+```
 
-| 스크립트 | 역할 |
-|----------|------|
-| `resolve-forge-root.sh` / `.js` | forge root 분기 결정 — 모든 루프 스킬이 참조 |
-| `forge-status.sh` / `.js` | `.forge/` 상태 한 줄 출력 (fg-statusline이 호출) |
-| `forge-statusline.sh` / `.js` | 터미널 statusline 출력 |
-| `forge-statusline-wrapper.sh` | 기존 statusLine 래핑 (덮어쓰기 방지) |
-| `*.parity.test.sh` | bash ↔ node 동등성 검증 |
+## 명명·동기화 규약
+
+- **스킬 식별자 = frontmatter `name:`** (디렉터리명 아님, 자동 탐색은 `awk '/^name:/'`로 확인).
+- **버전 3곳 동기**: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`·`plugins[0].version` (현재 전부 `0.5.18`).
+- **README 이중언어 쌍**: `README.md`(영문) ↔ `README.ko.md`(한글) 동시 갱신. `docs/index.html`도 KO/EN span 쌍 동시 갱신.
+- **스킬 본문 언어**: `SKILL.md`·`*-FORMAT.md`는 영문(grill-with-docs verbatim 포함), 사용자 출력·산출 문서는 사용자 언어.
+- **스킬 문서 흐름도는 텍스트 흐름도**(`A → B → C`), Mermaid 금지(파싱·grep·diff 용이성).
+- **`.sh` 스크립트는 LF 강제**(`.gitattributes`의 `*.sh text eol=lf` — Windows git-bash 실행 보장).
+- **매니페스트 두 description 역할 차이**: `marketplace.json`의 `metadata.description`은 루프 태그라인(루프 밖 스킬 제외), `plugins[].description`·`plugin.json`의 `description`은 전체 스킬 목록.
+- **매니페스트 JSON 검증**: `node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8')))"`.
