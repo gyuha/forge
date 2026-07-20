@@ -84,7 +84,7 @@ fi
 # --- helpers -----------------------------------------------------------------
 slugof() { sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'; }
 taskof() { sed -n 's/.*task:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'; }
-is_timebased() { printf '%s' "$1" | grep -qE '^[0-9]{6}-[0-9]{2}[a-z]+-'; }
+is_timebased() { printf '%s' "$1" | grep -qE '^[0-9]{6}-[0-9]{2}[a-z]+-|^[0-9]{6}-[0-9]{6}[a-z]?-'; }
 is_nnnn()      { printf '%s' "$1" | grep -qE '^[0-9]{4}-'; }
 # term headings (## X) in a CONTEXT file
 ctx_terms() { [ -f "$1" ] || return 0; awk '/^## /{s=$0; sub(/^## /,"",s); print s}' "$1"; }
@@ -148,9 +148,15 @@ integrate_adrs() {
   for f in "$SRC"/adr/*.md; do
     [ -e "$f" ] || continue; bn="$(basename "$f")"
     if is_timebased "$bn"; then
-      id="$(printf '%s' "$bn" | sed -E 's/^([0-9]{6}-[0-9]{2}[a-z]+)-.*/\1/')"
-      rest="$(printf '%s' "$bn" | sed -E 's/^[0-9]{6}-[0-9]{2}[a-z]+-(.*)/\1/')"
-      base="$(printf '%s' "$id" | sed -E 's/([0-9]{6}-[0-9]{2})[a-z]+/\1/')"
+      if printf '%s' "$bn" | grep -qE '^[0-9]{6}-[0-9]{6}[a-z]?-'; then    # second-granularity (current)
+        id="$(printf '%s' "$bn" | sed -E 's/^([0-9]{6}-[0-9]{6}[a-z]?)-.*/\1/')"
+        rest="$(printf '%s' "$bn" | sed -E 's/^[0-9]{6}-[0-9]{6}[a-z]?-(.*)/\1/')"
+        base="$(printf '%s' "$id" | sed -E 's/([0-9]{6}-[0-9]{6})[a-z]?/\1/')"
+      else                                                                 # hour-granularity (grandfathered)
+        id="$(printf '%s' "$bn" | sed -E 's/^([0-9]{6}-[0-9]{2}[a-z]+)-.*/\1/')"
+        rest="$(printf '%s' "$bn" | sed -E 's/^[0-9]{6}-[0-9]{2}[a-z]+-(.*)/\1/')"
+        base="$(printf '%s' "$id" | sed -E 's/([0-9]{6}-[0-9]{2})[a-z]+/\1/')"
+      fi
       if [ -e "$TARGET/adr/$bn" ] || ls "$TARGET"/adr/"$id"-*.md >/dev/null 2>&1; then
         letter="$(next_free_letter "$TARGET/adr" "$base")"; newid="${base}${letter}"
         dest="$TARGET/adr/${newid}-${rest}"

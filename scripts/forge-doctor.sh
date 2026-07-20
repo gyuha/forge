@@ -129,14 +129,18 @@ if [ -f "$RE" ] && [ -f "$RK" ]; then
   ce="$(grep -cE '\| ?`fg-' "$RE")"; ck="$(grep -cE '\| ?`fg-' "$RK")"
   [ "$ce" = "$ck" ] || finding warning "B13 README bilingual drift" "$RE|$RK" "skill-row counts differ (en=$ce ko=$ck) — sync the pair"
 fi
-# B14 ADR integrity — TWO-FORMAT aware (T3): NNNN contiguity only over the NNNN set;
-# time-based IDs are not gaps; time-ID uniqueness (same YYMMDD-HH+letter dup = error).
+# B14 ADR integrity — MULTI-FORMAT aware (T3): NNNN contiguity only over the NNNN set;
+# time-based IDs are not gaps; time-ID uniqueness across BOTH granularities — the
+# grandfathered YYMMDD-HH+letter and the current YYMMDD-HHMMSS[+letter] (ADR 260719-161701).
 ADRD="$root/adr"
 if [ -d "$ADRD" ]; then
-  # time-ID uniqueness
-  tids="$(ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][a-z]*-*.md 2>/dev/null | sed -E 's#.*/([0-9]{6}-[0-9]{2}[a-z]+)-.*#\1#')"
+  # time-ID uniqueness — collect both granularities (mutually exclusive globs by digit count)
+  tids_hh="$(ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][a-z]*-*.md 2>/dev/null | sed -E 's#.*/([0-9]{6}-[0-9]{2}[a-z]+)-.*#\1#')"
+  # two globs: bare YYMMDD-HHMMSS (glob [a-z]* needs >=1 letter, so bare needs its own), and lettered
+  tids_hms="$( { ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]-*.md 2>/dev/null; ls "$ADRD"/[0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]*-*.md 2>/dev/null; } | sed -E 's#.*/([0-9]{6}-[0-9]{6}[a-z]?)-.*#\1#')"
+  tids="$(printf '%s\n%s\n' "$tids_hh" "$tids_hms" | grep -v '^$')"
   tdup="$(printf '%s\n' "$tids" | sort | uniq -d | grep -c .)"
-  [ "${tdup:-0}" -gt 0 ] && finding error "B14 duplicate time-ID" "$(printf '%s\n' "$tids" | sort | uniq -d | tr '\n' ' ')" "two ADRs share a YYMMDD-HH+letter id — bump one to the next free letter"
+  [ "${tdup:-0}" -gt 0 ] && finding error "B14 duplicate time-ID" "$(printf '%s\n' "$tids" | sort | uniq -d | tr '\n' ' ')" "two ADRs share a time-based id — bump one to the next free letter"
   # NNNN contiguity (only over the grandfathered NNNN set, incl. retired/)
   nn="$( { ls "$ADRD"/[0-9][0-9][0-9][0-9]-*.md 2>/dev/null; ls "$ADRD"/retired/[0-9][0-9][0-9][0-9]-*.md 2>/dev/null; } | sed -E 's#.*/([0-9]{4})-.*#\1#' | sort -u)"
   if [ -n "$nn" ]; then

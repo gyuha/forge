@@ -1,14 +1,14 @@
 # Retro Log Format
 
-> For `fg-learn` only. Retro logs are stored as per-task files at `.forge/retro/YYYY-MM-DD-slug.md` (one file per retro'd task; multiple tasks retro'd in one session each get their own slug-named file).
+> For `fg-learn` only. Retro logs are stored as per-task files at `.forge/retro/YYMMDD-HHMMSS-slug.md` (one file per retro'd task; multiple tasks retro'd in one session each get their own timestamped, slug-named file).
 
 Documents are written in the user's language; the headings below are canonical English names — render them in the user's language.
 
 ## Location and naming
 
-- Path: `.forge/retro/{YYYY-MM-DD}-{slug}.md`
-- `slug` is a kebab-case identifier that makes the task recognizable at a glance (e.g. `settlement-payout-split`)
-- If there are multiple tasks on the same day, the slug distinguishes them
+- Path: `.forge/retro/{YYMMDD-HHMMSS}-{slug}.md` — `YYMMDD-HHMMSS` is the wall-clock time the retro is written (24-hour, local), with a lowercase serial letter appended **only** on a same-second collision. Retros written before the second-granularity switch use the grandfathered `YYYY-MM-DD-slug` form (ADR `260719-161701`); tools recognize both.
+- `slug` is a kebab-case identifier that makes the task recognizable at a glance (e.g. `settlement-payout-split`), taken verbatim from the plan's `forge-slug`
+- The timestamp orders retros chronologically; multiple tasks in one day are distinguished by their times (and slugs)
 - The `.forge/retro/` directory is created lazily — only when the first retro is needed
 
 ## Template
@@ -42,6 +42,6 @@ Documents are written in the user's language; the headings below are canonical E
 | --- | --- | --- |
 | New/changed domain term | `CONTEXT.md` | Only when it's a context-specific concept. Exclude general concepts and implementation details |
 | A decision that is hard to reverse, puzzling without context, and a real tradeoff | `.forge/adr/NNNN-slug.md` | Only when all three conditions are met |
-| Process/session learning | `.forge/retro/YYYY-MM-DD-slug.md` | If it's worth recording (= here, the retro log) |
+| Process/session learning | `.forge/retro/YYMMDD-HHMMSS-slug.md` | If it's worth recording (= here, the retro log) |
 
 For CONTEXT.md/ADR formats, see `../fg-ask/CONTEXT-FORMAT.md`/`../fg-ask/ADR-FORMAT.md`.

@@ -83,6 +83,21 @@ cat > "$B/.forge/done/2026-06-10-old-task/STATUS.md" <<'EOF'
 - retro: .forge/retro/2026-06-10-old-task.md
 EOF
 : > "$B/.forge/retro/2026-06-10-old-task.md"
+# NEW-format done dir (YYMMDD-HHMMSS): Date must come from STATUS completed:, not the dirname prefix
+mkdir -p "$B/.forge/done/260615-143022-new-task"
+cat > "$B/.forge/done/260615-143022-new-task/plan.md" <<'EOF'
+<!-- forge-slug: new-task --> <!-- task: 5 -->
+# New task
+EOF
+cat > "$B/.forge/done/260615-143022-new-task/STATUS.md" <<'EOF'
+# STATUS — New task
+slug: new-task
+status: done
+executed: 2026-06-15
+completed: 2026-06-15
+verified: yes (t)
+retro: skipped (x)
+EOF
 printf '## entry one\n## entry two\n' > "$B/.forge/quick/LOG.md"
 
 assert_parity "populated: full mode"   "$B" ""        "active-thing"

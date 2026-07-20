@@ -61,7 +61,7 @@ The script emits language-neutral tokens (`SEALED …` / `EMPTY …` / `GATE_INF
 
 It integrates the branch root's **permanent docs** into the top-level `.forge/`:
 
-- **ADRs** (`adr/*`) — **time-based IDs (`YYMMDD-HH`+letter, ADR-FORMAT.md) move as-is**; an exact-ID collision with the target takes the **next free letter** (no cascade renumber — the #77 scheme), and the bumped ADR's cross-references are rewritten inside the moved incoming docs. `retired/` moves as-is.
+- **ADRs** (`adr/*`) — **time-based IDs (`YYMMDD-HHMMSS`, or grandfathered `YYMMDD-HH`+letter — ADR-FORMAT.md) move as-is**; an exact-ID collision with the target takes the **next free letter** (no cascade renumber — the #77 scheme), and the bumped ADR's cross-references are rewritten inside the moved incoming docs. `retired/` moves as-is.
 - **Retros** (`retro/*`) — moved; `-2` suffix on a filename collision.
 - **CONTEXT.md** — glossary terms merged **term-by-term** (new terms appended; a term identical in both is a no-op).
 - **done/ + backlog/** — folded, with **one monotonic task-number remap** built across both incoming buckets against the target's markers (so history and runnable backlog stay unique).
