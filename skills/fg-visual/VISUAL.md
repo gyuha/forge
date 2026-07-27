@@ -177,6 +177,8 @@ The frame template provides these CSS classes for your content:
 </div>
 ```
 
+**Wrap a mockup in a single root element.** `.card-image` is a centering flex container that stretches its *only* child to full width; several siblings dropped straight in would each shrink to their own intrinsic width (near zero for a mockup built from absolutely-positioned parts). The slot grows to fit the mockup's height, so it is never clipped at narrow card widths.
+
 ### Mockup container
 
 ```html

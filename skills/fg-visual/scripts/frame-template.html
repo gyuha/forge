@@ -8,7 +8,9 @@
      * VISUAL COMPANION FRAME TEMPLATE
      * Vendored from obra/superpowers v6.1.1 (frame-template.html), MIT License,
      * Copyright (c) 2025 Jesse Vincent — see LICENSE in the parent directory.
-     * forge modifications: title/branding localized, remote logo removed.
+     * forge modifications: title/branding localized, remote logo removed,
+     *   .card-image fixed so mockups placed in a card neither collapse to
+     *   min-content width nor get clipped vertically at narrow card widths.
      *
      * This template provides a consistent frame with:
      * - OS-aware light/dark theming
@@ -144,7 +146,11 @@
     }
     .card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .card.selected { border-color: var(--selected-border); border-width: 2px; }
-    .card-image { background: var(--bg-tertiary); aspect-ratio: 16/10; display: flex; align-items: center; justify-content: center; }
+    /* min-height (not aspect-ratio) so a mockup taller than a 16:10 slot is never
+       clipped when the responsive card gets narrow; :only-child fills the width so a
+       single mockup wrapper doesn't shrink-to-fit to min-content as a flex item. */
+    .card-image { background: var(--bg-tertiary); min-height: 180px; display: flex; align-items: center; justify-content: center; }
+    .card-image > :only-child { width: 100%; }
     .card-body { padding: 1rem; }
     .card-body h3 { margin-bottom: 0.25rem; }
     .card-body p { color: var(--text-secondary); font-size: 0.85rem; }
