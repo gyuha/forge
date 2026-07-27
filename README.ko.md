@@ -130,6 +130,10 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 
 전체 디렉터리 구조, `.gitignore` 패턴, 브랜치 격리, 회고 스킵 규칙([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), 봉인 전 검증 게이트([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md))는 **[docs/state-contract.md](./docs/state-contract.md)** 에 문서화돼 있다.
 
+**그리고 다음 질문에서 닫는다.** 지난 작업이 봉인 안 된 채 남아 있는데 새 작업을 시작하면, fg-ask의 STEP 0이 남은 판단의 양으로 갈린다 — 판단이 없으면(검증이 봉인 가능값이고 회고도 해결됨, 또는 회고만 밀렸는데 divergence가 미미함) **묻지 않고 봉인**하고 한 줄 보고한 뒤 같은 턴에 그릴링을 계속한다. 판단이 남았으면(고-divergence·`verified: pending`/`failed`·멈춘 goal 루프) 묻지만, **당신의 요청을 붙들고 있다가 잔여를 닫은 뒤 그 자리로 돌아온다** — fg-ask를 다시 칠 필요가 없다. 사정거리는 활성 슬롯 1건이며, `executed/`에 park된 작업은 부채가 아니라 의도된 대기이므로 보고만 하고 건드리지 않는다 ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
+
+**봉인을 까먹는 것은 세션 진입에서 잡는다.** forge는 훅 하나를 배포한다(`hooks/hooks.json` — 플러그인 설치만으로 걸리고 설정 편집이 필요 없다). `SessionStart`에서 **미봉인 잔여**(실행됐지만 봉인 안 된 작업·회고 대기로 park된 작업·멈춘 goal 루프)를 확인하고, 있을 때만 짧은 알림을 주입해 에이전트가 새 작업을 시작하기 전에 당신에게 알리도록 한다. 아무것도 자동 실행·자동 봉인하지 않으며 결정은 당신 몫이다. 깨끗한 리포나 백로그만 대기 중인 리포에서는 아무것도 뜨지 않는다. 훅은 세션 시작 시 로드되므로, 새로 설치·수정한 훅은 **다음** 세션부터 적용된다([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
+
 forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델, 커밋 시점, 피처 브랜치 단계별 git CLI 워크스루 — 은 **[docs/git-workflow.md](./docs/git-workflow.md)** 에 있다.
 
 ## 두 기둥

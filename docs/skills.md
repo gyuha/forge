@@ -32,6 +32,8 @@
 
 `fg-ask`가 루프의 진입점이다 — 질의·분류와 그릴링을 함께 맡는다(기존 별도 `fg-plan` 단계를 `fg-ask`로 통합). "forge 시작", "새 작업", "이거 작업하자", "계획 다듬자" 같은 발화에서 트리거된다.
 
+**시작 시 미봉인 잔여를 닫는다 (STEP 0).** 새 작업을 시작하려는데 지난 작업이 봉인 안 된 채 남아 있으면, 남은 판단의 양에 따라 갈린다 — 판단이 없으면(검증이 봉인 가능값이고 회고도 해결됨, 또는 회고만 밀렸는데 `run.md`의 divergence가 미미함) **묻지 않고 봉인**하고 한 줄만 보고한 뒤 **같은 턴에 그릴링을 계속**한다. 판단이 남았으면(고-divergence·`verified: pending`·`verified: failed`·멈춘 goal 루프) 종전처럼 묻지만, **당신의 새 요청을 붙들고 있다가 마감 후 그 자리로 돌아온다** — "끝낸 뒤 fg-ask를 다시 치라"는 요구는 폐기됐다(그게 흐름을 끊던 본체였다). 사정거리는 **활성 슬롯 1건**이며 `.forge/executed/`의 park은 까먹은 부채가 아니라 의도된 대기라 개수만 보고하고 손대지 않는다(`fg-done all`/`fg-learn` 소관). 검증 게이트([ADR-0009](../.forge/adr/0009-verification-gate-before-seal.md))는 불가침이고 fg-ask는 UAT를 직접 하지 않는다 ([ADR 260727-201115](../.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
+
 ### fg-run — ② 실행
 
 계획(`.forge/plan.md`, 또는 `.forge/backlog/`의 대기 plan)을 Claude Code Dynamic Workflow로 실행한다. 백로그에 미실행 plan이 정확히 하나면 확인 질문 없이 바로 실행한다. 2–3개면 `AskUserQuestion` 선택 메뉴(마지막 옵션 "모두 실행"), 4개 이상이면 우선순위대로 번호 텍스트 목록+`all` 입력을 사용한다 — 도구의 4옵션 상한 때문에 후보를 잘라내지 않는다. 고른 작업만 활성 슬롯으로 승격해 실행한다. "forge run", "계획 실행", "이거 워크플로우로 돌려줘"에서 트리거된다(기존 "forge execute"도 alias). 실행할 plan이 없으면 돌지 않고, 이미 실행된 plan의 재실행을 경고한다.

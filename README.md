@@ -131,6 +131,10 @@ State is passed through files so the flow continues even when stages are invoked
 
 The full directory layout, the `.gitignore` pattern, branch isolation, the retro-skip rule ([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), and the verification-before-seal gate ([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md)) are documented in **[docs/state-contract.md](./docs/state-contract.md) (Korean)**.
 
+**And it is closed at the next question.** When you start a new task while a previous one sits unsealed, fg-ask's STEP 0 decides by how much judgment is left: none (verification is sealable and the retro is resolved, or only the retro is owed and the run barely diverged) → it **seals without asking**, reports one line, and keeps grilling in the same turn; judgment remains (high divergence, `verified: pending`/`failed`, a halted goal loop) → it asks, but **holds your request and returns to it** once the tail is closed — you never have to re-trigger fg-ask. Its reach is the active slot only; tasks parked in `executed/` are a deliberate wait, not debt, so they are reported and left alone ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
+
+**Forgetting to seal is caught at session entry.** forge ships one hook (`hooks/hooks.json`, installed with the plugin — no settings edit): at `SessionStart` it checks for an **unsealed tail** — a task that ran but was never sealed, a task parked awaiting retro, or a halted goal loop — and, only then, injects a short notice so the agent tells you about it before starting new work. It never auto-runs or auto-seals anything; the decision stays yours. A clean repo, or one with only a backlog waiting, gets nothing at all. Because hooks load at session start, a newly installed or edited hook applies from the **next** session ([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
+
 How git and branches are operated with forge — the git-abstinence model, the commit points, and a feature-branch walkthrough with git CLI — is in **[docs/git-workflow.md](./docs/git-workflow.md) (Korean)**.
 
 ## The two pillars
