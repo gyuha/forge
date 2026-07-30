@@ -76,7 +76,7 @@
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행 |
 | `fg-tdd` | 유틸리티 | `.forge/config.json`의 영속 TDD 모드 토글 |
-| `fg-eco` | 유틸리티 | eco 모드 토글 — 켜면 위임 서브에이전트를 `sonnet`으로 캡하고, 임베드된 Eco laziness-first 규율(`ECO.md` — 코드 단순성 + 출력 prose 압축)을 활성화(fg-run 주입·fg-ask YAGNI 렌즈·현 세션 채택) |
+| `fg-eco` | 유틸리티 | eco 모드 토글 — 켜면 위임 서브에이전트를 `sonnet`으로 캡하고, 임베드된 Eco laziness-first 규율(`ECO.md` — 코드 단순성 + 출력 prose 압축)을 활성화(fg-run 주입·fg-ask YAGNI 렌즈·현 세션 채택)하며, **작업 종료 핸드오프를 요약 표로 교체**(fg-run 핸드오프·fg-done 단일 봉인·배치/무인 경로). 실행 *중* narration은 불변 |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
