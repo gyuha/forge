@@ -26,9 +26,13 @@ Decide per-question, not per-session. The test: **would the user understand this
 
 A question *about* a UI topic is not automatically a visual question. "What kind of wizard do you want?" is conceptual — use the terminal. "Which of these wizard layouts feels right?" is visual — use the browser.
 
+**This per-question test is separate from deciding whether the companion will be wanted at all.** fg-ask judges that once, up front (does this task touch a visual surface?), and then makes the *offer* at the moment the first genuinely visual question arrives. Judging early is what keeps the offer from being missed; this test is what keeps conceptual questions out of the browser. Don't collapse the two — see fg-ask's SKILL.md.
+
 ## How It Works
 
-The server watches a directory for HTML files and serves the newest one to the browser. You write HTML content to `screen_dir`, the user sees it in their browser and can click to select options. Selections are recorded to `state_dir/events` that you read on your next turn.
+The server watches a directory for HTML files and serves the newest one to the browser. You write HTML content to `screen_dir`, the user sees it in their browser and can click to select options — or type into a text input you put on the screen. Those interactions are recorded to `state_dir/events` that you read on your next turn, and they count as real answers, not just hints (ADR `260730-224259`).
+
+**What the browser does and does not do.** It is a display surface *and* a secondary answer channel. What it cannot do is wake you: the conversation resumes on a terminal turn, so the user must still send something in the terminal for you to read the events. That boundary is what keeps pillar #1 intact — grilling stays a terminal-driven conversation, one question at a time, and the browser never becomes a runtime input to a workflow.
 
 **Content fragments vs full documents:** If your HTML file starts with `<!DOCTYPE` or `<html`, the server serves it as-is (just injects the helper script). Otherwise, the server automatically wraps your content in the frame template — adding the header, CSS theme, connection status, and all interactive infrastructure. **Write content fragments by default.** Only write full documents when you need complete control over the page.
 
@@ -85,12 +89,13 @@ Use `--url-host` to control what hostname is printed in the returned URL JSON.
 2. **Tell user what to expect and end your turn:**
    - Remind them of the URL (every step, not just first)
    - Give a brief text summary of what's on screen (e.g., "Showing 3 layout options for the homepage")
-   - Ask them to respond in the terminal: "Take a look and let me know what you think. Click to select an option if you'd like."
+   - Tell them they can answer **either way**: "Take a look — click an option (or type in the box on screen), then send anything here and I'll pick it up." A terminal turn is what wakes you, so they still have to send *something*; it does not have to be the answer itself.
 
-3. **On your next turn** — after the user responds in the terminal:
-   - Read `$STATE_DIR/events` if it exists — this contains the user's browser interactions (clicks, selections) as JSON lines
-   - Merge with the user's terminal text to get the full picture
-   - The terminal message is the primary feedback; `state_dir/events` provides structured interaction data
+3. **On your next turn** — after the user sends a terminal turn:
+   - Read `$STATE_DIR/events` if it exists — this contains the user's browser interactions (clicks, selections, text submissions) as JSON lines
+   - **Merge both channels.** Neither is subordinate: for a choice question a click **is** the answer, and a submitted `text` event **is** the answer, exactly as if typed in the terminal. A terminal message like "ok" or "봤어" after a click is a wake token, not a retraction of the click.
+   - **On a genuine contradiction between the two — ask one line; never pick silently.** e.g. the browser has option A plus a note, the terminal says B: "the browser has A (+ header fixed) and the terminal says B — which one?" Discarding one channel's input silently is the failure this rule exists to prevent.
+   - If `$STATE_DIR/events` doesn't exist, the user answered in the terminal only — use that.
 
 4. **Iterate or advance** — if feedback changes current screen, write a new file (e.g., `layout-v2.html`). Only move to the next question when the current step is validated.
 
@@ -219,6 +224,30 @@ The frame template provides these CSS classes for your content:
 <div class="placeholder">Placeholder area</div>
 ```
 
+**`mock-*` elements are wireframe props, not live controls.** `mock-input` *draws* an input inside a mockup — it sends nothing. Do not use it to collect an answer; use the ask-input below, which is deliberately named differently so the two never blur together.
+
+### Ask input (a live text answer, next to what it is about)
+
+For a question whose answer is words but whose *subject* is on screen — annotating a specific mockup, naming what is wrong with a layout — put a real input on the page. It submits a `text` event you read like any other.
+
+```html
+<h3>Anything to note about this layout?</h3>
+<div class="ask-input">
+  <textarea id="note" rows="3" placeholder="e.g. header should stay fixed"></textarea>
+  <button class="mock-button" onclick="
+    window.brainstorm.send({type:'text', choice:'text:layout-note',
+                            field:'layout-note', value:document.getElementById('note').value});
+    this.textContent='Sent';
+  ">Send</button>
+</div>
+```
+
+- **`choice` is REQUIRED and is not decoration — omit it and the event is silently dropped.** `server.cjs`'s `handleMessage` appends to `state_dir/events` only under `if (event && event.choice)`; an event without it is logged to the server's stdout and never reaches the file you read. Verified by probe: the same `text` event landed in `events` with `choice` present and vanished without it. Use the `text:<field>` form so it is visibly not an option letter. **Do not "clean this up"** — it is what lets the input work with **no vendored file changed**, keeping re-vendoring upstream conflict-free (ADR `260719-224442`). If upstream ever relaxes that guard, this key can go.
+- `ask-input` is a **semantic wrapper the frame template does not style** — add inline styling if you want any; the name exists to keep it distinct from `mock-input`.
+- **Submit on an explicit button**, never on every keystroke or on blur — otherwise you collect half-typed fragments.
+- Give each input a **distinct `field`** so several inputs on one screen stay distinguishable.
+- The plain terminal is still the better channel for long prose (history, editing, paste). Reach for this when being *next to the visual* is the point.
+
 ### Typography and sections
 
 - `h2` — page title
@@ -229,15 +258,20 @@ The frame template provides these CSS classes for your content:
 
 ## Browser Events Format
 
-When the user clicks options in the browser, their interactions are recorded to `$STATE_DIR/events` (one JSON object per line). The file is cleared automatically when you push a new screen.
+When the user interacts with the browser, their actions are recorded to `$STATE_DIR/events` (one JSON object per line). The file is cleared automatically when you push a new screen.
 
 ```jsonl
 {"type":"click","choice":"a","text":"Option A - Simple Layout","timestamp":1706000101}
 {"type":"click","choice":"c","text":"Option C - Complex Grid","timestamp":1706000108}
 {"type":"click","choice":"b","text":"Option B - Hybrid","timestamp":1706000115}
+{"type":"text","choice":"text:layout-note","field":"layout-note","value":"header should stay fixed","timestamp":1706000131}
 ```
 
+Note the `choice` on the `text` line: the server only persists events that carry it (see Ask input above). Branch on `type`, not on the presence of `choice` — a `text` event's `choice` is a routing key, not a chosen option.
+
 The full event stream shows the user's exploration path — they may click multiple options before settling. The last `choice` event is typically the final selection, but the pattern of clicks can reveal hesitation or preferences worth asking about.
+
+**These are answers.** For a choice question the settled `click` is the answer; a `text` event is the answer in the user's own words. Treat them as you would the same content typed in the terminal, merge with the terminal turn, and only ask when the two genuinely contradict (see The Loop, step 3).
 
 If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser — use only their terminal text.
 
