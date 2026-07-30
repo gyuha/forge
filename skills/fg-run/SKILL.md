@@ -94,6 +94,15 @@ Once the orchestration script is ready, **get user approval first**. After appro
 
 When execution finishes, note "the divergences between plan and reality" in `.forge/run.md`. Write down what went as planned, what missed, the on-the-spot decisions made along the way, and where it got stuck. This is the raw material for the fg-learn retro.
 
+**Record one line per work slice.** Alongside the prose, `run.md` MUST carry a per-slice result line keyed to the plan's `## Work slices` — the slice id, whether it landed, and the divergence in a few words:
+
+```
+- S1 {what it did} — ✅ as planned
+- S2 {what it did} — ⚠ {the divergence, a few words}
+```
+
+This is **not** an eco-only concern: record it whether or not `eco` is on. It is the **material guarantee** for anything downstream that reports per-slice results — fg-done's seal summary already instructs "result per slice" (ADR-0032), and eco's summary table renders the slice rows (`../fg-eco/ECO.md`), but a later seal may happen in a **different session** where free prose is all that remains. Without these lines a reader would have to invent results, which is exactly the "instruction prose out of step with the actual contract" failure a retro already caught (`.forge/retro/2026-07-06-fg-done-seal-summary.md`). Keep the lines short — the prose below them carries the reasoning.
+
 Right after writing `run.md`, write a companion `STATUS.md` (in the user's language) to mark the run as executed — it travels alongside the plan/run files as a status marker, not a second ledger (the source of truth for state is still file location). In the single-task path, write it to `.forge/STATUS.md` (the active slot, next to plan.md/run.md). Content:
 
 ```
@@ -140,6 +149,8 @@ fg-done will not seal unless `verified:` is one of the **sealable** outcomes (`y
 When execution finishes, convey the following in a conversational tone. (Do not stamp out a form mechanically.)
 
 **0. Verify first (mandatory gate).** Before offering the retro, complete the UAT above and record `verified:` (`yes`/`skipped`/`n/a`) in STATUS. **Do not route to fg-learn while `verified:` is still `pending`** — the loop order is run → verify → learn → done. Only once `verified:` is set do you proceed below.
+
+**Eco: the handoff becomes a summary table.** If `eco` is `true` in the **top-level** `.forge/config.json` (the same read as §1), **replace** the prose block below with the single-task **eco summary table** — its shape is defined once in [`../fg-eco/ECO.md`](../fg-eco/ECO.md) (section "eco summary table"); reference it, do not restate the layout here. Nothing the prose conveys may be dropped in the fold: the `verified:` value goes in the header (ADR-0009 — it is what tells the reader whether this can be sealed), the plan's Goal into `▸ Request`, the per-slice results from `run.md`'s slice lines (§4) into `▸ Done`, and the next step + its trigger into `▸ Next` — with the divergence-conditional guidance and the adversarial-review pointer below folded into that same one line. It remains **statement form**: no menu, no `AskUserQuestion`, no "shall I proceed?" — ADR-0015's 2026-06-15 amendment governs the table exactly as it governs the prose. If `eco` is `false` or absent, use the prose below unchanged.
 
 **What I just did** — one line on what the workflow changed, and that the plan-vs-actual divergences were written to `.forge/run.md`.
 

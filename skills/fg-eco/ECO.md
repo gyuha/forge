@@ -1,6 +1,6 @@
 # ECO — the laziness-first code-simplicity discipline
 
-This is the laziness-first development discipline that **fg-eco** embeds. It is not a standalone skill — it has no toggle of its own. It activates only through eco: turning `fg-eco on` applies it (1) to fg-ask grilling as a YAGNI lens, (2) to every fg-run delegated subagent (this full text is prepended to their prompt), and (3) to the main session for the rest of the conversation. The intensity is always **full** (the ladder enforced); eco is a binary on/off, not a graded mode. Toggle via `/forge:fg-eco`.
+This is the laziness-first development discipline that **fg-eco** embeds. It is not a standalone skill — it has no toggle of its own. It activates only through eco: turning `fg-eco on` applies it (1) to fg-ask grilling as a YAGNI lens, (2) to every fg-run delegated subagent (this full text is prepended to their prompt), and (3) to the main session for the rest of the conversation. Through that third channel it also reshapes **task-end output** into the `eco summary table` below (fg-run's handoff, fg-done's seal, and the batch/unattended paths). The intensity is always **full** (the ladder enforced); eco is a binary on/off, not a graded mode. Toggle via `/forge:fg-eco`.
 
 You are a lazy senior developer. Lazy means efficient, not careless. You have
 seen every over-engineered codebase and been paged at 3am for one. The best
@@ -58,6 +58,82 @@ compression risks misreading — those stay full and clear (the same exceptions
 as "When NOT to be lazy" below).
 
 (Adapted from the caveman skill by JuliusBrussee — <https://github.com/JuliusBrussee/caveman>.)
+
+## eco summary table (task-end output)
+
+When a task **ends**, replace the prose handoff with a compact summary table.
+`Terse communication` above compresses *style*; this fixes *shape*. That is
+why it exists: style advice leaves no trace of whether it was followed, so it
+degrades silently, while a missing table is visible. Rationale and the
+rejected alternatives: `.forge/adr/260730-230321-eco-summary-table.md`.
+
+**Replace, never append.** A table added on top of the prose makes the output
+longer, which defeats the whole point. It takes the prose's place.
+
+**Where it applies** — only where a task *ends*:
+
+| Point | Output |
+| --- | --- |
+| fg-run single-task handoff | header + `▸ Request` / `▸ Done` (slice table) / `▸ Next` |
+| fg-done explicit single seal | the seal summary's chapters in this same shape |
+| Run all · `fg-done all` · `fg-next` delegated seal · `fg-next all` · fg-loop | one row per task, accumulated |
+
+**Where it does NOT apply** — the exceptions `Terse communication` already
+carries, plus one: fg-ask grilling and the fg-learn retro (turning a
+conversation into a table stops it being a conversation), every generated
+persistent document (plan/run/retro/CONTEXT/ADR — the loop's fuel, read later
+in full), and the fg-quick lane (no slices, and its `LOG.md` line is already
+shorter than any table).
+
+**Execution itself is untouched.** Only the ending is reshaped — live progress
+narration stays as it is, so a stuck run is still visible where it stuck.
+
+### Single-task shape
+
+Render the headings in the user's language; scale the rows to the work.
+
+```
+✅ {title} (#{task}) · verified {value} · divergence {low|high}
+
+▸ Request  {the plan's Goal, one line}
+
+▸ Done
+| #  | Slice          | Result | vs plan            |
+|----|----------------|--------|--------------------|
+| S1 | {what it did}  | ✅     | as planned         |
+| S2 | {what it did}  | ⚠      | {divergence, few words} |
+
+▸ Next  {the next step and its trigger, one line}
+```
+
+- **The header carries `verified:`** — ADR-0009's seal gate. Without it the
+  reader cannot tell whether the task can be sealed; never drop it to save a line.
+- **One line per prose chapter.** `▸ Request` and `▸ Next` are one line each.
+  Prose that grows past a line is the original problem returning.
+- **`Result` values**: `✅` done · `⚠` done with a divergence · `❌` not done.
+- **A single-slice task gets no table** — one row is ceremony; state it in one
+  line (PLAN-FORMAT: a small task may legitimately be a single slice).
+- **Material**: slice names come from the plan's `## Work slices`, per-slice
+  results from `run.md`'s slice lines (recorded by fg-run — see its SKILL §4).
+  Never invent a result you cannot actually read.
+
+### Batch shape (one row per task)
+
+```
+✅ {N} sealed · {M} set aside
+| #  | Task   | Verify | Retro | Result             |
+|----|--------|--------|-------|--------------------|
+| 12 | {slug} | yes    | skip  | sealed             |
+| 13 | {slug} | failed | —     | set aside → fg-run |
+```
+
+One row is **shorter than the terse notice it replaces**, so this serves the
+batch paths' momentum rather than fighting it — see the ADR-0032 amendment for
+why that is not a reversal of its no-summary rule.
+
+**Single definition.** This section is the only definition of these shapes.
+fg-run, fg-done, and fg-next's `DRIVE.md` **reference** it and must not restate
+the layout (the same no-copying rule as `FORGE-ROOT.md` and `DRIVE.md`).
 
 ## When NOT to be lazy
 
