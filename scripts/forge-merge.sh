@@ -86,10 +86,44 @@ slugof() { sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "
 taskof() { sed -n 's/.*task:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'; }
 is_timebased() { printf '%s' "$1" | grep -qE '^[0-9]{6}-[0-9]{2}[a-z]+-|^[0-9]{6}-[0-9]{6}[a-z]?-'; }
 is_nnnn()      { printf '%s' "$1" | grep -qE '^[0-9]{4}-'; }
-# term headings (## X) in a CONTEXT file
-ctx_terms() { [ -f "$1" ] || return 0; awk '/^## /{s=$0; sub(/^## /,"",s); print s}' "$1"; }
-# body of term $2 in file $1 (lines after its "## X" up to the next "## " / EOF)
-ctx_body()  { awk -v t="## $2" 'BEGIN{f=0} $0==t{f=1;next} /^## /{if(f)exit} f{print}' "$1"; }
+# CONTEXT.md units (CONTEXT-FORMAT.md): a TERM is a `**Name**:` entry; `## X` is
+# an optional GROUP subheading, NOT a term. Reading groups as terms is what made
+# two canonical glossaries always collide on their shared `## Language` (a false
+# exit 4), while the merge path then skipped that heading and would have dropped
+# the incoming terms — the false gate was accidentally preventing silent loss.
+# `index()` on the remainder finds the FIRST `**:` so the name is non-greedy.
+ctx_awk_nm='function nm(l,  i){ if (substr(l,1,2)!="**") return ""; i=index(substr(l,3),"**:"); return (i>1)?substr(l,3,i-1):"" }'
+ctx_terms()    { [ -f "$1" ] || return 0; awk "$ctx_awk_nm"'{ n=nm($0); if (n!="") print n }' "$1" | tr -d '\r'; }
+ctx_headings() { [ -f "$1" ] || return 0; awk '/^## /{s=$0; sub(/^## /,"",s); print s}' "$1" | tr -d '\r'; }
+# body of term $2: lines after its `**$2**:` line, up to the next term / `## ` / EOF
+ctx_body()  { awk -v t="$2" "$ctx_awk_nm"'
+  BEGIN{f=0}
+  { n=nm($0)
+    if (n!="") { if (f) exit; if (n==t) f=1; next }
+    if (substr($0,1,3)=="## ") { if (f) exit; next }
+    if (f) print }' "$1"; }
+# the group heading term $2 sits under ("" when it sits outside any group)
+ctx_group() { awk -v t="$2" "$ctx_awk_nm"'
+  { if (substr($0,1,3)=="## ") { g=substr($0,4) }
+    else { n=nm($0); if (n!="" && n==t) { print g; exit } } }' "$1" | tr -d '\r'; }
+# insert block file $3 into $1 at the end of group $2's section (before the next
+# `## `), or append at EOF — adding the heading when the group is new.
+ctx_insert() { # $1=target  $2=group ("" = ungrouped)  $3=block file
+  local out; out="$(mktemp)"
+  if [ -n "$2" ] && grep -qxF "## $2" "$1"; then
+    awk -v g="## $2" -v bf="$3" '
+      BEGIN{found=0; ins=0}
+      { if ($0==g) { found=1; print; next }
+        if (found && !ins && substr($0,1,3)=="## ") { while ((getline l < bf) > 0) print l; close(bf); ins=1 }
+        print }
+      END{ if (found && !ins) { while ((getline l < bf) > 0) print l; close(bf) } }' "$1" > "$out"
+  else
+    cp "$1" "$out"
+    [ -n "$2" ] && printf '\n## %s\n' "$2" >> "$out"
+    cat "$3" >> "$out"
+  fi
+  mv "$out" "$1"
+}
 
 # --- GATE 1: in-flight branch state ------------------------------------------
 inflight=""
@@ -103,6 +137,12 @@ fi
 
 # --- GATE 2: CONTEXT term redefinition ---------------------------------------
 if [ -f "$SRC/CONTEXT.md" ] && [ -f "$TARGET/CONTEXT.md" ]; then
+  # Unrecognized shape: `## ` headings but zero `**Term**:` entries. Merging
+  # would silently do nothing — worse than the false conflict this replaces — so
+  # stop and let a human look.
+  if [ -z "$(ctx_terms "$SRC/CONTEXT.md")" ] && [ -n "$(ctx_headings "$SRC/CONTEXT.md")" ]; then
+    echo "GATE_CONFLICT context-unrecognized-shape (headings but no \`**Term**:\` entries) — human resolves"; exit 4
+  fi
   while IFS= read -r term; do
     [ -n "$term" ] || continue
     ctx_terms "$TARGET/CONTEXT.md" | grep -qxF "$term" || continue
@@ -197,11 +237,18 @@ integrate_context() {
   if [ ! -f "$TARGET/CONTEXT.md" ]; then
     cp "$SRC/CONTEXT.md" "$TARGET/CONTEXT.md"; track "$TARGET/CONTEXT.md"; return 0
   fi
-  local term
+  local term grp blk bdy
   while IFS= read -r term; do
     [ -n "$term" ] || continue
     ctx_terms "$TARGET/CONTEXT.md" | grep -qxF "$term" && continue  # exists (identical body — gated)
-    { printf '\n## %s\n' "$term"; ctx_body "$SRC/CONTEXT.md" "$term"; } >> "$TARGET/CONTEXT.md"
+    grp="$(ctx_group "$SRC/CONTEXT.md" "$term")"
+    blk="$(mktemp)"
+    # `$( )` strips trailing newlines, mirroring the .js twin's trailing-empty
+    # trim — without this the two emit a different number of blank lines.
+    bdy="$(ctx_body "$SRC/CONTEXT.md" "$term")"
+    { printf '\n**%s**:\n' "$term"; [ -n "$bdy" ] && printf '%s\n' "$bdy"; } > "$blk"
+    ctx_insert "$TARGET/CONTEXT.md" "$grp" "$blk"
+    rm -f "$blk"
   done <<EOF
 $(ctx_terms "$SRC/CONTEXT.md")
 EOF

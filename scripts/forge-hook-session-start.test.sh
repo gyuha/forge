@@ -309,5 +309,91 @@ else
   printf '  SKIP 17-hooks-json (node unavailable)\n'
 fi
 
+# --- (18) BLOCK SIZE INVARIANT: no input may inflate the injected context ----
+# The sanitizer bounds each repo-controlled value, but that only holds if EVERY
+# value passes through it. A field exempted by reasoning ("it's just digits") is
+# how the guarantee was lost once already: a 100k-digit `task:` produced a
+# 100,553-byte block because `taskof()` captures `[0-9]+` — a character class,
+# not a length. So assert the PROPERTY (the block stays bounded for any input),
+# not just the one field — that is what catches the next bypass.
+#
+# BLOCK_MAX=4096 rationale (measured against this repo's archived STATUS files,
+# n=80): `verified:` median 193B / p90 304B / max 512B; `retro:` max 153B; slug
+# max 40 chars; task numbers max 3 digits. With SAN_MAX=200 the theoretical
+# worst block (1 tail item + goal loop + parked + backlog + directive) is ~1.9KB,
+# and the observed worst is 664B — so 4096 leaves >2x headroom over theory
+# without letting a pathological value through.
+BLOCK_MAX=4096
+big() { awk -v n="$1" -v c="$2" 'BEGIN{while(i++<n)printf "%s", c}'; }
+
+assert_bounded() { # $1=desc  $2=workdir
+  run_hook "$2"
+  local n; n=$(printf '%s' "$OUT" | wc -c | tr -d ' ')
+  if [ "$n" -le "$BLOCK_MAX" ]; then pass=$((pass+1)); else
+    fail=$((fail+1)); printf '  FAIL %s (block is %s bytes, cap %s)\n' "$1" "$n" "$BLOCK_MAX"; fi
+}
+
+# (18a) huge task: value — the measured bypass
+t=$(mktmp); mkdir -p "$t/.forge"
+{ printf '<!-- forge-slug: s -->\n<!-- task: '; big 100000 9; printf ' -->\n'; } > "$t/.forge/plan.md"
+printf 'run\n' > "$t/.forge/run.md"
+seed_status "$t/.forge/STATUS.md" s executed "yes (t)" pending
+assert_bounded "18a-huge-task-bounded" "$t"
+assert "18a-rc0" 0 "$RC"
+rm -rf "$t"
+
+# (18b) huge slug
+t=$(mktmp); mkdir -p "$t/.forge"
+{ printf '<!-- forge-slug: '; big 50000 s; printf ' -->\n<!-- task: 5 -->\n'; } > "$t/.forge/plan.md"
+printf 'run\n' > "$t/.forge/run.md"
+seed_status "$t/.forge/STATUS.md" s executed "yes (t)" pending
+assert_bounded "18b-huge-slug-bounded" "$t"
+rm -rf "$t"
+
+# (18c) every STATUS field huge at once
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" s 6
+printf 'run\n' > "$t/.forge/run.md"
+{ printf '# STATUS\nslug: s\nstatus: executed\nverified: '; big 50000 v; \
+  printf '\nretro: '; big 50000 r; printf '\n'; } > "$t/.forge/STATUS.md"
+assert_bounded "18c-huge-fields-bounded" "$t"
+rm -rf "$t"
+
+# (18d) huge goal loop line
+t=$(mktmp); mkdir -p "$t/.forge"
+{ printf '# LOOP — '; big 50000 g; printf '\nwall: '; big 50000 w; printf '\n'; } > "$t/.forge/loop.md"
+assert_bounded "18d-huge-loop-bounded" "$t"
+rm -rf "$t"
+
+# (18e) many parked dirs + backlog (counts must not scale the block)
+t=$(mktmp); mkdir -p "$t/.forge/backlog"
+for i in $(seq 1 40); do mkdir -p "$t/.forge/executed/p$i"
+  seed_status "$t/.forge/executed/p$i/STATUS.md" "p$i" executed "yes (t)" pending; done
+for i in $(seq 1 40); do seed_plan "$t/.forge/backlog/b$i.md" "b$i" "$i"; done
+assert_bounded "18e-many-parked-bounded" "$t"
+rm -rf "$t"
+
+# --- (19) an absurd task number is treated as absent (slug-only render) ------
+# Bounding at the source too: a task number is a monotonic small int (max 3
+# digits in this repo). Past TASK_DIGITS_MAX it is not a task number, so drop it
+# and fall back to the already-tested "no task marker" rendering (case 11).
+t=$(mktmp); mkdir -p "$t/.forge"
+{ printf '<!-- forge-slug: absurd -->\n<!-- task: '; big 40 7; printf ' -->\n'; } > "$t/.forge/plan.md"
+printf 'run\n' > "$t/.forge/run.md"
+seed_status "$t/.forge/STATUS.md" absurd executed "yes (t)" pending
+run_hook "$t"
+assert_grep  "19-slug-only"      "$OUT" "- \`absurd\` — active slot,"
+assert_ngrep "19-no-task-prefix" "$OUT" "task 7777"
+rm -rf "$t"
+
+# (19b) a normal task number still renders
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" normal 103
+printf 'run\n' > "$t/.forge/run.md"
+seed_status "$t/.forge/STATUS.md" normal executed "yes (t)" pending
+run_hook "$t"
+assert_grep "19b-normal-task-kept" "$OUT" "- task 103 \`normal\` — active slot,"
+rm -rf "$t"
+
 printf '\n%s: %d passed, %d failed\n' "$(basename "$SCRIPT")" "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

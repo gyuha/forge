@@ -73,14 +73,35 @@ const slugof = (f) => { const m = read(f).match(/forge-slug:[ \t]*(\S*)[ \t]*-->
 const taskof = (f) => { const m = read(f).match(/task:[ \t]*(\d+)/); return m ? m[1] : ''; };
 const isTimebased = (bn) => /^\d{6}-\d{2}[a-z]+-/.test(bn) || /^\d{6}-\d{6}[a-z]?-/.test(bn);
 const isNnnn = (bn) => /^\d{4}-/.test(bn);
+// CONTEXT.md units — see the .sh twin: a TERM is a `**Name**:` entry, `## X` is
+// an optional GROUP subheading, not a term. `indexOf` on the remainder finds the
+// FIRST `**:` so the name is non-greedy, matching awk's index().
+function ctxName(l) {
+  if (!l.startsWith('**')) return '';
+  const i = l.slice(2).indexOf('**:');
+  return i > 0 ? l.slice(2, 2 + i) : '';
+}
 function ctxTerms(f) {
   if (!exists(f)) return [];
+  return read(f).split('\n').map(ctxName).filter((n) => n !== '');
+}
+function ctxHeadings(f) {
+  if (!exists(f)) return [];
   return read(f).split('\n').filter((l) => l.startsWith('## ')).map((l) => l.slice(3));
+}
+function ctxGroup(f, term) {
+  let g = '';
+  for (const l of read(f).split('\n')) {
+    if (l.startsWith('## ')) { g = l.slice(3); continue; }
+    if (ctxName(l) === term && term !== '') return g;
+  }
+  return '';
 }
 function ctxBodyLines(f, term) {
   const lines = read(f).split('\n'); const out = []; let inSec = false;
   for (const l of lines) {
-    if (l === `## ${term}`) { inSec = true; continue; }
+    const n = ctxName(l);
+    if (n !== '') { if (inSec) break; if (n === term) inSec = true; continue; }
     if (l.startsWith('## ')) { if (inSec) break; continue; }
     if (inSec) out.push(l);
   }
@@ -103,6 +124,11 @@ if (inflight) die(`GATE_INFLIGHT ${inflight} branch=${SRC} — seal/recover/resu
 // --- GATE 2: CONTEXT term redefinition ---------------------------------------
 const srcCtx = path.join(SRC, 'CONTEXT.md'), tgtCtx = path.join(TARGET, 'CONTEXT.md');
 if (exists(srcCtx) && exists(tgtCtx)) {
+  // Unrecognized shape: headings but no `**Term**:` entries — merging would
+  // silently do nothing, worse than the false conflict this replaces.
+  if (ctxTerms(srcCtx).length === 0 && ctxHeadings(srcCtx).length > 0) {
+    die('GATE_CONFLICT context-unrecognized-shape (headings but no `**Term**:` entries) — human resolves', 4);
+  }
   const tgtTerms = ctxTerms(tgtCtx);
   for (const term of ctxTerms(srcCtx)) {
     if (!tgtTerms.includes(term)) continue;
@@ -188,14 +214,31 @@ function integrateRetros() {
     mv(f, dest); MOVED.push(dest);
   }
 }
+// Insert block lines into $file at the end of group `grp`'s section (before the
+// next `## `), or append at EOF — adding the heading when the group is new.
+function ctxInsert(file, grp, blk) {
+  const raw = read(file);
+  const trailingNL = raw.endsWith('\n');
+  const lines = raw.split('\n');
+  if (trailingNL) lines.pop();
+  const gi = grp ? lines.indexOf(`## ${grp}`) : -1;
+  if (gi >= 0) {
+    let end = lines.length;
+    for (let i = gi + 1; i < lines.length; i++) if (lines[i].startsWith('## ')) { end = i; break; }
+    lines.splice(end, 0, ...blk);
+  } else {
+    if (grp) lines.push('', `## ${grp}`);
+    lines.push(...blk);
+  }
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+}
 function integrateContext() {
   if (!exists(srcCtx)) return;
   if (!exists(tgtCtx)) { fs.copyFileSync(srcCtx, tgtCtx); MOVED.push(tgtCtx); return; }
-  const tgtTerms = ctxTerms(tgtCtx);
   for (const term of ctxTerms(srcCtx)) {
-    if (tgtTerms.includes(term)) continue;
-    const body = ctxBodyLines(srcCtx, term).map((l) => l + '\n').join('');
-    fs.appendFileSync(tgtCtx, `\n## ${term}\n` + body);
+    if (ctxTerms(tgtCtx).includes(term)) continue;   // identical body — gated
+    const blk = [''].concat([`**${term}**:`], ctxBodyLines(srcCtx, term));
+    ctxInsert(tgtCtx, ctxGroup(srcCtx, term), blk);
   }
   MOVED.push(tgtCtx);
 }

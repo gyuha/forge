@@ -1,11 +1,11 @@
 ---
 name: fg-visual
-description: Opens a browser-based visual companion in any conversation — a local zero-dependency server shows mockups, diagrams, and visual A/B options you push as HTML, and records the user's clicks as events you read back; `fg-visual stop` shuts it down. During fg-ask grilling the companion is offered automatically just-in-time (this skill is the standalone entry point). On-demand utility outside the loop. Use in contexts like 'forge visual', 'visual companion', '시각적으로 보여줘', '목업 보여줘', '브라우저로 보여줘', '화면으로 비교해줘'.
+description: Opens a browser-based visual companion in any conversation — a local zero-dependency server shows mockups, diagrams, and visual A/B options you push as HTML, and takes the user's answers back as events: a click settles a choice, and a screen can carry a text box; `fg-visual stop` shuts it down. During fg-ask grilling the companion is offered automatically just-in-time (this skill is the standalone entry point). On-demand utility outside the loop. Use in contexts like 'forge visual', 'visual companion', '시각적으로 보여줘', '목업 보여줘', '브라우저로 보여줘', '화면으로 비교해줘'.
 ---
 
 # fg-visual — visual companion (outside the loop)
 
-This is **not** a stage of the forge loop. It is an on-demand utility that opens a **browser tab next to the conversation** for content that is better *seen* than read — UI mockups, layout comparisons, architecture diagrams — and collects the user's clicks as structured events. The answer channel stays the terminal conversation; the browser only *shows*.
+This is **not** a stage of the forge loop. It is an on-demand utility that opens a **browser tab next to the conversation** for content that is better *seen* than read — UI mockups, layout comparisons, architecture diagrams — and takes the user's answers back as structured events — a click settles a choice question, and a screen may carry a text input (ADR `260730-224259`). It is a display surface **and a secondary answer channel**: read both channels and merge them, asking one line only when they genuinely contradict. What the browser cannot do is wake you — a terminal turn is still what resumes the conversation, which is why pillar #1 is untouched and the browser never becomes a runtime input to a workflow.
 
 The engine is vendored from obra/superpowers v6.1.1 (MIT, Copyright (c) 2025 Jesse Vincent — see [LICENSE](./LICENSE)): a zero-dependency Node server (`scripts/server.cjs`) with session-key auth, path sandboxing, restart/reconnect survival, and a 4-hour idle shutdown. forge modifications: session files under `.forge/visual/`, superpowers branding/telemetry removed (the server makes no remote requests). Rationale and alternatives: ADR `260719-224442-vendor-superpowers-visual-companion`.
 

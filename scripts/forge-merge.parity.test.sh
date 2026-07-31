@@ -29,8 +29,8 @@ seed_collide_new() { mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# t\n' > "$
   mkdir -p "$1/.forge/branch/feat-x/retro"; printf 'see ADR-260719-161701\n' > "$1/.forge/branch/feat-x/retro/260719-161701-foo.md"; }
 seed_retro()   { mkdir -p "$1/.forge/branch/feat-x/retro" "$1/.forge/retro"
   printf 'b\n' > "$1/.forge/branch/feat-x/retro/2026-07-16-dup.md"; printf 'e\n' > "$1/.forge/retro/2026-07-16-dup.md"; }
-seed_ctx_add() { mkdir -p "$1/.forge/branch/feat-x"; printf '# G\n\n## Alpha\nsame\n\n## Beta\nnew\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# G\n\n## Alpha\nsame\n' > "$1/.forge/CONTEXT.md"; }
-seed_ctx_redef(){ mkdir -p "$1/.forge/branch/feat-x"; s_adr "$1"; printf '# G\n\n## Alpha\nBRANCH\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# G\n\n## Alpha\nMAIN\n' > "$1/.forge/CONTEXT.md"; }
+seed_ctx_add() { mkdir -p "$1/.forge/branch/feat-x"; printf '# G\n\n## Language\n\n**Alpha**:\nsame\n\n**Beta**:\nnew\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# G\n\n## Language\n\n**Alpha**:\nsame\n' > "$1/.forge/CONTEXT.md"; }
+seed_ctx_redef(){ mkdir -p "$1/.forge/branch/feat-x"; s_adr "$1"; printf '# G\n\n## Language\n\n**Alpha**:\nBRANCH\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# G\n\n## Language\n\n**Alpha**:\nMAIN\n' > "$1/.forge/CONTEXT.md"; }
 seed_nnnn_ok() { mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# l\n' > "$1/.forge/branch/feat-x/adr/0033-legacy.md"; }
 seed_nnnn_x()  { mkdir -p "$1/.forge/branch/feat-x/adr"; printf '# d\n' > "$1/.forge/branch/feat-x/adr/0011-dup.md"; mkdir -p "$1/.forge/adr"; printf '# f\n' > "$1/.forge/adr/0011-frozen.md"; }
 seed_remap()   { mkdir -p "$1/.forge/backlog" "$1/.forge/branch/feat-x/done/2026-01-01-a" "$1/.forge/branch/feat-x/backlog"
@@ -56,7 +56,11 @@ check "retired-id collision -> bump"  seed_retired_collide feat-x
 check "retired letter-skip -> b"      seed_retired_letterskip feat-x
 check "retro move + -2 disambig"      seed_retro    feat-x
 check "CONTEXT append new term"       seed_ctx_add  feat-x
+seed_ctx_disjoint(){ mkdir -p "$1/.forge/branch/feat-x"; printf '# forge\n\n## Language\n\n**eco summary table**:\nreplaces prose.\n\n**seal summary**:\nexplicit single seal only.\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# forge\n\n## Language\n\n**Visual Companion**:\ndisplay and answer channel.\n\n**unsealed tail**:\nran but never sealed.\n' > "$1/.forge/CONTEXT.md"; }
+seed_ctx_legacy(){ mkdir -p "$1/.forge/branch/feat-x"; printf '# G\n\n## Alpha\nlegacy\n' > "$1/.forge/branch/feat-x/CONTEXT.md"; printf '# G\n\n## Language\n\n**Beta**:\ncanonical\n' > "$1/.forge/CONTEXT.md"; }
 check "CONTEXT redefinition -> 4"     seed_ctx_redef feat-x
+check "CONTEXT disjoint terms merge"  seed_ctx_disjoint feat-x
+check "CONTEXT legacy shape -> 4"     seed_ctx_legacy feat-x
 check "incoming NNNN ok"              seed_nnnn_ok  feat-x
 check "incoming NNNN collide -> 4"    seed_nnnn_x   feat-x
 check "done+backlog task remap"       seed_remap    feat-x

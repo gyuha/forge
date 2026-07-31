@@ -86,14 +86,18 @@ printf 'branch\n' > "$t/.forge/branch/feat-x/retro/2026-07-16-dup.md"; printf 'e
 run_merge "$t" feat-x; assert "h-retro-rc0" 0 "$RC"
 assert_file "h-retro-existing" "$t/.forge/retro/2026-07-16-dup.md"; assert_file "h-retro-disambig" "$t/.forge/retro/2026-07-16-dup-2.md"; rm -rf "$t"
 # --- (i) CONTEXT new term appended, identical term is a no-op ----------------
-t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"; printf '# Glossary\n\n## Alpha\nsame body\n\n## Beta\nnew term\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
-printf '# Glossary\n\n## Alpha\nsame body\n' > "$t/.forge/CONTEXT.md"
+# Canonical format (CONTEXT-FORMAT.md): terms are `**Name**:` entries; `## X` is
+# an optional GROUP subheading, not a term. The old fixtures used `## Alpha` AS a
+# term — the same misreading the code had, which is why neither caught the bug.
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"; printf '# Glossary\n\n## Language\n\n**Alpha**:\nsame body\n\n**Beta**:\nnew term\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# Glossary\n\n## Language\n\n**Alpha**:\nsame body\n' > "$t/.forge/CONTEXT.md"
 run_merge "$t" feat-x; assert "i-context-rc0" 0 "$RC"
-assert_grep "i-beta-appended" "$t/.forge/CONTEXT.md" "## Beta"; rm -rf "$t"
+assert_grep "i-beta-appended" "$t/.forge/CONTEXT.md" "**Beta**:"
+assert "i-one-language-heading" 1 "$(grep -c '^## Language$' "$t/.forge/CONTEXT.md")"; rm -rf "$t"
 # --- (j) CONTEXT term redefinition -> exit 4, nothing moved ------------------
 t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"; seed_adr "$t" feat-x 260716-14a-foo.md
-printf '# G\n\n## Alpha\nBRANCH definition\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
-printf '# G\n\n## Alpha\nMAIN definition\n' > "$t/.forge/CONTEXT.md"
+printf '# G\n\n## Language\n\n**Alpha**:\nBRANCH definition\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# G\n\n## Language\n\n**Alpha**:\nMAIN definition\n' > "$t/.forge/CONTEXT.md"
 run_merge "$t" feat-x; assert "j-redef-rc4" 4 "$RC"
 assert_file "j-adr-untouched" "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"; assert_nofile "j-target-adr-none" "$t/.forge/adr/260716-14a-foo.md"; rm -rf "$t"
 # --- (k) incoming NNNN, no collision -> move as-is, exit 0 -------------------
@@ -116,6 +120,36 @@ assert_grep "m-target-keep-unchanged" "$t/.forge/backlog/keep.md" "task: 5"; rm 
 # --- (n) dropped moved (never blocks) ----------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x/dropped/gone"; printf 'x\n' > "$t/.forge/branch/feat-x/dropped/gone/plan.md"
 run_merge "$t" feat-x; assert "n-dropped-rc0" 0 "$RC"; assert_file "n-dropped-moved" "$t/.forge/dropped/gone/plan.md"; rm -rf "$t"
+
+# --- (i2) REGRESSION: the case that actually broke (feature/result-summary) --
+# Both sides carry `## Language` with DISJOINT terms. The old parser read the
+# shared heading as a redefined "term" and refused with exit 4; its merge path
+# would then have skipped that heading entirely, silently dropping the incoming
+# terms. Four terms must survive under ONE `## Language`.
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"
+printf '# forge\n\n## Language\n\n**eco summary table**:\nreplaces the prose handoff.\n_Avoid_: summary\n\n**seal summary**:\nexplicit single seal only.\n_Avoid_: completion notice\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# forge\n\n## Language\n\n**Visual Companion**:\ndisplay and answer channel.\n_Avoid_: display-only\n\n**unsealed tail**:\nran but never sealed.\n_Avoid_: debt\n' > "$t/.forge/CONTEXT.md"
+run_merge "$t" feat-x
+assert "i2-disjoint-rc0" 0 "$RC"
+assert "i2-four-terms" 4 "$(grep -c '^\*\*' "$t/.forge/CONTEXT.md")"
+assert "i2-one-heading" 1 "$(grep -c '^## Language$' "$t/.forge/CONTEXT.md")"
+assert_grep "i2-incoming-1" "$t/.forge/CONTEXT.md" "**eco summary table**:"
+assert_grep "i2-incoming-2" "$t/.forge/CONTEXT.md" "**seal summary**:"
+assert_grep "i2-target-kept" "$t/.forge/CONTEXT.md" "**Visual Companion**:"
+rm -rf "$t"
+
+# --- (i3) unrecognized CONTEXT shape -> exit 4, target untouched -------------
+# `## ` headings but zero `**Term**:` entries. Merging would silently do nothing
+# (worse than the false conflict it replaces), so stop and let a human look.
+t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x"
+printf '# G\n\n## Alpha\nlegacy shape\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# G\n\n## Language\n\n**Beta**:\ncanonical\n' > "$t/.forge/CONTEXT.md"
+before="$(cat "$t/.forge/CONTEXT.md")"
+run_merge "$t" feat-x
+assert "i3-unrecognized-rc4" 4 "$RC"
+assert "i3-target-untouched" "$before" "$(cat "$t/.forge/CONTEXT.md")"
+assert_file "i3-branch-root-kept" "$t/.forge/branch/feat-x/CONTEXT.md"
+rm -rf "$t"
 
 printf '\nforge-merge: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

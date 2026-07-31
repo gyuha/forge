@@ -154,6 +154,35 @@ printf '# STATUS\nstatus: executed\nverified: yes (t)\nretro: pending\n' \
   > "$M/.forge/executed/$(printf 'two\nlines')/STATUS.md"
 assert_parity "newline in parked dirname: structure intact sh==js" "$M" "</forge-state>"
 
+# --- N: extreme fixtures — bounded AND identical ---------------------------
+# The block-size invariant is a behavior assertion; here we only guard that the
+# two twins agree on these same extremes. A 100k-digit `task:` was the measured
+# bypass (100,553 bytes emitted); a huge slug and huge STATUS fields cover the
+# other value paths through mk_item.
+bigp() { awk -v n="$1" -v c="$2" 'BEGIN{while(i++<n)printf "%s", c}'; }
+
+N1="$(mktemp -d)"; mkdir -p "$N1/.forge"
+{ printf '<!-- forge-slug: s -->\n<!-- task: '; bigp 100000 9; printf ' -->\n'; } > "$N1/.forge/plan.md"
+printf 'run\n' > "$N1/.forge/run.md"
+seed_status "$N1/.forge/STATUS.md" s executed "yes (t)" pending
+assert_parity "huge task: value — bounded identically" "$N1" "</forge-state>"
+
+N2="$(mktemp -d)"; mkdir -p "$N2/.forge"
+{ printf '<!-- forge-slug: '; bigp 50000 s; printf ' -->\n<!-- task: 5 -->\n'; } > "$N2/.forge/plan.md"
+printf 'run\n' > "$N2/.forge/run.md"
+seed_status "$N2/.forge/STATUS.md" s executed "yes (t)" pending
+assert_parity "huge slug — bounded identically" "$N2" "</forge-state>"
+
+N3="$(mktemp -d)"; mkdir -p "$N3/.forge"
+{ printf '# LOOP — '; bigp 50000 g; printf '\nwall: '; bigp 50000 w; printf '\n'; } > "$N3/.forge/loop.md"
+assert_parity "huge goal loop line — bounded identically" "$N3" "Goal loop:"
+
+N4="$(mktemp -d)"; mkdir -p "$N4/.forge"
+{ printf '<!-- forge-slug: absurd -->\n<!-- task: '; bigp 40 7; printf ' -->\n'; } > "$N4/.forge/plan.md"
+printf 'run\n' > "$N4/.forge/run.md"
+seed_status "$N4/.forge/STATUS.md" absurd executed "yes (t)" pending
+assert_parity "absurd task number — dropped identically" "$N4" "\`absurd\`"
+
 echo ""
 if [ "$fails" -eq 0 ]; then echo "PARITY OK (all cases identical)"; exit 0
 else echo "PARITY FAILED ($fails case(s))"; exit 1; fi

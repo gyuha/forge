@@ -113,9 +113,17 @@ slugof() { # $1=plan file
   [ -f "$1" ] || return 0
   sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'
 }
+# A task number is a monotonic small int (max 3 digits in this repo as of task
+# 103). A digit run longer than TASK_DIGITS_MAX is not a task number, so treat
+# it as absent — `mk_item` then renders slug-only, an already-covered path. This
+# bounds the value at its SOURCE; `sanitize()` bounds it again at the sink.
+TASK_DIGITS_MAX=9
 taskof() { # $1=plan file
   [ -f "$1" ] || return 0
-  sed -n 's/.*task:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'
+  local t
+  t="$(sed -n 's/.*task:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r')"
+  [ "${#t}" -le "$TASK_DIGITS_MAX" ] && printf '%s' "$t"
+  return 0
 }
 
 # --- Collect the unsealed tail -----------------------------------------------
@@ -125,11 +133,14 @@ parked_failed=0
 
 mk_item() { # $1=task  $2=slug  $3=where  $4=verified  $5=retro
   local tsk="$1" slug="$2" where="$3" v="$4" r="$5" prefix=""
-  [ -n "$tsk" ] && prefix="task ${tsk} "
+  [ -n "$tsk" ] && prefix="task $(sanitize "$tsk") "
   [ -n "$v" ] || v="pending"
   [ -n "$r" ] || r="pending"
-  # Every repo-controlled field goes through the sanitizer; `where` is a literal
-  # and `tsk` matched [0-9]+ at extraction, so neither needs it.
+  # NO EXEMPTIONS — every repo-controlled field passes the sanitizer. `where` is
+  # the only literal here. `tsk` was once exempted on the reasoning "it matched
+  # [0-9]+ at extraction, so it needs no bound"; that was wrong — a character
+  # class bounds the alphabet, not the length, and a 100k-digit `task:` emitted
+  # a 100,553-byte block. If you add a field, route it through sanitize().
   printf -- '- %s`%s` — %s, verified: %s, retro: %s' \
     "$prefix" "$(sanitize "$slug")" "$where" "$(sanitize "$v")" "$(sanitize "$r")"
 }

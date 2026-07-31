@@ -80,15 +80,21 @@ function slugof(planFile) {
   const m = read(planFile).match(/forge-slug:[ \t]*([^ ]*)[ \t]*-->/);
   return m ? m[1] : '';
 }
+// See the .sh twin: a digit run longer than TASK_DIGITS_MAX is not a task
+// number, so treat it as absent (slug-only render). Bounds the value at its
+// source; sanitize() bounds it again at the sink.
+const TASK_DIGITS_MAX = 9;
 function taskof(planFile) {
   const m = read(planFile).match(/task:[ \t]*(\d+)/);
-  return m ? m[1] : '';
+  return m && m[1].length <= TASK_DIGITS_MAX ? m[1] : '';
 }
 
 function mkItem(tsk, slug, where, v, r) {
-  const prefix = tsk ? `task ${tsk} ` : '';
-  // Every repo-controlled field goes through the sanitizer; `where` is a literal
-  // and `tsk` matched \d+ at extraction, so neither needs it.
+  const prefix = tsk ? `task ${sanitize(tsk)} ` : '';
+  // NO EXEMPTIONS — every repo-controlled field passes the sanitizer; `where` is
+  // the only literal. `tsk` was once exempted on "it matched \d+ at extraction";
+  // that was wrong (a character class bounds the alphabet, not the length) and a
+  // 100k-digit `task:` emitted a 100,553-byte block. New field → sanitize() it.
   return `- ${prefix}\`${sanitize(slug)}\` ${EM_DASH} ${where}, `
        + `verified: ${sanitize(v || 'pending')}, retro: ${sanitize(r || 'pending')}`;
 }
