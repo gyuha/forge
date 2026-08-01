@@ -38,11 +38,33 @@ Use the `Agent` tool with `run_in_background: true` to launch all four in one me
 
 If `.forge/codebase/` already exists with documents, do not blindly overwrite. Show the user a short menu (in conversation, the user's language):
 
-1. **Refresh** — delete the existing docs and remap the whole codebase from scratch.
-2. **Update** — keep existing docs, remap only the documents the user names (e.g. just `ARCHITECTURE.md` + `STRUCTURE.md`). Launch only the focuses that own those documents.
+1. **Update** — incremental refresh against the diff since the last mapping (all 7 documents, edited in place). This is the common path once a map exists: its cost is proportional to what changed, not to the size of the codebase. Procedure below.
+2. **Refresh** — write from scratch: the whole codebase, or only the documents the user names (e.g. just `ARCHITECTURE.md` + `STRUCTURE.md` — then launch only the focuses that own those documents).
 3. **Skip** — use the existing map as-is, do nothing.
 
 If `.forge/codebase/` does not exist, create it lazily and proceed to the full 4-agent run.
+
+### Update — the incremental procedure (mandatory steps)
+
+The freshness stamp is not only a staleness signal; it is the **diff baseline** that makes a re-map cost what changed rather than what exists. Every numbered step here is **mandatory**, the same standing as the secret scan under "After the agents return" — do not skip one because the diff looks small.
+
+1. **Eligibility precheck — before anything else.** Both must hold:
+   - all 7 documents carry a `last_mapped_commit` stamp and they all name the same sha (`grep -h '^last_mapped_commit:' .forge/codebase/*.md | sort -u` returns exactly one). **Anchor the pattern to the line start** — the documents describe this very stamp mechanism in their prose, and an unanchored grep matches those sentences too, so it would report several "stamps" forever and never take the incremental path;
+   - that sha is an ancestor of HEAD (`git merge-base --is-ancestor <stamp> HEAD`). A rebase, force-push, or shallow clone breaks this, and then the diff is a lie about what actually changed.
+
+   If either fails, **do not ask** — fall back to a full Refresh and give the reason in one line ("the stamp is not an ancestor of HEAD (rebase detected) — remapping in full"). The fallback is the only possible answer, so asking the question is noise.
+2. **Collect the changed files** — the union of committed and uncommitted change: `git diff --name-status <stamp>..HEAD` **∪** `git status --porcelain`. The union is not optional: the diff sees only commits while a full map reads the working tree, so without the second half an incremental update silently misses everything not yet committed — content a Refresh would have caught. **Drop `.forge/codebase/` itself from the resulting list** — the map is not part of the codebase it maps, and its own edits from the previous run would otherwise come back as changes to map.
+3. **Capture the baseline sizes** — `wc -l .forge/codebase/*.md` before launching. The post-check compares against these.
+4. **Launch the same 4 focus agents, under an in-place contract.** Each prompt carries the current HEAD sha, the changed-file list from step 2, and these instructions:
+   - treat its existing documents as the baseline and **edit them in place — do not re-explore the codebase, do not rewrite from scratch**;
+   - read only the changed files that bear on its focus, revise the sections they affect, and drop references to deleted files;
+   - if nothing in the diff touches its focus, change no content and only update the stamp;
+   - **escape hatch** — if the baseline has drifted so far from the code that patching it would be dishonest, rewrite that document in full and say so in the confirmation.
+
+   Everything else about the agents is unchanged: direct write, confirmation only, the CONTEXT.md boundary, the stamp.
+
+Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) → baseline `wc -l` → 4 agents, in place → post-check
+   └── precheck fails → full Refresh, one-line reason
 
 ### Agent prompts (one per focus)
 
@@ -66,15 +88,18 @@ mapped: <YYYY-MM-DD>
 ---
 ```
 
-Get the sha once before launching (`git rev-parse HEAD`) and pass it into every agent prompt. This stamp is what lets fg-ask judge whether the map is stale — without it, a consumer cannot tell a fresh map from one that is hundreds of commits behind. This guards against "stale-docs rot," the other face of context rot.
+Get the sha once before launching (`git rev-parse HEAD`) and pass it into every agent prompt. This stamp is also the baseline an incremental Update diffs against (see the Update procedure above). It is what lets fg-ask judge whether the map is stale — without it, a consumer cannot tell a fresh map from one that is hundreds of commits behind. This guards against "stale-docs rot," the other face of context rot.
 
 ## After the agents return
 
 1. **Verify output.** Confirm the expected documents exist and none is empty (`ls`, `wc -l .forge/codebase/*.md`). Note any focus that failed; continue with what succeeded.
-2. **Scan for secrets — mandatory.** `.forge/codebase/` is a **git-tracked permanent doc** (unlike volatile `.forge/`), so it will be committed. A mapper quoting a `.env` or config file can accidentally copy a key. Grep the generated docs for common secret patterns (e.g. `sk-`, `sk_live_`, `ghp_`, `AKIA`, JWT-shaped `eyJ...`, `-----BEGIN ... PRIVATE KEY`). If anything matches, **stop and surface it to the user for confirmation before going further** — do not commit past a suspected leak.
-3. **Offer to commit (do not auto-commit).** forge has no stage that commits without user confirmation, and the working tree may hold unrelated changes. After the secret scan passes, ask: "Map written and scanned clean — commit it as `docs: map codebase`?" Commit only on agreement. If the working tree has unrelated changes, point that out and let the user decide what to stage.
+2. **Post-check an incremental Update — mandatory (Update path only).** Two checks:
+   - all 7 documents now stamp the HEAD sha the run started from — an agent whose focus the diff never touched still bumps its stamp, so a stale one means that agent did not finish;
+   - compare `wc -l` against the baseline captured before launching (step 3 of the Update procedure). Report the before→after counts, and if any document lost **more than ~30% of its lines, stop and surface it** — an in-place edit that shrinks a document that far is the signature of content silently dropped, and only the user can say whether the deletion was legitimate.
+3. **Scan for secrets — mandatory.** `.forge/codebase/` is a **git-tracked permanent doc** (unlike volatile `.forge/`), so it will be committed. A mapper quoting a `.env` or config file can accidentally copy a key. Grep the generated docs for common secret patterns (e.g. `sk-`, `sk_live_`, `ghp_`, `AKIA`, JWT-shaped `eyJ...`, `-----BEGIN ... PRIVATE KEY`). If anything matches, **stop and surface it to the user for confirmation before going further** — do not commit past a suspected leak.
+4. **Offer to commit (do not auto-commit).** forge has no stage that commits without user confirmation, and the working tree may hold unrelated changes. After the secret scan passes, ask: "Map written and scanned clean — commit it as `docs: map codebase`?" Commit only on agreement. If the working tree has unrelated changes, point that out and let the user decide what to stage.
 
-Flow: check existing map (menu if present) → stamp HEAD sha → launch 4 agents (direct write, confirmation only) → verify output → scan for secrets → offer commit
+Flow: check existing map (menu if present) → stamp HEAD sha → launch 4 agents (direct write, confirmation only) → verify output → post-check (Update only) → scan for secrets → offer commit
 
 ## Handoff
 
@@ -84,10 +109,10 @@ When the map is written, convey in a conversational tone (not a stamped-out form
 
 - **Not a loop stage.** fg-map writes no `.forge/` state, promotes no plan, and seals nothing. It only produces `.forge/codebase/`. It does not participate in the active-slot / backlog / done contract.
 - **Direct write, confirmation only.** The whole reason fg-map exists is to keep codebase exploration out of the orchestrating session's context. If you ever find yourself reading source files in this session to build the map, you have defeated the purpose — fan it out.
-- **No `--paths` incremental mode, no sequential fallback.** Partial updates are handled by the Update menu (document-level). forge is Claude Code only, so the `Agent` tool is always available — there is no non-Agent fallback path to maintain.
+- **No user-specified path scope, no sequential fallback.** Incremental scope comes from the `last_mapped_commit` stamp, never from a user-supplied path list — there is no `--paths` flag: Update derives its own scope from the diff, and Refresh scopes by document, not by path. forge is Claude Code only, so the `Agent` tool is always available — there is no non-Agent fallback path to maintain.
 
 ## Document impact
 
-- Creates/refreshes `.forge/codebase/*.md` (7 documents), each stamped with `last_mapped_commit`. Lazy creation of the directory.
+- Creates/refreshes `.forge/codebase/*.md` (7 documents), or edits them in place on the incremental Update path, each stamped with `last_mapped_commit`. Lazy creation of the directory.
 - Does not touch `.forge/`, `CONTEXT.md`, or any ADR.
 - (Optional) a commit `docs: map codebase`, only on user agreement after a clean secret scan.

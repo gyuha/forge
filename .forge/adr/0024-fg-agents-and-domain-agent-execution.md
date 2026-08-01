@@ -27,6 +27,7 @@ ADR-0013은 **forge 플러그인 자체**에 투기적 영속 서브에이전트
 - fg-run 실행 모델이 "기본 워크플로 서브에이전트"에서 "프로젝트 `.claude/agents/`가 있으면 그 role을 `agentType`으로"까지 확장된다. graceful이라 기존 동작은 불변.
 - eco(ADR-0014)가 ON이면 `agentType` 호출에도 sonnet 캡 + ECO.md 주입이 적용된다 — 단 role 카드에 `model`이 명시돼 있으면 사용자 명시로 보고 존중한다(eco는 내리기만).
 - **전제 (PoC로 검증·보정 — 2026-06-26)**: 프로젝트 로컬 `.claude/agents/<role>.md`는 **세션 시작 시 1회 로드**되며, 그렇게 로드된 카드는 `subagent_type`/`agentType`으로 정상 호출된다(통합 메커니즘 유효 — 공식 문서 "Subagents are loaded at session start" 확인). **단 세션 중 파일로 만든 카드는 동적 픽업되지 않는다**(`/agents` interactive 인터페이스만 즉시 반영하나 스킬이 프로그램적으로 못 씀). 따라서 **fg-agents가 파일로 생성한 role 카드는 세션을 재시작해야 fg-run이 로드**하고, "생성 → 같은 세션 즉시 호출" e2e는 불가하다. 운영 흐름은 **fg-agents 생성 → 세션 재시작 → fg-run 활용**이며(graceful과 정합 — fg-run은 세션 시작 시 로드된 것만 본다), 이 재시작은 프로젝트 셋업 시 1회뿐이고 이후 모든 fg-run이 활용한다.
+- **위 "세션 시작 1회 로드"는 `.claude/agents/` 카드만의 성질이 아니라 플러그인 `skills/*/SKILL.md` 본문에도 동일하게 적용된다 (실측 2026-08-01).** 작업 `fg-map-diff-incremental-update`의 dogfood에서 세션 중 `skills/fg-map/SKILL.md`를 편집한 뒤 같은 세션에서 `/forge:fg-map`을 호출했더니, 슬래시 명령에 실려 온 스킬 본문이 **편집 전 버전**이었다(디스크는 수정본). 즉 forge를 forge로 dogfood할 때 **자기 수정은 재시작 전까지 자기 실행에 반영되지 않는다** — 도메인 에이전트의 "생성 → 세션 재시작 → 활용"과 같은 형태이며, 스킬을 고치고 그 자리에서 검증하려는 작업은 DoD를 "작성 완료"와 "재시작 후 실 동작 검증"으로 나눠야 한다.
 - 스킬이 18개가 된다(매니페스트 3곳·README 이중언어·`docs/skills.md`·CLAUDE.md 스킬 목록·STRUCTURE.md·fg-doctor 카운트 동기 필요).
 - 작업은 두 part-plan으로 분할한다(fg-run 확장 먼저 → fg-agents). 각 part는 독립 sealable.
 
