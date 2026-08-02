@@ -16,5 +16,8 @@
 
 .omx
 
+# graphify 산출물 (로컬 도구, 나란히 쓰기 — ADR 260801-223500)
+graphify-out/
+
 # macOS 정크
 .DS_Store

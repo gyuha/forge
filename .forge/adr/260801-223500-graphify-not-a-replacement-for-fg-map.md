@@ -86,7 +86,8 @@ accepted
 
 - **fg-map은 변경 없다.** ADR `260801-020258`의 증분 Update가 상용 경로로 남고, 주기적 전체 Refresh가 정확도 회복 수단으로 남는다(그 ADR의 "실행 후 관측" 참조).
 - **이슈 #9의 답은 "더 빠른 것은 사실이나 대체는 아니다"**다 — 139배 빠르고 토큰이 0인 것은 측정으로 확인됐고, 그것이 대체 근거가 되지 못하는 이유는 소비 형태와 판단형 콘텐츠의 부재다.
-- **graphify CLI는 스파이크 후 제거한다**(`uv tool uninstall graphifyy`). 어시스턴트 스킬 등록(`graphify install`)은 애초에 하지 않았으므로 사용자 설정에 잔여가 없다.
+- **graphify CLI는 유지한다 (개정 2026-08-02).** 스파이크 직후에는 제거했으나(`uv tool uninstall graphifyy`), 사용자가 **나란히 쓰기**를 택해 다시 설치했다. 이것은 위 결정과 충돌하지 않는다 — 유예한 것은 *forge가 graphify에 의존하게 만드는 것*이고, *사람이 graphify를 직접 쓰는 것*은 forge의 결정 대상이 아니다. 두 도구는 실제로 다른 일을 한다: fg-map은 "이 코드베이스가 어떤 곳인가"라는 판단을 프로즈로 주고, graphify는 "A에서 B로 어떻게 닿는가"라는 경로를 질의(`explain`/`path`/`affected`/`god-nodes`)로 준다. 후자는 7문서에 콜 그래프가 없어 fg-map이 아예 못 하는 일이다. 어시스턴트 스킬 등록(`graphify install`)은 여전히 하지 않는다 — 리포 밖 사용자 설정을 건드리지 않는다.
+- **나란히 쓰기의 전제는 `.graphifyignore`다 (실증 2026-08-02).** graphify는 `.gitignore`·`.graphifyignore`·`.git/info/exclude`를 gitignore 문법으로 읽는다(`graphify/detect.py`). forge 리포에서 실측하니 배제 없이는 **1,836노드 중 762개(41.5%)가 `.forge/` 유래**였다 — Markdown 리포라 story-weaver의 15%보다 훨씬 심하게 장부가 그래프를 지배한다. `.graphifyignore`에 `.forge/` 한 줄을 넣자 `.forge` 노드가 **762 → 0**, 전체 1,836 → 1,074가 되고(정확히 762개만 제거) `CLAUDE.md`·`README*`·`docs/`·`.claude/agents/`는 남는다 — forge는 Markdown이 제품이므로 그것이 옳다. 즉 배제는 장부만 정확히 겨냥한다. `graphify-out/`은 `.gitignore`에 넣어 추적에서 뺀다.
 - **"구조 사실 vs 판단"이라는 구분이 이 결정의 축이었다.** 지금은 CONTEXT.md 승급 바를 넘지 않는다고 보아 용어로 올리지 않았다 — 병행이 실제로 채택되면 그때 하중을 받으므로 재검토한다.
 - **측정의 한계는 결론과 함께 남긴다**: 단일 리포·단일 실행이고, 실행 중 대상 리포가 제3의 프로세스에 편집됐다(4파일, 골든셋과 무겹침, 위험했던 C16은 작업트리·HEAD 모두 49로 동일함을 확인). `.forge/` 흡수는 graphify에 **유리한** 방향의 오염이었고 그 상태에서도 무주장 9가 나왔으므로, 오염을 제거하면 무주장이 늘어날 뿐 줄지 않는다.
 - 재현 자료: 골든셋 20개와 도출 명령·양쪽 3분류 채점표는 이 작업의 `run.md`에 전사되어 `.forge/done/`에 아카이브된다.
