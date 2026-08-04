@@ -30,9 +30,9 @@ A question *about* a UI topic is not automatically a visual question. "What kind
 
 ## How It Works
 
-The server watches a directory for HTML files and serves the newest one to the browser. You write HTML content to `screen_dir`, the user sees it in their browser and can click to select options — or type into a text input you put on the screen. Those interactions are recorded to `state_dir/events` that you read on your next turn, and they count as real answers, not just hints (ADR `260730-224259`).
+The server watches a directory for HTML files and serves the newest one to the browser. You write HTML content to `screen_dir`, the user sees it in their browser and can click to select options — or type into a text input you put on the screen. Those interactions are recorded to `state_dir/events`, and they count as real answers, not just hints (ADR `260730-224259`).
 
-**What the browser does and does not do.** It is a display surface *and* a secondary answer channel. What it cannot do is wake you: the conversation resumes on a terminal turn, so the user must still send something in the terminal for you to read the events. That boundary is what keeps pillar #1 intact — grilling stays a terminal-driven conversation, one question at a time, and the browser never becomes a runtime input to a workflow.
+**What the browser does and does not do.** It is a display surface *and* a secondary answer channel. An exploratory click just sits in `state_dir/events` until you read it — nothing wakes on its own. A **confirmed** selection is different: with the wake watch armed (see Starting a Session), pressing the confirm button wakes you directly, no terminal turn required. Pillar #1 does not rest on "only the terminal can resume you" — it rests on the browser never being a runtime input to a Dynamic Workflow, and grilling never running inside one: it stays a one-question-at-a-time conversation outside any workflow, whatever wakes it.
 
 **Content fragments vs full documents:** If your HTML file starts with `<!DOCTYPE` or `<html`, the server serves it as-is (just injects the helper script). Otherwise, the server automatically wraps your content in the frame template — adding the header, CSS theme, connection status, and all interactive infrastructure. **Write content fragments by default.** Only write full documents when you need complete control over the page.
 
@@ -77,6 +77,24 @@ If the URL is unreachable from your browser (common in remote/containerized setu
 
 Use `--url-host` to control what hostname is printed in the returned URL JSON.
 
+**Arm the wake watch (mandatory):** immediately after the server starts, arm a watch on the events file so a confirmed click can wake you without a terminal turn:
+
+```
+Monitor(command: "tail -n0 -F <state_dir>/events 2>/dev/null | grep --line-buffered -E '\"choice\":\"(confirm|text):'",
+        description: "fg-visual confirm/text events",
+        persistent: true)
+```
+
+`Monitor` is a deferred tool — look it up before the first call if its schema isn't loaded yet.
+
+- **`tail -n0`** — don't replay lines already in the file, only new ones.
+- **`-F`** — survives the file being cleared when you push a new screen (plain `-f` would keep following the old, now-deleted inode).
+- **The filter passes only `confirm:` and `text:`** — an exploratory option click (`"choice":"a"`) never matches, so browsing never wakes you; only a confirmed selection or a submitted Ask input does.
+- **`--line-buffered` is required, not cosmetic.** Without it, `grep`'s own output buffering holds matches until the buffer fills — the watch looks armed but delivers nothing. This is the worst failure shape: it appears to work and silently doesn't.
+- **`persistent: true`, not a `timeout_ms`.** `Monitor`'s timeout caps at 1 hour; the visual server's idle timeout is 4 hours. A timed watch would die first and leave the user clicking into a watch that is no longer there.
+
+**If `Monitor` is unavailable** (tool missing, or arming it errors), fall back to the pre-watch behavior: skip this step, and end your turn with the old instruction — press 확정, then send anything in the terminal (see The Loop, step 2). This is a graceful degradation, the same pattern as `fg-map`/eco/tdd being absent — never a hard dependency.
+
 ## The Loop
 
 1. **Check server is alive**, then **write HTML** to a new file in `screen_dir`:
@@ -89,9 +107,10 @@ Use `--url-host` to control what hostname is printed in the returned URL JSON.
 2. **Tell user what to expect and end your turn:**
    - Remind them of the URL (every step, not just first)
    - Give a brief text summary of what's on screen (e.g., "Showing 3 layout options for the homepage")
-   - Tell them they can answer **either way**: "Take a look — click an option (or type in the box on screen), then send anything here and I'll pick it up." A terminal turn is what wakes you, so they still have to send *something*; it does not have to be the answer itself.
+   - **With the watch armed** (the default — see Starting a Session): tell them to explore freely and press **이걸로 확정** when they've settled — that alone wakes you, no terminal message needed. e.g. "Take a look — click through the options, then press 이걸로 확정 when you've settled. No need to send anything here."
+   - **Without the watch** (fallback, see Starting a Session): tell them they can answer **either way**: "Take a look — click an option (or type in the box on screen), then send anything here and I'll pick it up." A terminal turn is what wakes you, so they still have to send *something*; it does not have to be the answer itself.
 
-3. **On your next turn** — after the user sends a terminal turn:
+3. **On your next turn** — woken by a confirmed click (the watch firing) or by the user sending a terminal turn:
    - Read `$STATE_DIR/events` if it exists — this contains the user's browser interactions (clicks, selections, text submissions) as JSON lines
    - **Merge both channels.** Neither is subordinate: for a choice question a click **is** the answer, and a submitted `text` event **is** the answer, exactly as if typed in the terminal. A terminal message like "ok" or "봤어" after a click is a wake token, not a retraction of the click.
    - **On a genuine contradiction between the two — ask one line; never pick silently.** e.g. the browser has option A plus a note, the terminal says B: "the browser has A (+ header fixed) and the terminal says B — which one?" Discarding one channel's input silently is the failure this rule exists to prevent.
@@ -138,9 +157,21 @@ Write just the content that goes inside the page. The server wraps it in the fra
     </div>
   </div>
 </div>
+
+<button class="mock-button" onclick="
+  var sel = Array.from(document.querySelectorAll('.option.selected, .card.selected'))
+                 .map(function(e){ return e.dataset.choice; });
+  var key = sel.join(',') || 'none';
+  if (this.dataset.sent === key) return;   // same selection re-sent (double-click) — drop
+  this.dataset.sent = key;
+  window.brainstorm.send({type:'confirm', choice:'confirm:'+key, value:sel});
+  this.textContent='확정됨';
+">이걸로 확정</button>
 ```
 
 That's it. No `<html>`, no CSS, no `<script>` tags needed. The server provides all of that.
+
+**The confirm button is required on every choice screen** — see Confirm button below for why, and what it must not carry.
 
 ## CSS Classes Available
 
@@ -167,6 +198,32 @@ The frame template provides these CSS classes for your content:
   <!-- same option markup — users can select/deselect multiple -->
 </div>
 ```
+
+**Every options screen needs a confirm button** (single- or multi-select alike) — see Confirm button below.
+
+### Confirm button (required on choice screens)
+
+A choice screen without a confirm button leaves the user unable to tell whether *this* screen wakes you or not — "some screens wake, some don't" is the exact confusion this feature exists to remove. Add it to every `options`/`cards` screen:
+
+```html
+<button class="mock-button" onclick="
+  var sel = Array.from(document.querySelectorAll('.option.selected, .card.selected'))
+                 .map(function(e){ return e.dataset.choice; });
+  var key = sel.join(',') || 'none';
+  if (this.dataset.sent === key) return;   // same selection re-sent (double-click) — drop
+  this.dataset.sent = key;
+  window.brainstorm.send({type:'confirm', choice:'confirm:'+key, value:sel});
+  this.textContent='확정됨';
+">이걸로 확정</button>
+```
+
+- **No `data-choice` on this button.** `helper.js`'s global click listener auto-sends any `[data-choice]` element (`{type:'click', text:<label>, choice:<data-choice>, id:<id|null>}`); adding `data-choice` here would double-send alongside the inline handler.
+- **`choice` is REQUIRED** — same server guard as Ask input below (`if (event && event.choice)`): omit it and the confirm event is silently dropped.
+- **Read `.selected`, not `window.selectedChoice`.** `toggleSelect` only ever sets `window.selectedChoice` to the *last* clicked element, which is wrong once a screen allows multiple selections; querying `.option.selected, .card.selected` is correct for both single- and multi-select.
+- **`confirm:none` is a valid signal** — pressed with nothing selected, it tells you exactly that, so you can ask instead of guessing.
+- **Keep the label "이걸로 확정."** The user must understand that clicking it ends the screen — that is what stops you from advancing while they were still thinking. A workaround must pin down what it is working around, or the next reader "cleans it up"; do not rename or restyle this away.
+- **The `dataset.sent` guard drops a re-send of the *same* selection, and only that.** Measured on the first real run: a double-click produced two identical `confirm:gamma` events 798 ms apart — one decision, two wakes. The guard suppresses that while deliberately leaving a **re-confirm of a different selection** working, because that is a real user move (the same run went `confirm:gamma` → explore → `confirm:beta` 10 s later). Do not "improve" this into a disabled button: that would block the legitimate change of mind.
+- **On wake, the last confirm wins — and repeats are idempotent.** Read the whole `state_dir/events` file, not just the event you were woken with: take the **last** `confirm` line as the answer (that is what makes a re-confirm authoritative), and if it names what you already acted on, do not answer twice. Two notifications for one decision are still possible (a fast double-click can outrun the guard, and the file is append-only), so idempotence lives on your side too, not only in the button.
 
 ### Cards (visual designs)
 
@@ -297,6 +354,8 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 - **Standalone (fg-visual)**: stop when the visual discussion is done, or when the user says `fg-visual stop`.
 - **Abandoned sessions**: the 4-hour idle timeout is the backstop — a forgotten server shuts itself down.
 - Mockup files persist in `.forge/visual/` after stop for later reference (only `/tmp` sessions are deleted).
+- **The wake watch is `persistent` — stop it explicitly.** It never times out on its own, so stop it with `TaskStop` at every point the server itself gets stopped: `fg-visual stop` and fg-ask's Output time (the two bullets above). A server stop without a matching `TaskStop` leaves the watch running against a dead events file.
+- **A session restart kills the watch but not the server** — the server survives on the same port (see Starting a Session), but the watch was armed by a tool call in the session that just ended. Re-entry must re-arm it (see Starting a Session) before a confirmed click can wake you again.
 
 ## Cleaning Up
 

@@ -84,7 +84,7 @@ The four loop stages, then the fifteen utilities outside the loop:
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync — script-backed, usable as an AI-free CI gate |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
 | `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
-| `fg-visual` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and takes your answers back as events — a click settles a choice, and a screen can carry a text box; offered just-in-time during fg-ask grilling, `fg-visual stop` shuts it down |
+| `fg-visual` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and takes your answers back as events — a required confirm button on choice screens wakes you directly with no terminal turn, exploratory clicks don't; offered just-in-time during fg-ask grilling, `fg-visual stop` shuts it down |
 
 Per-skill detail — input/output/next, triggers, and the rationale ADRs — is in **[docs/skills.md](./docs/skills.md) (Korean)**. `fg-ask` is the loop's entry point (it triggers on "start with forge", "new task", "refine the plan"); the utilities are on-demand, each triggered by its own utterances.
 

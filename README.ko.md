@@ -84,7 +84,7 @@
 | `fg-doctor` | 유틸리티 | `.forge/` 상태 계약과 문서/매니페스트 정합의 읽기 전용 무결성 검사 — 스크립트-백킹, AI 없는 CI 게이트로 사용 가능 |
 | `fg-drop` | 유틸리티 | 미완 작업(backlog/활성/executed/멈춘 루프) 폐기 — 위험도 표기 목록, 하드 삭제 또는 `.forge/dropped/` 보관 |
 | `fg-agents` | 유틸리티 | 대화형 그릴링으로 프로젝트 도메인 에이전트(`.claude/agents/<role>.md`) 생성 — 세션 재시작 후 fg-run이 매칭 role을 `agentType`으로 호출 |
-| `fg-visual` | 유틸리티 | 브라우저 시각 컴패니언(superpowers vendoring, MIT) — zero-dependency 로컬 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 표시하고 당신의 답을 이벤트로 되읽음 — 클릭이 선택을 확정하고, 화면에 텍스트 입력칸도 놓을 수 있음; fg-ask 그릴링 중 just-in-time 1회 제안, `fg-visual stop`으로 종료 |
+| `fg-visual` | 유틸리티 | 브라우저 시각 컴패니언(superpowers vendoring, MIT) — zero-dependency 로컬 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 표시하고 당신의 답을 이벤트로 되읽음 — 선택형 화면의 필수 확정 버튼을 누르면 터미널 턴 없이 바로 당신을 깨우고, 탐색 클릭만으로는 깨우지 않음; fg-ask 그릴링 중 just-in-time 1회 제안, `fg-visual stop`으로 종료 |
 
 스킬별 상세 — 입력·출력·다음 단계, 트리거, 근거 ADR — 은 **[docs/skills.md](./docs/skills.md)** 에 있다. `fg-ask`가 루프의 진입점이며("forge 시작", "새 작업", "계획 다듬자" 등에서 트리거), 유틸리티는 각자 고유 발화로 트리거되는 온디맨드 스킬이다.
 
