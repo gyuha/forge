@@ -11,11 +11,18 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth;overflow-x:hidden}
+  /* overflow-x:clip (hidden as fallback) — `hidden` on the root forces overflow-y:auto, which turns
+     <html> into the scroll container and leaves the page laid out at a stale viewport size after the
+     window is resized; `clip` keeps scrolling on the viewport itself. background here too so the
+     canvas is black even before the body paints. */
+  html{scroll-behavior:smooth;overflow-x:hidden;overflow-x:clip;background:#000}
   body{margin:0;background:#000;-webkit-font-smoothing:antialiased;font-family:"SF Pro Display","SF Pro Text","Inter",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif}
   /* language toggle: hide the inactive language */
   [data-lang="ko"] [data-l="en"],[data-lang="en"] [data-l="ko"]{display:none}
   #langtoggle button{transition:background .2s ease,color .2s ease}
+  /* hide reveal targets from the first paint on, so the bottom-of-body script applying their start
+     state can never be seen as a jump (.fg-js is set in <head>, so no-JS still shows everything) */
+  html.fg-js [data-reveal]{opacity:0}
   @keyframes fgFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
   @keyframes fgSpin{to{transform:rotate(360deg)}}
   @keyframes fgDash{to{stroke-dashoffset:0}}
@@ -23,16 +30,12 @@
   @keyframes fgSheen{0%{background-position:200% 0}100%{background-position:-200% 0}}
   @keyframes fgBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
   @keyframes fgGrid{0%{transform:translateY(0)}100%{transform:translateY(56px)}}
+  /* each .fg-pin-wrap holds exactly one section, so wrap height == child height: sticky had zero room
+     to travel (verified — no section ever pinned) and the z-index stack never overlapped. Dropping it
+     removes seven full-viewport composited layers that made resize repaints unreliable. */
   @media (min-width:900px){
     .fg-pin-wrap{min-height:100vh}
-    .fg-pin-wrap > section,.fg-pin-wrap > footer{position:sticky!important;top:0;min-height:100vh;display:flex;flex-direction:column;justify-content:center}
-    #top{z-index:1}
-    #loop{z-index:2}
-    #pillars{z-index:4}
-    #install{z-index:5}
-    #usage{z-index:6}
-    #state{z-index:7}
-    footer{z-index:8}
+    .fg-pin-wrap > section,.fg-pin-wrap > footer{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
   }
   /* mobile: nav collapses (center links hidden), grids reflow to fewer columns */
   @media (max-width:760px){
@@ -59,6 +62,7 @@
 </style>
 <script>
 // Set the language before first paint to avoid a flash: localStorage → browser language → KO fallback.
+document.documentElement.className+=' fg-js';
 (function(){try{var s=localStorage.getItem('forge-lang');if(s!=='ko'&&s!=='en'){s=(navigator.language||navigator.userLanguage||'').toLowerCase().indexOf('ko')===0?'ko':'en';}var d=document.documentElement;d.setAttribute('data-lang',s);d.setAttribute('lang',s);}catch(e){}})();
 </script>
 </head>
@@ -97,26 +101,26 @@
 <section id="top" style="position:relative;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:120px 24px 90px;background:radial-gradient(ellipse 90% 70% at 50% 0%,#141414 0%,#000 62%);text-align:center;overflow:hidden">
   <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.035) 1px,transparent 1px);background-size:56px 56px;mask-image:radial-gradient(ellipse 70% 55% at 50% 30%,#000 0%,transparent 75%);-webkit-mask-image:radial-gradient(ellipse 70% 55% at 50% 30%,#000 0%,transparent 75%);animation:fgGrid 6s linear infinite"></div>
 
-  <div data-reveal style="position:relative;display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:980px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:34px">
+  <div style="position:relative;display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:980px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);font-size:12px;color:rgba(255,255,255,0.7);margin-bottom:34px">
     <span style="width:6px;height:6px;border-radius:50%;background:#30d158;box-shadow:0 0 8px #30d158"></span>
     Claude Code workflow plugin
   </div>
 
-  <div data-reveal style="position:relative">
+  <div style="position:relative">
     <div style="position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(255,138,61,0.28),transparent 70%);filter:blur(30px);animation:fgFloat 5s ease-in-out infinite"></div>
     <h1 style="position:relative;margin:0;font-size:clamp(76px,15vw,168px);font-weight:700;letter-spacing:-0.05em;line-height:0.92;color:#fff">forge<span style="color:#ff8a3d">.</span></h1>
   </div>
 
-  <p data-reveal style="position:relative;margin:26px 0 0;font-size:clamp(21px,3.4vw,30px);font-weight:600;letter-spacing:-0.02em;line-height:1.18;color:#f5f5f7;max-width:660px"><span data-l="ko">하나의 작업을 하나의 사이클로.</span><span data-l="en">One task, one cycle.</span><br><span style="color:rgba(255,255,255,0.62);font-weight:400">ask·plan → execute → retro → done.</span></p>
+  <p style="position:relative;margin:26px 0 0;font-size:clamp(21px,3.4vw,30px);font-weight:600;letter-spacing:-0.02em;line-height:1.18;color:#f5f5f7;max-width:660px"><span data-l="ko">하나의 작업을 하나의 사이클로.</span><span data-l="en">One task, one cycle.</span><br><span style="color:rgba(255,255,255,0.62);font-weight:400">ask·plan → execute → retro → done.</span></p>
 
-  <p data-reveal style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">20개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 회고는 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from twenty <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and retros stay in the docs.</span></p>
+  <p style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">20개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 회고는 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from twenty <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and retros stay in the docs.</span></p>
 
-  <div data-reveal style="position:relative;display:flex;gap:14px;margin-top:38px;flex-wrap:wrap;justify-content:center">
+  <div style="position:relative;display:flex;gap:14px;margin-top:38px;flex-wrap:wrap;justify-content:center">
     <a href="#install" style="text-decoration:none;font-size:15px;font-weight:500;color:#fff;background:#0071e3;padding:12px 26px;border-radius:980px;transition:background .25s ease" onmouseover="this.style.background='#0077ed'" onmouseout="this.style.background='#0071e3'"><span data-l="ko">설치하기</span><span data-l="en">Install</span></a>
     <a href="#loop" style="text-decoration:none;font-size:15px;font-weight:500;color:#f5f5f7;border:1px solid rgba(255,255,255,0.28);padding:12px 26px;border-radius:980px;transition:all .25s ease" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'"><span data-l="ko">루프 알아보기 ›</span><span data-l="en">Explore the loop ›</span></a>
   </div>
 
-  <div data-reveal style="position:relative;margin-top:64px;display:flex;gap:36px;color:rgba(255,255,255,0.5);font-size:13px">
+  <div style="position:relative;margin-top:64px;display:flex;gap:36px;color:rgba(255,255,255,0.5);font-size:13px">
     <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">20</span><span data-l="ko">스킬</span><span data-l="en">skills</span></div>
     <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">4</span><span data-l="ko">단계 루프</span><span data-l="en">stage loop</span></div>
     <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">16</span><span data-l="ko">유틸리티</span><span data-l="en">utilities</span></div>
@@ -616,7 +620,9 @@
     'slide-right': { transform: 'translateX(36px)',           filter: 'none',      dur: 750 },
     settle:      { transform: 'scale(1.06)',                  filter: 'blur(4px)', dur: 800 }
   };
-  var SECTION_PRESET = { top: 'rise', loop: 'zoom', skills: 'pop', lanes: 'soft-rise', pillars: 'slide-left', install: 'soft-rise', usage: 'slide-right', state: 'settle' };
+  // #top carries no [data-reveal]: the hero is above the fold, so its scale-up entrance read as the
+  // page resizing itself on load. It now paints at its final size and never animates.
+  var SECTION_PRESET = { loop: 'zoom', skills: 'pop', lanes: 'soft-rise', pillars: 'slide-left', install: 'soft-rise', usage: 'slide-right', state: 'settle' };
   var els = document.querySelectorAll('[data-reveal]');
   els.forEach(function (el, i) {
     var host = el.closest('section, footer');
