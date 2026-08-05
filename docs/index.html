@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>forge — Claude Code 워크플로우 플러그인</title>
-<meta name="description" content="하나의 작업을 하나의 사이클로. 18개의 fg- 스킬로 만든 Claude Code 루프형 워크플로우 플러그인.">
+<meta name="description" content="하나의 작업을 하나의 사이클로. 20개의 fg- 스킬로 만든 Claude Code 루프형 워크플로우 플러그인.">
 <link rel="icon" href="./icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -40,9 +40,9 @@
     .fg-nav-inner{justify-content:space-between;gap:16px!important}
   }
   @media (max-width:640px){
-    .fg-grid-pillars,.fg-grid-install,.fg-grid-state,.fg-grid-loopcards{grid-template-columns:1fr!important}
+    .fg-grid-pillars,.fg-grid-install,.fg-grid-state,.fg-grid-loopcards,.fg-grid-lanes{grid-template-columns:1fr!important}
     .fg-grid-utils{grid-template-columns:repeat(2,1fr)!important}
-    #loop,#skills,#pillars,#install,#usage,#state{padding-top:72px!important;padding-bottom:72px!important}
+    #loop,#skills,#lanes,#pillars,#install,#usage,#state{padding-top:72px!important;padding-bottom:72px!important}
     /* let flex text columns shrink instead of overflowing (flexbox min-width:auto fix) */
     #usage [style*="display:flex"]>div{min-width:0}
   }
@@ -77,6 +77,7 @@
     <div class="fg-navlinks" style="flex:1;display:flex;gap:26px;align-items:center;justify-content:center;font-size:12.5px;color:rgba(255,255,255,0.82)">
       <a href="#loop" style="text-decoration:none;color:inherit"><span data-l="ko">루프</span><span data-l="en">Loop</span></a>
       <a href="#skills" style="text-decoration:none;color:inherit"><span data-l="ko">스킬</span><span data-l="en">Skills</span></a>
+      <a href="#lanes" style="text-decoration:none;color:inherit"><span data-l="ko">비교</span><span data-l="en">Compare</span></a>
       <a href="#install" style="text-decoration:none;color:inherit"><span data-l="ko">설치</span><span data-l="en">Install</span></a>
       <a href="#usage" style="text-decoration:none;color:inherit"><span data-l="ko">사용법</span><span data-l="en">Usage</span></a>
       <a href="#state" style="text-decoration:none;color:inherit"><span data-l="ko">구조</span><span data-l="en">State</span></a>
@@ -108,7 +109,7 @@
 
   <p data-reveal style="position:relative;margin:26px 0 0;font-size:clamp(21px,3.4vw,30px);font-weight:600;letter-spacing:-0.02em;line-height:1.18;color:#f5f5f7;max-width:660px"><span data-l="ko">하나의 작업을 하나의 사이클로.</span><span data-l="en">One task, one cycle.</span><br><span style="color:rgba(255,255,255,0.62);font-weight:400">ask·plan → execute → retro → done.</span></p>
 
-  <p data-reveal style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">18개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 회고는 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from eighteen <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and retros stay in the docs.</span></p>
+  <p data-reveal style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">20개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 회고는 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from twenty <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and retros stay in the docs.</span></p>
 
   <div data-reveal style="position:relative;display:flex;gap:14px;margin-top:38px;flex-wrap:wrap;justify-content:center">
     <a href="#install" style="text-decoration:none;font-size:15px;font-weight:500;color:#fff;background:#0071e3;padding:12px 26px;border-radius:980px;transition:background .25s ease" onmouseover="this.style.background='#0077ed'" onmouseout="this.style.background='#0071e3'"><span data-l="ko">설치하기</span><span data-l="en">Install</span></a>
@@ -116,9 +117,9 @@
   </div>
 
   <div data-reveal style="position:relative;margin-top:64px;display:flex;gap:36px;color:rgba(255,255,255,0.5);font-size:13px">
-    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">18</span><span data-l="ko">스킬</span><span data-l="en">skills</span></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">20</span><span data-l="ko">스킬</span><span data-l="en">skills</span></div>
     <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">4</span><span data-l="ko">단계 루프</span><span data-l="en">stage loop</span></div>
-    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">14</span><span data-l="ko">유틸리티</span><span data-l="en">utilities</span></div>
+    <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:26px;font-weight:600;color:#fff;letter-spacing:-0.02em">16</span><span data-l="ko">유틸리티</span><span data-l="en">utilities</span></div>
   </div>
 </section>
 </div>
@@ -129,7 +130,7 @@
   <div style="max-width:1040px;margin:0 auto">
     <p data-reveal style="margin:0;font-size:14px;font-weight:500;color:#ff8a3d;letter-spacing:0.01em">The Loop</p>
     <h2 data-reveal style="margin:12px 0 0;font-size:clamp(34px,5vw,52px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;color:#fff"><span data-l="ko">작업 하나가 도는<br>네 단계의 사이클.</span><span data-l="en">One task through<br>a four-stage cycle.</span></h2>
-    <p data-reveal style="margin:20px auto 0;font-size:17px;line-height:1.5;color:rgba(255,255,255,0.6);max-width:560px"><span data-l="ko">한 스킬이 끝나면 다음으로 가는 길을 안내하고, 동의하면 그 자리에서 다음 스킬을 실행합니다. <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-done</code>이 작업을 봉인하면 같은 작업은 두 번 돌지 않습니다.</span><span data-l="en">When one skill finishes, it states the way to the next; run <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-next</code> to take that step. Once <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-done</code> seals a task, the same task never runs twice.</span></p>
+    <p data-reveal style="margin:20px auto 0;font-size:17px;line-height:1.5;color:rgba(255,255,255,0.6);max-width:560px"><span data-l="ko">한 스킬이 끝나면 다음으로 가는 길을 알리고 멈춥니다 — 그 걸음을 밟는 것은 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-next</code>의 몫입니다. <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-done</code>이 작업을 봉인하면 같은 작업은 두 번 돌지 않습니다.</span><span data-l="en">When one skill finishes, it states the way to the next; run <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-next</code> to take that step. Once <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-done</code> seals a task, the same task never runs twice.</span></p>
 
     <!-- diagram -->
     <div data-reveal class="fg-loop-diagram" style="position:relative;margin-top:70px;display:flex;align-items:stretch;justify-content:center;gap:0;flex-wrap:wrap">
@@ -194,7 +195,7 @@
 <section id="skills" style="padding:120px 24px 130px;background:#f5f5f7">
   <div style="max-width:1040px;margin:0 auto">
     <p data-reveal style="margin:0;font-size:14px;font-weight:500;color:#c25a1a;text-align:center">Skill catalog</p>
-    <h2 data-reveal style="margin:12px 0 0;font-size:clamp(34px,5vw,52px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;color:#1d1d1f;text-align:center"><span data-l="ko">18개의 스킬.<br>하나의 흐름.</span><span data-l="en">Eighteen skills.<br>One flow.</span></h2>
+    <h2 data-reveal style="margin:12px 0 0;font-size:clamp(34px,5vw,52px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;color:#1d1d1f;text-align:center"><span data-l="ko">20개의 스킬.<br>하나의 흐름.</span><span data-l="en">Twenty skills.<br>One flow.</span></h2>
 
     <div data-reveal style="margin-top:20px;text-align:center"><span style="font-size:13px;font-weight:600;color:#c25a1a;background:rgba(194,90,26,0.1);padding:5px 13px;border-radius:980px"><span data-l="ko">루프를 이루는 4개</span><span data-l="en">The four that form the loop</span></span></div>
     <div class="fg-grid-loopcards" style="margin-top:26px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
@@ -232,7 +233,7 @@
       </div>
     </div>
 
-    <div data-reveal style="margin-top:52px;text-align:center"><span style="font-size:13px;font-weight:600;color:#86868b;background:rgba(0,0,0,0.05);padding:5px 13px;border-radius:980px"><span data-l="ko">루프 밖의 유틸리티 14개</span><span data-l="en">14 utilities outside the loop</span></span></div>
+    <div data-reveal style="margin-top:52px;text-align:center"><span style="font-size:13px;font-weight:600;color:#86868b;background:rgba(0,0,0,0.05);padding:5px 13px;border-radius:980px"><span data-l="ko">루프 밖의 유틸리티 16개</span><span data-l="en">16 utilities outside the loop</span></span></div>
     <div class="fg-grid-utils" style="margin-top:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-map</div>
@@ -290,7 +291,104 @@
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-statusline</div>
         <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">forge 루프 진행 상태를 statusline에 두 모드로 표시. 방법 1(append)은 기존 statusLine을 대체하지 않고 아래 별도 줄로 wrapping, 방법 2(merge)는 daleseo식 시스템 정보(모델·디렉터리·git·사용량 바)와 forge 진행을 한 스크립트로 출력합니다.</span><span data-l="en">Shows forge's loop progress in your statusline in two modes. Method 1 (append) wraps your existing statusLine as an extra line below instead of replacing it; method 2 (merge) installs a unified script rendering daleseo-style system info (model·dir·git·usage bars) alongside forge progress.</span></p>
       </div>
+      <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-visual</div>
+        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">브라우저 시각 컴패니언. 로컬 서버가 목업·다이어그램·A/B 비교를 탭에 띄우고, 화면의 확정 버튼을 누르면 터미널 입력 없이 그 답이 도착합니다.</span><span data-l="en">Browser visual companion. A local server shows mockups, diagrams, and A/B comparisons in a tab; hitting the screen's confirm button delivers your answer with no terminal turn.</span></p>
+      </div>
+      <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-agenda</div>
+        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">안개 속 작업의 결정 대기열. 목적지를 정한 뒤 무엇을 결정해야 하는지 캐내 .forge/agenda.md에 담고, 한 번에 하나씩 해소합니다. 찾는 건 에이전트, 답하는 건 당신.</span><span data-l="en">A decision queue for work still in fog. Pins a destination, digs out what must be decided into .forge/agenda.md, and resolves them one at a time — the agent finds them, you answer.</span></p>
+      </div>
     </div>
+  </div>
+</section>
+
+<!-- LANES — fg-ask vs fg-loop vs fg-agenda -->
+<section id="lanes" style="padding:120px 24px 130px;background:#fff">
+  <div style="max-width:1040px;margin:0 auto">
+    <p data-reveal style="margin:0;font-size:14px;font-weight:500;color:#c25a1a;text-align:center">Which one holds the work</p>
+    <h2 data-reveal style="margin:12px 0 0;font-size:clamp(30px,4.4vw,46px);font-weight:700;letter-spacing:-0.03em;line-height:1.1;color:#1d1d1f;text-align:center"><span data-l="ko">무엇에 일을<br>담는가.</span><span data-l="en">Where the work<br>lives.</span></h2>
+    <p data-reveal style="margin:20px auto 0;font-size:16px;line-height:1.55;color:rgba(0,0,0,0.6);max-width:600px;text-align:center"><span data-l="ko">한 단계보다 오래 사는 일을 담는 스킬이 셋이고, <strong style="color:#1d1d1f;font-weight:600">셋 다 대화로 시작하기 때문에</strong> 헷갈리기 쉽습니다. 다른 것은 <em>그 대화가 무엇을 못 박느냐</em>입니다.</span><span data-l="en">Three skills hold work that outlives a single step, and they're easy to confuse because <strong style="color:#1d1d1f;font-weight:600">all three open with a conversation</strong>. What differs is <em>what that conversation pins down</em>.</span></p>
+
+    <div data-reveal style="margin:30px auto 0;max-width:760px;padding:20px 24px;border-radius:16px;background:#f5f5f7;text-align:center;font-size:15px;line-height:1.6;font-weight:600;color:#1d1d1f"><span data-l="ko"><code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-agenda</code>는 계획의 상류에 있고 · <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-ask</code>가 계획을 만들고 · <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-loop</code>은 계획 하류를 주행합니다.</span><span data-l="en"><code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-agenda</code> sits upstream of the plan · <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-ask</code> makes the plan · <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-loop</code> drives past it.</span></div>
+
+    <div data-reveal style="margin-top:34px;overflow-x:auto;border-radius:18px;background:#f5f5f7;box-shadow:rgba(0,0,0,0.05) 0 2px 16px 0">
+      <table style="width:100%;min-width:700px;border-collapse:collapse">
+        <thead>
+          <tr style="background:#ececee">
+            <th style="padding:13px 16px;text-align:left;font-size:12px;font-weight:600;color:rgba(0,0,0,0.5);white-space:nowrap"><span data-l="ko">축</span><span data-l="en">Axis</span></th>
+            <th style="padding:13px 16px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:600;color:#c25a1a;white-space:nowrap">fg-ask</th>
+            <th style="padding:13px 16px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:600;color:#c25a1a;white-space:nowrap">fg-loop</th>
+            <th style="padding:13px 16px;text-align:left;font-family:'JetBrains Mono',monospace;font-size:13.5px;font-weight:600;color:#c25a1a;white-space:nowrap">fg-agenda</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">위치</span><span data-l="en">Position</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">루프 ① 단계</span><span data-l="en">loop stage ①</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">루프 밖 — L3 무인 주행</span><span data-l="en">outside — L3 unattended drive</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">루프 밖 — 계획 유틸리티</span><span data-l="en">outside — planning utility</span></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">첫 대화가 못 박는 것</span><span data-l="en">What the opening conversation pins down</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">Work slices + 완료 기준</span><span data-l="en">work slices + completion criteria</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko"><strong style="color:#1d1d1f">기계 검증 가능한</strong> 정지 체크 + 재계획 상한</span><span data-l="en"><strong style="color:#1d1d1f">machine-verifiable</strong> stop checks + replan cap</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">목적지 + 열린 질문</span><span data-l="en">a destination + the open questions</span></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">담는 파일</span><span data-l="en">File it holds</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">backlog/&lt;slug&gt;.md</code></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">loop.md</code></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">agenda.md</code></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">답하는 사람</span><span data-l="en">Who answers</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">당신, 모든 질문</span><span data-l="en">you, every question</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">없음 — 무인으로 돕니다</span><span data-l="en">nobody — it runs unattended</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">당신, 모든 질문 (에이전트는 <em>찾기</em>만)</span><span data-l="en">you, every question (the agent only <em>finds</em> them)</span></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">끝나는 조건</span><span data-l="en">Done when</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">실행 가능한 계획이 나오면</span><span data-l="en">an executable plan exists</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">체크 전부 통과 (기계 판정)</span><span data-l="en">every check passes (machine verdict)</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">더 결정할 것이 없으면 (판단)</span><span data-l="en">nothing is left to decide (judgment)</span></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">진행할 수 없을 때</span><span data-l="en">When it can't proceed</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">다음 질문을 합니다</span><span data-l="en">asks you the next question</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">벽에서 멈추고 맥락과 함께 넘깁니다</span><span data-l="en">halts at a wall, hands back with context</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">안개(fog)에 적고 넘어갑니다</span><span data-l="en">writes it into fog and moves on</span></td>
+          </tr>
+          <tr>
+            <td style="padding:12px 16px;font-size:12.5px;font-weight:600;color:#1d1d1f;border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">수명</span><span data-l="en">Lifespan</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">한 세션</span><span data-l="en">one session</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">여러 세션 — goal 충족 시 <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">loop.md</code> 삭제</span><span data-l="en">many sessions — deletes <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">loop.md</code> on goal met</span></td>
+            <td style="padding:12px 16px;font-size:12.5px;line-height:1.45;color:rgba(0,0,0,0.62);border-top:1px solid rgba(0,0,0,0.06);vertical-align:top"><span data-l="ko">여러 세션 — 비면 <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">agenda.md</code> 삭제</span><span data-l="en">many sessions — deletes <code style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#c25a1a">agenda.md</code> when empty</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p data-reveal style="margin:44px 0 0;font-size:15px;font-weight:600;color:#1d1d1f;text-align:center"><span data-l="ko">선택 기준 — 지금 무엇을 댈 수 있나?</span><span data-l="en">The selection test — what can you produce right now?</span></p>
+    <div class="fg-grid-lanes" style="margin-top:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px">
+      <div data-reveal class="fg-card" style="background:#f5f5f7;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:rgba(0,0,0,0.66)"><span data-l="ko">대략이라도 Work slices를 댈 수 있다</span><span data-l="en">I can name the work slices, even roughly</span></p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#c25a1a">→ fg-ask</div>
+        <p style="margin:6px 0 0;font-size:12px;line-height:1.45;color:rgba(0,0,0,0.5)"><span data-l="ko">이것이 기본이고, 나머지 둘이 예외입니다.</span><span data-l="en">This is the default; the other two are exceptions.</span></p>
+      </div>
+      <div data-reveal class="fg-card" style="background:#f5f5f7;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:rgba(0,0,0,0.66)"><span data-l="ko">"완료"를 통과/실패하는 명령으로 표현할 수 있다</span><span data-l="en">I can express "done" as commands that pass or fail</span></p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#c25a1a">→ fg-loop</div>
+        <p style="margin:6px 0 0;font-size:12px;line-height:1.45;color:rgba(0,0,0,0.5)"><span data-l="ko">체크가 전부 통과할 때까지 무인으로 주행합니다.</span><span data-l="en">It drives unattended until every check passes.</span></p>
+      </div>
+      <div data-reveal class="fg-card" style="background:#f5f5f7;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:rgba(0,0,0,0.66)"><span data-l="ko">둘 다 못 하고, "무엇부터?"의 정직한 답이 "뭘 결정해야 하는지도 모르겠다"다</span><span data-l="en">Neither — and the honest answer to "what first?" is "I don't even know what has to be decided"</span></p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#c25a1a">→ fg-agenda</div>
+        <p style="margin:6px 0 0;font-size:12px;line-height:1.45;color:rgba(0,0,0,0.5)"><span data-l="ko">안개가 없으면 스스로 fg-ask를 가리킵니다.</span><span data-l="en">With no fog, it points at fg-ask itself.</span></p>
+      </div>
+    </div>
+
+    <p data-reveal style="margin:30px auto 0;font-size:13.5px;line-height:1.6;color:rgba(0,0,0,0.55);max-width:720px;text-align:center"><span data-l="ko">셋은 경쟁하지 않고 이어집니다 — 의제는 질문을 하나씩 그릴링으로 해소하고, 결정이 빌드 가능해지는 순간 그 줄은 백로그로 떠납니다. 그리고 <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-loop</code>은 <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-agenda</code>의 거울상입니다 — 기계 정지 조건으로 무인 주행하는 쪽과, 판단 정지 조건으로 사람이 답하는 쪽. 그래서 둘이 하나가 아니라 둘입니다.</span><span data-l="en">They chain rather than compete — an agenda resolves one question at a time by grilling, and the moment a decision makes something buildable it leaves for the backlog. And <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-loop</code> is the mirror image of <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">fg-agenda</code>: unattended with a machine stop condition, versus human-answered with a judgment one. That is why they are two skills and not one.</span></p>
   </div>
 </section>
 
@@ -421,6 +519,8 @@
 ├── <span style="color:#2997ff">plan.md</span>           현재 사이클
 ├── <span style="color:#2997ff">run.md</span>            계획 vs 실제
 ├── <span style="color:#2997ff">STATUS.md</span>         실행/검증 상태
+├── <span style="color:#2997ff">loop.md</span>           goal 루프 계약
+├── <span style="color:#2997ff">agenda.md</span>         결정 대기열
 ├── <span style="color:#2997ff">executed/</span>         회고 대기
 └── <span style="color:#2997ff">done/</span>             봉인 아카이브</span><span data-l="en">.forge/
 <span style="color:#6b7075"># permanent docs (git-tracked)</span>
@@ -433,6 +533,8 @@
 ├── <span style="color:#2997ff">plan.md</span>           current cycle
 ├── <span style="color:#2997ff">run.md</span>            plan vs actual
 ├── <span style="color:#2997ff">STATUS.md</span>         execute/verify status
+├── <span style="color:#2997ff">loop.md</span>           goal loop contract
+├── <span style="color:#2997ff">agenda.md</span>         decision queue
 ├── <span style="color:#2997ff">executed/</span>         awaiting retro
 └── <span style="color:#2997ff">done/</span>             sealed archive</span></pre>
       </div>
@@ -476,8 +578,8 @@
 (function () {
   // language toggle (KO/EN) — pill in nav; swaps data-lang, <html lang>, title, meta description; remembers choice
   var LANG_META = {
-    ko: { title: 'forge — Claude Code 워크플로우 플러그인', desc: '하나의 작업을 하나의 사이클로. 18개의 fg- 스킬로 만든 Claude Code 루프형 워크플로우 플러그인.' },
-    en: { title: 'forge — Claude Code workflow plugin', desc: 'One task, one cycle. A loop-style Claude Code workflow plugin built from eighteen fg- skills.' }
+    ko: { title: 'forge — Claude Code 워크플로우 플러그인', desc: '하나의 작업을 하나의 사이클로. 20개의 fg- 스킬로 만든 Claude Code 루프형 워크플로우 플러그인.' },
+    en: { title: 'forge — Claude Code workflow plugin', desc: 'One task, one cycle. A loop-style Claude Code workflow plugin built from twenty fg- skills.' }
   };
   var langBtns = Array.prototype.slice.call(document.querySelectorAll('[data-setlang]'));
   var metaDesc = document.querySelector('meta[name="description"]');
@@ -514,7 +616,7 @@
     'slide-right': { transform: 'translateX(36px)',           filter: 'none',      dur: 750 },
     settle:      { transform: 'scale(1.06)',                  filter: 'blur(4px)', dur: 800 }
   };
-  var SECTION_PRESET = { top: 'rise', loop: 'zoom', skills: 'pop', pillars: 'slide-left', install: 'soft-rise', usage: 'slide-right', state: 'settle' };
+  var SECTION_PRESET = { top: 'rise', loop: 'zoom', skills: 'pop', lanes: 'soft-rise', pillars: 'slide-left', install: 'soft-rise', usage: 'slide-right', state: 'settle' };
   var els = document.querySelectorAll('[data-reveal]');
   els.forEach(function (el, i) {
     var host = el.closest('section, footer');

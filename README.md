@@ -43,6 +43,38 @@ The three driving skills form a **trust ladder** — the same graduated-autonomy
 
 Rule of thumb: grill the plan with `/fg-ask` first — that human judgment is L1 and is never automated — then pick the lowest lane you're comfortable with. `/fg-loop` is L3 for a goal you can pin to runnable checks (`grep`/test/build); `/fg-next all` is L3 for a queue you've already grilled.
 
+## Which one holds the work — `fg-ask`, `fg-loop`, `fg-agenda`
+
+Three skills hold work that outlives a single step, and they are easy to confuse because **all three open with a conversation**. What differs is *what that conversation pins down*:
+
+> **`fg-agenda` sits upstream of the plan · `fg-ask` makes the plan · `fg-loop` drives past it.**
+
+| Axis | `fg-ask` | `fg-loop` | `fg-agenda` |
+| --- | --- | --- | --- |
+| Position | loop stage ① | outside — L3 unattended drive | outside — planning utility |
+| What the opening conversation pins down | work slices + completion criteria | **machine-verifiable** stop checks + replan cap | a destination + the open questions |
+| File it holds | `backlog/<slug>.md` | `loop.md` | `agenda.md` |
+| Who answers | you, every question | nobody — it runs unattended | you, every question (the agent only *finds* them) |
+| Done when | an executable plan exists | every check passes (machine verdict) | nothing is left to decide (judgment) |
+| When it can't proceed | asks you the next question | halts at a wall, hands back with context | writes it into fog and moves on |
+| Lifespan | one session | many sessions — deletes `loop.md` on goal met | many sessions — deletes `agenda.md` when empty |
+
+**The selection test — what can you produce right now?**
+
+- I can name the work slices, even roughly → **`fg-ask`**. This is the default; the other two are exceptions.
+- I can express "done" as commands that pass or fail → **`fg-loop`**.
+- I can do neither, and the honest answer to *"what first?"* is *"I don't even know what has to be decided"* → **`fg-agenda`**.
+
+They chain rather than compete — an agenda resolves one question at a time by grilling, and the moment a decision makes something buildable it leaves for the backlog:
+
+```
+fg-agenda ──one question──▶ (fg-ask's grilling) ──▶ a line under "Decided"
+    └──a decision became buildable──▶ fg-ask ──▶ backlog ──▶ fg-run ──▶ …
+                                                    └── or let fg-loop / fg-next all drive it
+```
+
+`fg-agenda` defers to `fg-ask` on its own: if the breadth-first pass surfaces **no fog**, it writes no agenda and points at `fg-ask` — so reach for it only when the way genuinely isn't visible yet. And `fg-loop` is the mirror image of `fg-agenda`: unattended with a machine stop condition, versus human-answered with a judgment one. That is why they are two skills and not one.
+
 ## Use cases — typical flows
 
 Reach for the right sequence by situation. The everyday and unattended rows point back to the sections above rather than repeating them.
