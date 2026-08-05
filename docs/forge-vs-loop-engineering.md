@@ -12,7 +12,7 @@ Osmani의 테제는 "에이전트에 프롬프트를 치는 사람을 시스템�
 
 | Loop Engineering 개념 | forge의 구현 | 근거 문서 |
 | --- | --- | --- |
-| **Skills** — SKILL.md로 관례·의도 인코딩, intent debt 방지 | forge 자체가 19개 `fg-*` 스킬(루프 4단계 + 루프 밖 유틸리티 15개). 용어는 `CONTEXT.md`, 결정은 ADR, 코드 맥락은 `.forge/codebase/` 지도 — "문서는 산출물이 아니라 루프의 연료"(기둥 2)가 곧 intent-debt 방지 | README 두 기둥, ADR-0001 |
+| **Skills** — SKILL.md로 관례·의도 인코딩, intent debt 방지 | forge 자체가 20개 `fg-*` 스킬(루프 4단계 + 루프 밖 유틸리티 16개). 용어는 `CONTEXT.md`, 결정은 ADR, 코드 맥락은 `.forge/codebase/` 지도 — "문서는 산출물이 아니라 루프의 연료"(기둥 2)가 곧 intent-debt 방지 | README 두 기둥, ADR-0001 |
 | **State/Memory** — 컨텍스트 밖 디스크 영속 상태 | `.forge/` 상태 계약 전체: backlog → 활성 슬롯(plan/run/STATUS) → executed/ → done/. "memory has to be on disk"를 문자 그대로 구현 — 모든 스킬이 독립 호출돼도 파일로 흐름이 이어진다 | README 공유 상태, FORGE-ROOT.md |
 | **Worktrees** — 병렬 에이전트 격리 | 브랜치별 forge 루트(`.forge/branch/<branch>/`)가 같은 충돌 문제를 상태 수준에서 해결. git worktree는 병용 가능하며, "worktree만으로 충분"은 검토 후 기각됨(추적 문서 충돌을 못 풀어서) | ADR-0011 |
 | **Sub-agents** — maker/checker 분리, 자기 채점 방지 | fg-run의 Dynamic Workflow(병렬 실행) + 전용 적대 리뷰 스킬 **fg-adversarial-review**(결과가 틀렸다고 가정하고 6개 렌즈를 병렬 서브에이전트로 팬아웃) + fg-map의 매퍼 4개 팬아웃. 별도 3종(explorer/retro-analyzer/verifier)은 구체적 통증 없음으로 **의도적 보류** — 재검토 바 명문화 | ADR-0007, ADR-0013, ADR-0018 |

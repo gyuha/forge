@@ -25,6 +25,7 @@ The two sections below (**What it prints** / **Task table**) are the **documenta
 - **`.forge/loop.md` present** → read it and report the **goal (one line), the `wall:` cause if set, and from the `## Check progress` ledger which stop-condition checks are failing — with each failing check's no-progress count (`×N`), regression count (`regressed: ×N`), `last-evidence`, and `reflection:`** (what was tried and why it stalled — Reflexion, ADR-0016) and round N/cap. This is load-bearing: without it the next step is a blind "resume fg-loop" every time, so a stuck loop looks identical run after run and the user never sees *why* it's stuck (the exact "keeps proposing the same task" failure mode). Name the failing check(s) and, when `×N ≥ 2`, `regressed: ×2`, or `wall:` is set, say *that* it's a no-progress/cap/fork/tension/safety wall the human must resolve — surfacing the `reflection` so they see the attempted approaches — not just "resume". (These fields are persisted by fg-loop precisely so a stateless resume can report the real cause — see `../fg-loop/SKILL.md`.)
 - **Active slot has a `run.md`** → read `STATUS.md` and state its `verified:` / `retro:` values in full (e.g. `failed (<reason>)`), not just the table glyph — the glyph says *that* it's blocked, the reason says *what to do*.
 - **Recent quick-lane entries** → if `.forge/quick/LOG.md` has entries, show the most recent few (the footer only counts them).
+- **`.forge/agenda.md` present** → read it and report in one line: the **destination** (from `## Destination`), the **number of `## Open questions` entries**, and **whether `## Not yet sharp` is non-empty** (fog standing or not) — plus the trigger to act on it: "forge agenda" / `/forge:fg-agenda`. The open-question count is what says whether the way is still foggy; **zero open questions with standing fog** means the next move is another **open** pass (re-trigger `fg-agenda` to sharpen the fog into questions), not resolving. **The script never reports this** — no agenda counter exists in the footer (deliberately: `scripts/forge-status.sh`/`.js` are left untouched), so this prose layer is the *only* place an agenda becomes visible. Report it and stop there: an agenda is a **parallel planning surface, not a stage of the loop**, so it is never derived as the `👉 Next` step below (see `../fg-agenda/SKILL.md`).
 
 The table/counts are the at-a-glance layer; this is the diagnostic layer the next-step derivation actually depends on.
 
@@ -38,6 +39,7 @@ Read these from `.forge/` (skip silently what doesn't exist):
 - **Done (history)** — `.forge/done/*/STATUS.md` (`status: done`; note each one's `retro:` = path or `skipped`).
 - **Quick lane** — `.forge/quick/LOG.md` (entries written by fg-quick).
 - **Goal loop** — `.forge/loop.md` (the goal contract written by fg-loop: one-line goal, `replan-round`/`replan-cap`, stop-condition check states).
+- **Agenda (decision queue)** — `.forge/agenda.md` (the decision queue written by fg-agenda: `## Destination`, the `## Open questions` entries, and whether `## Not yet sharp` holds fog). A parallel planning surface, not a task in the loop.
 - **Supporting (counts only)** — `.forge/retro/` and `.forge/adr/` file counts.
 
 ## What it prints
@@ -50,6 +52,7 @@ Report in the user's language (the section labels below are canonical English �
 - **Done** — count + the most recent few (date-slug · `retro: done`/`skipped`). Summary, not a full dump.
 - **Quick lane (quick/LOG)** — count + the most recent few entries. Summary.
 - **Goal loop (loop.md)** — one line: goal · round N/cap · checks passing/failing. (Omit the section when no `loop.md` exists.)
+- **Agenda (agenda.md)** — one line: destination · N open questions · fog yes/no · trigger `fg-agenda`. Comes from the diagnostic layer above, not from the script's output. (Omit the section when no `agenda.md` exists.)
 - **👉 Next step** — the single next step and how to trigger it (see below).
 
 Keep it scannable. Don't paste full file contents — titles, slugs, and one-line states only.
