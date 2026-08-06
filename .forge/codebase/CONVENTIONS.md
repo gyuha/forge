@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: bb54e27763aca86558ca45a965c9f8ede394018c
-mapped: 2026-08-01
+last_mapped_commit: a7a9c3e474a5717d23294a9cc0bec18ec1158130
+mapped: 2026-08-06
 ---
 
 # CONVENTIONS
@@ -15,7 +15,7 @@ mapped: 2026-08-01
 
 | 종류 | 경로 | 형식 |
 | --- | --- | --- |
-| 스킬 지시문 (산문) | `skills/<name>/SKILL.md` 19개 + 공유 문서 9개 | 영문 Markdown |
+| 스킬 지시문 (산문) | `skills/<name>/SKILL.md` 20개 + 공유 문서 9개 | 영문 Markdown |
 | 결정론 스크립트 트윈 | `scripts/*.sh` 9개 운영 + `scripts/*.js` 8개 | bash + node |
 | 매니페스트 | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `hooks/hooks.json` | JSON |
 | 플러그인 훅 | `hooks/run-hook.cmd`(polyglot 래퍼) + `scripts/forge-hook-session-start.{sh,js}` | cmd/bash polyglot + bash/node |
@@ -37,7 +37,7 @@ vendoring 예외 한 곳: `skills/fg-visual/scripts/`(`frame-template.html`·`he
 
 ### 1.1 "본문은 영문, 출력은 사용자 언어"
 
-`SKILL.md` 본문과 공유 문서는 영문으로 쓰되, **스킬이 사용자에게 내보내는 모든 텍스트는 사용자 언어**다. 실측으로 19개 SKILL.md **전부**가 "user's language" 문구를 최소 1회 포함한다(fg-status 6회, fg-done 5회, fg-loop 4회, fg-ask·fg-doctor·fg-merge·fg-next·fg-run 3회, fg-adversarial-review·fg-agents·fg-map·fg-quick 2회, 나머지 7개 1회).
+`SKILL.md` 본문과 공유 문서는 영문으로 쓰되, **스킬이 사용자에게 내보내는 모든 텍스트는 사용자 언어**다. 실측으로 20개 SKILL.md **전부**가 "user's language" 문구를 최소 1회 포함한다(fg-status 6회, fg-done 5회, fg-loop·**fg-agenda** 4회, fg-ask·fg-doctor·fg-merge·fg-next·fg-run 3회, fg-adversarial-review·fg-agents·fg-map·fg-quick 2회, 나머지 7개 1회). 신설 `fg-agenda`가 곧바로 상위권(4회)에 드는 것은 우연이 아니다 — 대화형 스킬은 출력 지점이 많아 이 문구를 여러 번 박아야 한다.
 
 정본 문구는 각 스킬의 **Language** 블록이며(`skills/fg-map/SKILL.md:10`이 대표형), 산출 문서(plan·run notes·retro·CONTEXT 엔트리·ADR·핸드오프)도 사용자 언어로 쓰라고 규정한다. 형식 문서의 섹션 제목은 **영문 정본 이름이지만 렌더링은 사용자 언어**이고 소비자는 문자열이 아니라 의미·위치로 매칭한다 — 이게 "형식 문서는 영문인데 생성된 문서는 한국어"라는 겉보기 모순의 해소 규칙이다. fg-map은 여기에 파일명 규칙을 덧붙인다: 문서 **파일명은 영문 고정**(`STACK.md` 등), 내부 산문만 사용자 언어(`skills/fg-map/SKILL.md:10`).
 
@@ -51,7 +51,7 @@ vendoring 예외 한 곳: `skills/fg-visual/scripts/`(`frame-template.html`·`he
 - `README.md`(영문) ↔ `README.ko.md`(한국어)는 번역 쌍(§3.1).
 - `docs/*.md` 5개(`forge-vs-loop-engineering`·`git-workflow`·`skills`·`state-contract`·`team-workflow`)는 **한국어 단일 언어**다. 이중언어 쌍이 아니다.
 - `docs/index.html`은 한 파일 안에 KO/EN을 나란히 담는다(§3.2, ADR-0027).
-- `.forge/adr/*.md`(43개)·`.forge/retro/*.md`(54개)는 한국어 — "생성 문서 = 사용자 언어" 규칙의 결과다.
+- `.forge/adr/*.md`(47개)·`.forge/retro/*.md`(58개)는 한국어 — "생성 문서 = 사용자 언어" 규칙의 결과다.
 - `CLAUDE.md`도 한국어다(프로젝트 지시문이므로 배포 산문 아님).
 
 ---
@@ -62,10 +62,10 @@ vendoring 예외 한 곳: `skills/fg-visual/scripts/`(`frame-template.html`·`he
 
 필드는 `name`과 `description` 둘뿐이다.
 
-- **`name`이 스킬 식별자**이고 디렉터리명이 아니다 — 다만 실측으로 19/19가 디렉터리명과 일치한다(드리프트 없음).
+- **`name`이 스킬 식별자**이고 디렉터리명이 아니다 — 다만 실측으로 20/20이 디렉터리명과 일치한다(드리프트 없음).
 - `name:` 누락은 자동 탐색 실패로 직결하므로 fg-doctor **B10이 error**로 잡는다(`scripts/forge-doctor.sh:116`).
 - `description`은 "트리거 코어"다 — `/fg` 메뉴 가독성 + 자동 호출 트리거 이중 용도라 **600 코드포인트** 상한을 fg-doctor **B16이 warning**으로 감시한다(`scripts/forge-doctor.sh:169` `DESC_MAX=600`, ADR `260716-22a`). warning이고 error가 아닌 이유가 주석에 있다 — *"bloat is drift, not breakage."*
-- 길이 측정은 **바이트 − UTF-8 continuation 바이트**로 코드포인트를 구한다(`scripts/forge-doctor.sh:170-175` `desclen()`, `LC_ALL=C tr -dc '\200-\277' | wc -c`). 로케일 독립이고 `.js` 트윈과 정확히 일치한다. 한글 트리거 문구가 든 description은 바이트 수보다 여유가 있다 — 실측 최댓값 `skills/fg-doctor/SKILL.md` **591 코드포인트 / 611 바이트**(상한까지 9 코드포인트만 남음), 다음이 fg-visual 556cp/616B, fg-eco 546cp/572B. 즉 **바이트로는 이미 600을 넘긴 것이 둘 있는데 코드포인트 기준이라 clean**이다.
+- 길이 측정은 **바이트 − UTF-8 continuation 바이트**로 코드포인트를 구한다(`scripts/forge-doctor.sh:170-175` `desclen()`, `LC_ALL=C tr -dc '\200-\277' | wc -c`). 로케일 독립이고 `.js` 트윈과 정확히 일치한다. 한글 트리거 문구가 든 description은 바이트 수보다 여유가 있다 — 실측 최댓값 `skills/fg-doctor/SKILL.md` **591 코드포인트 / 611 바이트**(상한까지 9 코드포인트만 남음), 다음이 fg-visual **573cp/633B**(이 라운드에 556cp/616B에서 늘었다), fg-eco 546cp/572B, fg-agents·fg-adversarial-review 531cp. 즉 **바이트로는 이미 600을 넘긴 것이 둘 있는데 코드포인트 기준이라 clean**이다. 신설 `fg-agenda`는 468cp/534B로 상한에서 멀다.
 - description에는 영문 + 한국어 트리거 발화를 함께 담는다(예: `'forge doctor', '무결성 검사', '상태 점검', 'health check'`).
 
 ### 2.2 Mermaid 금지 — 텍스트 흐름도만
@@ -85,7 +85,7 @@ Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) �
 
 스킬 산문은 명령을 대체로 **인라인 백틱**으로 적는다 — 예: `skills/fg-map/SKILL.md:52`의 `grep -h '^last_mapped_commit:' .forge/codebase/*.md | sort -u`, `:53`의 `git merge-base --is-ancestor <stamp> HEAD`.
 
-그런데 ADR `260801-020258:47`은 *"fenced bash 블록도 만들지 않는다(스킬 18개 통틀어 전례 0개)"*라고 근거를 적었고, **이 주장은 실측과 어긋난다.** ` ```bash ` 펜스는 5곳에 있다 — `skills/fg-visual/VISUAL.md:41,62,71,303`(vendored Visual Companion 사용법)와 `skills/fg-statusline/SKILL.md:156`. 후자는 공유 문서가 아니라 진짜 `SKILL.md`다. 즉 "전례 0개"는 틀렸고, 정확한 서술은 "드물다(2파일 5곳)"다. 규율의 방향(인라인 백틱 선호)은 유효하나 근거 문장은 신뢰하지 말 것. 참고로 스킬 전체 펜스 블록 수는 `skills/fg-statusline/SKILL.md` 7블록, `skills/fg-done/SKILL.md`·`skills/fg-agents/SKILL.md`·`skills/fg-run/SKILL.md` 3블록 식으로 흔하며(언어 태그 없는 흐름도·템플릿), 금지 대상은 펜스 자체가 아니라 Mermaid다.
+그런데 ADR `260801-020258:47`은 *"fenced bash 블록도 만들지 않는다(스킬 18개 통틀어 전례 0개)"*라고 근거를 적었고, **이 주장은 실측과 어긋난다.** ` ```bash ` 펜스는 5곳에 있다 — `skills/fg-visual/VISUAL.md:41,62,71,362`(vendored Visual Companion 사용법)와 `skills/fg-statusline/SKILL.md:156`. 후자는 공유 문서가 아니라 진짜 `SKILL.md`다. 즉 "전례 0개"는 틀렸고, 정확한 서술은 "드물다(2파일 5곳)"다. 규율의 방향(인라인 백틱 선호)은 유효하나 근거 문장은 신뢰하지 말 것. 참고로 스킬 전체 펜스 블록 수는 `skills/fg-statusline/SKILL.md` 7블록, `skills/fg-done/SKILL.md`·`skills/fg-agents/SKILL.md`·`skills/fg-run/SKILL.md` 3블록 식으로 흔하며(언어 태그 없는 흐름도·템플릿), 금지 대상은 펜스 자체가 아니라 Mermaid다.
 
 ### 2.4 핸드오프는 진술형 (statement-form)
 
@@ -95,16 +95,30 @@ Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) �
 
 배경은 ADR-0015(개정 2026-06-15): 과거 fg-run 종료의 4지 `AskUserQuestion` 메뉴가 영속 상태 + 멱등 가드 부재로 **선택해도 같은 메뉴가 다시 뜨는 반복 버그**를 냈고, 그래서 폐지됐다. 체이닝은 fg-next 전담이다.
 
-**실측으로 `shall I proceed` / `Proceed?` 문자열은 4곳 — 셋은 규칙 서술, 하나만 실제 질문이다:**
+**실측으로 `shall I proceed` / `Proceed?` 문자열은 5곳 — 넷은 규칙 서술, 하나만 실제 질문이다:**
 
 | 위치 | 내용 | 판정 |
 | --- | --- | --- |
 | `skills/fg-run/SKILL.md:166` | 금지 규칙 자체를 서술하는 문장 안의 인용 | 위반 아님 |
 | `skills/fg-run/SKILL.md:153` | eco 표에도 같은 금지가 적용된다는 규칙 서술 안의 인용 | 위반 아님 |
 | `skills/fg-next/SKILL.md:50` | 진짜 fork(`verified: failed` → fg-run vs fg-ask) 선택 요구. 본문이 *"This is a needed choice, not a 'shall I proceed?' gate."*로 자기 구분 | 위반 아님 |
+| `skills/fg-agenda/SKILL.md:150` | 신설 스킬이 자기 Output 절에 금지를 재진술(*"Never ask 'shall I proceed?'; chaining is fg-next's job (ADR-0015)"*) | 위반 아님 — 새 스킬이 규약을 실제로 흡수했다는 증거 |
 | `skills/fg-cleanup/SKILL.md:16` | 진입 시 오해 방지 문구 끝의 `Proceed?` | **핸드오프가 아니라 진입 disambiguation** — 규약 적용 대상 밖이지만, 스킬 본문에 문자 그대로 남은 유일한 확인 질문이다. 편집 시 인지할 것 |
 
 또한 fg-run *시작* 시 백로그 2+ 작업 선택 메뉴는 별개로 유지된다(선택→실행으로 상태가 바뀌므로 반복 없음).
+
+**⚠ 이 절의 "대화체" 절반은 승인됐지만 아직 구현되지 않은 개정 아래 있다.** ADR `260805-231104`(handoff-table, `status: accepted`, 작업 트리에 staged)가 핸드오프의 **형태**를 뒤집었다 — 다음 단계를 알리는 지점의 산문을 **고정 4행 표**(`방금 한 것`·`다음 단계`·`시작하는 법`·`대안`)로 교체하고, eco 게이트 없이 **항상** 적용하며, 적용 지점을 13곳(루프 4 + 유틸 9)으로·제외를 7곳(토글 3 + 다음 단계를 안 내는 4)으로 못 박는다. 통증의 축이 *길이가 아니라 위치*라는 것(다음에 칠 것이 산문에 묻혀 안 보인다)이 근거이고, 그래서 옵트인으로는 해결이 안 된다고 판단해 **`CLAUDE.md:94`의 "자연스러운 대화체 — 정해진 양식을 사무적으로 출력하지 않는다" 규약을 명시적으로 폐기**한다. 유지되는 것은 진술형(묻지 않음)이고 ADR-0015는 불변이다(`대안` 행은 선택지가 아니다).
+
+**결정은 있고 구현은 0이다.** ADR이 요구한 것 중 하나도 코드/산문에 반영되지 않았다:
+
+| ADR이 요구하는 것 | 실측 |
+| --- | --- |
+| 단일 정의 `skills/fg-next/HANDOFF.md` | **파일 없음.** `grep -rn HANDOFF skills/ CLAUDE.md` → **0건**(13곳의 참조도 0) |
+| `CLAUDE.md` 대화체 규약 개정 | **미반영.** `CLAUDE.md:94`가 여전히 *"자연스러운 대화체"*·*"정해진 양식을 사무적으로 출력하지 않는다"* |
+| ADR `260730-230321`·`CLAUDE.md`에 이 ID 링크(ADR 결과 절이 지시) | **미반영.** `grep -n 260805-231104` → 두 파일 모두 0건 |
+| `fg-status`의 `👉 Next:` 한 줄을 표로 교체 | **미반영.** `skills/fg-status/SKILL.md:114,118`에 그대로 살아 있음 |
+
+작업은 `.forge/backlog/handoff-table.md`에 **미실행 백로그 plan**으로 대기 중이고 활성 슬롯은 비어 있다(`plan.md`/`STATUS.md`/`run.md` 부재). 용어 정의는 이미 `.forge/CONTEXT.md`에 **핸드오프 표** 엔트리로 승급됐다. **따라서 지금 스킬을 편집하는 사람은 이 절 앞부분의 산문 규약(대화체 + 진술형)을 정본으로 따라야 하고, 표 형태를 임의로 도입하면 안 된다** — 도입은 그 plan이 실행될 때 13곳 + `HANDOFF.md`가 한꺼번에 이뤄져야 한다(부분 도입은 "어디서나 같은 자리"라는 ADR의 핵심 이점을 깨뜨린다).
 
 ### 2.5 eco가 켜지면 진술형의 *형태*만 표로 바뀐다 (규율은 불변)
 
@@ -121,6 +135,8 @@ Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) �
 | 무인 주행 위임 봉인(fg-next all·fg-loop) | `skills/fg-next/DRIVE.md:15` (+ `skills/fg-next/SKILL.md:30`) |
 
 표도 여전히 진술형이라 메뉴·`AskUserQuestion`·"shall I proceed?"는 그대로 금지이고(`skills/fg-run/SKILL.md:153`이 ADR-0015 개정을 표에도 동일 적용), 제외 대상은 `ECO.md:82-88`이 못 박는다 — fg-ask 그릴링, fg-learn 회고, 생성되는 영속 문서(plan/run/retro/CONTEXT/ADR), fg-quick 차선. fg-ask STEP 0의 위임 봉인도 명시적 제외다(`skills/fg-ask/SKILL.md:101`: *"`eco` changes nothing here — this stays a one-line report, not a table"*, 근거는 "한 줄이 어떤 표보다 짧다").
+
+**이 절도 위 개정의 사정거리 안이다.** ADR `260805-231104`는 eco 표를 없애지 않고 **역할을 나눈다** — eco on의 작업 종료 지점에서는 핸드오프 표가 `방금 한 것` 행을 빼고 3행으로 나오고(그 내용은 eco 표의 `▸ 수행`이 이미 더 자세히 담으므로), 결과적으로 **다음-단계 부분의 모양이 eco on/off에서 같아진다**. 그 ADR이 `ECO.md`에 새 섹션을 넣지 않기로 한 이유도 기록해 둘 만하다 — ECO.md는 자기 정의로 "eco가 켜질 때만 적용"을 선언한 문서라 항상-적용 섹션이 들어오면 그 전제가 거짓이 된다. **다만 §2.4 표대로 아직 아무것도 구현되지 않았으므로, 현재 실측 동작은 아래 서술 그대로다.**
 
 **핵심 판정 기준은 일관성이 아니라 출력 길이다.** ADR-0032 개정(2026-07-31) `:33`이 이를 명문화한다 — 위임 경로에 *더 긴* 것을 넣는 변경은 여전히 금지된 되돌림이고, *더 짧은* 형태로 바꾸는 것은 아니다. 같은 개정 `:37`은 과장 금지까지 적는다: 표는 형태라 누락이 더 잘 보이지만 **여전히 기계 게이트가 없다.**
 
@@ -140,9 +156,11 @@ Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) �
 | `skills/fg-run/RUN-ALL.md` | fg-run | — | run-all 배치 규율 |
 | `skills/fg-next/DRIVE.md` | fg-next | — | 무인 주행 규율 (ADR-0028) |
 | `skills/fg-eco/ECO.md` | fg-eco | 156 | Eco laziness-first 규율 + **eco summary table** 형태(`:62`) |
-| `skills/fg-visual/VISUAL.md` | fg-visual | 312 | Visual Companion 사용법 (공유 문서 중 최장) |
+| `skills/fg-visual/VISUAL.md` | fg-visual | 371 | Visual Companion 사용법 (공유 문서 중 최장) |
 
-참조 형식은 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<FILE>.md`이고 같은 리포 안에서는 상대경로(`../fg-eco/ECO.md`)도 병기한다. 최다 참조는 `FORGE-ROOT.md` — **20개 파일**(SKILL.md 18개 + `fg-eco/ECO.md` + `fg-next/DRIVE.md`)이 참조하고 자체 복사본은 없다. 루트 `references/` 디렉터리는 폐지됐고 실제로 존재하지 않는다.
+참조 형식은 `${CLAUDE_PLUGIN_ROOT}/skills/<owner>/<FILE>.md`이고 같은 리포 안에서는 상대경로(`../fg-eco/ECO.md`)도 병기한다. 최다 참조는 `FORGE-ROOT.md` — **21개 파일**(SKILL.md 19개 + `fg-eco/ECO.md` + `fg-next/DRIVE.md`)이 참조하고 자체 복사본은 없다. 신설 `fg-agenda`도 여기에 곧바로 합류했다(`skills/fg-agenda/SKILL.md`가 참조자 목록에 있다) — 새 스킬을 만들 때 이 참조를 빠뜨리지 않는 것이 관례임을 보여준다. 참조하지 않는 스킬 하나는 `fg-statusline`(브랜치 루트 해석이 필요 없는 설정 유틸리티)이다. 루트 `references/` 디렉터리는 폐지됐고 실제로 존재하지 않는다.
+
+**10번째 공유 문서 `skills/fg-next/HANDOFF.md`가 ADR `260805-231104`로 승인됐지만 아직 없다**(§2.4). 그 ADR이 위치를 `fg-next/`로 고른 근거가 이 절의 관례 자체다 — ADR-0015가 단계 전환을 fg-next 전담으로 만들었고 같은 디렉터리의 `DRIVE.md`가 이미 "여러 스킬이 참조하는 공유 규율 문서"라는 전례를 세웠으므로, 새 관례를 발명하지 않는 유일한 선택지였다.
 
 `skills/fg-run/FORGE-ROOT.md:3`이 규율을 자기 안에서 선언한다: *"This rule is defined **once, here** ... Do not duplicate the logic — reference this file."*
 
@@ -150,9 +168,9 @@ Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) �
 
 ADR은 세 조건(되돌리기 어렵다 / 맥락 없이 의아하다 / 진짜 트레이드오프)을 **모두** 충족할 때만 승급한다. 본문 템플릿은 `맥락 → 결정 → 고려한 대안 → 결과` 4절 고정이다(`skills/fg-ask/ADR-FORMAT.md`).
 
-**frontmatter가 ID 형식별로 갈린다(실측).** 43개 ADR 중 `NNNN` 32개는 `status: accepted`만 담고, 시간ID 11개는 `author`(생성 시점 `git config user.name`) + `decided`(`YYYY-MM-DD HH:MM`, 분까지)를 담는다 — `grep -l '^decided:' .forge/adr/*.md` = 11로 정확히 시간ID 집합과 일치한다.
+**frontmatter가 ID 형식별로 갈린다(실측).** 47개 ADR 중 `NNNN` 32개는 `status: accepted`만 담고, 시간ID 15개는 `author`(생성 시점 `git config user.name`) + `decided`(`YYYY-MM-DD HH:MM`, 분까지)를 담는다 — `grep -l '^decided:' .forge/adr/*.md` = 15로 정확히 시간ID 집합과 일치한다(이 라운드에 4건 추가되며 이 대응이 유지됐다).
 
-ADR ID는 세 형식이 공존한다 — 현재 `YYMMDD-HHMMSS`(같은-초 충돌 시에만 소문자 글자), grandfather된 `YYMMDD-HH`+글자, grandfather된 순차 `NNNN`. 실측 `NNNN` 32개(`0001`–`0032`, **gap 없음**), 시간기반 11개(`260716-13a` … `260801-020258`). `.forge/adr/retired/`는 아직 생성되지 않았다(lazy 생성).
+ADR ID는 세 형식이 공존한다 — 현재 `YYMMDD-HHMMSS`(같은-초 충돌 시에만 소문자 글자), grandfather된 `YYMMDD-HH`+글자, grandfather된 순차 `NNNN`. 실측 `NNNN` 32개(`0001`–`0032`, **gap 없음** — 이 라운드에 새 `NNNN`은 하나도 안 생겼다. 순차 형식은 사실상 동결이고 신규는 전부 시간ID다), 시간기반 15개(`260716-13a` … `260805-231104`). `.forge/adr/retired/`는 아직 생성되지 않았다(lazy 생성).
 
 fg-doctor **B14**가 형식별로 분리 검사한다(`scripts/forge-doctor.sh:132-155`) — 시간ID 중복은 **error**(`:145`, 두 granularity를 각자 glob으로 수집하고 `retired/`까지 포함해 active↔retired 중복도 error), `NNNN` 구간 gap은 **warning**(`:151`). `NNNN` 연속성을 `NNNN` 집합 안에서만 따지므로 시간기반 ADR이 거짓 gap을 만들지 않는다.
 
@@ -162,19 +180,19 @@ fg-doctor **B14**가 형식별로 분리 검사한다(`scripts/forge-doctor.sh:1
 
 ### 3.1 README 쌍
 
-`README.md`(190줄) ↔ `README.ko.md`(189줄)은 같은 내용의 번역 쌍이고, 한쪽을 고치면 반드시 다른 쪽도 같은 변경으로 고쳐야 한다.
+`README.md`(223줄) ↔ `README.ko.md`(222줄)은 같은 내용의 번역 쌍이고, 한쪽을 고치면 반드시 다른 쪽도 같은 변경으로 고쳐야 한다. 이 라운드에 양쪽이 정확히 같은 폭(+41줄)으로 함께 갱신됐다 — 수동 규율이 실제로 지켜진 사례다.
 
 자동 검사는 **줄 수가 아니라 스킬-행 개수 parity**만 본다 — fg-doctor **B13**(warning, `scripts/forge-doctor.sh:126-131`, `grep -cE '\| ?`fg-'` 비교). 즉 산문 문장이 한쪽만 갱신된 드리프트는 자동으로 잡히지 않는다. 수동 규율이다.
 
 ### 3.2 `docs/index.html`
 
-한 파일 안에 KO/EN 텍스트를 `data-l="ko"` / `data-l="en"` span으로 나란히 담고 언어 토글로 전환한다(ADR-0027). **실측 `data-l="ko"` 77개 / `data-l="en"` 77개 — 정확히 일치.**
+한 파일 안에 KO/EN 텍스트를 `data-l="ko"` / `data-l="en"` span으로 나란히 담고 언어 토글로 전환한다(ADR-0027). **실측 `data-l="ko"` 117개 / `data-l="en"` 117개 — 정확히 일치**(이 라운드에 77/77에서 40쌍 늘었고 쌍이 유지됐다).
 
-이건 **완전 수동 규율**이다. fg-doctor는 `docs/index.html`을 검사하지 않으므로, 한쪽 span만 고치면 아무도 잡아주지 않는다.
+이건 **완전 수동 규율**이다. fg-doctor는 `docs/index.html`을 검사하지 않으므로, 한쪽 span만 고치면 아무도 잡아주지 않는다. 40쌍이 한 번에 추가되고도 어긋나지 않은 것은 규율이 지켜진 결과일 뿐 안전망이 있다는 뜻이 아니다 — 이 라운드에 랜딩 페이지는 커밋 후에도 작업 트리에서 계속 편집됐다(현재 미커밋 +11줄).
 
 ### 3.3 버전 3곳 동기
 
-버전은 세 곳을 함께 갱신한다: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`, `marketplace.json`의 `plugins[0].version`. 실측 현재 세 곳 모두 **`0.6.0`**. fg-doctor **B8이 error**로 드리프트를 잡고(`scripts/forge-doctor.sh:105-109`), **B9**가 두 매니페스트의 JSON 유효성을 error로 검사한다(`:110-113`, node 있을 때만 — 깨지면 설치 실패).
+버전은 세 곳을 함께 갱신한다: `plugin.json`의 `version`, `marketplace.json`의 `metadata.version`, `marketplace.json`의 `plugins[0].version`. 실측 현재 세 곳 모두 **`0.6.4`**(베이스라인 `0.6.0`에서 4번 patch 범프). fg-doctor **B8이 error**로 드리프트를 잡고(`scripts/forge-doctor.sh:105-109`), **B9**가 두 매니페스트의 JSON 유효성을 error로 검사한다(`:110-113`, node 있을 때만 — 깨지면 설치 실패).
 
 B8의 버전 추출기 `jver()`(`:104`)는 `grep -oE '"version"...'`로 **문서 순서대로 전부** 뽑아 `head -1`/`sed -n 2p`로 고른다. 주석이 이유를 적는다 — *"handles multi-per-line JSON."* 이건 실제 버그 수정의 흔적이다(§TESTING §3).
 
@@ -184,7 +202,9 @@ B8의 버전 추출기 `jver()`(`:104`)는 `grep -oE '"version"...'`로 **문서
 
 ### 3.5 매니페스트 description의 역할 분리
 
-`marketplace.json`의 `metadata.description`은 **루프(ask·plan → execute → retro → done)를 정의하는 한 줄 태그라인**이라 루프 밖 유틸리티를 넣지 않는다(실측: 스킬 이름이 하나도 없는 1문장). `plugins[0].description`과 `plugin.json`의 `description`은 **전체 스킬 목록**을 담으므로 루프 밖 스킬도 반영한다 — 실측 둘 다 19개 스킬 + 훅까지 열거하는 초장문 단일 문자열이며, `plugins[0].description`은 "Nineteen fg-* skills."로 개수를 문자로 못 박는다(스킬 추가 시 이 단어도 함께 고쳐야 한다).
+`marketplace.json`의 `metadata.description`은 **루프(ask·plan → execute → retro → done)를 정의하는 한 줄 태그라인**이라 루프 밖 유틸리티를 넣지 않는다(실측: 스킬 이름이 하나도 없는 1문장 — 이 라운드에 fg-agenda가 추가돼도 손대지 않았다. 역할 분리가 지켜진 사례다). `plugins[0].description`과 `plugin.json`의 `description`은 **전체 스킬 목록**을 담으므로 루프 밖 스킬도 반영한다 — 실측 둘 다 20개 스킬 + 훅까지 열거하는 초장문 단일 문자열이고(`plugin.json` 10,446자 / `marketplace.json` 9,289자), 둘 다 신설 `fg-agenda`를 담는다.
+
+**개수를 문자로 못 박은 곳은 `marketplace.json`의 `plugins[0].description` 한 곳뿐이다** — 현재 "Twenty fg-\* skills."(이 라운드에 "Nineteen"에서 갱신됨). `plugin.json`의 `description`에는 이 개수 단어가 없다(열거만 한다). 즉 스킬을 추가하면 **양쪽 열거 + marketplace 쪽 개수 단어**를 고쳐야 하고, 그 단어를 놓치면 fg-doctor가 잡아주지 않는다(B12/B13은 `CLAUDE.md` 등재와 README 스킬-행 개수만 본다).
 
 `plugins[0].source`는 `"./"` — 리포 루트가 곧 플러그인이다.
 
@@ -358,7 +378,7 @@ root="$(bash "$SCRIPT_DIR/resolve-forge-root.sh" 2>/dev/null)"     # :90
 
 **언제 스크립트를 만들고 언제 산문으로 두는가**가 이 리포의 컨벤션 중 하나다. ADR-0031이 정본이며 기준은 세 다리다 — 기계적·결정론 ∧ LLM이 하면 느림 ∧ **자주 도는 경로**. 판단·라우팅·next-step 도출·대화(그릴링·회고)는 스크립트로 옮기지 않는다. 스크립트를 쓰면 **필수 조건 5개**가 따라붙는다(`.forge/adr/0031-...md:31-36`): 트윈+parity, behavior 테스트(`.js`도 green), 파괴적이면 게이트-우선-비파괴, SKILL.md 계약 동기, `resolve-forge-root` 재사용.
 
-**작업 트리의 fg-map Update 경로가 이 경계의 최신 실사례이며, 정반대 방향으로 결정됐다.** `skills/fg-map/SKILL.md:47-67`이 증분 갱신을 **번호 매긴 mandatory 단계 4개 + 사후검증 2개**로 산문에 박았다 — 자격 사전점검(7문서 스탬프 일치 + `git merge-base --is-ancestor`), 변경 파일 union(`git diff --name-status <stamp>..HEAD` ∪ `git status --porcelain`), 베이스라인 `wc -l` 캡처, 제자리 편집 계약, 그리고 사후 스탬프 확인 + **~30% 이상 축소 시 정지·보고**(`:98`).
+**fg-map Update 경로가 이 경계의 대표 실사례이며, 정반대 방향으로 결정됐다**(베이스라인 시점엔 미커밋이었고 지금은 커밋됨 — `a7a9c3e` 기준). `skills/fg-map/SKILL.md:47-67`이 증분 갱신을 **번호 매긴 mandatory 단계 4개 + 사후검증 2개**로 산문에 박았다 — 자격 사전점검(7문서 스탬프 일치 + `git merge-base --is-ancestor`), 변경 파일 union(`git diff --name-status <stamp>..HEAD` ∪ `git status --porcelain`), 베이스라인 `wc -l` 캡처, 제자리 편집 계약, 그리고 사후 스탬프 확인 + **~30% 이상 축소 시 정지·보고**(`:98`).
 
 ADR `260801-020258:47`이 스크립트화를 기각한 이유가 컨벤션 자체다:
 
@@ -375,10 +395,12 @@ ADR `260801-020258:47`이 스크립트화를 기각한 이유가 컨벤션 자�
 ## 7. 편집 시 반드시 인지할 어긋남
 
 - **`skills/fg-ask/`는 grill-with-docs 원본의 자기완결 3파일**(`SKILL.md` + 형제 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`)이고 SKILL.md 본문은 **영문 verbatim**이다. forge 루프 연결(백로그 산출·fg-run 핸드오프·회고 환류)은 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. verbatim 본문과 이 섹션은 따로 움직이므로 **둘 중 하나만 고치면 계약이 깨진다**(`CLAUDE.md:147`).
+- **핸드오프 규약은 지금 "승인된 개정과 미구현 코드" 사이에 있다** — ADR `260805-231104`가 핸드오프를 고정 4행 표로 바꾸고 `CLAUDE.md:94`의 대화체 규약을 폐기했는데, `HANDOFF.md`·13곳 참조·CLAUDE.md 개정·ADR 링크·fg-status `👉 Next` 교체가 **전부 미구현**이고 작업은 `.forge/backlog/handoff-table.md`에 미실행 대기 중이다. **현재 정본은 산문 대화체이며, 부분 도입 금지** — §2.4 표.
 - **`skills/fg-cleanup/SKILL.md:16`의 `Proceed?`** — 스킬 본문에 문자 그대로 남은 유일한 확인 질문(§2.4 표).
 - **ADR `260801-020258:47`의 "fenced bash 블록 전례 0개"는 실측과 어긋난다** — 5곳 존재(§2.3).
 - **ADR `260801-020258:58`의 `SKILL.md:87` 줄번호는 stale**(현재 `:112`) — §6.
 - **`docs/index.html`의 KO/EN span 동기는 자동 검사가 전혀 없다** — §3.2. `README` 쌍도 스킬-행 개수만 검사된다 — §3.1.
+- **스킬 개수를 문자로 담은 곳이 `marketplace.json` 한 곳에 숨어 있다**("Twenty fg-\* skills.") — `plugin.json`엔 없어 대칭이 아니고, fg-doctor도 검사하지 않는다. 스킬 추가·삭제 시 놓치기 쉬운 지점 — §3.5.
 - **`forge-doctor`/`forge-done`/`forge-merge` parity 테스트는 아직 `set -u`만**이고 나머지 5개는 `set -euo pipefail`로 강화됐다 — §4.2.
 - **`scripts/`의 exec 비트는 무의미하게 갈려 있다**(13개만 `x`) — 호출 규약이 `bash script.sh`라 무해하지만, `hooks/run-hook.cmd`만은 exec 비트가 load-bearing이다 — §4.1/§4.6.
 - **`.forge/codebase/` 문서 7개는 fg-doctor 검사 대상이 아니다.** 지도의 신선도·정합은 fg-map 자신의 산문 precheck/post-check만이 지킨다 — §6. 규율 요지: 7개 문서의 `last_mapped_commit`이 **한 sha로 일치**해야 하고 그 sha가 HEAD의 조상이어야 증분 갱신이 가능하며(아니면 묻지 않고 전체 Refresh), 갱신 후 문서가 baseline 대비 ~30% 이상 줄면 정지·보고한다. 그 precheck의 grep은 **`^`로 줄머리 고정이 필수**다(`skills/fg-map/SKILL.md:52`) — 문서 산문이 이 스탬프 메커니즘을 설명하고 있어 unanchored grep은 그 문장까지 잡아 영원히 증분 경로에 못 들어간다.

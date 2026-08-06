@@ -1,13 +1,13 @@
 ---
-last_mapped_commit: bb54e27763aca86558ca45a965c9f8ede394018c
-mapped: 2026-08-01
+last_mapped_commit: a7a9c3e474a5717d23294a9cc0bec18ec1158130
+mapped: 2026-08-06
 ---
 
 # ARCHITECTURE
 
 > 이 문서는 **구현 사실**만 담는다. 도메인 용어의 뜻은 `.forge/CONTEXT.md` 소관이며 여기서 정의하지 않는다.
 > 모든 개수·크기는 작업 트리에서 직접 측정했다. 문서(`CLAUDE.md`·`README`·`docs/`)와 트리가 어긋나면 **트리를 믿고 어긋난 지점을 §8에 명시**했다.
-> 매핑 대상은 HEAD(`bb54e277`, v0.6.0)가 아니라 **미커밋 변경을 포함한 작업 트리**다.
+> 매핑 대상은 HEAD(`a7a9c3e4`, v0.6.4)가 아니라 **미커밋 변경을 포함한 작업 트리**다.
 
 ## 0. 한 줄 요약
 
@@ -15,7 +15,7 @@ forge는 **애플리케이션 코드가 없는 Claude Code 플러그인**이다.
 
 **실행 엔진은 이 리포가 아니라 Claude Code 하네스다.** forge가 제공하는 것은 (a) 하네스가 자동 탐색하는 자산(`skills/`, `hooks/hooks.json`), (b) 그 자산이 읽고 쓰는 파일 상태 계약(`.forge/`), (c) 기계적 작업을 LLM 대신 처리하는 결정론 스크립트(`scripts/`)다.
 
-규모(실측): 스킬 마크다운 28파일 3,072행 · 스크립트 구현 17파일 3,124행 + 셸 테스트 15파일 2,448행 · 훅 3파일 · 사용자 문서 `docs/` 6문서 + 랜딩 1파일.
+규모(실측): 스킬 마크다운 29파일 3,299행 · 스크립트 구현 17파일 3,124행 + 셸 테스트 15파일 2,448행 · 훅 3파일 · 사용자 문서 `docs/` 5문서 + 랜딩 1파일(693행).
 
 ## 1. 아키텍처 패턴 — "산문 판단 + 결정론 스크립트 + 파일 기반 상태 기계"
 
@@ -37,7 +37,7 @@ forge는 **애플리케이션 코드가 없는 Claude Code 플러그인**이다.
 | --- | --- | --- |
 | **L0 패키징·디스커버리** | `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` | 하네스가 읽는 매니페스트. `skills`·`hooks` 필드는 **없음**(자동 탐색) |
 | **L1 진입점** | `skills/*/SKILL.md` frontmatter, `hooks/hooks.json`, `scripts/*` 직접 호출 | 시스템에 들어오는 3종 경로(§3) |
-| **L2 산문 판단** | 19개 `SKILL.md` | 대화·게이트 판단·핸드오프·라우팅 |
+| **L2 산문 판단** | 20개 `SKILL.md` | 대화·게이트 판단·핸드오프·라우팅 |
 | **L3 공유 정의** | `skills/fg-run/{FORGE-ROOT,PLAN-FORMAT,RUN-ALL}.md`, `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-learn/RETRO-FORMAT.md`, `skills/fg-next/DRIVE.md`, `skills/fg-eco/ECO.md`, `skills/fg-visual/VISUAL.md` | 단일 정의·참조 전용(§6-A) |
 | **L4 결정론 스크립트** | `scripts/forge-*.sh` + `.js` 트윈, `scripts/resolve-forge-root.{sh,js}` | exit code 계약, AI 없이 실행 가능 |
 | **L5 상태** | `.forge/` (휘발 + git 추적 영속) | 파일 위치가 곧 상태 |
@@ -50,16 +50,17 @@ forge는 **애플리케이션 코드가 없는 Claude Code 플러그인**이다.
 
 `skills/<dir>/SKILL.md`가 **자동 탐색**된다. `plugin.json`의 키는 `name`·`description`·`version`·`author`·`homepage`·`repository`·`license`·`keywords`뿐이고 **`skills`·`hooks` 필드가 없음**을 확인했다.
 
-**스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name`이다.** 19개 전부 디렉터리명 == `name`으로 일치한다(`awk '/^name:/'` 실측):
+**스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name`이다.** 20개 전부 디렉터리명 == `name`으로 일치한다(`awk '/^name:/'` 실측):
 
 ```
-fg-adversarial-review  fg-agents  fg-ask     fg-cleanup  fg-doctor
-fg-done                fg-drop    fg-eco     fg-learn    fg-loop
-fg-map                 fg-merge   fg-next    fg-quick    fg-run
-fg-status              fg-statusline         fg-tdd      fg-visual
+fg-adversarial-review  fg-agenda  fg-agents  fg-ask      fg-cleanup
+fg-doctor              fg-done    fg-drop    fg-eco      fg-learn
+fg-loop                fg-map     fg-merge   fg-next     fg-quick
+fg-run                 fg-status  fg-statusline          fg-tdd
+fg-visual
 ```
 
-**개수는 19다**(`ls -1d skills/*/ | wc -l` → 19, `docs/skills.md` 카탈로그 행 수 → 19, `marketplace.json`의 "Nineteen fg-* skills"와 일치). `.claude/agents/manifest-doc-syncer.md`의 `description`만 아직 "18-스킬"이다 — **문서 드리프트**이며 트리가 정답이다(§8).
+**개수는 20이다**(`ls -1d skills/*/ | wc -l` → 20, `docs/skills.md` 카탈로그 행 수 → 20, `README.md`·`README.ko.md` 스킬 행 각 20, `marketplace.json`의 "Twenty fg-* skills"와 일치). 20번째가 **`fg-agenda`**(161행, 루프 밖 계획 유틸리티 — §4-B·§6-C)다. `.claude/agents/manifest-doc-syncer.md`의 `description`만 아직 "18-스킬"이다 — **문서 드리프트**이며 트리가 정답이다(§8).
 
 frontmatter `description`은 이중 용도다 — 하네스의 자동 호출 트리거 문구이자 `/fg` 메뉴에 보이는 사람용 설명(`.forge/adr/260716-22a-skill-description-dual-use-trigger-core.md`). 한/영 트리거 문구를 함께 담는 것이 관례이고, 길이 상한(600 코드포인트)은 `forge-doctor.sh`의 B16 린트가 감시한다.
 
@@ -146,7 +147,10 @@ fg-ask ① 질의·그릴링 → fg-run ② 실행 → fg-learn ③ 회고 → f
 | `.forge/executed/<slug>/` | fg-run (Run all park) | fg-learn, fg-done |
 | `.forge/done/<sealed-id>-<slug>/` | fg-done | fg-ask(충돌 검출)·fg-run(완료 판별)·fg-status |
 | `.forge/loop.md` | fg-loop | fg-loop·fg-status·fg-ask·fg-next·fg-merge·훅 |
+| `.forge/agenda.md` | fg-agenda | fg-agenda(재진입)·fg-status(**한 줄 보고만**) |
 | `.forge/quick/LOG.md` | fg-quick | (자체 완결) |
+
+`agenda.md`는 계약 표에 있지만 **상태 기계 밖**이다(§4-C). fg-agenda가 소유하는 결정 대기열이고, 소비자는 fg-status의 한 줄 보고뿐이며 그 한 줄은 **`👉 Next` 도출에 들어가지 않는다** — 진행 중인 한 작업의 사슬(fg-next/fg-status)과 병행하는 계획 표면이라서다. 스크립트도 없다(`forge-status.sh`/`.js`는 손대지 않았고 agenda 카운터가 없다) — 즉 agenda는 forge에서 **산문 계층에만 존재하는 유일한 상태 파일**이다. 훅(`forge-hook-session-start`)도 읽지 않으므로 미봉인 잔여 알림에 나타나지 않는다. 근거: `.forge/adr/260805-201313-fg-agenda-decision-queue.md`.
 
 ### 4-C. 상태 기계 — 파일 **위치**가 상태다
 
@@ -182,7 +186,7 @@ flowchart TD
 
 **활성 슬롯·`backlog/`·`executed/`가 전부 비어 있으면 = 진행 중 작업 없음.** fg-run은 빈 상태에서 실행하지 않는다(재실행 방지). 봉인만이 슬롯을 비운다. `failed`에는 봉인시키는 waiver가 없다 — fresh re-run으로 봉인 가능 값에 **재검증**될 때만 봉인되고, `skipped`로 바꿔 통과시키는 것이 금지돼 있다. `failed` park의 회수(unpark)는 **fg-run이 단일 소유자**다(fg-learn·fg-done은 둘 다 차단만 한다).
 
-매핑 시점 실측 상태: `backlog/` 0건, **활성 슬롯 1건**(slug `fg-map-diff-incremental-update`·`status: executed`·`verified: yes (…)`·`retro: pending` → 상태 기계상 "회고 게이트 앞"), `executed/` 0건, `done/` 114건, `dropped/` 1건, `visual/` 세션 2건.
+매핑 시점 실측 상태: **활성 슬롯 비어 있음**(`plan.md`·`run.md`·`STATUS.md` 모두 부재), `backlog/` 1건(slug `handoff-table`·`task: 108`·`priority: high` — §6-D), `executed/` 0건, `done/` 118건, `dropped/` 1건, `visual/` 세션 5건. 상태 기계 밖으로 `agenda.md` 1건이 열려 있다(31행 — 목적지 "fg-map 지도 신뢰", 결정 1·열린 질문 5).
 
 ### 4-D. 실행 위임 흐름 (fg-run 내부)
 
@@ -241,15 +245,17 @@ plan.md의 Work slices → 워크플로 스크립트 조립 → 사용자 승인
 
 | 파일 | 행 | 소유 | 언급 파일 수 / 스킬 디렉터리 수 |
 | --- | --: | --- | --- |
-| `skills/fg-run/FORGE-ROOT.md` | 62 | fg-run | **20 파일 / 18 디렉터리** — `fg-statusline`만 참조하지 않는다(표시 전용이고 루트 해석을 스크립트가 한다) |
+| `skills/fg-run/FORGE-ROOT.md` | 62 | fg-run | **21 파일 / 19 디렉터리** — `fg-statusline`만 참조하지 않는다(표시 전용이고 루트 해석을 스크립트가 한다) |
 | `skills/fg-run/PLAN-FORMAT.md` | 70 | fg-run(소비자 쪽 보관) | 4 / 4 — fg-ask(생산자)·fg-loop·fg-run·fg-status |
 | `skills/fg-run/RUN-ALL.md` | 16 | fg-run | 1 / 1 — fg-run 단독, "Run all" 선택 시에만 읽는 progressive disclosure |
-| `skills/fg-ask/CONTEXT-FORMAT.md` | 60 | fg-ask | 6 / 5 — fg-ask·fg-done·fg-learn(SKILL+RETRO-FORMAT)·fg-merge·fg-run |
-| `skills/fg-ask/ADR-FORMAT.md` | 63 | fg-ask | 9 / 7 — fg-ask·fg-cleanup·fg-doctor·fg-done·fg-learn·fg-merge·fg-run(SKILL+FORGE-ROOT) |
+| `skills/fg-ask/CONTEXT-FORMAT.md` | 60 | fg-ask | 7 / 6 — fg-agenda·fg-ask·fg-done·fg-learn(SKILL+RETRO-FORMAT)·fg-merge·fg-run |
+| `skills/fg-ask/ADR-FORMAT.md` | 63 | fg-ask | 10 / 8 — fg-agenda·fg-ask·fg-cleanup·fg-doctor·fg-done·fg-learn·fg-merge·fg-run(SKILL+FORGE-ROOT) |
 | `skills/fg-learn/RETRO-FORMAT.md` | 47 | fg-learn | 2 / 2 — fg-done·fg-learn |
 | `skills/fg-next/DRIVE.md` | 38 | fg-next | 5 / 4 — fg-done·fg-eco(SKILL+ECO)·fg-loop·fg-next |
-| `skills/fg-eco/ECO.md` | 156 | fg-eco | 8 / 6 — fg-ask·fg-done·fg-eco·fg-next(SKILL+DRIVE)·fg-run(SKILL+RUN-ALL)·fg-visual |
-| `skills/fg-visual/VISUAL.md` | 312 | fg-visual | 2 / 2 — fg-ask·fg-visual |
+| `skills/fg-eco/ECO.md` | 156 | fg-eco | 9 / 7 — fg-agenda·fg-ask·fg-done·fg-eco·fg-next(SKILL+DRIVE)·fg-run(SKILL+RUN-ALL)·fg-visual |
+| `skills/fg-visual/VISUAL.md` | 371 | fg-visual | 2 / 2 — fg-ask·fg-visual |
+
+`fg-agenda`는 여기에 **새 공유 문서를 만들지 않고** 대신 `../fg-ask/SKILL.md` **본문 자체를 그릴링 방법의 단일 정의로 참조**한다(`AGENDA-FORMAT.md`도 만들지 않고 5개 절 형식을 SKILL.md 안에 인라인으로 둔다 — fg-loop가 `loop.md` 템플릿을 인라인으로 두는 것과 같은 판단). `SKILL.md`가 형식 문서처럼 참조되는 경로는 이것과 `fg-loop`뿐이다.
 
 `PLAN-FORMAT.md`가 생산자(fg-ask)가 아닌 소비자(fg-run) 아래 있는 이유: `skills/fg-ask/`는 grill-with-docs 원문 verbatim 영역이라 새 파일을 넣지 않는다(§8). 루트 `references/` 디렉터리는 폐지됐다(트리에 없음 — 확인).
 
@@ -281,13 +287,33 @@ default = .forge/config.json 의 defaultBranch (없으면 "main")
 
 의도적 완화가 두 건 있다: `fg-quick`(기둥 2를 trivial 작업에 한해 완화 — 형식 산출물 없이 `.forge/quick/LOG.md` 한 줄, 활성 슬롯·backlog·done을 일절 건드리지 않아 상태 계약과 격리), `fg-loop`(기둥 1을 goal 주도 무인 주행에 한해 완화 — 벽에서만 멈춤).
 
-기둥 1에 대한 **완화가 아닌 확장**이 하나 더 있다: `fg-visual` 컴패니언은 표시 전용이 아니라 **보조 답변 채널**이다 — 선택형 질문에서 브라우저 클릭이 답으로 인정되고, 화면이 명시적 전송 버튼을 갖춘 텍스트 입력 위젯을 담을 수 있다(두 채널의 답은 병합하고, 실질적으로 모순될 때만 한 줄로 되묻는다). 대화를 깨우는 턴은 여전히 터미널이고 브라우저는 Dynamic Workflow의 런타임 입력이 아니므로 기둥 1은 온전하다. 구현 제약: `skills/fg-visual/scripts/server.cjs`(677행)가 467행의 `if (event && event.choice)` 가드 아래에서만 이벤트를 파일에 기록하므로 **텍스트 이벤트도 `choice: "text:<field>"`를 함께 실어야** 도달한다(그래서 벤더링된 5파일은 무변경으로 유지됐다). 근거: `.forge/adr/260730-224259-visual-companion-answer-channel.md`.
+`fg-loop`의 **거울상**이 `fg-agenda`다: 같은 모양의 계약 파일 하나(`loop.md` ↔ `agenda.md`)를 쓰지만 정지 조건이 반대다 — `loop.md`는 **기계 검증 가능한** 정지 조건 + 무인 주행, `agenda.md`는 **판단** 정지 조건 + HITL(사람이 모든 답을 낸다). 그래서 fg-agenda는 기둥 1의 완화가 아니라 **가장 엄격한 준수**다: 에이전트의 자율성은 "무엇을 결정해야 하는지 캐내는 것"(breadth-first 그릴링·fog↔질문 판별·순서·다음 질문 선택·범위 밖 판정)에만 있고, 목적지와 모든 답은 사람 몫이며 **에이전트가 자기 질문에 스스로 답하는 것이 명시적 금지 1번**이다(그러면 `## 결정된 것`이 결정이 아니라 추측이 된다). 파일 하나로 프론티어를 표현하므로 의존 엣지·blocking·티켓 유형 분류를 만들지 않는다(ADR-0004가 강제 순서를 거부한 것과 같은 논거). Wayfinder(`mattpocock/skills`, MIT)의 **개념 각색**이며 fg-visual과 달리 코드 vendoring이 아니다(파일 복사 0).
+
+기둥 1에 대한 **완화가 아닌 확장**이 하나 더 있다: `fg-visual` 컴패니언은 표시 전용이 아니라 **보조 답변 채널**이다 — 선택형 질문에서 브라우저 클릭이 답으로 인정되고, 화면이 명시적 전송 버튼을 갖춘 텍스트 입력 위젯을 담을 수 있다(두 채널의 답은 병합하고, 실질적으로 모순될 때만 한 줄로 되묻는다). **이제 확정 클릭이 터미널 턴 없이 에이전트를 직접 깨운다**(ADR `260805-005436`) — 그래서 기둥 1의 근거가 바뀌었다: "브라우저는 대화를 깨울 수 없다"가 더 이상 참이 아니므로, 근거는 **브라우저가 Dynamic Workflow의 런타임 입력이 아니고 그릴링이 애초에 워크플로 안에서 돌지 않는다**는 쪽으로 옮겨졌다(무엇이 깨우든 한 번에 한 질문인 대화라는 성질은 불변). 깨움 메커니즘:
+
+```
+scripts/start-server.sh 로 서버 기동
+   │
+   ▼
+Monitor(tail -n0 -F <state_dir>/events | grep --line-buffered -E '"choice":"(confirm|text):')  ← persistent
+   │   · tail -n0: 기존 줄 재생 안 함 / -F: 화면 교체로 파일이 비워져도 추적
+   │   · 필터가 confirm:·text: 만 통과 → 탐색용 클릭("choice":"a")은 깨우지 않음
+   │   · --line-buffered 필수(없으면 감시가 걸린 듯 보이지만 아무것도 안 옴)
+   │   · persistent (Monitor 타임아웃 상한 1h < 서버 유휴 4h)
+   ▼
+확정 버튼 클릭 ──▶ 에이전트 깨어남 ──▶ events 전체를 읽고 **마지막 confirm** 을 답으로 채택(멱등)
+Monitor 없음 ──▶ 감시 생략, 종전 동작(사용자가 터미널에 아무거나 보냄) — graceful, 하드 의존 아님
+```
+
+구현 제약 두 가지가 **벤더링 5파일 무변경**을 지킨다: (1) `skills/fg-visual/scripts/server.cjs`(677행)가 467행의 `if (event && event.choice)` 가드 아래에서만 이벤트를 파일에 기록하므로 확정·텍스트 이벤트도 `choice: "confirm:<sel>"`/`"text:<field>"`를 함께 실어야 도달한다. (2) 확정 버튼은 push하는 화면 HTML의 **인라인 `onclick` 핸들러**이지 벤더링 파일 수정이 아니며, `data-choice`를 달지 않는다(`helper.js`의 전역 클릭 리스너가 이중 전송하므로). 서버 종료 시 `TaskStop`으로 감시도 함께 끊어야 하고, 세션 재시작은 서버는 살리지만 감시는 죽이므로 재진입이 다시 걸어야 한다. 근거: `.forge/adr/260730-224259-visual-companion-answer-channel.md`, `.forge/adr/260805-005436-visual-confirm-click-wakes-agent.md`.
 
 ### 6-D. 핸드오프는 진술형
 
 각 스킬은 끝에서 "방금 한 것 / 다음 단계 / 시작하는 법"을 대화체 **진술**로 전하고 멈춘다. "진행할까요?"로 묻지 않는다. 자동 체이닝은 `fg-next` 전담이며, 유일한 예외는 fg-next 내부에서 회고가 재그릴 권고 없이 끝났을 때 같은 호출에서 봉인까지 잇는 경로다(`.forge/adr/0026-fg-next-learn-done-autochain.md`). 과거 fg-run 종료의 4지 `AskUserQuestion` 메뉴는 **영속 상태 + 멱등 가드 부재로 같은 메뉴가 반복되는 버그** 때문에 폐지됐다(`.forge/adr/0015-fg-run-handoff-menu-others-stated.md`, 2026-06-15 개정). 단 fg-run *시작* 시 백로그 선택 메뉴는 별개로 유지된다 — 2–3건은 `AskUserQuestion`(최대 4옵션 제약 때문), 4건 이상은 번호 텍스트 목록이며 선택→실행으로 전진하므로 반복이 없다.
 
-**eco의 세 번째 활성화 — 작업 종료 출력을 표로 교체.** 최상위 `.forge/config.json`(전역 예외, 현재 `{"eco": true}`)의 `eco`가 참이면 (1) fg-run 서브에이전트 sonnet 캡, (2) `ECO.md` 규율 prepend·fg-ask 그릴링 YAGNI 렌즈·현 세션 적용에 더해 (3) **작업이 끝나는 지점의 산문 핸드오프가 "eco 요약 표"로 교체**된다(추가가 아니라 교체 — 덧붙이면 출력이 더 길어져 목적에 반한다). 적용 지점은 fg-run 단일작업 핸드오프·fg-done 명시적 단일 봉인(헤더 한 줄 + `▸ Request` / `▸ Done`(슬라이스 표) / `▸ Next`)과 배치·무인 경로(Run all·`fg-done all`·fg-next 위임 봉인·`fg-next all`·fg-loop — 작업당 1행)다. 헤더는 `verified:`를 반드시 실어야 하고(ADR-0009의 봉인 가능 여부가 그 값에 달려 있다), 단일 슬라이스 작업은 표 없이 한 줄로 낸다. 표의 **형태 정의는 `skills/fg-eco/ECO.md` 한 곳**이고 소비 스킬(`fg-run`·`fg-done`·`fg-next`+`DRIVE.md`·`fg-run/RUN-ALL.md`)은 레이아웃을 재진술하지 않고 참조만 한다. 표여도 **진술형은 불변**이고, 실행 *중* narration·fg-ask 그릴링·fg-learn 회고·생성되는 영속 문서·fg-quick은 제외다. eco off면 종전 산문 그대로. 근거: `.forge/adr/260730-230321-eco-summary-table.md`(ADR-0032의 "배치엔 요약 금지"를 *문구만* 개정 — 1행 표가 기존 산문 notice보다 짧아 금지의 *취지*는 이행한다).
+**아직 구현되지 않은 결정 하나가 이 계층에 걸려 있다 — 고정 4행 핸드오프 표**(`.forge/adr/260805-231104-handoff-table.md`, accepted). 다음 단계 안내가 산문 문단 안에 묻혀 찾기 어렵다는 통증(길이 축이 아니라 **위치** 축)에 대해, 다음-단계 안내 지점의 산문 핸드오프를 `방금 한 것`·`다음 단계`·`시작하는 법`·`대안` **고정 4행 표**로 교체하고 **eco 게이트 없이 항상** 적용하기로 했다. 요점 넷: (1) 단일 정의는 신설 `skills/fg-next/HANDOFF.md` 한 곳이고 적용 13곳(루프 4 + 유틸 9)은 한 줄 참조만 한다, 제외 7곳은 가리킬 다음이 없는 토글·설정과 애초에 안내를 안 내는 스킬이다. (2) **표는 메뉴가 아니다** — `대안` 행은 질문이 아니라 통보이며 ADR-0015(진술형·체이닝은 fg-next 전담)는 불변이다. (3) eco와는 역할 분담 — eco on의 작업 종료 지점에서는 `방금 한 것` 행을 빼고 3행으로 내, **다음-단계 부분의 모양이 eco on/off에서 동일**해진다. (4) CLAUDE.md의 "핸드오프는 자연스러운 대화체, 정해진 양식 금지" 규약은 이 ADR로 **개정**된다(유지: 진술형 / 폐기: 대화체·고정 양식 금지). 형식 정의를 CLAUDE.md에 두는 안은 거부됐다 — **forge의 CLAUDE.md는 남의 프로젝트 런타임에서 읽히지 않으므로** 형태 정의는 반드시 `skills/` 안에 있어야 한다. **매핑 시점 기준 미구현**이다: `skills/fg-next/HANDOFF.md`는 트리에 없고(§8) 계획은 `backlog/handoff-table.md`(task 108)로 대기 중이라, 아래 서술은 현재 코드의 사실이다.
+
+**eco의 세 번째 활성화 — 작업 종료 출력을 표로 교체.** 최상위 `.forge/config.json`(전역 예외, 현재 `{"eco": false}` → 아래 세 활성화는 **지금 꺼져 있다**)의 `eco`가 참이면 (1) fg-run 서브에이전트 sonnet 캡, (2) `ECO.md` 규율 prepend·fg-ask 그릴링 YAGNI 렌즈·현 세션 적용에 더해 (3) **작업이 끝나는 지점의 산문 핸드오프가 "eco 요약 표"로 교체**된다(추가가 아니라 교체 — 덧붙이면 출력이 더 길어져 목적에 반한다). 적용 지점은 fg-run 단일작업 핸드오프·fg-done 명시적 단일 봉인(헤더 한 줄 + `▸ Request` / `▸ Done`(슬라이스 표) / `▸ Next`)과 배치·무인 경로(Run all·`fg-done all`·fg-next 위임 봉인·`fg-next all`·fg-loop — 작업당 1행)다. 헤더는 `verified:`를 반드시 실어야 하고(ADR-0009의 봉인 가능 여부가 그 값에 달려 있다), 단일 슬라이스 작업은 표 없이 한 줄로 낸다. 표의 **형태 정의는 `skills/fg-eco/ECO.md` 한 곳**이고 소비 스킬(`fg-run`·`fg-done`·`fg-next`+`DRIVE.md`·`fg-run/RUN-ALL.md`)은 레이아웃을 재진술하지 않고 참조만 한다. 표여도 **진술형은 불변**이고, 실행 *중* narration·fg-ask 그릴링·fg-learn 회고·생성되는 영속 문서·fg-quick은 제외다. eco off면 종전 산문 그대로. 근거: `.forge/adr/260730-230321-eco-summary-table.md`(ADR-0032의 "배치엔 요약 금지"를 *문구만* 개정 — 1행 표가 기존 산문 notice보다 짧아 금지의 *취지*는 이행한다).
 
 `ECO.md`의 규율 자체는 6단 "ladder"(존재 필요? → stdlib → 플랫폼 기능 → 기존 의존성 → 한 줄 → 최소 코드)와 terse-communication(caveman 차용, JuliusBrussee/caveman MIT), 그리고 **게을러지지 말 것**의 명시적 예외(신뢰 경계 입력 검증·데이터 손실 방지·보안·접근성·명시 요청, 비자명 로직의 최소 런타임 체크 1개)로 구성된다.
 
@@ -305,14 +331,15 @@ default = .forge/config.json 의 defaultBranch (없으면 "main")
 !.forge/branch/
 ```
 
-전부 **lazy 생성**(쓸 내용이 생길 때만). 매핑 시점 실측: `adr/` 43개(순차 `NNNN` 32 + `YYMMDD-HH<letter>` 4 + `YYMMDD-HHMMSS` 7, `retired/` 미생성), `retro/` 54개(레거시 `YYYY-MM-DD` 49 + 시간ID 5), `codebase/` 7문서(이 갱신 대상), `CONTEXT.md` 존재, `config.json`은 `{"eco": true}`(`tdd`·`defaultBranch` 키 없음 → 각각 off·`main`).
+전부 **lazy 생성**(쓸 내용이 생길 때만). 매핑 시점 실측: `adr/` 47개(순차 `NNNN` 32 + `YYMMDD-HH<letter>` 4 + `YYMMDD-HHMMSS` 11, `retired/` 미생성), `retro/` 58개(레거시 `YYYY-MM-DD` 49 + 시간ID 9), `codebase/` 7문서(이 갱신 대상), `CONTEXT.md` 존재, `config.json`은 `{"eco": false}`(`tdd`·`defaultBranch` 키 없음 → 각각 off·`main`).
 
 ## 8. 알려진 구조적 예외 / 문서-트리 불일치
 
 - **`skills/fg-ask/`는 grill-with-docs 원본의 자기완결 3파일**(`SKILL.md` 136행 + `CONTEXT-FORMAT.md` + `ADR-FORMAT.md`)이고 SKILL.md 본문은 영문 verbatim이다. forge 루프 연결은 맨 아래 "Forge integration (minimal)" 섹션에만 둔다. verbatim 본문과 그 섹션이 따로 움직이므로 한쪽만 고치면 계약이 깨진다.
-- **스킬 개수 드리프트** — 트리·`docs/skills.md`·`marketplace.json`은 19인데 `.claude/agents/manifest-doc-syncer.md`의 `description`만 "18-스킬"이다. 트리가 정답이며, 이 카드는 배포 자산이 아니라 리포 개발용이라 `forge-doctor`의 B12(CLAUDE.md 스킬 목록) 검사 범위 밖이어서 잡히지 않았다.
+- **스킬 개수 드리프트** — 트리·`docs/skills.md`·`README` 쌍·`marketplace.json`은 20인데 `.claude/agents/manifest-doc-syncer.md`의 `description`만 "18-스킬"이다(격차가 1에서 2로 벌어졌다). 트리가 정답이며, 이 카드는 배포 자산이 아니라 리포 개발용이라 `forge-doctor`의 B12(CLAUDE.md 스킬 목록) 검사 범위 밖이어서 잡히지 않았다.
 - **`RUN-ALL.md` 누락** — `CLAUDE.md`의 공유 정의 목록에 없다(`grep -c "RUN-ALL" CLAUDE.md` → 0). 트리에 실재하고 fg-run이 참조하므로 목록의 누락이다.
+- **accepted인데 미구현인 결정 1건** — ADR `260805-231104`(고정 4행 핸드오프 표)가 단일 정의로 지목한 `skills/fg-next/HANDOFF.md`가 트리에 없고(`ls skills/*/HANDOFF.md` → 없음, `grep -c HANDOFF CLAUDE.md` → 0), 계획은 `backlog/handoff-table.md`(task 108)로 대기 중이다. 즉 §6-D의 "핸드오프는 진술형 산문"은 **현재** 사실이고 표는 **결정된 미래**다 — 두 서술이 공존하는 것은 드리프트가 아니라 이 시점의 정확한 기록이다.
 - **테스트 커버리지 비대칭** — `scripts/forge-status.*`와 `scripts/resolve-forge-root.*`에는 `*.parity.test.sh`만 있고 behavior 테스트(`*.test.sh`)가 없다. 나머지 7쌍은 둘 다 갖고 있다(§5 표).
 - **`forge-statusline-wrapper.sh`만 트윈이 없다** — bash 전용 합성 경로라 의도된 예외이고, `forge-doctor.sh` B15가 `*-wrapper.sh`를 명시적으로 제외한다. 이 때문에 `fg-statusline`은 "Windows + 기존 statusline" 조합에서 방법 2만 제시한다.
 - **`.claude/`는 forge 플러그인 자산이 아니다** — 이 리포를 개발할 때 쓰는 프로젝트 자산이다(에이전트 카드 3장 + 로컬 스킬 `issue-triage` 1개 + `settings.local.json`). 배포 대상이 아니다.
-- **`.forge/codebase/`(이 문서 포함)는 fg-map이 생성하는 지도**이며 루프 밖 유틸리티의 산물이다. 구현 사실만 담고, 도메인 용어 정의는 `.forge/CONTEXT.md`가 맡는다. 각 문서 frontmatter의 `last_mapped_commit`은 신선도 신호일 뿐 아니라 **증분 갱신의 diff 기준점**이다 — 7문서가 같은 sha를 달고(패턴을 줄머리에 앵커해 검사) 그 sha가 HEAD의 조상일 때만 fg-map의 Update가 제자리 증분으로 돌고(변경 파일 = `git diff --name-status <stamp>..HEAD` ∪ `git status --porcelain`, `.forge/codebase/` 자신은 목록에서 제외), 조건이 깨지면 묻지 않고 전체 Refresh로 폴백한다. 사후 점검으로 7문서 스탬프 == HEAD와 `wc -l` 베이스라인 대비 −30% 초과 축소를 확인하고, 시크릿 스캔 뒤에만 커밋을 제안한다(`.forge/adr/260801-020258-fg-map-diff-incremental-update.md` — 작업 트리의 미커밋 변경).
+- **`.forge/codebase/`(이 문서 포함)는 fg-map이 생성하는 지도**이며 루프 밖 유틸리티의 산물이다. 구현 사실만 담고, 도메인 용어 정의는 `.forge/CONTEXT.md`가 맡는다. 각 문서 frontmatter의 `last_mapped_commit`은 신선도 신호일 뿐 아니라 **증분 갱신의 diff 기준점**이다 — 7문서가 같은 sha를 달고(패턴을 줄머리에 앵커해 검사) 그 sha가 HEAD의 조상일 때만 fg-map의 Update가 제자리 증분으로 돌고(변경 파일 = `git diff --name-status <stamp>..HEAD` ∪ `git status --porcelain`, `.forge/codebase/` 자신은 목록에서 제외), 조건이 깨지면 묻지 않고 전체 Refresh로 폴백한다. 사후 점검으로 7문서 스탬프 == HEAD와 `wc -l` 베이스라인 대비 −30% 초과 축소를 확인하고, 시크릿 스캔 뒤에만 커밋을 제안한다(`.forge/adr/260801-020258-fg-map-diff-incremental-update.md`). 팬아웃은 **`Agent` 툴 + `run_in_background: true`로 4개 포커스 서브에이전트**를 한 메시지에 띄우는 것이지 Dynamic Workflow가 아니다(`skills/fg-map/SKILL.md`의 "Use the `Agent` tool with `run_in_background: true`" — fg-run의 위임과 다른 메커니즘이며, 이 문서 자신이 그 경로로 갱신됐다). `--paths` 같은 사용자 지정 범위는 없다 — Update의 범위는 스탬프 diff에서만, Refresh는 문서 단위로만 좁힌다.

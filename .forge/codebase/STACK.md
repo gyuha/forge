@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: bb54e27763aca86558ca45a965c9f8ede394018c
-mapped: 2026-08-01
+last_mapped_commit: a7a9c3e474a5717d23294a9cc0bec18ec1158130
+mapped: 2026-08-06
 ---
 
 # STACK.md
@@ -9,37 +9,39 @@ mapped: 2026-08-01
 
 forge는 **Claude Code 플러그인 리포**다. 컴파일되는 소스가 없고, 빌드·패키징·CI 파이프라인도 없다. 실제로 실행되는 코드는 `scripts/`의 bash+node 트윈 17개와 `skills/fg-visual/scripts/`에 벤더링된 zero-dependency Node 서버뿐이며, 나머지는 전부 에이전트가 읽는 Markdown과 하네스가 읽는 JSON이다. 언어 스택은 **bash + node(플레인 CJS) + Markdown + JSON**, 그 이상은 없다.
 
-`git ls-files` 기준 추적 파일 **199개**. 그중 106개가 `.forge/`(영속 문서), 34개가 `skills/`, 32개가 `scripts/`, 12개가 `docs/`다. 즉 리포의 절반 이상이 플러그인 페이로드가 아니라 forge 자신의 루프 기록이다.
+`git ls-files` 기준 추적 파일 **209개**. 그중 114개가 `.forge/`(영속 문서), 35개가 `skills/`, 32개가 `scripts/`, 12개가 `docs/`다. 즉 리포의 절반 이상이 플러그인 페이로드가 아니라 forge 자신의 루프 기록이다.
 
 ## 파일 인벤토리 (실측)
 
 | 확장자 | 개수 | 무엇인가 |
 | --- | --- | --- |
-| `.md` | 146 | `.forge/` 영속 문서 105 · `skills/` 28 · `docs/` 5 · 루트 4(`README.md`·`README.ko.md`·`CLAUDE.md`·`CHANGELOG.md`) · `.claude/` 4(리포 로컬 에이전트 카드 3 + issue-triage 1) |
+| `.md` | 155 | `.forge/` 영속 문서 113 · `skills/` 29 · `docs/` 5 · 루트 4(`README.md`·`README.ko.md`·`CLAUDE.md`·`CHANGELOG.md`) · `.claude/` 4(리포 로컬 에이전트 카드 3 + issue-triage 1) |
 | `.sh` | 27 | `scripts/` 24(운영 9 + 테스트 15) · `skills/fg-visual/scripts/` 2 · `hooks/run-hook.test.sh` 1 |
 | `.js` | 9 | `scripts/` 8(node 트윈) · `skills/fg-visual/scripts/helper.js`(브라우저 측) |
 | `.json` | 4 | `.claude-plugin/plugin.json` · `.claude-plugin/marketplace.json` · `hooks/hooks.json` · `.forge/config.json` |
 | `.cjs` | 1 | `skills/fg-visual/scripts/server.cjs` (벤더링 Node 서버) |
 | `.cmd` | 1 | `hooks/run-hook.cmd` — polyglot(아래 §훅) |
-| `.html` | 2 | `docs/index.html`(랜딩 574줄) · `skills/fg-visual/scripts/frame-template.html`(218줄) |
+| `.html` | 2 | `docs/index.html`(랜딩 693줄) · `skills/fg-visual/scripts/frame-template.html`(218줄) |
 | `.yml` | 1 | `docs/examples/github-actions-forge-check.yml` — **복사용 템플릿**(이 리포에서 실행되지 않음) |
 | `.png` | 4 | `docs/` 이미지(`icon.png`·`icon-sm.png`·`workflow.png`·`footer-forge-bg.png`) |
-| 확장자 없음 | 4 | `.gitignore` · `.gitattributes` · `docs/.nojekyll` · `skills/fg-visual/LICENSE` |
+| 확장자 없음 | 5 | `.gitignore` · `.gitattributes` · `.graphifyignore` · `docs/.nojekyll` · `skills/fg-visual/LICENSE` |
 
-`.forge/` 추적 106개의 내부 구성: `retro/` 54 · `adr/` 43 · `codebase/` 7 · `CONTEXT.md` 1 · `config.json` 1. ADR 43개 중 42개는 HEAD에, 1개(`260801-020258-fg-map-diff-incremental-update.md`)는 작업 트리에 staged 상태다. `.forge/adr/retired/`는 **아직 존재하지 않는다**(은퇴된 ADR 0건 — fg-cleanup이 한 번도 실행되지 않았다는 뜻).
+`.forge/` 추적 114개의 내부 구성: `retro/` 58 · `adr/` 47 · `codebase/` 7 · `CONTEXT.md` 1 · `config.json` 1. ADR 47개 중 46개는 HEAD에, 1개(`260805-231104-handoff-table.md`)는 작업 트리에 staged 상태다. `.forge/adr/retired/`는 **아직 존재하지 않는다**(은퇴된 ADR 0건 — fg-cleanup이 한 번도 실행되지 않았다는 뜻).
 
 주요 텍스트 볼륨:
 
 | 대상 | 파일 | 줄 |
 | --- | --- | --- |
-| 스킬 Markdown | 28 | 3,072 (최대: `skills/fg-visual/VISUAL.md` 312 · `skills/fg-statusline/SKILL.md` 217 · `skills/fg-run/SKILL.md`·`skills/fg-loop/SKILL.md` 각 180) |
-| `scripts/` | 32 | 5,572 (운영 3,124 = sh 1,658 + js 1,466 / 테스트 2,448) |
+| 스킬 Markdown | 29 | 3,299 (최대: `skills/fg-visual/VISUAL.md` 371 · `skills/fg-statusline/SKILL.md` 217 · `skills/fg-run/SKILL.md`·`skills/fg-loop/SKILL.md` 각 180 · `skills/fg-done/SKILL.md` 178 · `skills/fg-agenda/SKILL.md` 161) |
+| `scripts/` | 32 | 5,572 (운영 3,124 = sh 1,658 + js 1,466 / 테스트 2,448) — 이번 갱신 범위에서 **변경 0** |
 | `skills/fg-visual/scripts/` | 5 | 1,442 (`server.cjs` 677 · `frame-template.html` 218 · `start-server.sh` 214 · `helper.js` 209 · `stop-server.sh` 124) |
 | `hooks/` | 3 | 218 (`run-hook.test.sh` 113 · `run-hook.cmd` 88 · `hooks.json` 17) |
-| `docs/` Markdown | 5 | 562 (`git-workflow.md` 177 · `state-contract.md` 144 · `skills.md` 128 · `team-workflow.md` 65 · `forge-vs-loop-engineering.md` 48) |
-| 루트 문서 | 4 | 1,116 (`CHANGELOG.md` 590 — 버전 섹션 70개 · `README.md` 190 · `README.ko.md` 189 · `CLAUDE.md` 147) |
+| `docs/` Markdown | 5 | 571 (`git-workflow.md` 177 · `state-contract.md` 144 · `skills.md` 137 · `team-workflow.md` 65 · `forge-vs-loop-engineering.md` 48) |
+| 루트 문서 | 4 | 1,244 (`CHANGELOG.md` 652 — 버전 섹션 74개 · `README.md` 223 · `README.ko.md` 222 · `CLAUDE.md` 147) |
 
-스킬 디렉터리는 **19개**이고, 그중 6개는 `SKILL.md` 외에 동반 문서를 갖는다 — `fg-run`(4: `FORGE-ROOT.md`·`PLAN-FORMAT.md`·`RUN-ALL.md`) · `fg-ask`(3: `CONTEXT-FORMAT.md`·`ADR-FORMAT.md`) · `fg-visual`(2: `VISUAL.md`) · `fg-next`(2: `DRIVE.md`) · `fg-learn`(2: `RETRO-FORMAT.md`) · `fg-eco`(2: `ECO.md`).
+스킬 디렉터리는 **20개**다(`fg-agenda`가 20번째로 추가됐다 — `SKILL.md` 161줄, 동반 문서·스크립트 없음). 그중 6개는 `SKILL.md` 외에 동반 문서를 갖는다 — `fg-run`(4: `FORGE-ROOT.md`·`PLAN-FORMAT.md`·`RUN-ALL.md`) · `fg-ask`(3: `CONTEXT-FORMAT.md`·`ADR-FORMAT.md`) · `fg-visual`(2: `VISUAL.md`) · `fg-next`(2: `DRIVE.md`) · `fg-learn`(2: `RETRO-FORMAT.md`) · `fg-eco`(2: `ECO.md`).
+
+**공유 규율 문서는 현재 2개다** — `skills/fg-run/FORGE-ROOT.md`(루트 해석)와 `skills/fg-next/DRIVE.md`(무인 주행). staged ADR `260805-231104`(핸드오프 표)가 세 번째로 `skills/fg-next/HANDOFF.md`를 단일 정의로 지정하지만 **그 파일은 아직 없고**, `skills/fg-status/SKILL.md:114`는 여전히 `👉 Next: <skill> — <trigger>` 한 줄 형식을 지시한다 — 결정만 기록되고 구현은 미반영인 상태다.
 
 ## 런타임 요구사항 — 무엇이 무엇을 필요로 하는가
 
@@ -53,6 +55,8 @@ forge는 **Claude Code 플러그인 리포**다. 컴파일되는 소스가 없�
 | **coreutils / POSIX 도구** | 운영 `.sh` 9개(1,658줄) 실측 등장 횟수: `printf` 107 · `sed` 60 · `head` 40 · `tr` 37 · `grep` 30 · `date` 24 · `ls` 23 · `basename` 14 · `mv` 13 · `wc` 12 · `dirname` 10 · `tail` 10 · `awk` 9 · `sort` 9 · `mkdir` 7 · `rm` 7 · `cat` 5 · `find` 4 · `uniq` 4 · `cut` 3 · `cp` 2 · `mktemp` 2 | 해당 스크립트 동작 불가 |
 
 `mktemp`는 운영 코드에 2회뿐이고 테스트에 69회 나온다(각 테스트가 `mktemp -d` fixture를 만든다) — 즉 **런타임 의존이 아니라 테스트 의존**에 가깝다.
+
+스크립트 밖에 하나 더 있다: `fg-visual`의 **wake watch**가 `Monitor` 도구로 `tail -n0 -F <events> | grep --line-buffered -E …` 파이프를 띄운다(`skills/fg-visual/VISUAL.md:83`). `-F`와 `--line-buffered`는 GNU·BSD `tail`/`grep` 양쪽에 있으나 최소 busybox 조합에서는 보장되지 않는다 — 다만 `Monitor` 자체가 하드 의존이 아니어서(없으면 watch를 건너뛰고 종전 동작으로 폴백) 실패해도 기능이 한 단계 내려갈 뿐이다.
 
 **의존하지 않는 것이 명시적으로 있다:**
 
@@ -76,12 +80,12 @@ forge는 **Claude Code 플러그인 리포**다. 컴파일되는 소스가 없�
 
 리포 루트가 곧 플러그인 루트이자 마켓플레이스다(`plugins[0].source` = `"./"`).
 
-- **`.claude-plugin/plugin.json`** — 키는 `name`("forge")·`description`·`version`·`author{name,email,url}`·`homepage`·`repository`·`license`("MIT")·`keywords`(7개: forge·workflow·loop·grill-with-docs·planning·retrospective·claude-code). `skills` 필드는 **없다**(자동 탐색). `description`은 전체 스킬 카탈로그를 담은 단일 필드로 **9,238자**다.
-- **`.claude-plugin/marketplace.json`** — `name`·`owner{name,email,url}`·`metadata{description,version}`·`plugins[0]{name,source,description,version,category,tags}`. `plugins[0].description`은 **8,086자**, `category`는 `"workflow"`, `tags` 6개.
-- **버전은 3곳에 중복 기재**: `plugin.json.version`, `marketplace.json.metadata.version`, `marketplace.json.plugins[0].version`. 현재 전부 `0.6.0`. 드리프트는 `forge-doctor` **B8**이 error로 잡는다.
+- **`.claude-plugin/plugin.json`** — 키는 `name`("forge")·`description`·`version`·`author{name,email,url}`·`homepage`·`repository`·`license`("MIT")·`keywords`(7개: forge·workflow·loop·grill-with-docs·planning·retrospective·claude-code). `skills` 필드는 **없다**(자동 탐색). `description`은 전체 스킬 카탈로그를 담은 단일 필드로 **10,446자**다.
+- **`.claude-plugin/marketplace.json`** — `name`·`owner{name,email,url}`·`metadata{description,version}`·`plugins[0]{name,source,description,version,category,tags}`. `plugins[0].description`은 **9,289자**, `category`는 `"workflow"`, `tags` 6개.
+- **버전은 3곳에 중복 기재**: `plugin.json.version`, `marketplace.json.metadata.version`, `marketplace.json.plugins[0].version`. 현재 전부 `0.6.4`. 드리프트는 `forge-doctor` **B8**이 error로 잡는다.
 - **두 `description`의 역할이 다르다** — `metadata.description`은 루프 한 줄 태그라인("ask·plan → execute → retro → done"), `plugins[0].description`/`plugin.json.description`은 루프 밖 스킬까지 담는 전체 카탈로그.
 
-**스킬 자동 탐색**: `skills/<dir>/SKILL.md`. 식별자는 디렉터리명이 아니라 frontmatter `name`이다. 19개 전부 frontmatter가 **`name:`+`description:` 두 키만** 갖는다(`allowed-tools`·`model` 등 없음). `description`은 `/fg` 메뉴 표시와 자동 발동 트리거의 이중 용도라 `forge-doctor` **B16**이 **600 코드포인트** 초과를 warning으로 lint한다 — 측정 방식은 로케일 독립(바이트 − UTF-8 continuation 바이트)이라 한글 설명도 정확히 센다. 현재 최댓값은 `fg-doctor` **591**(여유 9), 다음이 `fg-visual` 556·`fg-eco` 546. 즉 B16은 지금 살아 있는 상한이다.
+**스킬 자동 탐색**: `skills/<dir>/SKILL.md`. 식별자는 디렉터리명이 아니라 frontmatter `name`이다. 20개 전부 frontmatter가 **`name:`+`description:` 두 키만** 갖는다(`allowed-tools`·`model` 등 없음). `description`은 `/fg` 메뉴 표시와 자동 발동 트리거의 이중 용도라 `forge-doctor` **B16**이 **600 코드포인트** 초과를 warning으로 lint한다 — 측정 방식은 로케일 독립(바이트 − UTF-8 continuation 바이트)이라 한글 설명도 정확히 센다. 현재 최댓값은 `fg-doctor` **591**(여유 9), 다음이 `fg-visual` **573**(직전 매핑 556 → wake watch 문구가 들어와 상한에 더 붙었다)·`fg-eco` 546·`fg-agents`·`fg-adversarial-review` 각 531. 즉 B16은 지금 살아 있는 상한이다.
 
 **훅 자동 탐색**: `hooks/hooks.json` (다음 절).
 
@@ -205,7 +209,7 @@ for t in scripts/*.parity.test.sh; do bash "$t"; done
 
 주의: 글로브 `scripts/*.test.sh`는 `*.parity.test.sh`도 함께 매치한다(scripts의 테스트 15개 = 동작 7 + 패리티 8). `docs/examples/github-actions-forge-check.yml`은 이 성질을 이용해 `for t in scripts/*.test.sh; do bash "$t"; done` 한 줄로 둘을 한꺼번에 돈다.
 
-**이번 매핑에서 전부 실행해 통과를 확인했다**(HEAD `bb54e27` + 작업 트리 변경 상태):
+**이번 갱신에서 전부 재실행해 통과를 확인했다**(HEAD `a7a9c3e` + 작업 트리 변경 상태. `scripts/`·`hooks/`는 직전 매핑 이후 한 줄도 바뀌지 않았고 결과도 동일하다):
 
 | 동작 테스트 | 단언 수 | 결과 |
 | --- | --- | --- |
@@ -240,7 +244,7 @@ for t in scripts/*.parity.test.sh; do bash "$t"; done
 
 ### `.forge/config.json` — 프로젝트 영속 설정 (git 추적)
 
-lazy 생성이라 **키가 없으면 기본값**이다. 현재 작업 트리 내용은 `{"eco": true}` 하나뿐(HEAD는 `false` — 이번 세션의 미커밋 변경). `tdd`·`defaultBranch`는 이 리포에 한 번도 쓰인 적이 없다.
+lazy 생성이라 **키가 없으면 기본값**이다. 현재 내용은 `{"eco": false}` 하나뿐(HEAD·작업 트리 일치). `tdd`·`defaultBranch`는 이 리포에 한 번도 쓰인 적이 없다.
 
 | 키 | 타입 | 없을 때 기본 | 읽는 쪽 | 쓰는 쪽 |
 | --- | --- | --- | --- | --- |
@@ -283,7 +287,7 @@ STATUSLINE_CMD 확정: Unix → <CFG>/forge-statusline-full.sh [compact]
 
 | 변수 | 누가 세팅 | 쓰는 쪽 |
 | --- | --- | --- |
-| `CLAUDE_PLUGIN_ROOT` | 하네스 | 스킬 Markdown 51곳(스크립트 호출 5 + 형식/공유 문서 경로 참조), `hooks.json`의 command 문자열 |
+| `CLAUDE_PLUGIN_ROOT` | 하네스 | 스킬 Markdown 52곳(스크립트 호출 5 + 형식/공유 문서 경로 참조 — `fg-agenda`가 `../fg-run/FORGE-ROOT.md` 참조로 1곳 추가), `hooks.json`의 command 문자열 |
 | `CLAUDE_PROJECT_DIR` | 하네스 | `run-hook.cmd`가 여기로 `cd`(훅 본체는 cwd 기준으로 상태를 읽으므로 상속 cwd를 믿지 않는다) |
 | `CLAUDE_CONFIG_DIR` | 사용자 | `fg-statusline`이 **설치 시점에만** `CFG` 해석용으로 읽음(런타임 의존 금지) |
 | `FORGE_SL_PREFIX` | — | fragment 1행 접두, 기본 `⚒ ` (방법 2는 더 이상 덮어쓰지 않음) |
@@ -295,15 +299,18 @@ STATUSLINE_CMD 확정: Unix → <CFG>/forge-statusline-full.sh [compact]
 
 ## git 추적 정책
 
-`.gitignore`가 `.forge/*`로 통째 제외한 뒤 영속 문서만 화이트리스트로 되살린다: `!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json` · `!.forge/branch/`. 즉 **위치는 `.forge/` 안, 구분은 추적 여부**다. 비-기본 브랜치의 forge 루트(`.forge/branch/<branch>/`)만 휘발 상태까지 통째로 추적되는 의도된 비대칭이 있다(경로가 브랜치별로 네임스페이스되어 머지 충돌이 원리적으로 없기 때문). 기타 제외: `.claude/worktrees` · `.planning/`(단 `!.planning/codebase/`) · `.omx` · `.DS_Store`.
+`.gitignore`가 `.forge/*`로 통째 제외한 뒤 영속 문서만 화이트리스트로 되살린다: `!.forge/CONTEXT.md` · `!.forge/adr/` · `!.forge/retro/` · `!.forge/codebase/` · `!.forge/config.json` · `!.forge/branch/`. 즉 **위치는 `.forge/` 안, 구분은 추적 여부**다. 비-기본 브랜치의 forge 루트(`.forge/branch/<branch>/`)만 휘발 상태까지 통째로 추적되는 의도된 비대칭이 있다(경로가 브랜치별로 네임스페이스되어 머지 충돌이 원리적으로 없기 때문). 기타 제외: `.claude/worktrees` · `.planning/`(단 `!.planning/codebase/`) · `.omx` · `graphify-out/`(로컬 graphify 산출물 — ADR `260801-223500`) · `.DS_Store`.
 
 ## 리포 로컬 개발 자산 (플러그인으로 배포되지 않음)
 
 - **`.claude/agents/`** — 이 리포 작업용 도메인 에이전트 카드 3개: `manifest-doc-syncer`(카탈로그·매니페스트·버전·이중언어 동기), `script-twin-engineer`(sh/js 트윈 + behavior·parity 테스트), `skill-author`(스킬 본문·형식 문서). frontmatter는 `name`+`description`(설명은 한국어). 세션 시작 시 로드되므로 추가 후 재시작 필요(ADR-0024).
 - **`.claude/skills/issue-triage/SKILL.md`** — 리포 로컬 스킬. `gh` CLI를 요구하는 유일한 자산(`gh auth status`·`gh repo view`·`gh issue list/view`, 읽기 전용).
 - **`.claude/settings.local.json`** — `permissions.allow: ["Bash(git ls-tree *)"]` + `skillOverrides` 2건(`_gstack-command`·`gstack-upgrade` off).
+- **`.graphifyignore`** (2줄, 추적됨) — 외부 CLI [graphify](https://github.com/Graphify-Labs/graphify)를 **forge와 나란히** 쓸 때의 전제 설정. 내용은 `.forge/` 한 줄 배제뿐이다: graphify의 Markdown 워커가 트리의 `.md`를 전부 훑어 실측상 **1,836노드 중 762개(41.5%)가 `.forge/` 장부**로 채워졌고, 배제 후 762 → 0이 되며 `CLAUDE.md`·`README*`·`docs/`·`.claude/agents/`는 남는다(ADR `260801-223500`). graphify는 gitignore 문법으로 `.gitignore`·`.graphifyignore`·`.git/info/exclude`를 읽는다. **이것은 forge의 의존성이 아니다** — 사람이 직접 쓰는 별개 도구이고(현 환경 `graphify 0.9.32`, `~/.local/bin`), forge 스킬·스크립트는 graphify를 부르지 않으며 어시스턴트 스킬 등록(`graphify install`)도 하지 않는다. 산출물 `graphify-out/`은 gitignored.
 - **`docs/examples/github-actions-forge-check.yml`** — 팀이 **복사해 쓰는** CI 템플릿(`actions/checkout@v4` → `forge-doctor.sh` exit≥2에서 실패 → `for t in scripts/*.test.sh` 스위트, 선택적 `forge-merge.sh` 잡은 주석 처리). 이 리포는 `.github/`가 없어 실행하지 않는다.
 
 ## 없는 것 (확인됨)
 
 `package.json`·lockfile(npm/yarn/pnpm)·`node_modules`·`Makefile`·`.github/`·`tsconfig.json`·`.eslintrc`·`.prettierrc`·`Dockerfile`·`requirements.txt`·`pyproject.toml`·`go.mod`·`Cargo.toml` — 전부 부재. 린터·포매터·타입 검사·`.ps1` 미러·MCP 서버 정의도 없다. `fg-visual` 서버조차 zero-dependency로, node 표준 모듈 `crypto`·`http`·`fs`·`path`·`os`·`child_process`만 `require`한다.
+
+**선언된 런타임 의존성이 0개라는 성질은 의도적으로 지켜지고 있다.** 직전 스파이크에서 graphify(Python + `uv` + tree-sitter)를 fg-map의 대체·병행 후보로 측정했으나, 채택하면 "bash조차 없는 환경에서 살아남는" ADR-0022의 의존성 바닥이 올라간다는 것이 기각 근거 중 하나였다(ADR `260801-223500`). 리포에 남은 것은 `.graphifyignore` 한 파일뿐이고 그것은 사람이 나란히 쓰는 도구를 위한 배제 설정이다.

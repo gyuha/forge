@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: bb54e27763aca86558ca45a965c9f8ede394018c
-mapped: 2026-08-01
+last_mapped_commit: a7a9c3e474a5717d23294a9cc0bec18ec1158130
+mapped: 2026-08-06
 ---
 
 # INTEGRATIONS.md
@@ -17,7 +17,7 @@ forge는 **외부 API를 호출하지 않고, 데이터베이스가 없고, 인�
 - 네트워크 리스너는 딱 하나 — `fg-visual`의 로컬 서버가 `127.0.0.1`에 바인드한다(§3). 그 서버조차 외부로 나가는 요청을 하지 않는다.
 - 데이터 저장은 `.forge/` 아래 Markdown/JSON 파일 + `.forge/visual/<session>/state/events`의 JSONL뿐. 스키마·마이그레이션·ORM·커넥션 문자열이 존재하지 않는다.
 
-그러니 이 문서가 다루는 것은 "forge가 실제로 무엇과 대화하는가"다 — **Claude Code 하네스 표면**, **로컬 프로세스(git·브라우저)**, 그리고 **배포·문서 채널로서의 GitHub**.
+그러니 이 문서가 다루는 것은 "forge가 실제로 무엇과 대화하는가"다 — **Claude Code 하네스 표면**, **로컬 프로세스(git·브라우저, 그리고 나란히 쓸 뿐 의존하지 않는 graphify CLI)**, 그리고 **배포·문서 채널로서의 GitHub**.
 
 ## 1. Claude Code 하네스 — 진짜 통합 지점
 
@@ -30,11 +30,13 @@ forge가 붙는 통합점은 전부 하네스 쪽이다. 계약이 깨지면 플
 | 플러그인 매니페스트 | `.claude-plugin/plugin.json` | `/plugin install forge@forge` 시 읽음. `skills` 필드가 없어 `skills/`를 자동 탐색 |
 | 마켓플레이스 매니페스트 | `.claude-plugin/marketplace.json` | `/plugin marketplace add gyuha/forge`가 읽음. `plugins[0].source: "./"` = 리포 루트가 곧 플러그인 |
 
-JSON이 깨지면 **설치가 실패**한다(그래서 `forge-doctor` B9가 error 등급으로 `JSON.parse`를 돌린다). 버전은 3곳(`plugin.json.version` · `metadata.version` · `plugins[0].version`)에 중복 기재되며 현재 전부 `0.6.0`; 드리프트는 B8이 error로 잡는다.
+JSON이 깨지면 **설치가 실패**한다(그래서 `forge-doctor` B9가 error 등급으로 `JSON.parse`를 돌린다). 버전은 3곳(`plugin.json.version` · `metadata.version` · `plugins[0].version`)에 중복 기재되며 현재 전부 `0.6.4`; 드리프트는 B8이 error로 잡는다.
 
 ### 1.2 스킬 자동 탐색
 
-`skills/<dir>/SKILL.md`의 frontmatter를 하네스가 읽는다. 현재 19개 디렉터리 전부 `name:`·`description:` **두 키만** 갖는다. **식별자는 디렉터리명이 아니라 `name`** 이고, `name:`이 없으면 자동 탐색 대상에서 빠진다(`forge-doctor` B10이 error로 잡음). `description`은 `/fg` 슬래시 메뉴 표시와 자동 발동 트리거의 **이중 용도**이며 같은 문자 상한을 공유한다 — B16이 600 코드포인트에서 warning을 내고, 현재 최댓값은 `fg-doctor` 591(여유 9).
+`skills/<dir>/SKILL.md`의 frontmatter를 하네스가 읽는다. 현재 **20개** 디렉터리 전부 `name:`·`description:` **두 키만** 갖는다(`fg-agenda`가 20번째). **식별자는 디렉터리명이 아니라 `name`** 이고, `name:`이 없으면 자동 탐색 대상에서 빠진다(`forge-doctor` B10이 error로 잡음). `description`은 `/fg` 슬래시 메뉴 표시와 자동 발동 트리거의 **이중 용도**이며 같은 문자 상한을 공유한다 — B16이 600 코드포인트에서 warning을 내고, 현재 최댓값은 `fg-doctor` 591(여유 9), 다음이 `fg-visual` 573.
+
+**이 이중 용도가 이름을 고른 근거로 실제로 쓰였다** — `fg-agenda`는 처음 "chart"로 불릴 예정이었으나, `description`이 자동 발동 트리거이기도 해서 그 이름이 "차트 만들어줘"에 발화해 `fg-visual`의 영역을 침범한다는 이유로 기각됐다(`skills/fg-agenda/SKILL.md:12`). 즉 B16의 상한과 마찬가지로, 이 필드의 트리거 성질은 문서가 아니라 설계 제약이다.
 
 스킬은 `/forge:fg-<name>` 형태의 슬래시 경로로도 호출된다 — SessionStart 훅이 주입하는 텍스트가 사용자에게 안내하는 트리거가 `/forge:fg-next`다.
 
@@ -78,10 +80,11 @@ forge가 **사용자 설정 파일을 쓰는** 유일한 지점이다(`fg-status
 
 | 표면 | 횟수 | 쓰는 곳 |
 | --- | --- | --- |
-| Dynamic Workflow | 15 | `fg-run/SKILL.md` 6(계획 실행) · `fg-ask` 2 · `fg-adversarial-review` 2(6개 렌즈 병렬 팬아웃) · `fg-run/PLAN-FORMAT.md`·`fg-eco`·`fg-quick`·`fg-agents`·`fg-next/DRIVE.md` 각 1 |
+| Dynamic Workflow | 17 | `fg-run/SKILL.md` 6(계획 실행) · `fg-ask` 2 · `fg-adversarial-review` 2(6개 렌즈 병렬 팬아웃) · **`fg-visual` 2(`SKILL.md`·`VISUAL.md` — 사용이 아니라 경계 근거: 브라우저는 워크플로우 런타임 입력이 *아니므로* 기둥 1을 깨지 않는다)** · `fg-run/PLAN-FORMAT.md`·`fg-eco`·`fg-quick`·`fg-agents`·`fg-next/DRIVE.md` 각 1 |
 | `AskUserQuestion` | 12 | `fg-run` 5(백로그 선택 메뉴) · `fg-drop` 3(체크박스) · `fg-statusline`·`fg-done`·`fg-eco`·`fg-next/DRIVE.md` 각 1 |
 | `agentType` | 9 | `fg-agents` 6(카드 생성 규약) · `fg-run` 1(slice↔role 매핑 디스패치) · `fg-ask` 1 |
-| `Agent` 도구 + `run_in_background: true` | 2 | **`fg-map`만** — 4개 focus 서브에이전트를 한 메시지로 병렬 발사(Dynamic Workflow가 아니다) |
+| `Agent` 도구 + `run_in_background: true` | 2 | **`fg-map`만** — 4개 focus 서브에이전트를 한 메시지로 병렬 발사(Dynamic Workflow가 아니다). `fg-visual/VISUAL.md:67`에도 `run_in_background`가 있으나 그것은 **Bash 도구**에 거는 것(서버를 턴 넘어 살리기)이라 별개다 |
+| `Monitor` (+ `TaskStop`) | 10 (+5) | **`fg-visual`만** — wake watch. `SKILL.md` 6 / `VISUAL.md` 4, 정리용 `TaskStop`은 `SKILL.md` 3 / `VISUAL.md` 2. `persistent: true`로 이벤트 파일을 감시해 확정 클릭·텍스트 제출이 오면 터미널 턴 없이 에이전트를 깨운다(§3). **하드 의존이 아니다** — 없으면 watch를 건너뛰고 종전 동작으로 폴백(`fg-map`/eco/tdd 부재와 같은 graceful 패턴) |
 | Bash 도구 | 5 | 스킬이 `bash "${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh"`를 부르는 경로(= bash 보장의 근거): `fg-done`·`fg-merge`·`fg-doctor`·`fg-status`·`fg-run/FORGE-ROOT.md` |
 | Skill 도구 | 1 | `fg-next`가 도출한 다음 스킬을 위임 호출 |
 
@@ -108,7 +111,15 @@ forge는 git 라이브러리를 쓰지 않고 `git` 실행 파일을 셸아웃�
 
 git이 없거나 비-git 디렉터리면 루트가 CWD 상대 `.forge`로 폴백하고 경고 한 줄을 stderr에 낸다(exit 0). `forge-done.{sh,js}`는 git을 **전혀** 부르지 않는다(봉인은 순수 파일 이동). commit/push/branch는 forge 스킬의 소관이 아니다 — 예외는 `CLAUDE.md`에 정의된 두 절차(배포 규칙·이슈 연동 봉인)이며 그건 리포 운영 규칙이지 플러그인 코드가 아니다.
 
-### 2.2 파일시스템 (유일한 "데이터 저장소")
+### 2.2 graphify CLI — 나란히 쓰는 외부 도구 (forge 의존성 아님)
+
+리포에 `.graphifyignore`(2줄)가 추적돼 있어 외부 통합처럼 보이지만 **아니다.** forge의 스킬·스크립트는 graphify를 부르지 않고(`grep -rn graphify skills/ scripts/` → 0건), 매니페스트에도 없다. 관계는 **사람이 두 도구를 나란히 쓴다**는 것뿐이다 — fg-map은 "이 코드베이스가 어떤 곳인가"라는 판단을 프로즈로, graphify는 "A에서 B로 어떻게 닿는가"라는 경로를 질의(`explain`/`path`/`affected`/`god-nodes`)로 준다.
+
+- **`.graphifyignore` = `.forge/` 한 줄.** graphify가 gitignore 문법으로 `.gitignore`·`.graphifyignore`·`.git/info/exclude`를 읽으므로, 이 한 줄이 forge의 장부를 그래프에서 뺀다. 실측: 배제 없이는 **1,836노드 중 762개(41.5%)가 `.forge/` 유래**였고 배제 후 762 → 0(전체 1,074)이 되며 `CLAUDE.md`·`README*`·`docs/`·`.claude/agents/`는 남는다 — forge는 Markdown이 제품이므로 그것이 옳다.
+- **왜 forge가 의존하지 않는가**: 대체는 소비 계약 불일치로 기각(`graph.json` 9.8MB ≈ 245만 토큰 적재 불가, `GRAPH_REPORT.md` 148KB 단일 파일, 소비 시점에도 CLI 필요), 병행은 유예 — Python + `uv` 의존이 ADR-0022의 "bash조차 없는 환경" 바닥을 올린다는 것이 근거 중 하나다(ADR `260801-223500`). 어시스턴트 스킬 등록(`graphify install`)도 하지 않는다 — 리포 밖 사용자 설정을 건드리지 않는 원칙.
+- 산출물 `graphify-out/`은 `.gitignore`로 제외. 현 환경 실측: `~/.local/bin/graphify` **0.9.32** 설치돼 있고 `graphify-out/`이 존재하지만 둘 다 추적 대상이 아니다.
+
+### 2.3 파일시스템 (유일한 "데이터 저장소")
 
 `.forge/` 아래 Markdown·JSON 파일뿐이고 네트워크 전송이 없다. 비-기본 브랜치에서는 `.forge/branch/<branch>/`로 네임스페이스된다. `.forge/config.json`·`.forge/codebase/`는 `skills/fg-run/FORGE-ROOT.md`가 선언한 전역 예외로 항상 최상위이며, `.forge/visual/`도 실질적으로 최상위 고정이다(강제 지점은 FORGE-ROOT.md가 아니라 `skills/fg-visual/scripts/start-server.sh:122`의 하드코딩 + `skills/fg-visual/SKILL.md:33`의 산문).
 
@@ -116,7 +127,22 @@ git이 없거나 비-git 디렉터리면 루트가 CWD 상대 `.forge`로 폴백
 
 `skills/fg-visual/scripts/server.cjs`(677줄, zero-dependency Node — `crypto`·`http`·`fs`·`path`·`os`·`child_process`만 `require`)가 브라우저에 목업·다이어그램을 띄우고 사용자의 상호작용을 JSONL로 수집한다. **로컬 전용이며 외부와 통신하지 않는다.**
 
-**표시 전용이 아니라 보조 답변 채널이다.** 클릭(`click`)뿐 아니라 화면에 올린 텍스트 입력의 제출(`text`)도 `<session>/state/events`에 한 줄 JSON으로 쌓이고, 에이전트는 다음 턴에 이 파일을 읽어 **터미널 입력과 동등한 답**으로 취급한다(두 채널 병합, 진짜 모순일 때만 한 줄로 되묻기). 다만 브라우저는 에이전트를 깨우지 못한다 — 대화 재개는 여전히 터미널 턴이다.
+**표시 전용이 아니라 보조 답변 채널이다.** 클릭(`click`)뿐 아니라 화면에 올린 텍스트 입력의 제출(`text`)도 `<session>/state/events`에 한 줄 JSON으로 쌓이고, 에이전트는 이 파일을 읽어 **터미널 입력과 동등한 답**으로 취급한다(두 채널 병합, 진짜 모순일 때만 한 줄로 되묻기).
+
+**그리고 이제 브라우저가 에이전트를 깨운다 — 직전 매핑 시점의 "깨우지 못한다"는 더 이상 사실이 아니다**(ADR `260805-005436`, 2026-08-05. 직전 ADR `260730-224259`가 비용/편익으로 기각했던 방향의 재검토이며, `Monitor`가 하네스 내장 도구라 "새 스크립트 트윈 + parity 테스트"라는 최대 비용 항목이 0이 된 것이 뒤집힌 전제다). 구성은 하네스 통합 3점이다:
+
+| 항목 | 실측 값 |
+| --- | --- |
+| 감시 명령 | `Monitor(command: "tail -n0 -F <state_dir>/events 2>/dev/null \| grep --line-buffered -E '\"choice\":\"(confirm\|text):'", persistent: true)` — `VISUAL.md:83` |
+| 필터 | **확정(`confirm:`)·텍스트 제출(`text:`)만** 통과. 탐색 클릭(`"choice":"a"`)은 매치되지 않아 브라우징만으로는 깨우지 않는다 |
+| `--line-buffered` | **필수** — 빼면 매치가 파이프 버퍼에 갇혀 *감시가 걸린 것처럼 보이면서 동작하지 않는다*(최악의 실패 형태) |
+| `persistent: true` | `timeout_ms`는 최대 1시간, 서버 유휴 타임아웃은 4시간 → 타임드 감시는 먼저 죽어 "작동한다고 기대한 채 무반응"이 된다. 대가로 수명 관리 의무: `fg-visual stop`·fg-ask Output에서 `TaskStop`, 세션 재시작 시 **재장전**(서버는 같은 포트로 살아나도 감시는 사라진다) |
+| 정착 식별 | 선택형 화면의 **필수 "확정" 버튼**. `data-choice`는 달지 않는다(`helper.js:166`의 전역 리스너가 겹쳐 발동해 이벤트가 두 번 간다). `choice`는 필수 — 서버가 `if (event && event.choice)` 아래에서만 기록하므로 없으면 조용히 소실 |
+| 다중 확정 | 버튼 `dataset.sent` 가드로 **같은 선택의 재전송만** 떨어내고(변심 재확정은 지켜야 할 기능이라 버튼 비활성화는 오답), 에이전트는 깨어난 뒤 events 전체를 읽어 **마지막 `confirm`을 답으로 삼고 이미 처리한 것과 같으면 재응답하지 않는다**(멱등 — 빠른 더블클릭이 가드를 앞지를 수 있어 버튼만으로는 부족) |
+| 범위 | 장전이 `VISUAL.md`의 Starting a Session에 있으므로 **`fg-visual` 단독과 fg-ask 그릴링 양쪽** 모두 갖는다(fg-ask는 스킬을 호출하지 않고 `VISUAL.md`를 직접 읽는 단일 정의 관례) |
+| 부재 시 | **하드 의존이 아니다** — `Monitor`가 없거나 장전이 실패하면 watch를 건너뛰고 종전 동작(확정 누른 뒤 터미널에 아무거나)으로 폴백. `fg-map`/eco/tdd 부재와 같은 graceful 패턴 |
+
+감시는 **파일을 남기지 않는다**(백그라운드 태스크일 뿐) — 디스크 산출물은 종전과 같이 세션 파일뿐이다. 기둥 1(그릴링은 워크플로우 밖)이 온전한 근거는 "터미널만 재개시킬 수 있어서"가 아니라 **브라우저가 Dynamic Workflow 런타임 입력이 아니어서**다.
 
 **구현 제약 하나가 load-bearing이다**: `server.cjs:467`의 `handleMessage`가 `if (event && event.choice)`일 때만 events 파일에 append하므로, 텍스트 입력도 `choice: "text:<field>"` 형태를 실어야 한다. 이 우회가 **벤더링 파일을 하나도 고치지 않고** 답변 채널을 얻는 방법이며(재벤더링 충돌 회피), `VISUAL.md:245`가 "정리하지 말라"고 명시한다. 또 `mock-input`(목업 안에 입력을 *그리는* 와이어프레임 소품, 아무것도 전송 안 함)과 `ask-input`(실제 답변 수집)은 **의도적으로 다른 이름**이라 섞으면 안 된다.
 
@@ -141,12 +167,12 @@ git이 없거나 비-git 디렉터리면 루트가 CWD 상대 `.forge`로 폴백
 | 채널 | 실체 | 확인 |
 | --- | --- | --- |
 | 배포 | `/plugin marketplace add gyuha/forge` → `/plugin install forge@forge`. 설치는 **기본 브랜치 `main`을 당긴다** → 변경을 설치로 검증하려면 먼저 push해야 함 | `git remote -v` = `https://github.com/gyuha/forge.git` (fetch/push 동일) |
-| 랜딩 페이지 | `docs/index.html`(574줄) + `docs/.nojekyll` → GitHub Pages(`docs/` 서브 디렉터리 서빙). 한 파일에 KO/EN을 `data-l` span으로 담고 언어 토글로 전환(ADR-0027) | `docs/.nojekyll`이 추적됨, `.github/` 없음 |
+| 랜딩 페이지 | `docs/index.html`(693줄) + `docs/.nojekyll` → GitHub Pages(`docs/` 서브 디렉터리 서빙). 한 파일에 KO/EN을 `data-l` span으로 담고 언어 토글로 전환(ADR-0027) | `docs/.nojekyll`이 추적됨, `.github/` 없음 |
 | CI 템플릿 | `docs/examples/github-actions-forge-check.yml` — `actions/checkout@v4`로 체크아웃해 `forge-doctor.sh`(exit≥2에서 빌드 실패, exit 1은 `::warning::` 비차단)와 `for t in scripts/*.test.sh` 스위트를 게이트로 돌리는 **복사용 예제**. 선택적 `forge-merge` 잡은 주석 처리 | 이 리포에 `.github/`가 없어 실행되지 않음 |
 
-`gh` CLI는 **리포 운영에만** 등장한다: `CLAUDE.md`의 이슈 연동 봉인 규칙(`gh issue comment` · `gh issue view --json state` · `gh issue close`)과 리포 로컬 `.claude/skills/issue-triage`(`gh auth status`·`gh auth login`·`gh repo view`·`gh issue list/view`, 읽기 전용). 둘 다 플러그인 페이로드가 아니므로 **forge 사용자는 `gh` 없이도 19개 스킬 전부를 쓴다**.
+`gh` CLI는 **리포 운영에만** 등장한다: `CLAUDE.md`의 이슈 연동 봉인 규칙(`gh issue comment` · `gh issue view --json state` · `gh issue close`)과 리포 로컬 `.claude/skills/issue-triage`(`gh auth status`·`gh auth login`·`gh repo view`·`gh issue list/view`, 읽기 전용). 둘 다 플러그인 페이로드가 아니므로 **forge 사용자는 `gh` 없이도 20개 스킬 전부를 쓴다**.
 
-**리포 산출물 중 외부 네트워크에 의존하는 것은 딱 하나** — `docs/index.html`이 Google Fonts를 로드한다(`fonts.googleapis.com` preconnect + `css2?family=Inter…&family=JetBrains+Mono…` 스타일시트, `fonts.gstatic.com` preconnect). 그 외 외부 호스트 참조는 `github.com` 링크 2건뿐. 랜딩 페이지 한정이며 플러그인 동작과 무관하다.
+**리포 산출물 중 외부 네트워크에 의존하는 것은 딱 하나** — `docs/index.html`이 Google Fonts를 로드한다(`fonts.googleapis.com` preconnect + `css2?family=Inter…&family=JetBrains+Mono…` 스타일시트, `fonts.gstatic.com` preconnect). 693줄로 늘어난 이번 갱신 후에도 외부 호스트 참조는 **그 셋 + `github.com` 링크 2건**이 전부다(스크립트는 인라인 `<script>` 2블록, 아이콘은 로컬 `./icon.png`). 랜딩 페이지 한정이며 플러그인 동작과 무관하다.
 
 ## 5. 코드 유입 경로 — 벤더링 (MIT 귀속)
 

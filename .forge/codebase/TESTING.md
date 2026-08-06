@@ -1,11 +1,13 @@
 ---
-last_mapped_commit: bb54e27763aca86558ca45a965c9f8ede394018c
-mapped: 2026-08-01
+last_mapped_commit: a7a9c3e474a5717d23294a9cc0bec18ec1158130
+mapped: 2026-08-06
 ---
 
 # TESTING
 
-이 문서는 **구현 사실만** 다룬다. 도메인 용어 정의는 `.forge/CONTEXT.md` 소관이다. 아래 모든 수치는 이 커밋의 작업 트리에서 테스트를 **실제로 돌려** 얻은 값이다(2026-08-01, macOS/darwin 25.5.0 — 16개 파일 전부 green, `.js` 트윈 5개도 전부 green, `forge-doctor.sh`/`.js` 0 findings).
+이 문서는 **구현 사실만** 다룬다. 도메인 용어 정의는 `.forge/CONTEXT.md` 소관이다. 아래 모든 수치는 이 커밋의 작업 트리에서 테스트를 **실제로 돌려** 얻은 값이다(2026-08-06 재실행, macOS/darwin 25.5.0 — 16개 파일 전부 green, `.js` 트윈 5개도 전부 green, `forge-doctor.sh`/`.js` 0 findings).
+
+**이 갱신 라운드에서 테스트 층은 변한 것이 없다.** `bb54e27..a7a9c3e` + 작업 트리에서 `scripts/`·`hooks/` 아래 파일은 **한 개도 바뀌지 않았다**(확인: `git diff --name-only bb54e27..HEAD -- scripts/ hooks/` → 빈 출력). 16개 테스트 파일의 줄 수 합계도 2,561줄로 동일하고 assertion·케이스 수도 동일하다. 이 라운드의 변경은 전부 산문(스킬·문서·매니페스트) 층이라 §9의 비대칭만 커졌다.
 
 ## 1. 프레임워크 — 없다
 
@@ -419,9 +421,11 @@ assert_grep "wrapper-sh-direct-block" "$OUT" '`prod-call`'
 
 ## 9. 테스트가 원리적으로 없는 영역 — 산문 계약
 
-이 리포에서 **테스트로 덮이지 않는 규율의 양이 덮이는 양보다 크다.** 16개 테스트 파일은 전부 `scripts/`·`hooks/`의 결정론 코드만 본다. 나머지 전부 — 19개 SKILL.md의 절차, 상태 계약의 의미론, 게이트 라우팅 판단, 핸드오프 형태 — 는 산문이고 검증 수단이 `forge-doctor`의 4개 lint(B10/B12/B13/B16)와 사람 뿐이다.
+이 리포에서 **테스트로 덮이지 않는 규율의 양이 덮이는 양보다 크다.** 16개 테스트 파일은 전부 `scripts/`·`hooks/`의 결정론 코드만 본다. 나머지 전부 — 20개 SKILL.md의 절차, 상태 계약의 의미론, 게이트 라우팅 판단, 핸드오프 형태 — 는 산문이고 검증 수단이 `forge-doctor`의 4개 lint(B10/B12/B13/B16)와 사람 뿐이다.
 
-**작업 트리의 fg-map Update 경로가 이 비대칭의 최신 실례다.** `skills/fg-map/SKILL.md:47-67`이 증분 갱신을 **번호 매긴 mandatory 단계**로 못 박았는데(자격 사전점검 → 변경 파일 union → 베이스라인 `wc -l` → 제자리 편집 계약 → 사후 스탬프·30% 축소 검사), 여기에는 **스크립트 트윈도, behavior 테스트도, parity 테스트도, fg-doctor 체크도 없다.** 실측: `grep -c codebase scripts/forge-doctor.{sh,js}` → **0, 0**.
+**이 비대칭은 라운드마다 커지고 있다.** `bb54e27..a7a9c3e`에서 `scripts/`·`hooks/`는 한 줄도 바뀌지 않은 반면 산문 층은 새 스킬 하나(`skills/fg-agenda/SKILL.md`, 161줄)·`fg-map`/`fg-status`/`fg-visual` 편집·ADR 4건이 추가됐다. 즉 **테스트가 보는 면적은 그대로인데 안 보는 면적만 늘었다.**
+
+**fg-map Update 경로가 이 비대칭의 대표 실례다**(이제 커밋됨 — `a7a9c3e` 시점 기준). `skills/fg-map/SKILL.md:47-67`이 증분 갱신을 **번호 매긴 mandatory 단계**로 못 박았는데(자격 사전점검 → 변경 파일 union → 베이스라인 `wc -l` → 제자리 편집 계약 → 사후 스탬프·30% 축소 검사), 여기에는 **스크립트 트윈도, behavior 테스트도, parity 테스트도, fg-doctor 체크도 없다.** 실측: `grep -c codebase scripts/forge-doctor.{sh,js}` → **0, 0**.
 
 이건 누락이 아니라 ADR `260801-020258:47`의 명시적 결정이다 — ADR-0031의 세 다리 중 **"자주 도는 경로"**가 부러지므로(fg-map은 가끔 도는 유틸리티) 스크립트화하면 필수 조건 4종(트윈 + behavior + parity + 계약 동기)이 따라붙어 **파일 4개와 영구 유지비**만 생긴다. 대신 같은 스킬의 선례(secret scan **mandatory**)와 동일하게 산문의 mandatory 단계로 처리한다.
 
@@ -430,7 +434,7 @@ assert_grep "wrapper-sh-direct-block" "$OUT" '`prod-call`'
 | 층 | 검증 수단 | 현재 상태 |
 | --- | --- | --- |
 | 결정론 스크립트(9개 트윈) | behavior 316 assertion + parity 94 케이스 + fg-doctor B15 | 전부 green, 구멍은 §2에 열거 |
-| 스킬 산문(19 SKILL.md + 9 공유 문서) | fg-doctor B10/B12/B13/B16 lint + 사람 | 절차·판단·형태는 **미검증** |
+| 스킬 산문(20 SKILL.md + 9 공유 문서) | fg-doctor B10/B12/B13/B16 lint + 사람 | 절차·판단·형태는 **미검증** |
 | 지도 문서(`.forge/codebase/` 7개) | fg-map 자신의 산문 precheck/post-check | 기계 검사 **0** |
 
 산문 층에서 회귀를 잡는 유일한 실전 기법이 회고에 기록돼 있다 — **편집 전 grep 기준선 + 제거 문구의 count→0 확인**(§6 규율 1 말미). 문서 편집이 계약을 깼는지는 그렇게만 알 수 있다.
