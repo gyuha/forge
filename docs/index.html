@@ -37,6 +37,11 @@
     .fg-pin-wrap{min-height:100vh}
     .fg-pin-wrap > section,.fg-pin-wrap > footer{min-height:100vh;display:flex;flex-direction:column;justify-content:center}
   }
+  /* grid items default to min-width:auto, so one unbreakable token sets a floor the track can never go
+     below: the EN copy's "(backlog/active/executed/halted" measures 168px (slashes are not break
+     opportunities), which forced both 1fr tracks to 208px and spilled the page sideways on phones.
+     min-width:0 lets the track shrink; break-word then wraps the token inside the card. */
+  .fg-grid-pillars>*,.fg-grid-install>*,.fg-grid-state>*,.fg-grid-loopcards>*,.fg-grid-lanes>*,.fg-grid-utils>*{min-width:0;overflow-wrap:break-word}
   /* mobile: nav collapses (center links hidden), grids reflow to fewer columns */
   @media (max-width:760px){
     .fg-navlinks{display:none!important}
@@ -48,6 +53,12 @@
     #loop,#skills,#lanes,#pillars,#install,#usage,#state{padding-top:72px!important;padding-bottom:72px!important}
     /* let flex text columns shrink instead of overflowing (flexbox min-width:auto fix) */
     #usage [style*="display:flex"]>div{min-width:0}
+  }
+  /* phones: at 360px the two util columns are 140px wide and break the EN copy into 2-3 words per line,
+     while saving only ~4% of the section's height (2480px vs 2576px measured) — one column reads far
+     better for the same scroll. Above 480px the two columns are ~210px+, so they stay. */
+  @media (max-width:480px){
+    .fg-grid-utils{grid-template-columns:1fr!important}
   }
   /* below desktop, drop reveal transforms to fade-only: the slide-in (translateX) and
      scale-up presets push off-screen elements past a narrow viewport (horizontal overflow) */
