@@ -72,10 +72,17 @@ Because the workflow can't take human input mid-run, the judgment happens here, 
 
 ### 4. Then point back to the loop
 
-The adversarial review is done; the loop resumes where it was. State (do not ask) the next step:
+The adversarial review is done; the loop resumes where it was. State (do not ask) the next step as the **handoff table** per [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) — the single definition of its shape; never restate that layout here. It closes §3's conversation: the routing above is the judgment, this table is where it lands.
 
-- For the original task → it is still at "verified, un-retro'd" — **fg-learn** to retro (the review findings are now retro fuel), then **fg-done** to seal and free the active slot. Give the triggers.
-- If a fix-forward plan was created → it waits safely in the backlog; **after the original seal**, `fg-run` promotes and runs it. State this order explicitly — original retro/seal first, fix-forward run second.
+`Just did` is the same whatever the verdict was: the one-line verdict (N findings, M fix-needed, by severity), that they are recorded in `.forge/review.md`, and that `reviewed:` was noted in STATUS — record-only, never a seal gate.
+
+**§3's routing decides the remaining rows — as a precedence rule, never a hard-coded next step** (HANDOFF.md, "A conditional next step needs a precedence rule, never a hard-coded row"). Let the **first matching case** fill `Next step` / `How to start`, with its runner-up as `Alternative`:
+
+1. **§3 routed a design / requirement defect to a re-grill** (the plan itself was wrong, a requirement was misread) → `Next step` = **`fg-ask`**, to re-grill the plan; `How to start` = `/forge:fg-ask`; `Alternative` = settling the original task first (`fg-learn` → `fg-done`), then re-grilling. This case wins even when code findings were raised too — the premise is settled before what was built on it. Retro-and-seal is **never** `Next step` here: that cell would hand the user a live trigger for sealing the very task whose plan this review just found wrong.
+2. **Fix-needed code defects only** (§3's fix-forward route, whether or not a plan was approved) → `Next step` = the original task, still at "verified, un-retro'd" — **`fg-learn`** to retro (the findings are now retro fuel), then **`fg-done`** to seal and free the active slot **for the fix-forward run**; `How to start` = `/forge:fg-learn`; omit `Alternative`. `fg-run` is deliberately not this cell: the original still holds the active slot, so calling it first hits that task's duplicate-run guard (§3) — the fix-forward's turn is stated below the table instead.
+3. **Nothing needs a fix** (findings accepted / minor, or none at all) → `Next step` = **`fg-learn`** to retro, then **`fg-done`** to seal; `How to start` = `/forge:fg-learn`; omit `Alternative`.
+
+**When a fix-forward plan was created**, add one line **below** the table: it waits safely in the backlog and `fg-run` promotes it **after the original seal**. State that order explicitly — original retro/seal first, fix-forward run second — and keep it out of `Next step`, which names the immediate step only (calling fg-run first hits the original task's duplicate-run guard, §3).
 
 Do not chain into the next skill yourself (chaining is `fg-next`'s job — ADR-0015); state the trigger and stop.
 
@@ -98,7 +105,9 @@ Handoff (conversational — workflow took no human input mid-run):
    • design/req defect ──▶ point to fg-ask (re-grill — a wrong premise can't be patched)
    • accepted/minor   ──▶ stays in review.md → retro fuel
    ▼
-Point back: original task → fg-learn → fg-done (free active slot) → then fix-forward → fg-run  (state triggers, don't chain)
+Point back (first matching case): design/req defect ──▶ fg-ask (re-grill; seal-first is the Alternative)
+                                  otherwise          ──▶ original task → fg-learn → fg-done (free slot) → then fix-forward → fg-run
+                                  (state triggers, don't chain)
 ```
 
 ## Automatic mode — always skipped

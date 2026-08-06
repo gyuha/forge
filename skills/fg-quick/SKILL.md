@@ -58,7 +58,14 @@ Update the log entry's `Result:` line (rendered in the log's language, e.g. `결
 
 ## Handoff
 
-Close conversationally (not a stamped form): one line on what you changed, and that it's logged in `.forge/quick/LOG.md`. Since the quick lane is self-contained, there is no next stage — the task is done. If the work surfaced a larger follow-up, suggest opening it as a proper task with `fg-ask`.
+Close with the **handoff table** per [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) — the single definition of its shape; never restate that layout here. Statement form, in the user's language.
+
+- `Just did` = one line on what you changed, and that it's logged in `.forge/quick/LOG.md`.
+- **A larger follow-up surfaced** → `Next step` = `fg-ask`, to open it as a proper task; `How to start` = `/forge:fg-ask`.
+- **No follow-up** → `Next step` = none: the quick lane is self-contained, so there is nothing to seal and no next stage; `How to start` = nothing to trigger — the task is closed.
+- `Alternative` is omitted either way — the quick lane has no second route from here.
+
+(The eco summary table does not apply to the quick lane, so this row set never changes with `eco`.)
 
 ## Document impact
 

@@ -124,12 +124,14 @@ Handoff: cards exist on disk → RESTART the session → then fg-run dispatches 
 
 ## Handoff
 
-State, in the user's language and statement form (no "shall I…?"; chaining is fg-next's job — ADR-0015):
+Render the **handoff table** per [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) — the single definition of its shape; never restate that layout here. Statement form, in the user's language (no "shall I…?"; chaining is fg-next's job — ADR-0015).
 
-- **What was created, updated, or retired** — which `.claude/agents/<role>.md` cards were written or removed, one line each, marking each as newly created, an informed rewrite of an existing card, or a retired (removed) card.
-- **The restart, plainly** — the cards take effect only after a **session restart** (Claude Code loads `.claude/agents/` at session start). Until then fg-run cannot dispatch them. This is the contract, not a bug.
-- **What happens after restart** — once restarted, fg-run discovers the cards and, when a plan's slice matches a role's "when to use," dispatches that slice through the role as `agentType` (graceful: slices with no matching role use the default subagent, exactly as before).
-- **If these are project assets worth keeping** — they live in the project's `.claude/agents/` and are committed like any project file (not forge `.forge/` state). A one-line reminder to commit them is appropriate; never run git yourself.
+- `Just did` = how many cards were created, updated, or retired under `.claude/agents/` (zero is an honest result and is stated as one).
+- `Next step` = **restart the session, plainly** — the cards take effect only after a **session restart** (Claude Code loads `.claude/agents/` at session start), so until then fg-run cannot dispatch them. This is the contract, not a bug (ADR-0024), and it is the next step precisely because nothing downstream works before it.
+- `How to start` = restart Claude Code; after that, fg-run discovers the cards and dispatches a matching slice through its role as `agentType` (graceful: slices with no matching role use the default subagent, exactly as before).
+- `Alternative` is omitted — there is no second route around the restart.
+
+Then, **below** the table, the card list (list-shaped — HANDOFF.md, "List-shaped content goes below the table"): one line per `.claude/agents/<role>.md`, each marked newly created, an informed rewrite of an existing card, or retired (removed). Add one line that these are **project assets** — they live in the project's `.claude/agents/` and are committed like any project file, not forge `.forge/` state; a reminder to commit is appropriate, but never run git yourself.
 
 Then stop.
 

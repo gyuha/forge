@@ -147,12 +147,14 @@ fg-agenda is deliberately **not** part of the fg-next / fg-status next-step chai
 
 ## Handoff
 
-Statement form, in the user's language — state what happened, what comes next and its trigger, then **stop**. Never ask "shall I proceed?"; chaining is fg-next's job (ADR-0015).
+Render the **handoff table** per [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) — the single definition of its shape; never restate that layout here. Statement form, in the user's language — then **stop**. Never ask "shall I proceed?"; chaining is fg-next's job (ADR-0015).
 
-- **No fog surfaced** → state that the way is already clear, that no agenda was written, and that fg-ask is the next step.
-- **Agenda opened** (mode `open` done) → state the destination, how many open questions and how much fog it holds, and that re-triggering `fg-agenda` works the top question. State that nothing was resolved this session — that is the whole shape of opening an agenda.
-- **A question resolved** → state the decision, whether it produced an ADR, what changed in the agenda (new questions, graduated fog, out-of-scope moves), and what the next open question is. If it produced a specifiable build task, state that fg-ask takes it from here.
-- **Agenda cleared** (open questions empty) → state that the way is clear, that `agenda.md` was deleted, and that the durable trace is the ADRs and backlog plans it produced — with fg-run / fg-next as the next step for the plans.
+The four cases differ only in what fills the cells:
+
+- **No fog surfaced** → `Just did` = the way is already clear, so **no agenda was written**; `Next step` = `fg-ask`; `How to start` = `/forge:fg-ask`.
+- **Agenda opened** (mode `open` done) → `Just did` = the destination, how many open questions and how much fog the agenda holds, **and that nothing was resolved this session** — opening an agenda resolves nothing, and that is its whole shape, so it belongs in the cell, not in a sentence a reader might skip; `Next step` = re-triggering `fg-agenda` works the top question; `How to start` = `/forge:fg-agenda`.
+- **A question resolved** → `Just did` = the decision, and whether it produced an ADR; `Next step` = the next open question, worked the same way (`fg-agenda`) — or `fg-ask` when the resolution produced a specifiable build task, which then leaves the agenda; `How to start` = that skill's trigger. What changed in the agenda (new questions, graduated fog, out-of-scope moves) is list-shaped: put it **below** the table as bullets when there is more than one (HANDOFF.md, "List-shaped content goes below the table").
+- **Agenda cleared** (open questions empty) → `Just did` = the way is clear and `agenda.md` was **deleted**, with the durable trace being the ADRs and backlog plans it produced; `Next step` = `fg-run` / `fg-next` for those plans; `How to start` = their triggers.
 
 ## Document impact
 

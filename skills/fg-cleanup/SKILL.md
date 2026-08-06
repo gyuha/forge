@@ -13,7 +13,7 @@ This is **not** a stage of the forge loop (fg-ask → fg-run → fg-learn → fg
 
 ## First, confirm intent (avoid the muscle-memory trap)
 
-The utterance `forge cleanup` used to seal a finished task — that job is now **fg-done**. So before doing anything, open with one line so the user isn't surprised: *"This is the ADR-retirement utility — it retires stale ADRs, it does not seal a task (use fg-done / '봉인' for that). Proceed?"* If they actually wanted to seal a task, point them to fg-done and stop.
+The utterance `forge cleanup` used to seal a finished task — that job is now **fg-done**. So before doing anything, open with one line, in the user's language, so they aren't surprised: *"This is the ADR-retirement utility — it retires stale ADRs, it does not seal a task (use `fg-done` for that). Proceed?"* If they actually wanted to seal a task, point them to fg-done and stop.
 
 ## Behavior — propose candidates, the human approves (A+)
 

@@ -110,6 +110,9 @@ Render the headings in the user's language; scale the rows to the work.
   reader cannot tell whether the task can be sealed; never drop it to save a line.
 - **One line per prose chapter.** `▸ Request` and `▸ Next` are one line each.
   Prose that grows past a line is the original problem returning.
+- **`▸ Next` is dropped wherever the handoff table renders** — which is every
+  point this shape applies to. See `Role split with the handoff table` below;
+  that table is the single owner of the next step. Rendering both duplicates it.
 - **`Result` values**: `✅` done · `⚠` done with a divergence · `❌` not done.
 - **A single-slice task gets no table** — one row is ceremony; state it in one
   line (PLAN-FORMAT: a small task may legitimately be a single slice).
@@ -130,6 +133,23 @@ Render the headings in the user's language; scale the rows to the work.
 One row is **shorter than the terse notice it replaces**, so this serves the
 batch paths' momentum rather than fighting it — see the ADR-0032 amendment for
 why that is not a reversal of its no-summary rule.
+
+**Role split with the handoff table.** Two tables, two questions — neither
+overrides the other:
+
+| Table | Answers | When |
+| --- | --- | --- |
+| eco summary (this section) | what was **done** (axis: slices) | `eco: true`, task-end only |
+| handoff (`../fg-next/HANDOFF.md`) | what comes **next** | always, eco or not, 13 points |
+
+Where both appear they stack, eco table first, and each drops the row the other
+owns: the handoff table drops `Just did` (`▸ Done` carries it in more detail),
+and **this table drops `▸ Next` — the handoff table is the single owner of the
+next step, in both modes.** Rendering both would put the next step and its
+trigger on screen twice, which is the duplication these shapes exist to remove.
+Everything else above is unchanged. The handoff table's layout lives in
+[`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) and is never restated here —
+that file applies always, this one only through eco.
 
 **Single definition.** This section is the only definition of these shapes.
 fg-run, fg-done, and fg-next's `DRIVE.md` **reference** it and must not restate

@@ -103,7 +103,12 @@ Flow: check existing map (menu if present) → stamp HEAD sha → launch 4 agent
 
 ## Handoff
 
-When the map is written, convey in a conversational tone (not a stamped-out form): what was produced (the 7 documents under `.forge/codebase/`, stamped at the current commit), and that fg-ask will now read this map before grilling instead of re-exploring the code — so the next time you start a task with fg-ask, planning rides on the map. If the user is mid-loop, point them back to wherever they were; fg-map is a side utility, so there is no fixed "next stage."
+When the map is written — the fresh, Update, and Refresh paths — close with the **handoff table** per [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) — the single definition of its shape; never restate that layout here. Statement form, in the user's language. **The Skip path has no handoff and renders no table**: nothing was produced and nothing changed, so say in one line that the existing map was kept as-is, and stop.
+
+- `Just did` = what was produced: the documents written under `.forge/codebase/`, stamped at the current commit (all 7 on a fresh run or an Update; on a document-scoped Refresh, only the ones named). On the Update path, say so and give the before→after line counts.
+- **`Next step` / `How to start` are conditional — fg-map is a side utility with no fixed next stage, so they come from a precedence rule, never a fixed cell** (HANDOFF.md, "A conditional next step needs a precedence rule, never a hard-coded row"). Take the **first matching case**:
+  1. **The user is mid-loop** (the active slot, `.forge/executed/`, or the backlog holds work) → `Next step` = **where they were**, taken from fg-status's next-step state machine, which is the single derivation and not a re-guess here (HANDOFF.md's Material rule) — with a populated active slot that is `fg-learn` / `fg-done`, **never fg-ask**, which would drop them into its STEP-0 unsealed-residue path instead. `How to start` = that step's own trigger, or `fg-next` to have it derived and run. `Alternative` = `fg-ask`, if they would rather start something new on the fresh map.
+  2. **Not mid-loop** (no active slot, nothing awaiting retro, empty backlog) → `Next step` = **`fg-ask`** — it now reads this map before grilling instead of re-exploring the code, so the next task's planning rides on the map; `How to start` = `/forge:fg-ask`; omit `Alternative`.
 
 ## Constraints
 

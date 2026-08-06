@@ -38,7 +38,7 @@ The orchestrators that auto-skip retros — `fg-next all` (ADR-0010) and `fg-loo
 - **Candidates** = sealed tasks in `.forge/done/*/STATUS.md` whose `retro:` reads `skipped (...)` — the set that carries the "promote later" promise. Exclude legacy tasks with no `retro:` field and tasks already retro'd (a path in `retro:` or a matching `.forge/retro/*-<slug>.md`).
 - **Per task**, read its archived `done/<date-slug>/run.md` (and plan.md) and review conversationally, one task at a time — the same retro questions and classification discipline as the normal path (sections 1–3 below apply unchanged).
 - **Write a retro file only where a learning clears the promotion bar** (`.forge/retro/YYMMDD-HHMMSS-<slug>.md`, slug pairing intact). "Reviewed, nothing worth promoting" is a normal, file-less outcome — do not manufacture retro files for every skipped task (restraint discipline).
-- **When a retro file is written, correct that task's sealed STATUS** `retro:` field from `skipped (...)` to the retro path plus a late-promotion note, e.g. `retro: .forge/retro/2026-06-12-<slug>.md (일괄 승급 2026-06-15)` — so fg-status's table reflects reality. Seal immutability lives in `status: done`, which is never touched. Tasks reviewed without promotion keep their `retro: skipped` as is.
+- **When a retro file is written, correct that task's sealed STATUS** `retro:` field from `skipped (...)` to the retro path plus a late-promotion note, e.g. `retro: .forge/retro/2026-06-12-<slug>.md (batch promotion 2026-06-15)` — so fg-status's table reflects reality. Seal immutability lives in `status: done`, which is never touched. Tasks reviewed without promotion keep their `retro: skipped` as is.
 
 ## Behavior
 
@@ -100,13 +100,19 @@ Guide fg-done + surface follow-up candidates
 
 ## Next-flow guidance (handoff)
 
-When the retro is done, deliver the following at the end in natural conversational tone. Don't print a fixed template mechanically — speak as if pointing out what you just did.
+When the retro is done, **render the handoff table** at the end — its shape is defined once in `${CLAUDE_PLUGIN_ROOT}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, from this material:
 
-- **What you just did** — you left a retro at `.forge/retro/...`, and summarize in one line what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
-- **Next step** — it's time to tidy up this work. Guide them that they can seal the work with `fg-done`, and if any follow-up work candidates surfaced during the retro, present them too. But if more retro-awaiting work remains in `.forge/executed/`, recommend **retroing the next work first** over sealing — it's better to batch retros while memory is fresh.
-- **How to start** — **state** it and stop; do **not** ask "shall I seal now?" or auto-invoke fg-done (chaining is `fg-next`'s job — ADR-0015). Next is fg-done to seal; give the trigger — "작업 완료" / "봉인" / `/forge:fg-done`, or `fg-next`.
+- **What you just did** — you left a retro at `.forge/retro/...`, and one line on what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
+- **Next step / How to start** — divergence and any remaining retro-awaiting work decide these two cells; fill them by the precedence below.
+- **Follow-up candidates** — if any surfaced during the retro, they are list-shaped, so put them **below** the table as bullets (HANDOFF.md's rule for lists), not crammed into a cell.
 
-Exception — if execution diverged a lot from the plan, guide them that it's better to re-grill with `fg-ask` before going straight to wrapping up. Sealing while the plan and the actual are too far apart blurs the starting point of the next work.
+**Divergence shapes the cells** (the same rule fg-run's handoff carries). Read the plan-vs-actual divergence in `run.md` — already read in step 1 — and fill `Next step` / `How to start` by the **first case that applies**:
+
+1. **High divergence** → `Next step` is **re-grilling with `fg-ask`**, `How to start` its trigger (`/forge:fg-ask`). Sealing is the `Alternative` **at most**, never the stated next step: plan and actual too far apart is exactly when the next work needs a fresh starting point. This is also what ADR-0026 rests on — `fg-next`'s one-shot learn→done chain stops when the retro recommends re-grilling, so a cell naming the seal trigger would hand the user a live trigger for the very thing this skill just advised against.
+2. **Low/negligible divergence, and more retro-awaiting work remains in `.forge/executed/`** → `Next step` is **retroing the next work first** (`/forge:fg-learn`) — better to batch retros while memory is fresh — with sealing as the `Alternative`.
+3. **Low/negligible divergence, nothing else awaiting** → `Next step` is tidying this work up: seal it with `fg-done`, `How to start` is `/forge:fg-done`, or `fg-next`.
+
+Then **state it and stop**; the table is text output, never an `AskUserQuestion` — do **not** ask "shall I seal now?" or auto-invoke fg-done (chaining is `fg-next`'s job — ADR-0015).
 
 ## Doc impact
 

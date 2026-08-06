@@ -68,7 +68,17 @@ exit 1/2 ──▶ relay findings (severity · path · fix hint) → state fixes
 
 ## Handoff
 
-There is no loop handoff — fg-doctor is self-contained and read-only. Relay the verdict; if there are findings, **state** that fixes are made via fg-quick (trivial) or fg-ask (non-trivial), and stop — do **not** auto-invoke either or start fixing (the same restraint as fg-status). If clean, just confirm the clean bill of health.
+There is no loop handoff — fg-doctor is self-contained and read-only. Relay the verdict; when it names a next step (findings present), do it as the **handoff table** per [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md) — the single definition of its shape; never restate that layout here. Statement form, in the user's language; do **not** auto-invoke anything or start fixing (the same restraint as fg-status).
+
+- `Just did` = the verdict in one line: the exit code and its meaning (clean / N warnings / N errors).
+- **Findings present** → the fix route is keyed to the findings **actually reported**, by the first case that applies:
+  1. **Any non-trivial finding is in the report** (version drift across the three manifest locations, README bilingual drift, a half-sealed `done/`, an un-integrated branch root — anything needing a plan rather than a one-line edit) → `Next step` = `fg-ask` (the full loop), `How to start` = `/forge:fg-ask`; `Alternative` = `fg-quick` for the trivial findings in the same report.
+  2. **Only trivial findings** (a stray path, a single field to correct) → `Next step` = `fg-quick`, `How to start` = `/forge:fg-quick`; `Alternative` = `fg-ask`, should one turn out non-trivial.
+
+  Judge triviality per finding from the fix hint the script reported, and let the heaviest one decide. Neither route is auto-invoked (see Constraints).
+- **Clean (exit 0)** → **render no table at all.** State the clean bill of health in one line and stop. There is no next step here, so a table would only carry rows saying "nothing to fix" / "nothing to trigger" — the information-free rows HANDOFF.md rules out, and the same reason it excludes the skills that have nothing to point at. Deriving where the user was in the loop instead is **not** this skill's job: fg-doctor reads health, not progress, and never runs fg-status's next-step state machine (fg-status: where am I; fg-doctor: is the state healthy).
+
+The findings themselves are list-shaped, so they go **below** the table as bullets (HANDOFF.md, "List-shaped content goes below the table"): one line each carrying **severity · path · fix hint**, exactly as the script reported them. The table says *that* the state is unhealthy; these lines say *what* to fix, so they are never compressed into a cell or dropped.
 
 ## Constraints
 
