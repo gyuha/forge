@@ -76,7 +76,7 @@ Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)
 
 **①②의 비대칭(솔직히 명기).** ①은 원장 플립으로 **기계적·확정적** 감지가 되지만, ②는 fg-loop이 생성하는 plan을 모델이 **스스로 분류**하는 best-effort 안전 *선언*이다(Markdown 플러그인이라 정적 분석기로 강제 불가). ②의 가치는 100% 가로채기가 아니라, 멈춤이 계약과 `/goal` stop-allowed 집합에 명시되어 드라이브가 "멈추라는 명시 지시"를 갖는 것이다.
 
-**기각·경계(불변).** replan-cap과 별개의 토큰/시간 budget(forge 작업은 사람 규모, fg-run이 이미 bounded)·체크 상태 다변화(proved/weak/contradicted — 기계 체크의 이진성이 없애려던 주관성 재도입)는 YAGNI로 기각. **fg-next all에는 비적용** — tension·safety 둘 다 *생성된* fix-forward에서만 발생하는데 fg-next all은 fix-forward를 만들지 않으므로(공유는 `/goal` 메커니즘뿐, 벽 집합 분리), goal-pairing 개정(2026-06-15)의 fg-next 동기 대상이 아니다. cap·authorized replan 범위·ADR-0009·활성 슬롯 1개·회고 auto-skip·Reflexion·ADR-0015 진술형은 전부 불변.
+**기각·경계(불변).** replan-cap과 별개의 토큰/시간 budget(forge 작업은 사람 규모, fg-run이 이미 bounded — *기각 유지, 다만 이유는 2026-08-09 개정에서 더 정확한 것으로 교체됨*)·체크 상태 다변화(proved/weak/contradicted — 기계 체크의 이진성이 없애려던 주관성 재도입)는 YAGNI로 기각. **fg-next all에는 비적용** — tension·safety 둘 다 *생성된* fix-forward에서만 발생하는데 fg-next all은 fix-forward를 만들지 않으므로(공유는 `/goal` 메커니즘뿐, 벽 집합 분리), goal-pairing 개정(2026-06-15)의 fg-next 동기 대상이 아니다. cap·authorized replan 범위·ADR-0009·활성 슬롯 1개·회고 auto-skip·Reflexion·ADR-0015 진술형은 전부 불변.
 
 ## 개정 (2026-06-25 2차) — 7차 개정 두 벽의 제어흐름 허점 보정 (Codex 적대적 리뷰)
 
@@ -107,3 +107,27 @@ Forward Future의 [Loop Library](https://signals.forwardfuture.ai/loop-library/)
 **정합(모순 아님)**: 같은 무인 자율 계약이 이미 "이 레인이 보존하는 사람 판단 = 정지 조건을 앞에서 못 박기"라 했다. 체크를 하드하게 그릴하는 것이 *바로 그 판단의 올바른 수행*이다 — leanness의 위반이 아니라 그 경계다.
 
 **기각·경계(불변)**: 렌즈 4(in-scope 도달성)를 "충실성"과 분리해 별도 게이트로 두는 안은 YAGNI로 기각(같은 up-front 그릴링에서 함께 판정하는 게 자연스럽고, 도달 불가 체크의 조기 fork는 기존 §3 fork-early와 연결). per-check "faithfulness rationale"를 loop.md에 영속하는 안도 기각(새 필드 = ripple 부담, 드라이브는 체크만 실행하면 되므로 근거 영속 불요). 드라이브·walls·ledger·Reflexion(§2/§3/§4)·cap·authorized replan 범위·ADR-0009·활성 슬롯 1개·회고 auto-skip은 전부 불변 — 이 개정은 체크를 *어떻게 정의하는가*(앞단)만 강화하고 *어떻게 돌리는가*는 안 건드린다. fg-ask도 무변경(4렌즈는 "체크=프록시"라는 fg-loop 고유 문제라 fg-loop 본문에만 둠).
+
+## 개정 (2026-08-09) — `waiting`(외부 증거 대기)과 `blocked-health`(능력 사전점검); LoopX quota는 기각 유지
+
+외부 참조 [LoopX](https://huangruiteng.github.io/loopx/docs/)(control plane: objective · todos · gates · evidence · quota)를 fg-loop에 대조한 결과다. 다섯 중 넷은 이미 forge에 있다 — objective=goal+authorized scope, todos=`## Tasks` 멤버십+활성 슬롯 1개, gates=벽 6종+7 action class, evidence=`## Check progress` 원장+Reflexion(오히려 더 정교). 남은 하나(quota)와 그 주변에서 두 개의 **오분류**가 드러났다.
+
+**① quota 본체는 기각 유지 — 단 이유를 정확화한다.** 7차 개정(2026-06-25)은 토큰/시간 budget을 "forge 작업은 사람 규모"로 기각했는데, 이는 부정확했다. LoopX quota의 실체는 토큰 예산이 아니라 **벽시계 분(minute) 슬롯을 24시간 윈도우에 배분**하는 것이고, 그 전제는 **다수의 상시 goal이 자동 에이전트 시간을 놓고 경쟁하는 cron/heartbeat 구동 시스템**이다. forge에는 그 전제 자체가 없다 — `loop.md` 1개, 활성 슬롯 1개, 사람이 트리거. **경쟁할 goal이 없으므로 배분할 것이 없다.** 기각은 유지하되 근거는 "작업 규모"가 아니라 "다중 goal 경쟁 부재"다(규모가 커져도 이 결론은 안 바뀐다는 점에서 더 강한 기각이다). 같은 이유로 `scheduler_hint`·tick 스케줄링·claim/lease·attention queue도 미도입 — 후자 둘은 동시 에이전트 전제라 활성 슬롯 1개 계약에서 무의미하다. (크로스-턴 무인 구동 수단(`ScheduleWakeup`/cron)으로 `/goal`을 보완하는 안은 성격이 다르고 `DRIVE.md`를 통해 fg-next에 파급되므로 **별건으로 유예**.)
+
+**② `waiting` — 외부 증거 대기는 실패가 아니다.** LoopX의 상태 enum(`eligible/throttled/waiting/operator_gate/paused/blocked_health/focus_wait`)이 짚는 구멍: 정지 체크가 "CI 초록"처럼 **남의 시계에 달린 증거**에 의존하면, 아직 판정 불가인 상태를 fg-loop는 평범한 실패로 읽는다. 대가가 둘이다 — 존재하지 않을 수도 있는 문제에 `replan-round`를 태우고, 끝내 `unverifiable-uat` 벽으로 **사람이 해결할 수 없는 것**을 사람에게 넘긴다.
+
+**결정**: 체크에 `evidence: external`을 §1에서 **선언**할 수 있게 하고, 선언된 체크가 통과 아니면 **무조건 `waiting`**으로 분류한다. `replan-round` 미소모, fix-forward 미생성, `fail ×N`·`regressed: ×N` 미오염, `reflection` 없음. **벽이 아니다** — 사람에게 아무것도 요구하지 않는 유일한 상태라, 벽으로 보고하면 이 상태가 없애려던 오분류를 보고 층에서 재생산한다.
+
+**핵심 트레이드오프(명시)**: 판정을 *선언*만으로 하고 **`waiting-when:` 술어를 버렸다.** 술어가 없으니 주행은 "CI가 빨간불"과 "CI가 미완"을 **구분할 수 없고**, 따라서 **선언된 외부 체크는 자동 수리 대상에서 통째로 빠진다.** 받아들인 이유: (a) 런타임 추론은 "이건 그냥 대기"라는 자기선언 알리바이를 열어 렌즈 1(Goodhart)이 막으려던 구멍을 무인 주행에 다시 뚫는다 — 선언만이 모델 재량 0을 보장한다; (b) 외부 증거에 걸린 결함은 대개 authorized replan scope 밖(=fork 벽 행)이라 실제로 잃는 자동 수리가 적다; (c) 마커 한 줄로 끝나 §1에 새 렌즈·새 필드가 안 붙는다. **대가의 직접적 귀결**: 술어가 없으니 대기가 실패로 떨어질 자연 탈출구도 없어, **`stalled-waiting` 상한(연속 `×2` + `last-evidence` 불변)이 영구 대기를 막는 유일한 안전장치**가 된다 — 선택 사항이 아니라 이 설계의 필수 구성이다. 임계값 2는 기존 no-progress `×N ≥ 2`와 통일해 사용자가 외울 값을 하나로 유지한다.
+
+**③ `blocked-health` — 환경 결함을 코드 결함으로 읽지 않는다.** 체크 명령이 아예 실행 못 되면(도구 부재·미인증·권한) 지금은 코드가 틀린 것과 동일하게 실패로 잡혀, 도움이 될 수 없는 fix-forward에 cap을 태우고 끝내 `no-progress` 벽으로 **진짜 원인을 감춘 채** 멈춘다.
+
+**결정**: 주행 첫 체크 실행 **전에** 각 체크 명령의 실행 파일명을 **도출**해(`command -v`) 확인하고, 실패면 `wall: blocked-health (<name>)`. 파이프 뒤 도구·미인증·권한은 사전 도출이 못 잡으므로 **보수적 사후 승격**을 둔다 — 명령이 대상에 도달조차 못 한 명백한 경우(실행 파일 부재·권한 거부)만 승격하고 **애매하면 평범한 실패로 둔다**. 비대칭은 의도적이다: 환경 문제를 실패로 오분류하면 라운드 하나를 낭비할 뿐이지만(현행 동작), 실패를 환경 문제로 오분류하면 **진짜 버그를 숨긴다**. LoopX의 `required_capabilities`처럼 사람에게 능력 목록을 **선언받지 않는다** — §1의 lean 계약 위반이자, 체크 명령에 이미 있는 정보의 중복 질의다.
+
+**④ 신규 최상위 필드를 만들지 않는다.** `waiting ×N`은 기존 `## Check progress` 원장 줄에, `evidence: external`은 기존 `## Stop-condition checks` 절에 흡수한다. 최상위 `waiting:` 필드를 두는 안은 그릴링에서 한 번 채택됐다가 **기각**됐다 — `.forge/retro/2026-07-16-fg-loop-check-faithfulness-grilling.md`(및 2026-06-12 loop-md-contract-gaps)가 두 번 적용한 규율, *"새 능력을 새 필드/상태가 아니라 기존 절의 강화된 산출물로 흡수 → 소비자 6지점 ripple 회피"* 를 이번에도 따른다. 대가는 "대기 중인가"를 최상위 한 줄이 아니라 원장에서 읽는 것인데, 소비자는 이미 전부 원장을 파싱하므로 실질 손실이 작다. LoopX식 `state:` 필드 신설도 기각 — `wall:`과 **이중 장부**가 되어 forge가 STATUS.md에서 이미 배격한 패턴이다. 늘어난 것은 `wall:` enum 값 **둘**(`stalled-waiting`·`blocked-health`)뿐이며, 이 둘은 진짜 벽이라 불가피하다.
+
+**벽 집합의 비대칭(불변 유지)**: `stalled-waiting`·`blocked-health`는 tension·safety와 마찬가지로 **fg-loop 전용**이다 — 둘 다 `evidence: external` 선언과 능력 사전점검에서 발생하는데 `fg-next all`엔 그 기계가 없으므로 fg-next의 벽 집합은 무변경이다(공유는 `/goal` 메커니즘뿐).
+
+**출처 성격**: LoopX의 **개념 각색**이며 코드·CLI vendoring이 아니다(선례: fg-agenda ← Wayfinder). `loopx` 명령·상태 이름·JSON 계약은 가져오지 않았고, 채택한 것은 "대기와 실패는 다른 상태다"·"실행 전제는 소진 전에 게이트한다" 두 통찰뿐이다.
+
+**불변**: ADR-0009(검증 없는 봉인 금지)·활성 슬롯 1개·authorized replan 범위·cap·no-progress/tension/safety 벽·Reflexion·회고 auto-skip·ADR-0015 진술형·기둥 1의 경계 있는 완화는 전부 그대로다. 이 개정은 **판정 불가·실행 불가 상황을 실패에서 분리**할 뿐 실패의 처리 방식은 안 건드린다.

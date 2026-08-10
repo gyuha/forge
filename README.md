@@ -38,7 +38,7 @@ The three driving skills form a **trust ladder** — the same graduated-autonomy
 
 - **L1 — observe (`/fg-status`)**: read-only. It just *shows* where every task stands and the single next step. Nothing runs. Use it to see the board before deciding.
 - **L2 — assisted (`/fg-next`)**: does the *one* next step and stops. You stay in the seat between steps — review, then call it again. Best when you want to watch each transition.
-- **L3 — unattended (`/fg-loop` or `/fg-next all`)**: drives whole task loops to completion. `/fg-next all` drains a human-grilled backlog until it's empty; `/fg-loop` converges on a machine-verifiable goal, generating bounded fix-forward work along the way. Both halt at the walls (failed/unverifiable verification, a genuine fork, no progress; `/fg-loop` additionally at a check-tension oscillation or a safety/irreversible action) and hand back with full context.
+- **L3 — unattended (`/fg-loop` or `/fg-next all`)**: drives whole task loops to completion. `/fg-next all` drains a human-grilled backlog until it's empty; `/fg-loop` converges on a machine-verifiable goal, generating bounded fix-forward work along the way. Both halt at the walls (failed/unverifiable verification, a genuine fork, no progress; `/fg-loop` additionally at a check-tension oscillation, a safety/irreversible action, a stalled wait, or a check command that cannot execute) and hand back with full context. `/fg-loop` also distinguishes **waiting** on external evidence (CI, a deploy) from failure — it asks nothing of you and simply resumes on the next trigger.
   - **Running L3 truly unattended needs `/goal`.** Both lanes present a paste-ready `/goal …` line at entry — paste it and the drive auto-resumes across turn boundaries (a background workflow finishing, a pause) until it's done or hits a wall. Without it the drive does one cycle and pauses — that's expected, just re-issue the trigger to resume. (A workflow script approval always needs you, `/goal` or not.)
 
 Rule of thumb: grill the plan with `/fg-ask` first — that human judgment is L1 and is never automated — then pick the lowest lane you're comfortable with. `/fg-loop` is L3 for a goal you can pin to runnable checks (`grep`/test/build); `/fg-next all` is L3 for a queue you've already grilled.
@@ -196,7 +196,7 @@ Legend: ✓ explicitly supported · △ something similar exists but differs in 
 
 - Docs are the loop's fuel, not a byproduct — ADRs are created only when all three gate conditions hold, which structurally prevents doc bloat.
 - No seal without verification — pending/failed/skipped(reason)/n-a(reason) are honestly distinguished so an unverified task can never quietly become "done."
-- Unattended automation still stops itself at human-defined walls (failed verification, an unresolvable fork, tension/oscillation ping-pong, safety-class actions).
+- Unattended automation still stops itself at human-defined walls (failed verification, an unresolvable fork, tension/oscillation ping-pong, safety-class actions, a stalled wait on external evidence, a check command blocked by a missing tool or credential).
 - Sealing means the loop really ends — a sealed task is structurally blocked from ever re-running.
 - Zero infrastructure — no DB, no server, no npm install; just `/plugin install`.
 - Instead of a fixed roster of specialists, forge interviews the project to find which roles actually recur, and generates agent cards only for those.
