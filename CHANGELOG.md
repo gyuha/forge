@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.6.8] - 2026-08-14
+
+### Fixed
+- **랜딩 페이지(`docs/index.html`) fg-help 드리프트.** v0.6.7의 fg-help 추가가 README·`docs/skills.md`에는 반영됐지만 `docs/index.html`에는 빠져, 스킬 수가 4곳(meta 설명 2곳·hero·JS meta)에서 "20/twenty"로 남고 스킬 카탈로그에 fg-help가 없었다. 스킬 수를 21/twenty-one으로 고치고, 카탈로그에 fg-doctor 다음 fg-help 항목을 KO/EN span 쌍으로 추가(ADR-0027 이중언어 규율). 직전 릴리스 `eb334d1`가 같은 index.html 드리프트를 고쳤던 재발 지점이다.
+
 ## [0.6.7] - 2026-08-14
 
 **forge에 도움말이 생겼다.** 스킬이 21개까지 늘면서 "무슨 명령이 있고 어떻게 쓰나"가 실제 진입 장벽이 됐다. `fg-help`가 그 답이다 — 다른 곳에 사용법을 또 복사하지 않고, 각 스킬이 이미 가진 `description`을 단일 소스로 읽어 사용자 언어로 렌더한다.
