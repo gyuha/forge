@@ -117,6 +117,8 @@ Render the derived step as the **handoff table** per [`../fg-next/HANDOFF.md`](.
 
 There is no loop handoff — fg-status is self-contained and read-only. End with the handoff table (per `../fg-next/HANDOFF.md`, as filled above) so the user knows where they stand. The status report itself — the task table, the diagnostic layer, the section lines — is fg-status's *body*, not prose introducing the handoff, so it stays where it is; the table replaces only the next-step line and is the last thing on screen. If they want to act on it, they trigger the named skill themselves — or run `fg-next`, the acting sibling, which derives that same next step and runs it right away — announcing it in one line, with no separate go-ahead.
 
+**If the user seems unsure what a step or skill actually does** (a newcomer, or a next step naming a skill they may not know), add one line below the table pointing to the usage help: *"명령 사용법이 필요하면 `/forge:fg-help`"* (render in the user's language). This is a light, optional pointer — omit it when the user is clearly fluent; fg-help is the read-only usage reporter, a sibling utility, not part of this state machine.
+
 ## Document impact
 
 - **None.** fg-status creates and modifies nothing. It is pure read-only reporting.

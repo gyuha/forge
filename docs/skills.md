@@ -22,6 +22,7 @@
 | `fg-statusline` | 설정 유틸리티(루프 밖) | statusline에 forge 진행 상태를 두 모드 중 하나로 표시 — 방법 1(append)은 기존 statusline을 아래 별도 줄로 자동 래핑(얇은 forge fragment, ADR-0017), 방법 2(merge)는 daleseo식 시스템 정보(모델·디렉터리·⎇git·Context/크기+그라디언트 바+$비용/±라인/경과)+forge 진행을 의미 단위 그룹 대괄호로 한 스크립트에 출력하며 compact/full 밀도 토글(command 인자)까지 갖춘 통합 스크립트 설치(ADR-0029) | 기존 `settings.json` | `~/.claude/`의 statusline 스크립트 + `statusLine` 설정 | — (터미널 표시) |
 | `fg-adversarial-review` | 리뷰 유틸리티(루프 밖) | fg-run↔fg-learn 사이 선택적 적대적 리뷰 — findings 기록, 승인된 코드 결함은 fix-forward plan으로 적재; 원 작업을 회고·봉인해 슬롯을 비운 뒤 fix plan 실행 | active `plan.md`·`run.md`·작업트리 diff·CONTEXT/ADR | `.forge/review.md` + (승인 시) fix-forward backlog plan | `fg-learn` → `fg-done` → `fg-run` |
 | `fg-doctor` | health check(루프 밖) | 읽기 전용 무결성 검사 — **결정론 스크립트(forge-doctor.sh/.js, exit 0/1/2로 AI 없이 CI 게이트)**가 `.forge/` 상태 계약(고아·STATUS 필드·slug 페어링·half-sealed·**고아 브랜치 루트=fg-merge 잊음**)과 문서/매니페스트 정합(버전 3곳 동기·README 이중언어·CLAUDE.md 스킬 목록·**두 형식 ADR ID 유일성**)을 검사해 위반을 severity·수정 안내와 함께 보고; 아무것도 안 쓰고 자동 수정 안 함 | `.forge/*`·매니페스트·README·CLAUDE.md (읽기 전용) | 출력 보고(파일 없음) | — (`fg-quick`/`fg-ask`로 수정) |
+| `fg-help` | 도움말 리포터(루프 밖) | 읽기 전용 사용법 도움말 — `/forge:fg-help`(무인자)는 forge 스킬 전체를 루프 4단계 + 루프 밖 유틸리티로 그룹핑한 개요를, `/forge:fg-help <명령>`은 개별 스킬의 4줄 상세(무엇·언제·트리거·다음단계)를 출력. 각 `skills/*/SKILL.md`의 frontmatter `description`을 **단일 소스**(사본 0)로 읽어 사용자 언어로 LLM 렌더 — 번역이 스크립트로 불가해 결정론 트윈 없음(fg-status/fg-doctor와 다른 점). 아무것도 안 쓰고 자동 실행 안 함 | `${CLAUDE_PLUGIN_ROOT}/skills/*/SKILL.md` (읽기 전용) | 출력 보고(파일 없음) | — (문서 유틸리티) |
 | `fg-drop` | 폐기 유틸리티(루프 밖) | 미완 작업 폐기 — 단일/소수/다수에 맞는 선택 UI, goal 루프는 loop.md+멤버 미완 상태를 통째로 삭제/보관(done·비멤버 불변); forge 상태만 지움 | `.forge/*`(미봉인) | 하드 삭제 또는 `.forge/dropped/<slug>/` | — (자체 완결) |
 | `fg-agents` | 생성 유틸리티(루프 밖) | 대화형 그릴링으로 프로젝트 도메인을 캐 역할을 도출하고 표준 `.claude/agents/<role>.md` 카드 생성(`description`에 "언제 쓰이나" 포함 → fg-run이 slice↔role 자동 매핑). 활성 ADR을 연료로 읽어 카드에 프로젝트 결정을 가볍게 반영. 카드는 세션 시작 시 로드되므로 생성 후 **재시작 필요**(ADR-0024). graceful·선택적 | `.forge/codebase/`·`CONTEXT.md`·활성 `.forge/adr/`(선택 연료) | `.claude/agents/<role>.md` 카드 | — (재시작 후 fg-run이 활용) |
 | `fg-visual` | 시각 유틸리티(루프 밖) | 브라우저 시각 컴패니언 — obra/superpowers v6.1.1 Visual Companion vendoring(MIT 귀속). zero-dependency Node 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 브라우저 탭에 실시간 표시하고, 사용자의 클릭·텍스트 입력을 이벤트(JSONL)로 받아 에이전트가 **답으로** 되읽음. 선택형 화면의 **필수 확정 버튼**을 누르면 터미널 턴 없이 바로 에이전트를 깨우며(탐색 클릭은 깨우지 않음), fg-ask 그릴링 중 시각적 질문에서 just-in-time 1회 제안(거절 시 재제안 없음), 이 스킬은 단독 진입점(ADR `260719-224442`·`260730-224259`·`260805-005436`) | 에이전트가 push하는 HTML | 모든 브랜치 최상위 `.forge/visual/<세션>/`(휘발·전역 예외) + 클릭 이벤트(JSONL) | — (`fg-visual stop`으로 종료) |
@@ -34,7 +35,7 @@
 - **표는 사용자 언어로 렌더된다.** 라벨의 canonical 이름은 영문(`Just did` · `Next step` · `How to start` · `Alternative`)이고 — 스킬 문서가 영문이므로 셀을 가리킬 때 쓰는 이름이다 — 화면에 나갈 때 사용자 언어로 번역된다(한국어 세션이면 위 네 라벨). 경로·`.forge/` 필드·`/명령`만 verbatim이며, **자연어 트리거는 verbatim이 아니라** 스킬 `description`에 등록된 한/영 트리거 중 사용자 언어에 맞는 것을 골라 채운다.
 
 - **적용 13곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 9개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`).
-- **제외 7곳** — `fg-tdd`·`fg-eco`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-visual`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
+- **제외 8곳** — `fg-tdd`·`fg-eco`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-visual`·`fg-help`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
 - **표는 메뉴가 아니다.** 진술형은 불변이다(ADR-0015) — `AskUserQuestion`으로 내지 않고, `대안` 행은 고르라는 질문이 아니며, 알리고 멈춘다. 체이닝은 여전히 `fg-next`의 몫이다.
 - **조건부 다음 단계는 우선순위 규칙으로 채운다.** 한 분기를 행에 못 박고 나머지를 `대안`으로 밀면 표가 스킬이 방금 하지 말라고 한 것을 지시하게 된다(`fg-run`·`fg-learn`의 divergence 규칙이 그 예다).
 - **무인 주행에서는 위임 스킬이 표를 렌더하지 않는다** — `fg-next all`·`fg-loop`에서 주행자가 억제하고 자기 단계(벽·완료)에만 낸다. 위임된 "fg-learn 실행" 안내가 사용자에게 새어 나가면 주행이 정지한다(`DRIVE.md`).
@@ -70,7 +71,7 @@
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트([ADR-0009](../.forge/adr/0009-verification-gate-before-seal.md))는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](../.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (16개)
+## 루프 밖 유틸리티 (17개)
 
 ### fg-map
 
@@ -130,6 +131,10 @@
 ### fg-doctor
 
 `fg-doctor`는 **읽기 전용 무결성 health check로, 역시 루프 밖**이다 — harness engineering의 `init.sh` health check를 forge에 적용한 것이다. `fg-status`가 *어디까지 했나*를 보고한다면, `fg-doctor`는 *상태가 건강한가*를 보고한다: `.forge/` 상태 계약(고아 `run.md`·STATUS 필드 손상·plan↔STATUS↔retro slug 페어링 불일치·half-sealed `done/`·backlog 마커와 task 번호 유일성)과 영속 문서/매니페스트(버전 3곳 동기·JSON 유효성·스킬 `name` frontmatter·스킬 개수 정합·CLAUDE.md 스킬 목록 완전성·README 이중언어 동기·ADR 번호/상호참조)를 검사해 각 위반을 error/warning/info로 분류하고 항목별 actionable 수정 안내를 출력한다. **아무것도 쓰지 않고 자동 수정도 하지 않는다** — 수정은 사람이 `fg-quick`(사소) 또는 `fg-ask`(비사소)로 하며, 다른 스킬이 자동 호출하지 않는다. "forge doctor", "무결성 검사", "상태 점검", "forge 진단", "health check", "정합성 확인", "check forge state" 같은 발화에서 트리거된다 ([ADR-0019](../.forge/adr/0019-fg-doctor-integrity-check.md)).
+
+### fg-help
+
+`fg-help`는 **읽기 전용 사용법 리포터로, 역시 루프 밖**이다 — forge의 세 번째 읽기 전용 질문에 답한다: `fg-status`가 *어디까지 했나*(진행+다음 단계), `fg-doctor`가 *상태가 건강한가*(무결성)를 보고한다면, `fg-help`는 *이 스킬들을 어떻게 쓰나*(사용법)를 보고한다. `/forge:fg-help`(무인자)는 forge `fg-*` 스킬 전체를 루프 4단계(`fg-ask → fg-run → fg-learn → fg-done`) + 루프 밖 유틸리티로 그룹핑한 개요를, `/forge:fg-help <명령>`은 개별 스킬의 4줄 상세(무엇 · 언제 · 트리거 · 다음 단계)를 출력한다. 사용법의 **단일 소스**는 각 `${CLAUDE_PLUGIN_ROOT}/skills/*/SKILL.md`의 frontmatter `description`이다 — 사본을 두지 않으므로(다섯 번째 동기 표면을 안 만듦) 새 스킬은 fg-help 편집 없이 자동으로 나타난다. glob 대상은 forge 스킬뿐(다른 플러그인 스킬은 제외 — forge가 그 설명 품질을 보장할 수 없다). **결정론 스크립트 트윈이 없다** — 핵심 일이 영문 소스 `description`을 *사용자 언어*로 렌더하는 것이고 스크립트는 번역을 못 하기 때문이다(이 점이 스크립트-백킹된 `fg-status`/`fg-doctor`와 다르다). `fg-status`가 길 잃은 사용자에게 여기를 교차 참조한다("사용법은 `/forge:fg-help`"). 아무것도 쓰지 않고 자동 실행하지 않으며, `fg-cleanup`·`fg-drop`처럼 핸드오프 표를 내지 않고 산문을 유지한다. "forge help", "fg-help", "도움말", "사용법", "how do I use forge" 같은 발화에서 트리거된다 (ADR [`260814-104534`](../.forge/adr/260814-104534-fg-help-llm-rendered-no-script-twin.md)).
 
 ### fg-drop
 

@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > A development loop that takes one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty `fg-`-prefixed Claude Code skills — four that form the loop, plus sixteen utilities outside it.
+> A loop-style workflow plugin built from twenty-one `fg-`-prefixed Claude Code skills — four that form the loop, plus seventeen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -11,7 +11,7 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 
 ## Quick start — you mostly only need three
 
-Twenty skills look like a lot, but day to day you drive with **three**:
+Twenty-one skills look like a lot, but day to day you drive with **three**:
 
 ```
 /fg-ask   →   /fg-run   →   /fg-next
@@ -94,7 +94,7 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The four loop stages, then the sixteen utilities outside the loop:
+The four loop stages, then the seventeen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -114,6 +114,7 @@ The four loop stages, then the sixteen utilities outside the loop:
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
 | `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and fg-learn — six lenses, fix-forward findings |
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync — script-backed, usable as an AI-free CI gate |
+| `fg-help` | Utility | Read-only usage help — `/fg-help` prints an overview of every forge skill grouped by loop stage + outside-the-loop utilities, `/fg-help <command>` a 4-line detail; reads each skill's own `description` as the single source, LLM-rendered in your language (no script twin) |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
 | `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
 | `fg-visual` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and takes your answers back as events — a required confirm button on choice screens wakes you directly with no terminal turn, exploratory clicks don't; offered just-in-time during fg-ask grilling, `fg-visual stop` shuts it down |
@@ -123,7 +124,7 @@ Per-skill detail — input/output/next, triggers, and the rationale ADRs — is 
 
 ## Overall flow
 
-When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **13 points** that have a real next step (the other seven are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: default retro via `fg-learn`, skip+seal via `fg-done` only when divergence is low, re-grill via `fg-ask` when it is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
+When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **13 points** that have a real next step (the other eight are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: default retro via `fg-learn`, skip+seal via `fg-done` only when divergence is low, re-grill via `fg-ask` when it is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
