@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.6.9] - 2026-08-15
+
+**문서가 읽히는 곳이 생겼다.** `docs/`의 한글 문서 6개는 GitHub에서 열어야만 읽을 수 있었고, 배포된 사이트는 랜딩 한 장뿐이었다. 이번 릴리스는 그 Markdown을 VitePress로 빌드해 사이드바·검색·다크모드를 갖춘 문서 사이트로 서빙하고, 영문판까지 얹는다. **플러그인 본체는 그대로다** — 스킬 21개도, 매니페스트도 바뀌지 않았고, 새로 생긴 `package.json`은 문서 도구일 뿐이다.
+
+### Added
+- **문서 사이트 — `gyuha.com/forge/docs/`.** `docs/`의 Markdown을 VitePress로 빌드해 사이드바 네비(시작하기·개념·가이드·레퍼런스)·로컬 검색(한국어 동작)·다크모드와 함께 서빙한다. 기존 랜딩은 `gyuha.com/forge/`에 내용·URL 그대로 유지되며, `.github/workflows/docs.yml`이 **두 산출물을 하나의 Pages 아티팩트로 조립**한다(루트=랜딩, `/docs`=VitePress). GitHub Pages 소스를 legacy(`main`의 `/docs` 폴더)에서 Actions로 전환. **Markdown은 옮기지 않았다** — 사이드바 그룹은 설정일 뿐이라 README의 `./docs/*.md` 링크 10개가 그대로 산다. 신규 진입 페이지 `docs/index.md`(시작하기) 추가.
+- **영문 문서 — `gyuha.com/forge/docs/en/`.** VitePress i18n으로 **한국어를 root locale**에 두어 기존 한국어 URL이 하나도 바뀌지 않고, 영문 7개 문서가 `/en/`에 얹혔다. 언어 스위처는 같은 페이지의 짝으로 이동한다(`/docs/agenda.html` ↔ `/docs/en/agenda.html`). locale별 nav·사이드바·검색 UI 분리. 번역은 창작이 아니라 **이미 있는 영문 어휘로 되돌린 것** — `skills/*/SKILL.md`·`PLAN-FORMAT.md`·`HANDOFF.md`·`ECO.md`·`README.md`가 영문 원본이라 `grilling`·`active slot`·`work slice`·`seal`·`fix-forward`·`Just did`/`Next step`이 이미 확정돼 있고 그것을 그대로 썼다. 그래서 문서 사이트와 스킬 본문이 서로 다른 말을 하지 않는다.
+- **ADR `260815-094725` — 문서 사이트는 왜 VitePress이고 왜 Pages 소스를 옮겼나.** 참고한 docs.opengsd.net의 실체는 Mintlify(외부 SaaS)지만, 그것을 쓰면 문서가 GitHub Pages 밖에서 서빙돼 랜딩과 도메인이 갈라진다 — "docs 폴더로 만들고 랜딩은 유지"라는 요구와 정면 충돌. Jekyll(디자인 자유도)·Docsify(SEO·해시 URL)도 기각. 대가는 이 리포에 **빌드 시스템이 처음 생긴다**는 것이며, 그 예외 범위를 문서 사이트 하나로 못 박았다.
+
+### Fixed
+- **`package.json`의 `"type": "module"`이 forge 스크립트 트윈 8개를 죽였다.** `scripts/*.js`(`forge-done`·`forge-doctor`·`forge-status`·`forge-merge`·`forge-statusline`×2·세션 시작 훅·`resolve-forge-root`)가 전부 CommonJS인데, 문서 도구로 넣은 이 필드가 **리포 전체 `.js`의 해석을 ESM으로 바꿔** `require is not defined`로 죽였다. bash가 있는 환경은 polyglot 래퍼가 가려 주지만 **`.js` 트윈이 존재하는 이유가 바로 bash 없는 Windows**다. 필드 제거로 복구(`.mts`는 확장자만으로 ESM이라 애초에 불필요했다). ADR이 "이 `package.json`은 문서 도구이지 플러그인 빌드가 아니다"라고 못 박은 바로 그 경계를 침범한 사례라, 같은 재발을 막는 문구를 CLAUDE.md에 남겼다.
+- **다크모드에서 Mermaid 노드 21개가 읽히지 않았다.** 손으로 지정한 밝은 파스텔 `fill` 위에 다크 테마가 라벨을 `#ccc`로 칠해 명암비가 **1.33:1**까지 떨어졌다(WCAG AA는 4.5:1). `style` 지시자에 `color:#1a1a1a`를 박아 두 테마 모두에서 안전하게 고정 — 색 구분은 그대로 유지된다(측정 후 **10.17:1**, 3개 문서 48노드 전부 통과).
+- **문서 사이트 전 페이지의 nav 로고가 404였다.** `themeConfig.logo`는 `head`와 달리 `base`가 접두되므로(VitePress `VPImage`가 `withBase` 적용) 절대경로를 쓰면 `/forge/docs/forge/icon.png`로 이중 접두된다. base 상대 경로 + `docs/public/icon.png`로 수정 — 문서 사이트 자산이 랜딩 자산 배치에 암묵 의존하던 것도 함께 끊겼다.
+- **아티팩트 조립의 `examples` 복사가 조용히 중첩될 수 있었다.** `cp -R docs/examples _site/docs/examples`는 목적지가 이미 디렉터리면 소스를 그 안으로 넣는다 — `docs/examples/`에 `.md`가 하나만 생겨도 경로가 한 단계 깊어져 **CI는 초록인 채 문서 링크만 죽는다**. 목적지 명시형으로 바꾸고 `test -f` 가드 2개 추가.
+
+### Changed
+- **CLAUDE.md — 빌드 시스템 서술의 범위를 좁혔다.** "빌드·테스트·린트 시스템이 없다"는 무조건 서술이 거짓이 되어, 주어를 **플러그인 본체**로 한정하고 문서 사이트 예외를 명시했다. 검증 명령에 `npm run docs:build` 추가.
+- **CLAUDE.md — 문서 사이트 UAT 필수 항목 2개 명문화.** 라이트모드 200 확인만으로는 부족하다는 것이 이번에 실증됐다 — (1) **다크모드 토글 후** Mermaid 명암비 확인, (2) 페이지의 **모든 자산 요청 200** 확인(`<img>` 404는 콘솔 에러를 내지 않아 "콘솔 에러 0건"을 근거로 삼으면 놓친다).
+- **CLAUDE.md — 이중언어 동기화 대상이 README 1쌍에서 문서 7쌍 + README 1쌍으로 늘었다.** `docs/<name>.md` ↔ `docs/en/<name>.md`도 같은 규율이며, **절 구조를 1:1로 유지**(`##` 개수·순서, 표 행/열 수 일치)해 동기화 여부를 눈이 아니라 diff로 확인하게 했다. 쌍 누락 검사 명령 한 줄 포함.
+- **README.md·README.ko.md** — 문서 사이트 링크를 양쪽에 추가하고, 영문 README는 영문 사이트를, 한글 README는 한국어 사이트를 주 링크로 두되 서로를 병기.
+- **랜딩(`docs/index.html`)** — nav에 문서 링크 추가. 언어별로 목적지가 달라야 해서(`./docs/` vs `./docs/en/`) `data-l`을 `<a>` 자체에 단 언어별 앵커 두 개로 넣었다(ADR-0027 이중언어 규율).
+- **`docs/*.md`의 소스 루트 밖 상대 링크 34개를 절대 GitHub URL로 정규화.** VitePress가 dead link로 빌드를 실패시키는데 `ignoreDeadLinks`로 덮으면 진짜 오타까지 숨는다.
+
 ## [0.6.8] - 2026-08-14
 
 ### Fixed
