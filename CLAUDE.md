@@ -6,11 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 forge는 **Claude Code 플러그인**이다 — 코드를 빌드하는 프로젝트가 아니라, `fg-*` 워크플로우 스킬을 패키징한 플러그인이자 그 자신이 설치 가능한 마켓플레이스다. 산출물은 전부 Markdown(`SKILL.md`, 형식 문서)과 JSON(매니페스트)이다.
 
-**빌드·테스트·린트 시스템이 없다.** package.json, Makefile, CI 없음. "개발"은 Markdown/JSON을 편집하는 것이고, 검증은 아래 방법으로 한다.
+**플러그인 본체에는 빌드·테스트·린트 시스템이 없다.** Makefile 없고, 스킬 Markdown·매니페스트 JSON을 빌드하는 단계도 없다. "개발"은 Markdown/JSON을 편집하는 것이고, 검증은 아래 방법으로 한다. **예외는 문서 사이트 하나뿐** — 루트 `package.json`(VitePress)과 `.github/workflows/docs.yml`이 `docs/`의 Markdown을 `gyuha.com/forge/docs/`로 빌드·배포한다(랜딩 `gyuha.com/forge/`는 그대로 유지, ADR `260815-094725`). 이 `package.json`은 **문서 도구이지 플러그인 빌드가 아니다** — 이 경계를 흐리지 말 것.
 
 ```bash
 # 매니페스트 JSON 유효성 (편집 후 반드시 확인 — 깨지면 설치 실패)
 node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"
+
+# 문서 사이트 빌드 (docs/*.md·VitePress 설정 편집 후 — dead link가 있으면 실패한다)
+npm run docs:build
 
 # 실제 동작 테스트는 설치해서 트리거해보는 것뿐 (단위 테스트 없음)
 #   /plugin marketplace add gyuha/forge   (또는 로컬 경로)

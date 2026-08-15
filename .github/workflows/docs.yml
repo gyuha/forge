@@ -1,0 +1,91 @@
+# Builds the VitePress docs site and deploys it to GitHub Pages together with the
+# hand-written landing page.
+#
+# The artifact carries two surfaces (ADR 260815-094725):
+#   /forge/       ← docs/index.html, the bilingual landing page (copied verbatim)
+#   /forge/docs/  ← the VitePress build output
+#
+# Pages must be configured with "GitHub Actions" as its source for the deploy job
+# to succeed; the legacy "branch /docs folder" source cannot serve this artifact.
+name: Deploy docs site
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # lastUpdated reads git history
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build docs site
+        run: npm run docs:build
+
+      - name: Assemble artifact (landing at root, docs site under /docs)
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+
+          # Landing page and its assets keep serving from the site root.
+          cp docs/index.html _site/
+          cp docs/*.png _site/
+          cp docs/.nojekyll _site/
+
+          # The VitePress output is mounted under /docs to match `base`.
+          cp -R docs/.vitepress/dist _site/docs
+
+          # Copyable example referenced by docs/team-workflow.md; it is not a
+          # VitePress page, so the build does not emit it.
+          cp -R docs/examples _site/docs/examples
+
+          test -f _site/index.html
+          test -f _site/docs/index.html
+          test -f _site/docs/skills.html
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

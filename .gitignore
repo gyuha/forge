@@ -19,5 +19,10 @@
 # graphify 산출물 (로컬 도구, 나란히 쓰기 — ADR 260801-223500)
 graphify-out/
 
+# 문서 사이트(VitePress) 빌드 산출물 — 문서 소스(docs/*.md)는 추적한다 (ADR 260815-094725)
+node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
+
 # macOS 정크
 .DS_Store

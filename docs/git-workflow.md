@@ -174,4 +174,4 @@ forge는 커밋을 강제하지 않으니, 무엇을 언제 커밋할지는 아�
 ### 더 보기
 - **팀 merge 정책·충돌 권한·CI 게이트** → [team-workflow.md](./team-workflow.md)
 - **`.forge/` 추적/무시 규칙·디렉터리 구조·브랜치 격리 상세** → [state-contract.md](./state-contract.md)
-- **결정 근거** → 브랜치 격리 [ADR-0011](../.forge/adr/0011-branch-isolated-forge-root.md) · fg-merge git 모드 [ADR-260717-10a](../.forge/adr/260717-10a-fg-merge-optin-git-merge-mode.md)
+- **결정 근거** → 브랜치 격리 [ADR-0011](https://github.com/gyuha/forge/blob/main/.forge/adr/0011-branch-isolated-forge-root.md) · fg-merge git 모드 [ADR-260717-10a](https://github.com/gyuha/forge/blob/main/.forge/adr/260717-10a-fg-merge-optin-git-merge-mode.md)
