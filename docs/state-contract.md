@@ -133,12 +133,12 @@ flowchart LR
     LOOP[fg-loop<br/>goal 주도 · 루프 밖] -. 정지 체크·멤버십 .-> LOOPMD[(.forge/loop.md)]
     LOOP -. run→UAT→봉인 주행 .-> E
     DROP[fg-drop<br/>유틸리티 · 루프 밖] -. 미완 폐기 .-> DROPPED[(.forge/dropped/)]
-    style A fill:#e3f2fd
-    style C fill:#ffe0b2
-    style V fill:#fff9c4
-    style MAP fill:#e8f5e9
-    style CLEAN fill:#e8f5e9
-    style LOOP fill:#e8f5e9
-    style AR fill:#e8f5e9
-    style DROP fill:#e8f5e9
+    style A fill:#e3f2fd,color:#1a1a1a
+    style C fill:#ffe0b2,color:#1a1a1a
+    style V fill:#fff9c4,color:#1a1a1a
+    style MAP fill:#e8f5e9,color:#1a1a1a
+    style CLEAN fill:#e8f5e9,color:#1a1a1a
+    style LOOP fill:#e8f5e9,color:#1a1a1a
+    style AR fill:#e8f5e9,color:#1a1a1a
+    style DROP fill:#e8f5e9,color:#1a1a1a
 ```

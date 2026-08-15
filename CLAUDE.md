@@ -8,6 +8,13 @@ forge는 **Claude Code 플러그인**이다 — 코드를 빌드하는 프로젝
 
 **플러그인 본체에는 빌드·테스트·린트 시스템이 없다.** Makefile 없고, 스킬 Markdown·매니페스트 JSON을 빌드하는 단계도 없다. "개발"은 Markdown/JSON을 편집하는 것이고, 검증은 아래 방법으로 한다. **예외는 문서 사이트 하나뿐** — 루트 `package.json`(VitePress)과 `.github/workflows/docs.yml`이 `docs/`의 Markdown을 `gyuha.com/forge/docs/`로 빌드·배포한다(랜딩 `gyuha.com/forge/`는 그대로 유지, ADR `260815-094725`). 이 `package.json`은 **문서 도구이지 플러그인 빌드가 아니다** — 이 경계를 흐리지 말 것.
 
+> **루트 `package.json`에 `"type"` 필드를 넣지 말 것.** `scripts/*.js` 트윈 8개가 CommonJS(`require`)라 `"type": "module"`을 넣으면 리포 전체 `.js`가 ESM으로 해석되어 fg-done·fg-doctor·fg-status·fg-merge·세션 시작 훅이 전부 죽는다(bash 없는 Windows에서 실제 증상이 드러난다). VitePress 설정은 `.mts` 확장자만으로 이미 ESM이므로 이 필드가 애초에 필요 없다. 실제로 한 번 넣었다가 적대적 리뷰에서 잡혔다 — ADR `260815-094725`.
+
+**문서 사이트를 검증할 때 반드시 볼 두 가지** — 라이트모드에서 페이지가 200으로 열리는 것만으로는 부족하다:
+
+- **다크모드로 토글한 뒤** Mermaid 노드의 라벨↔배경 명암비를 확인한다(3:1 이상). 밝은 `fill:`을 지정한 노드는 다크 테마가 라벨을 `#ccc`로 칠해 글자가 사라진다 — 그래서 `style` 지시자에는 `color:#1a1a1a`를 함께 박는다.
+- **페이지의 모든 자산 요청이 200인지** 확인한다. `<img>` 404는 **콘솔 에러를 내지 않으므로** "콘솔 에러 0건"을 근거로 삼으면 놓친다(실제로 nav 로고 404를 그렇게 놓쳤다).
+
 ```bash
 # 매니페스트 JSON 유효성 (편집 후 반드시 확인 — 깨지면 설치 실패)
 node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json'].forEach(f=>JSON.parse(require('fs').readFileSync(f,'utf8'))); console.log('OK')"

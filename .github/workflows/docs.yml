@@ -64,12 +64,17 @@ jobs:
           cp -R docs/.vitepress/dist _site/docs
 
           # Copyable example referenced by docs/team-workflow.md; it is not a
-          # VitePress page, so the build does not emit it.
-          cp -R docs/examples _site/docs/examples
+          # VitePress page, so the build does not emit it. The destination is
+          # named explicitly — a bare `cp -R src dst` would nest the directory
+          # inside itself the moment the build starts emitting dist/examples.
+          mkdir -p _site/docs/examples
+          cp -R docs/examples/. _site/docs/examples/
 
           test -f _site/index.html
           test -f _site/docs/index.html
           test -f _site/docs/skills.html
+          test -f _site/docs/examples/github-actions-forge-check.yml
+          test -f _site/docs/icon.png
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

@@ -132,10 +132,10 @@ flowchart TD
     J --> K["git add -A && git commit<br/>(통합 결과)"]
     K --> L["git branch -d feature/login"]
 
-    style A fill:#e3f2fd,stroke:#1565c0
-    style I fill:#fff3e0,stroke:#e65100
-    style J fill:#e8f5e9,stroke:#2e7d32
-    style K fill:#fce4ec,stroke:#c2185b
+    style A fill:#e3f2fd,stroke:#1565c0,color:#1a1a1a
+    style I fill:#fff3e0,stroke:#e65100,color:#1a1a1a
+    style J fill:#e8f5e9,stroke:#2e7d32,color:#1a1a1a
+    style K fill:#fce4ec,stroke:#c2185b,color:#1a1a1a
 ```
 
 > merge가 충돌하면(갈래 B) `fg-merge`는 그 자리에 남기고 멈춘다 — 충돌 해소·`git commit` 후 `fg-merge`(무인자)로 통합(§2).

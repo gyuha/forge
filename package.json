@@ -1,7 +1,6 @@
 {
   "name": "forge-docs",
   "private": true,
-  "type": "module",
   "description": "Build tooling for the forge documentation site only — the forge plugin itself (skill Markdown, manifest JSON) has no build step.",
   "scripts": {
     "docs:dev": "vitepress dev docs",

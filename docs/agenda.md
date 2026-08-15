@@ -88,15 +88,15 @@ flowchart TD
     Q -- 남음 --> P2["다음 질문<br/>(같은 대화 또는 재트리거)"]
     Q -- "0개" --> DEL["agenda.md 삭제 — 길이 또렷해짐<br/>영속 흔적 = 낳은 ADR·백로그 plan"]
 
-    style D fill:#e3f2fd,stroke:#1976d2
-    style B fill:#e3f2fd,stroke:#1976d2
-    style W fill:#e3f2fd,stroke:#1976d2
-    style P fill:#fff3e0,stroke:#ef6c00
-    style G fill:#fff3e0,stroke:#ef6c00
-    style R fill:#fff3e0,stroke:#ef6c00
-    style H fill:#e8f5e9,stroke:#2e7d32
-    style DEL fill:#e8f5e9,stroke:#2e7d32
-    style A1 fill:#fce4ec,stroke:#c2185b
+    style D fill:#e3f2fd,stroke:#1976d2,color:#1a1a1a
+    style B fill:#e3f2fd,stroke:#1976d2,color:#1a1a1a
+    style W fill:#e3f2fd,stroke:#1976d2,color:#1a1a1a
+    style P fill:#fff3e0,stroke:#ef6c00,color:#1a1a1a
+    style G fill:#fff3e0,stroke:#ef6c00,color:#1a1a1a
+    style R fill:#fff3e0,stroke:#ef6c00,color:#1a1a1a
+    style H fill:#e8f5e9,stroke:#2e7d32,color:#1a1a1a
+    style DEL fill:#e8f5e9,stroke:#2e7d32,color:#1a1a1a
+    style A1 fill:#fce4ec,stroke:#c2185b,color:#1a1a1a
 ```
 
 파랑 = 열기(open) 세션, 주황 = 해소(working) 세션, 초록 = 루프로 나가는 출구, 분홍 = 의제 없이 끝나는 경로.

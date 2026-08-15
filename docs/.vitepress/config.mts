@@ -19,13 +19,17 @@ export default withMermaid(
     base: BASE,
     lastUpdated: true,
 
+    // Assets under docs/public/ are emitted to the site root, so both entries
+    // below resolve inside `base` and stay valid in dev and preview too.
     head: [
-      // Not prefixed with `base` automatically — the path is written out in full.
-      ['link', { rel: 'icon', href: '/forge/icon.png' }],
+      // `head` is written out verbatim — VitePress does not prepend `base` here.
+      ['link', { rel: 'icon', href: `${BASE}icon.png` }],
     ],
 
     themeConfig: {
-      logo: '/forge/icon.png',
+      // themeConfig.logo IS prefixed with `base` (VPImage calls withBase), so
+      // this must be base-relative — writing the full path double-prefixes it.
+      logo: '/icon.png',
 
       nav: [
         { text: '시작하기', link: '/' },
