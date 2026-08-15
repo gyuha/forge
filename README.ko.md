@@ -7,7 +7,7 @@
 
 [English](./README.md)
 
-아래 문서들은 **[gyuha.com/forge/docs](https://gyuha.com/forge/docs/)** 에 문서 사이트로도 배포돼 있다 — 사이드바 네비·검색·다크모드.
+아래 문서들은 **[gyuha.com/forge/docs](https://gyuha.com/forge/docs/)** 에 문서 사이트로도 배포돼 있다 — 사이드바 네비·검색·다크모드 (English: [gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)).
 
 계획은 grill-with-docs식 대화형 그릴링으로, 실행은 Claude Code Dynamic Workflow로 수행하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 완료 단계에서 한 바퀴의 잔여물을 정리하며 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
 

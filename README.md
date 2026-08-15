@@ -7,7 +7,7 @@
 
 [한국어](./README.ko.md)
 
-The full docs below are also published as a docs site — sidebar navigation, search, dark mode — at **[gyuha.com/forge/docs](https://gyuha.com/forge/docs/)** (Korean).
+The full docs below are also published as a docs site — sidebar navigation, search, dark mode — at **[gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)** (Korean: [gyuha.com/forge/docs](https://gyuha.com/forge/docs/)).
 
 Planning happens as grill-with-docs-style conversational grilling, execution runs as a Claude Code Dynamic Workflow, the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log), and the done step tidies up the cycle's leftovers — seals the task so the same task never runs twice.
 
