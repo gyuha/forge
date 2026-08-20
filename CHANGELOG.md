@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.10] - 2026-08-20
+
+**스킬이 22개가 됐고, 새 기능 둘이 각각 두 번 만들어졌다.** 이번 릴리스의 실질은 `fg-security`(코드베이스 보안 감사)와 `fg-loop`의 토큰 지출 상한이지만, 성격을 정하는 것은 **두 기능 모두 봉인 전 적대적 리뷰(`fg-adversarial-review`)가 핵심 결함을 잡아 같은 릴리스 안에서 다시 만들어졌다**는 점이다. 하나는 실제 지출의 1.928배를 세고 있었고(두 트윈이 같은 실수를 해 parity 테스트가 전부 green이었다), 다른 하나는 *"취약점 목록은 절대 git 추적되지 않는다"*는 보증이 **forge 자기 리포에서만** 참이었다. 둘 다 사용자에게 도달하기 전에 고쳐졌고, 그 교훈은 ADR 개정과 지시문 한 줄로 남았다.
+
+### Added
+- **`fg-security` — 코드베이스 보안 감사 스킬(22번째, 루프 밖).** 방법론은 [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)을 MIT 귀속과 함께 **vendoring**했다 — `AUDIT.md`(업스트림 `SKILL.md`) + 공격 유형별 플레이북 9종 + `report-schema.json`·`validate-findings.cjs`를 **업스트림과 바이트 동일**하게 두고 진입 파일만 개명했다(forge는 `skills/<name>/SKILL.md`로 자동 탐색하므로 이름 충돌과 중첩 오탐을 피한다). **forge가 더한 것은 셋뿐** — ① findings가 리포트에서 끝나지 않고 심각도 게이트(CRITICAL·HIGH 제안 / MEDIUM 제안+묶기 권고 / **LOW·INFO는 plan 없음**)를 통과한 것만 사람 승인 후 `generated-by: fg-security` fix-forward 백로그 plan이 된다 ② 산출물은 **리포 밖**(업스트림 기본값 `~/security-audit-skill/`)에 남아 커밋 경로가 존재하지 않는다 ③ 무인 주행(`fg-next all`·`fg-loop`)에서 항상 skip. 봉인 게이트가 아니다(게이트는 `verified:`와 회고뿐). 생성 plan은 finding을 `run/index`로만 참조하고 **재현 경로를 인용하지 않는다** — 리포트가 리포 밖으로 나가면 plan이 리포 안에 남는 유일한 취약점 정보이고 비-기본 브랜치의 `backlog/`는 통째로 git 추적된다. ADR `260820-215004`(+ 같은 날 개정).
+- **`fg-loop`에 토큰 지출 상한과 `budget-exhausted` 벽.** `replan-cap`은 *라운드*만 묶고 지출은 아무도 보지 않았다 — 한 라운드가 `grep` 한 번일 수도, 컨텍스트를 매 iteration 재전송하는 워크플로우일 수도 있으므로 라운드 수는 비용의 나쁜 대리지표다. `loop.md`에 최상위 필드 2개(`budget-tokens` · `budget-spent · since:`)를 두고, 결정론 트윈 `scripts/forge-loop-spend.{sh,js}`가 세션 + `subagents/` 트랜스크립트의 `message.usage` 4필드를 `since` 이후 델타로 합산해 **경계당 1회 호출**로 판정한다(exit 3 초과 · 4 사전예측 · 5 측정불가→`blocked-health` · 0 통과). 벽은 `replan-round`를 소비하지 않고 fix-forward도 만들지 않으며, 해제는 사람이 `budget-tokens`를 올리는 것뿐이다(`budget-spent`는 리셋하지 않는다 — `cap-exhausted`와 동형). §1 lean 계약을 깨지 않도록 기존 cap 질문에 흡수해 묻고 **기본값은 발명하지 않았다**(`none`이면 전부 우회). ADR-0016 개정 2건.
+
+### Changed
+- **프로젝트 자기 규정을 "에이전트 엔지니어링"으로 (8표면).** GitHub About · 매니페스트 3곳 · README 이중언어 쌍 · VitePress config ko/en · 랜딩 `<meta>`와 hero `data-l` 쌍. 기능 서술(한 작업 = 한 사이클 루프)을 **버리지 않고 범주를 얹는** 형태다 — 범주만 남기면 "무엇을 하는 도구인가"가 사라진다. `harness engineering(walkinglabs/learn-harness-engineering)` **출처 표기는 그대로 뒀다** — 실재하는 외부 프로젝트 이름이라 바꾸면 오기가 된다(정지 체크 하나가 그 표기의 생존을 기계로 지켰다). `fg-loop` 주행으로 처리(정지 체크 8/8, 태스크 2건 봉인).
+- **반복 확인된 규율 2건을 지시문에 승급.** `CLAUDE.md` 이슈 연동 규칙 — 쪼갠 작업의 `이슈 추적:` 마커는 **마지막 태스크에만**(첫 태스크에 남으면 나머지가 미완인 채로 이슈가 "해결됨"으로 닫힌다; 네 번 반복해 매번 손으로 이관했다). `skills/fg-run/PLAN-FORMAT.md` — 다중 사이트에 걸친 DoD는 **검증의 종류가 아니라 사이트를 열거**하거나 전수 탐색 명령을 적는다(세 번 관측).
+- **`fg-next/HANDOFF.md`의 핸드오프 표 적용 지점이 13곳 → 14곳** (`fg-security`가 실재하는 다음 단계를 갖는다).
+- **ADR-0022 개정 — parity 테스트는 *일치*를 보장하지 *정확성*을 보장하지 않는다.** 두 트윈이 같은 파싱 전략을 쓰면 같은 실수를 하고 parity는 green이 된다(이 릴리스에서 실증됐다). 그래서 **외부가 소유한 스키마를 파싱하는 스크립트는 진실 대조(ground-truth cross-check)를 갖춘다** — 기대값을 손으로 적지 않고 `JSON.parse`로 계산해 대조하고, 픽스처에 함정 형태를 필수로 포함한다. 정직한 한계도 적었다: 대조가 머신 로컬 데이터를 요구하면 **CI로 강제할 수 없다.** 그리고 트윈을 **의도적으로 다른 방식**으로 구현하는 것을 권장한다(`forge-loop-spend`가 첫 사례 — `.sh`는 awk strip, `.js`는 구조 파싱).
+
+### Fixed
+- **`fg-loop` 지출 미터가 실제의 1.928배를 세던 것** — `usage.iterations[]`가 같은 4필드를 되풀이하는데 줄 전체 스캔이 또 셌고, `toolUseResult.usage`(서브에이전트 지출의 부모 되보고)까지 세어 이중 계상이 2종이었다. 실제 코퍼스에서 진실값과 정확히 일치(오차 0)하도록 정정. 함께 고친 것: 트랜스크립트 경로 도출(cwd 기준 + 모든 비영숫자 치환 — 이전에는 경로에 `.`·공백·비ASCII가 있는 리포에서 존재하지 않는 디렉터리를 봤다) · 측정 불가를 `spent=0`이 아닌 `BLOCKED`로 · 경계당 2회 호출이던 계약을 1회로(첫 호출이 `since`를 전진시켜 두 번째가 같은 구간을 다시 셌다) · `xargs` 분할 시 awk 부분합이 문자열로 이어붙던 것 · CRLF `loop.md`에서 bash만 죽던 것 · JS 정규식에서 `\r`이 line terminator라 원장에 `\r`이 남던 것.
+- **`fg-security`의 노출 보증이 forge 자기 리포에서만 참이던 것** — 산출물을 리포 안 `.forge/security/`에 두고 *"`.gitignore`의 `.forge/*`가 덮는다"*고 단정했으나 그 규칙은 forge 리포에만 있고 forge는 대상 리포에 `.gitignore`를 쓰지 않는다. 빈 리포에서 `git add -A` 하면 취약점 리포트가 스테이징된다. 산출물을 리포 밖으로 되돌려 **커밋 경로 자체를 없앴다.** 곁들여 개념 융합 둘을 ADR에 명명했다 — ADR-0011의 "전역 예외"는 **브랜치 네임스페이싱**이고 git 추적과 무관하며(기존 예외 둘은 전역이면서 **추적된다**), `!.forge/branch/`는 비-기본 브랜치 루트를 **통째로 추적**한다.
+- **문서 드리프트 2건** — `marketplace.json`의 `Seventeen more sit outside`가 숫자만 갱신돼 남아 있던 것, `.forge/codebase/ARCHITECTURE.md`가 스킬을 "20개"로 적던 것(실제 21이었다).
+
 ## [0.6.9] - 2026-08-15
 
 **문서가 읽히는 곳이 생겼다.** `docs/`의 한글 문서 6개는 GitHub에서 열어야만 읽을 수 있었고, 배포된 사이트는 랜딩 한 장뿐이었다. 이번 릴리스는 그 Markdown을 VitePress로 빌드해 사이드바·검색·다크모드를 갖춘 문서 사이트로 서빙하고, 영문판까지 얹는다. **플러그인 본체는 그대로다** — 스킬 21개도, 매니페스트도 바뀌지 않았고, 새로 생긴 `package.json`은 문서 도구일 뿐이다.
