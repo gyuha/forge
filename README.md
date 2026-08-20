@@ -2,7 +2,7 @@
 
 ![forge](./docs/icon-sm.png)
 
-> A development loop that takes one task through a single cycle of **ask·plan → execute → retro → done**.
+> An agent-engineering workflow plugin for Claude Code — one task through a single cycle of **ask·plan → execute → retro → done**.
 > A loop-style workflow plugin built from twenty-one `fg-`-prefixed Claude Code skills — four that form the loop, plus seventeen utilities outside it.
 
 [한국어](./README.ko.md)
