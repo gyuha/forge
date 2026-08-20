@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > An agent-engineering workflow plugin for Claude Code — one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty-one `fg-`-prefixed Claude Code skills — four that form the loop, plus seventeen utilities outside it.
+> A loop-style workflow plugin built from twenty-two `fg-`-prefixed Claude Code skills — four that form the loop, plus eighteen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -13,7 +13,7 @@ Planning happens as grill-with-docs-style conversational grilling, execution run
 
 ## Quick start — you mostly only need three
 
-Twenty-one skills look like a lot, but day to day you drive with **three**:
+Twenty-two skills look like a lot, but day to day you drive with **three**:
 
 ```
 /fg-ask   →   /fg-run   →   /fg-next
@@ -96,7 +96,7 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The four loop stages, then the seventeen utilities outside the loop:
+The four loop stages, then the eighteen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -121,6 +121,7 @@ The four loop stages, then the seventeen utilities outside the loop:
 | `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
 | `fg-visual` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and takes your answers back as events — a required confirm button on choice screens wakes you directly with no terminal turn, exploratory clicks don't; offered just-in-time during fg-ask grilling, `fg-visual stop` shuts it down |
 | `fg-agenda` | Utility | Decision queue for work still in fog — settles a destination with you, then surfaces what must be decided and keeps it in `.forge/agenda.md`, resolving one question at a time until the way is clear and then deleting itself; the agent finds the decisions, **you answer them**, and anything that becomes buildable leaves for the backlog |
+| `fg-security` | Utility | Security audit of a codebase (methodology vendored from cloudflare/security-audit-skill, MIT) — multi-phase, multi-agent hunting by attack class; artefacts stay OUTSIDE the repo (upstream's `~/security-audit-skill/`) so a vulnerability list has no path into a commit at all, and findings past a severity gate become fix-forward backlog plans on your approval |
 
 Per-skill detail — input/output/next, triggers, and the rationale ADRs — is in **[docs/skills.md](./docs/skills.md) (Korean)**. `fg-ask` is the loop's entry point (it triggers on "start with forge", "new task", "refine the plan"); the utilities are on-demand, each triggered by its own utterances.
 

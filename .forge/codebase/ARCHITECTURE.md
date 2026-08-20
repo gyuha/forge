@@ -7,7 +7,7 @@ mapped: 2026-08-10
 
 ## 전체 패턴
 
-forge는 코드를 빌드하는 앱이 아니라 **Claude Code 플러그인 겸 자기 자신의 마켓플레이스**다. 실행 단위는 20개의 `fg-*` 스킬(`skills/<dir>/SKILL.md`, 영문 산문 지시문)이고, 스킬들은 프로세스가 아니라 **`.forge/` 파일 상태 계약**으로 서로 이어진다. 판단(그릴링·회고 분류·divergence 평가)은 산문 스킬에, 기계적·결정론적 연산은 `scripts/forge-*.sh`/`.js` 트윈에 둔다(ADR-0022/0031 — `.forge/adr/0022-forge-scripts-convention-cross-platform-dual-dispatch.md`).
+forge는 코드를 빌드하는 앱이 아니라 **Claude Code 플러그인 겸 자기 자신의 마켓플레이스**다. 실행 단위는 22개의 `fg-*` 스킬(`skills/<dir>/SKILL.md`, 영문 산문 지시문)이고, 스킬들은 프로세스가 아니라 **`.forge/` 파일 상태 계약**으로 서로 이어진다. 판단(그릴링·회고 분류·divergence 평가)은 산문 스킬에, 기계적·결정론적 연산은 `scripts/forge-*.sh`/`.js` 트윈에 둔다(ADR-0022/0031 — `.forge/adr/0022-forge-scripts-convention-cross-platform-dual-dispatch.md`).
 
 - 플러그인 매니페스트: `.claude-plugin/plugin.json` (v0.6.6)
 - 마켓플레이스 매니페스트: `.claude-plugin/marketplace.json` (`plugins[0].source: "./"` — 리포 루트가 곧 플러그인)

@@ -1,6 +1,6 @@
 # Handoff table — the shared shape every next-step handoff renders
 
-This is the **single definition** of forge's handoff table. Thirteen skills reference this file; none of them restate the layout — the same no-copying rule that [`DRIVE.md`](./DRIVE.md) in this directory and [`../fg-run/FORGE-ROOT.md`](../fg-run/FORGE-ROOT.md) already carry.
+This is the **single definition** of forge's handoff table. Fourteen skills reference this file; none of them restate the layout — the same no-copying rule that [`DRIVE.md`](./DRIVE.md) in this directory and [`../fg-run/FORGE-ROOT.md`](../fg-run/FORGE-ROOT.md) already carry.
 
 **Why it exists.** The next-step guidance used to be prose, and it got lost between the sentences around it — the reported pain was **findability, not length** ("it's buried in the text, I can't find it"). Length was already handled, behind the `eco` gate (ADR `260730-230321`). A table fixes position: it is a shape, so where the next step lives never moves. Rationale and the seven rejected alternatives: `.forge/adr/260805-231104-handoff-table.md`.
 
@@ -89,16 +89,16 @@ So, without exception:
 - **The `Alternative` row is not a question.** It states that another route exists; it does not ask which one to take.
 - **State and stop.** No "shall I proceed?", no auto-invoking the next skill — chaining is `fg-next`'s job (ADR-0015).
 
-**Consistency across all thirteen points IS the idempotency guarantee.** That same retro's second lesson: fg-run being the one convenience exception was the only repeatable point in the loop. An exception "just here" re-opens the failure mode, so do not make one.
+**Consistency across all fourteen points IS the idempotency guarantee.** That same retro's second lesson: fg-run being the one convenience exception was the only repeatable point in the loop. An exception "just here" re-opens the failure mode, so do not make one.
 
 ## Where it applies
 
-**Applies (13)** — every point that has a real next step to name:
+**Applies (14)** — every point that has a real next step to name:
 
 | Group | Skills |
 | --- | --- |
 | Loop stages | `fg-ask` · `fg-run` · `fg-learn` · `fg-done` |
-| Outside-the-loop, with a next step | `fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents` |
+| Outside-the-loop, with a next step | `fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents` · `fg-security` |
 
 **Does NOT apply (7)** — leave their prose as it is:
 
