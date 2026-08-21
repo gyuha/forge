@@ -89,6 +89,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | **무인 주행 완료까지** | 그릴된 큐: `fg-ask` ×N → `fg-next all` · 기계 검증 가능 목표: `fg-loop` — *차선 고르기*(L3) 참조 |
 | **재진입 / 점검** | *어디까지 했지*: `fg-status`(보여줌) / `fg-next`(다음 단계 실행) · *상태 건강한가*: `fg-doctor` |
 | **마무리 / 배포** | (선택 적대적 검토: `fg-adversarial-review`) → `fg-learn`(회고) → `fg-done`(봉인) → `배포` 입력 |
+| **보안 점검** (코드베이스 전체) | `fg-security`(감사) → 심각도 게이트 통과분 승인 → `fg-run`(수정 plan 실행) → 재감사(업스트림이 복수 실행 권장) |
 | **유지보수** | 오래된 ADR 은퇴 `fg-cleanup` · 머지된 브랜치 통합 `fg-merge` · 미완 작업 폐기 `fg-drop` · 토글 `fg-tdd`/`fg-eco` · 상태바 `fg-statusline` |
 | **팀 사용** (브랜치 + CI) | 브랜치에서 봉인 → `git merge` → `fg-merge`(또는 `fg-merge <branch>`로 둘 다 한 번에; CI에선 `forge-merge.sh`) · `forge-doctor` AI 없는 CI 게이트 — **[docs/team-workflow.md](./docs/team-workflow.md)** 참조 |
 
@@ -191,6 +192,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 | TDD를 프로젝트/작업 단위로 켜고 끄는 토글 | ✓ (config 기본값 + 작업별 오버라이드) | — | — | △ (상시 강제, 끌 수 없음) |
 | 프로젝트 전용 도메인 에이전트를 필요할 때만 생성 | ✓ (그릴링 기반, 자격 갖춘 역할만) | — | △ (25개 이상 고정 내장 전문가 스킬) | — |
 | 비용 절감 내장 규율(서브에이전트 모델 캡+단순성 규율) | ✓ (eco 모드) | — | △ (모델 벤치마킹 도구, 결이 다름) | — |
+| 보안 감사 전용 스킬 | ✓ (`fg-security` — cloudflare 방법론 vendoring; 산출물은 리포 밖) | — | ✓ (`/cso`) | — |
 | 대상 플랫폼 폭 | Claude Code 전용 | 10+ 런타임 | 10개 에이전트 | 9개 이상 에이전트 |
 
 범례: ✓ 명시적으로 지원 · △ 비슷한 것은 있으나 형태·엄격도가 다름 · — 공개 문서에서 확인 안 됨(없다고 단정하지 않음)
@@ -213,7 +215,6 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 - **상시 강제 TDD** — Superpowers는 테스트 없이 짠 코드를 삭제할 정도로 강제, forge의 TDD는 선택적 토글(프로젝트가 안 쓸 수도 있음)
 - **작업별 git worktree 자동 격리** — Superpowers는 자동 생성, forge는 브랜치별 상태 격리(ADR-0011)만 하고 worktree 자동화는 안 함
 - **계획 문서의 점수제 품질 게이트** — GStack `/spec`은 Codex 점수 7/10 미만이면 차단, forge의 ADR 게이트는 정성적 3조건이지 점수제 아님
-- **보안 감사 전용 내장 스킬(OWASP/STRIDE)** — GStack `/cso`가 이를 수행, forge의 적대적 리뷰는 일반 6렌즈지 보안 특화 아님
 
 ## 크레딧
 
@@ -224,3 +225,5 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 같은 `ECO.md`의 출력 prose 압축 규칙 — 코드/에러는 verbatim으로 두고 그릴링 질문·생성 문서는 full로 보존하되 실행·보고 prose를 간결화해 컨텍스트를 아낀다 — 은 [JuliusBrussee의 caveman 스킬](https://github.com/JuliusBrussee/caveman)에서 차용·각색했다.
 
 랜딩 페이지(`docs/index.html`)는 [Superpowers(Jesse Vincent, obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md)의 **Visual Companion** — 코드를 짜기 전에 목업·레이아웃·색상 옵션을 브라우저 미리보기로 펼쳐 보여주는 디자인 도구 — 로 제작했다.
+
+`fg-security`의 **보안 감사 방법론**은 [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)을 MIT 라이선스로 **vendoring**한 것이다 — 진입 파일과 공격 유형별 플레이북 9종, `report-schema.json`·`validate-findings.cjs`가 `skills/fg-security/`에 있고 라이선스 사본은 `skills/fg-security/LICENSE`다. 개명한 것은 진입 파일 하나뿐이며(`SKILL.md` → `AUDIT.md` — forge의 스킬 자동 탐색 경로와 충돌하지 않도록), 나머지 11개는 업스트림과 **바이트 동일**로 두어 이후 diff가 싸게 유지된다. forge가 더한 것은 루프 통합뿐이다 — 심각도 게이트, 승인 시 fix-forward plan, 그리고 산출물을 리포 밖에 두는 것.

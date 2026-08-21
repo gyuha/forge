@@ -89,6 +89,7 @@ Reach for the right sequence by situation. The everyday and unattended rows poin
 | **Unattended to done** | a grilled queue: `fg-ask` ×N → `fg-next all` · a machine-verifiable goal: `fg-loop` — see *Choosing a lane* (L3) |
 | **Re-entry / health** | *where am I*: `fg-status` (shows) / `fg-next` (does the next step) · *is the state healthy*: `fg-doctor` |
 | **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-learn` (retro) → `fg-done` (seal) → type `배포` (deploy) |
+| **Security check** (whole codebase) | `fg-security` (audit) → approve severity-gated findings → `fg-run` (fix-forward plans) → re-audit (upstream recommends repeat runs) |
 | **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · toggles `fg-tdd`/`fg-eco` · statusline `fg-statusline` |
 | **Team use** (branches + CI) | seal on the branch → `git merge` → `fg-merge` (or `fg-merge <branch>` to do both; `forge-merge.sh` in CI) · `forge-doctor` as an AI-free CI gate — see **[docs/team-workflow.md](./docs/team-workflow.md)** |
 
@@ -192,6 +193,7 @@ How git and branches are operated with forge — the git-abstinence model, the c
 | TDD as a per-project/per-task toggle (not all-or-nothing) | ✓ (config default + per-task override) | — | — | △ (TDD is mandatory, always on) |
 | Generates project-specific domain agents on demand | ✓ (interview-driven, only roles that earn their place) | — | △ (25+ fixed built-in specialist skills) | — |
 | Built-in cost-discipline mode (subagent model cap + simplicity discipline) | ✓ (eco mode) | — | △ (model benchmarking tool, different angle) | — |
+| A dedicated security-audit skill | ✓ (`fg-security` — vendored cloudflare methodology; artefacts kept outside the repo) | — | ✓ (`/cso`) | — |
 | Target platform breadth | Claude Code only | 10+ runtimes | 10 agents | 9+ agents |
 
 Legend: ✓ explicitly supported · △ something similar exists but differs in form/rigor · — not found in public docs (not claimed absent)
@@ -214,7 +216,6 @@ Legend: ✓ explicitly supported · △ something similar exists but differs in 
 - **Always-on, unconditional TDD enforcement** — Superpowers deletes code written before tests; forge's TDD is an opt-in toggle a project can choose not to use.
 - **Automatic per-task git worktree isolation** — Superpowers creates one automatically; forge isolates state per branch (ADR-0011) but doesn't automate worktree creation itself.
 - **Scored quality gate on planning documents** — GStack's `/spec` blocks below a 7/10 Codex score; forge's ADR gate is qualitative (three conditions), not numeric.
-- **A dedicated, structured security-audit skill (OWASP/STRIDE)** — GStack's `/cso` does this; forge's adversarial review is six general lenses, not security-specialized.
 
 ## Credits
 
@@ -225,3 +226,5 @@ The code-simplicity discipline used by **eco mode** (`fg-eco`) — the laziness-
 The terse-communication output rules in the same `ECO.md` — compressing execution/reporting prose to save context while keeping code/errors verbatim and leaving grilling questions and generated docs in full — are adapted from the [caveman skill by JuliusBrussee](https://github.com/JuliusBrussee/caveman).
 
 The landing page (`docs/index.html`) was built with the **Visual Companion** of [Superpowers by Jesse Vincent (obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md) — its browser-preview design tool that lays out mockup, layout, and color options before the page is coded.
+
+The **security-audit methodology** behind `fg-security` is [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill), **vendored** under MIT — its entry file plus nine attack-class playbooks, `report-schema.json` and `validate-findings.cjs` live in `skills/fg-security/`, with the licence copy at `skills/fg-security/LICENSE`. Only the entry file was renamed (`SKILL.md` → `AUDIT.md`, so it does not collide with forge's own skill-discovery path); the other eleven files are kept **byte-for-byte with upstream** so a future diff stays cheap. forge adds only the loop integration — a severity gate, fix-forward plans on approval, and keeping artefacts outside the repo.

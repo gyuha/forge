@@ -17,7 +17,7 @@ The install pulls the repo's GitHub default branch (`main`). To install from a l
 
 ## One turn of the loop
 
-Twenty-one skills look like a lot, but day to day you drive with **three**.
+Twenty-two skills look like a lot, but day to day you drive with **three**.
 
 ```
 /fg-ask   →   /fg-run   →   /fg-next
