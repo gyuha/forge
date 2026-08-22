@@ -16,7 +16,7 @@ Osmani의 테제는 "에이전트에 프롬프트를 치는 사람을 시스템�
 | **State/Memory** — 컨텍스트 밖 디스크 영속 상태 | `.forge/` 상태 계약 전체: backlog → 활성 슬롯(plan/run/STATUS) → executed/ → done/. "memory has to be on disk"를 문자 그대로 구현 — 모든 스킬이 독립 호출돼도 파일로 흐름이 이어진다 | README 공유 상태, FORGE-ROOT.md |
 | **Worktrees** — 병렬 에이전트 격리 | 브랜치별 forge 루트(`.forge/branch/<branch>/`)가 같은 충돌 문제를 상태 수준에서 해결. git worktree는 병용 가능하며, "worktree만으로 충분"은 검토 후 기각됨(추적 문서 충돌을 못 풀어서) | ADR-0011 |
 | **Sub-agents** — maker/checker 분리, 자기 채점 방지 | fg-run의 Dynamic Workflow(병렬 실행) + 전용 적대 리뷰 스킬 **fg-adversarial-review**(결과가 틀렸다고 가정하고 6개 렌즈를 병렬 서브에이전트로 팬아웃) + fg-map의 매퍼 4개 팬아웃. 별도 3종(explorer/retro-analyzer/verifier)은 구체적 통증 없음으로 **의도적 보류** — 재검토 바 명문화 | ADR-0007, ADR-0013, ADR-0018 |
-| **`/goal`·`/loop`** — 검증 가능한 정지 조건까지 무인 재개 | 전용 goal 루프 스킬 **fg-loop** — 기계 검증 가능한 정지 조건을 `.forge/loop.md`에 못 박고 한정 fix-forward 재계획으로 수렴까지 무인 주행. `fg-next all`(백로그 완주, 대화의 벽에서 halt)은 그릴링 완료된 대기열용 동반 차선 | ADR-0016, ADR-0010 |
+| **`/goal`·`/loop`** — 검증 가능한 정지 조건까지 무인 재개 (forge는 자기 `Stop` 훅으로 이를 사용자 조작 없이 얻고 `/goal`은 폴백으로 남긴다 — ADR-0028) | 전용 goal 루프 스킬 **fg-loop** — 기계 검증 가능한 정지 조건을 `.forge/loop.md`에 못 박고 한정 fix-forward 재계획으로 수렴까지 무인 주행. `fg-next all`(백로그 완주, 대화의 벽에서 halt)은 그릴링 완료된 대기열용 동반 차선 | ADR-0016, ADR-0010 |
 | **Automations** — 스케줄 발굴·트리아지 → 인박스 | **없음 (유일한 갭).** forge의 모든 루프는 사람이 시작한다 | — (아래 참조) |
 | **Plugins/Connectors** — MCP로 외부 도구 연동 | **없음 (의도적).** 파일 기반 자기완결이 설계 원칙 — 외부 트래커 의존은 이식성을 깬다 | 스킬 편집 규약(하드 의존 금지) |
 

@@ -84,6 +84,21 @@ dup="$(printf "$nums" | sort | uniq -d | grep -c .)"
 if [ -f "$root/ask.md" ]; then
   if [ -n "$(find "$root/ask.md" -mtime +1 2>/dev/null)" ]; then finding warning "A7 stale ask.md" "$root/ask.md" "finish grilling with fg-ask (overwrites it) or discard via fg-drop"; fi
 fi
+# A9 stale drive.md — a drive that died without deleting its marker. Harmless
+# (the Stop hook ignores a marker past its 30-min bound) but it means some drive
+# exited without cleaning up, and the next reader deserves to know why nothing is
+# continuing. Read-only: report, never delete (fg-doctor never auto-fixes).
+if [ -f "$root/drive.md" ]; then
+  started="$(sed -n 's/^started:[[:space:]]*\([0-9]*\).*/\1/p' "$root/drive.md" | head -1)"
+  now="$(date +%s 2>/dev/null || echo 0)"
+  case "$started" in
+    ''|*[!0-9]*) finding warning "A9 unparseable drive.md" "$root/drive.md" "a drive marker with no valid 'started:' — delete it (the Stop hook ignores it, so nothing is blocked)" ;;
+    *) if [ "$now" -gt 0 ] && [ "$((now - started))" -gt 1800 ]; then
+         finding warning "A9 stale drive.md" "$root/drive.md" "a drive exited without deleting its marker (past the 30-min bound, so it blocks nothing) — delete it"
+       fi ;;
+  esac
+fi
+
 # A8 (NEW) orphaned branch root — forgot fg-merge?
 if [ -d "$repo/.forge/branch" ]; then
   for d in "$repo"/.forge/branch/*/ "$repo"/.forge/branch/*/*/; do [ -d "$d" ] || continue

@@ -82,6 +82,25 @@ When invoked with the `all` argument (`fg-next all`, or "forge next all" / "다�
 
 Before driving, snapshot the **entire current drive set**, not just new backlog work: show the active slot and `executed/` tasks first (including each `verified:` state and that sealable tasks will have their retro auto-skipped and be sealed), then **freeze** the backlog order (priority `high → medium → low`, no marker = `medium`, ties by part/slug — same sort as fg-run's menu). A failed/unverifiable active or parked task is shown as the wall where the drive will halt, not as a seal target. This one list is the user's informed view of every task the invocation may mutate; omitting already-executed work would auto-waive its retro without disclosure. Then present the **paste-ready `/goal` line as the primary path to unattended operation** (built from fg-next all's stop-allowed set below — see "Unattended to completion"), and make the two ways forward explicit: **paste that `/goal` line to run unattended, or reply "go" (or just proceed) to drive step-at-a-time**. Either one is the single upfront go-ahead that preserves the re-run-prevention discipline (same one-gate pattern as fg-run "Run all") — the deliberate `/goal` paste (or the "go") *is* the confirmation, so there is no separate double gate. After that, drive without per-step confirmation.
 
+**Write the drive marker at entry — this is what makes the drive continue without `/goal` (ADR-0028 amended 2026-08-22).** Right after the go-ahead, write `<forge-root>/drive.md`:
+
+```
+# DRIVE — unattended drive in progress
+started: {epoch seconds}          # epoch, not ISO: `date -d` (GNU) vs `date -j -f` (BSD) is a portability trap
+blocked: 0                        # bumped by the Stop hook, never by you
+session: {this session's id}      # so this drive never blocks another session's turn
+```
+
+forge ships a **`Stop` hook** (`hooks/hooks.json` → `scripts/forge-hook-stop.sh`/`.js`) that, while this marker exists and is inside its bounds, returns `exit 2` and so **prevents the turn from ending** — the same mechanism `/goal` uses, but shipped by the plugin so no user action is needed. `/goal` remains a **fallback** (see [DRIVE.md](./DRIVE.md) Part 2).
+
+**Deleting the marker is how you say "I may stop now" — the hook never judges walls.** Delete `<forge-root>/drive.md` at **every** exit from the drive, without exception:
+
+- all four halt conditions below (`verified: failed` · unverifiable UAT · a genuine fork · empty state),
+- the normal terminal state (the backlog drained — this is halt condition 4),
+- and **before yielding for anything a human must physically do**, above all a **workflow script approval**: the approval is not a Stop event, but if the model does end the turn while waiting, a live marker would block it and the drive would spin against a gate only the human can open.
+
+The marker is bounded (30 min · 50 blocked stops) so a session that dies mid-drive cannot wedge the next one, and every failure path in the hook allows stopping. Those bounds are the **only** runaway guard — the harness provides no loop protection for Stop hooks — so treat a forgotten deletion as a real defect, not a cosmetic one.
+
 ### The drive loop
 
 **Continue within the turn — do not yield on a delegated skill's stated stop (see [DRIVE.md](./DRIVE.md) Part 1).** fg-run/fg-done end in statement-form handoffs (ADR-0015) that state the next step and stop; those are written for a human caller, but in a drive **the orchestrator is the caller**, so the moment a delegated step completes, immediately derive the next step and act — sealing one task is **not** a stopping point, and you do **not** end the turn between task loops. The only legitimate ends of a turn are empty state (halt condition 4) and a wall. (No repeat-menu risk: the drive advances on changing state — sealed task leaves the slot, next is promoted — so unlike the ADR-0015 menu bug it never loops on unchanged state.)

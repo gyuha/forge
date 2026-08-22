@@ -28,6 +28,15 @@ npm run docs:build
 # 설치는 GitHub 기본 브랜치(main)를 당긴다 → 설치 테스트하려면 main에 push되어 있어야 한다.
 ```
 
+**이 환경의 셸 함정 — 두 세션에 걸쳐 8번 밟았다.** 전부 "명령이 조용히 틀린 답을 낸다"는 같은 부류이고, 특히 **부정 체크(`→ 0`)와 만나면 fail-open이라 통과처럼 보인다**(0.6.11의 runnable-DoD 규칙이 이걸 다룬다). 기본 셸은 **zsh**이고 `grep`은 실은 **ugrep**이다:
+
+- **글롭 패턴은 반드시 인용한다** — `--include='*.md'`. 인용하지 않으면 zsh가 먼저 확장해 `no matches found`로 **명령 전체가 실패**한다(이번 세션 3회, 그중 2회가 `0건`을 내 확인처럼 보였다).
+- **`grep -c`는 미매치 시 exit 1이다** — `$(grep -c … || echo 0)`을 쓰면 `0\n0`이 나와 표가 어긋난다. 개수만 필요하면 `grep -o … | wc -l`을 쓰거나 exit code를 무시하지 말 것.
+- **`cmd > f 2>/dev/null`은 셸 리다이렉션 오류를 못 잡는다** — `2>/dev/null`은 `cmd`에 붙지 `>`에 붙지 않으므로, 쓰기 권한이 없으면 셸 자신의 에러가 stderr로 샌다. 필요하면 `{ cmd > f; } 2>/dev/null`로 그룹을 감싼다(훅처럼 stderr가 **의미를 갖는** 곳에서는 계약 위반이 된다).
+- **인용하지 않은 변수는 단어 분할되지 않는다** — `for f in $FILES`가 문자열 전체를 한 단어로 돌려 루프가 0회 돈다. 여러 파일 순회는 목록을 `for`에 직접 쓴다.
+- **`grep`의 멀티바이트 컨텍스트 패턴이 죽는다** — `.{0,45}` 류가 `exceeds complexity limits`로 실패한다. 한국어 문맥 추출은 python이 안전하다.
+- **경로를 기억으로 짚지 말 것** — `hooks/run-hook.test.sh`를 `scripts/`에서 찾아 "테스트가 깨졌다"고 오판했다(22/22 통과 중이었다). 측정 도구보다 **측정 기준선**을 먼저 의심한다.
+
 ## 패키징 구조 (단일 리포 = 플러그인 + 마켓플레이스)
 
 `harness` 플러그인과 동일한 패턴이다: 리포 루트가 곧 플러그인 루트이자 마켓플레이스.
@@ -90,7 +99,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 
 형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-run/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-done 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
 
-형식 문서 외에 **공유 규율 문서**도 같은 "단일 정의·복붙 금지" 원칙을 따른다: `skills/fg-run/FORGE-ROOT.md`(forge 루트 해석 — 모든 루프 스킬 참조, ADR-0011)와 `skills/fg-next/DRIVE.md`(무인 주행 규율 — 턴 내 계속 + `/goal` 페어링·문구 규칙·정직한 폴백; fg-next `all` 모드·fg-loop이 참조하되 각자 자기 벽 집합을 채움, ADR-0028)가 그것이다.
+형식 문서 외에 **공유 규율 문서**도 같은 "단일 정의·복붙 금지" 원칙을 따른다: `skills/fg-run/FORGE-ROOT.md`(forge 루트 해석 — 모든 루프 스킬 참조, ADR-0011)와 `skills/fg-next/DRIVE.md`(무인 주행 규율 — 턴 내 계속 + **forge가 배포하는 `Stop` 훅**(주경로: 주행이 `drive.md` 마커를 쓰고 훅이 `exit 2`로 턴 종료를 막는다, 상한 30분·50회) + `/goal` 폴백·문구 규칙·정직한 폴백; fg-next `all` 모드·fg-loop이 참조하되 각자 자기 벽 집합을 채움, ADR-0028)가 그것이다.
 
 ## 설계 원칙 (두 기둥)
 
