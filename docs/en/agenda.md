@@ -56,7 +56,7 @@ Trigger `fg-agenda` with a loose idea and this session only **surfaces** decisio
 
 ### Working the agenda — when one exists
 
-Every time you trigger `fg-agenda` again, it resolves open questions **one at a time**:
+Open questions are resolved **one at a time, in sequence** — and the session **continues in the same conversation by default**: settle one and the next appears, and the session ends when you say stop or `## Open questions` empties (you do not re-trigger per question):
 
 1. Read the agenda and orient to `## Destination` first.
 2. **Choose one question.** The one the user named, or else the **first line** of the open questions (the list is kept in answerable-now-first order, so the top line *is* the frontier — no separate dependency bookkeeping needed).

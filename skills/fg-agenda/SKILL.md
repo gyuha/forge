@@ -33,10 +33,22 @@ Which mode you are in is decided by one thing: whether `.forge/agenda.md` alread
 2. **Grill breadth-first.** Fan out across the whole space instead of going deep on one thread — the goal is coverage of *what must be decided*, not an answer to any one of them. **This step is what "the agent figures it out" actually means**, and it is the reason opening an agenda is worth a session.
 3. **If no fog surfaces — do not create an agenda.** If the breadth-first pass turns up nothing that isn't already answerable, the way is already clear and the whole thing fits one session's work: say so plainly and point at fg-ask. An agenda with no fog in it is pure overhead.
 4. **Write `agenda.md`** in the format below.
-5. **Stop.** Opening an agenda is one session's work and resolves nothing. Do not slide into answering the questions you just found.
+5. **Stop.** Opening an agenda is one session's work and resolves nothing. Do not slide into answering the questions you just found. **Say why you are stopping, not just that you are** — answering before the whole landscape is visible biases the answers (you narrow the scope on question one while question five, which would have changed it, is still unwritten). Without the reason on screen this reads as "it did half the job and told me to come back", which is exactly the repetition complaint that produced this rule. This is the one forced re-trigger in the skill, and it is paid for deliberately.
 
-**Working the agenda** (mode `work` — `fg-agenda` with an agenda on disk) — resolve open questions **one at a time**:
+**Working the agenda** (mode `work` — `fg-agenda` with an agenda on disk) — resolve open questions **one at a time**, and by default **keep going until the user stops**:
 
+**"One at a time" is about sequence, not about invocations.** Resolve one question, then open the next in the *same* conversation — the session ends when the user says so, or when `## Open questions` empties. This default matters: a session that stopped after every single question made the skill read as a treadmill (three invocations, three handoffs all pointing back at `fg-agenda`, while the open-question count went 5 → 6 → 7 → 8 — which is healthy early divergence, but nothing on screen said so). State how to stop **once**, in the first orientation block of the session; never re-ask it per question — "shall I continue?" at every turn is the pattern ADR-0015 removed, and here it would *increase* the sense of repetition rather than reduce it.
+
+0. **Render the `orientation block`** — before *every* question, not only the first. It is the only orientation the user gets now that the session no longer ends after each question, and it is **derived entirely from `agenda.md`** — no new section, no new field (the same restraint Prohibition 2 applies to dependency edges, and the same call fg-loop made absorbing `waiting` into an existing ledger). Four values, canonical English name `orientation block`, rendered in the user's language:
+
+   ```
+   ▸ Agenda: {## Destination, one line}
+     decided {N} · open {N} · fog {N}
+     now: {the question being resolved}
+   ```
+
+   **This is not the handoff table.** The table renders once, at the end of the session (`../fg-next/HANDOFF.md`); the orientation block renders mid-conversation, before each question — so `HANDOFF.md` is untouched by it. On the session's first block only, append one line on how to stop.
+   **Deliberate gap, so nobody "fixes" it by accident:** the block shows counts, not a *trajectory*. Whether `open 8` is shrinking or growing is not derivable — `agenda.md` keeps no history of the count — and persisting one would mean minting the section this skill refuses to mint. The dates on `## Decided` lines are the weak stand-in. Cross-session trajectory is a known, accepted blind spot.
 1. **Read the agenda** and orient to `## Destination` before choosing anything.
 2. **Choose one question.** If the user named one, that one. If not, **the agent picks** — the first line of `## Open questions` (the list is kept in answerable-now order, so the top line *is* the frontier).
 3. **Resolve it by grilling** — fg-ask's method, by reference (see below). The **human** answers.
@@ -80,7 +92,7 @@ update the agenda: add newly-surfaced questions · graduate sharpened fog · mov
    │
    ▼
 ## Open questions now empty? ── yes ─▶ the way is clear: DELETE agenda.md, report
-                              └─ no ─▶ next question in this same conversation, or stop (statement handoff)
+                              └─ no ─▶ next question in the SAME conversation (default) ─▶ user says stop ─▶ statement handoff
 ```
 
 ## The fog-vs-question test
@@ -153,7 +165,7 @@ The four cases differ only in what fills the cells:
 
 - **No fog surfaced** → `Just did` = the way is already clear, so **no agenda was written**; `Next step` = `fg-ask`; `How to start` = `/forge:fg-ask`.
 - **Agenda opened** (mode `open` done) → `Just did` = the destination, how many open questions and how much fog the agenda holds, **and that nothing was resolved this session** — opening an agenda resolves nothing, and that is its whole shape, so it belongs in the cell, not in a sentence a reader might skip; `Next step` = re-triggering `fg-agenda` works the top question; `How to start` = `/forge:fg-agenda`.
-- **A question resolved** → `Just did` = the decision, and whether it produced an ADR; `Next step` = the next open question, worked the same way (`fg-agenda`) — or `fg-ask` when the resolution produced a specifiable build task, which then leaves the agenda; `How to start` = that skill's trigger. What changed in the agenda (new questions, graduated fog, out-of-scope moves) is list-shaped: put it **below** the table as bullets when there is more than one (HANDOFF.md, "List-shaped content goes below the table").
+- **A question resolved** → this table renders when the **user stopped** the session (or the agenda cleared), not after every single question — the default is to keep going (see "Working the agenda"). So `Just did` = **how many questions were resolved this session** and what they decided, plus whether any produced an ADR; `Next step` = the next open question, worked the same way (`fg-agenda`) — or `fg-ask` when the resolution produced a specifiable build task, which then leaves the agenda; `How to start` = that skill's trigger. What changed in the agenda (new questions, graduated fog, out-of-scope moves) is list-shaped: put it **below** the table as bullets when there is more than one (HANDOFF.md, "List-shaped content goes below the table").
 - **Agenda cleared** (open questions empty) → `Just did` = the way is clear and `agenda.md` was **deleted**, with the durable trace being the ADRs and backlog plans it produced; `Next step` = `fg-run` / `fg-next` for those plans; `How to start` = their triggers.
 
 ## Document impact
