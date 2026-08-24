@@ -137,6 +137,8 @@ fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
  conversational)                 into docs)    re-run guard)
 ```
 
+**How it phrases anything is a separate always-on rule.** Every skill carries an `**Explaining forge**` paragraph next to its language rule: gloss a forge-specific term the first time it appears in a message, put the purpose before the mechanism, and lead with the answer. It is **not** gated on `eco` — the installers who most need a gloss are the ones least likely to have turned eco on — and it governs **vocabulary** while `eco`'s terse rules govern **form**, so terseness never deletes a gloss. A `fg-doctor` check compares each skill's copy against a single canonical definition, so the rule cannot quietly drift out of one of them ([ADR `260824-134246`](./.forge/adr/260824-134246-explaining-forge-always-on.md)).
+
 A detailed flow diagram (loop ↔ document artifacts) is in [docs/state-contract.md](./docs/state-contract.md) (Korean).
 
 ## Install
