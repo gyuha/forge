@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.6.15] - 2026-08-24
+
+**forge가 자기 어휘를 독자가 안다고 가정해 왔다.** `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 설치자에게 암호이고, `fg-help`가 존재하는 이유가 그것이다. 이번 릴리스는 그 가정을 끊는 항상-on 출력 규율을 도입하고, 그 규율이 22곳에 복제된 대가를 `fg-doctor` 검사로 지킨다. 두 차례의 적대적 리뷰(forge 6렌즈 · Codex)가 초판의 결정 두 개를 뒤집었고, 그 반박이 옳았다.
+
+### Added
+- **항상-on `**Explaining forge**` 규율 (22개 `SKILL.md`).** 각 스킬의 `**Language**` 블록 옆에 세 규칙을 인라인한다 — forge 전문용어는 한 메시지 안 첫 등장에서 즉시 주석(몇 단어, 문단 아님) · 목적을 메커니즘보다 먼저 · 결론 먼저 + 사용자에게 갖는 의미로 닫기. **`eco` 게이트와 무관하다.** [dreambigou/eli5](https://github.com/dreambigou/eli5)(MIT)에서 **개념만** 각색했으며 코드 vendoring이 아니다(파일 복사 0). 청중 표 24행(나이·학년·관계·직무)은 버렸다 — forge 출력을 5살이나 배우자나 디자이너가 읽지 않으므로 남길 청중 축이 없고, 변화는 사람 사이가 아니라 **숙련도 사이**에 있다. ADR `260824-134246`.
+- **`fg-doctor` 검사 B17 — canonical 본문 드리프트 가드** (`forge-doctor.sh`/`.js` 두 트윈). canonical 본문의 **단일 정의**(신규 `scripts/explaining-forge.rule.txt`)를 22곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩을 남긴 채 본문을 삭제·축약·약화·**반대로** 쓴 경우까지 잡는다. **포함**(동일성 아님)이라 `skills/fg-ask/SKILL.md`의 의도된 상위집합(문장 하나 추가)이 **예외 목록 없이** 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 **forge 리포 한정**이며 스코프는 **최상위** 매니페스트 `name`으로 판정한다(사용자 프로젝트의 자기 스킬이 오탐되면 AI-free CI 게이트가 깨지고, 중첩 `"author": {"name": "forge"}`는 발동시키지 못한다). `skills/fg-doctor/SKILL.md`의 Group B 카탈로그에 등재했다.
+- **`ECO.md`에 형태↔어휘 분업 명시.** 간결 규칙(caveman 차용)은 **형태**(길이·군더더기), 새 규율은 **어휘**를 지배한다 — **주석은 군더더기가 아니므로** 간결함이 주석을 지우지 않는다. `eco` off = 장문+주석, on = 간결+주석이며 주석은 두 상태에서 불변이다.
+- **테스트.** behavior `42 → 54` assertions(9 B17 케이스 — 부재·canonical·**상위집합**·heading-only·truncated·altered·mention-only·스코프·중첩 name), parity `8 → 11` cases(멀티라인 `name`·중첩 `name`·canonical 변조 — 실제로 갈렸던 세 형태).
+
+### Changed
+- **`eco`는 손대지 않았다.** 새 규율을 `eco`에 번들하지 **않은** 것이 이 릴리스의 핵심 결정이다: `eco` 기본값이 `false`이고, 주석을 가장 필요로 하는 사람 — forge를 방금 설치한 사용자 — 이 바로 eco를 켜 봤을 리 없는 사람이므로 번들하면 규율이 거꾸로 배달된다. ADR-0014가 caveman을 eco에 번들한 것과 **의도적으로 다른** 결정이며, 차이의 근거는 caveman이 토큰 절약(축=비용)이고 이것은 정확한 전달(축=품질)이라는 것이다. `eco` 동작 5종(모델 캡·ECO 주입·YAGNI 렌즈·prose 압축·요약 표)은 전부 현행 유지.
+- **문서 4곳 정합** — ADR `260824-134246`(개정 이력 포함), `docs/skills.md`·`docs/en/skills.md`(신규 `## Explaining forge` 절, 이중언어 절 구조 1:1), `CLAUDE.md`「스킬 편집 규약」, README 이중언어 크레딧.
+
+### Fixed
+- **B17 스코프 가드의 트윈 불일치와 오탐** (적대적 리뷰 후속). 초판은 `plugin.json`을 raw 텍스트로 grep해 두 결함을 냈다 — ① `{"name":\n  "forge"}`처럼 값이 다음 줄에 있으면 `sh`는 exit 0, `js`는 exit 2(JS `\s`는 개행을 넘고 `grep`은 줄 단위)로 **ADR-0022 트윈 계약을 위반**했고, ② `{"name":"my-plugin","author":{"name":"forge"}}`면 두 트윈 모두 error를 내 **남의 리포에 forge 내부 문단을 붙이라고 명령**했다. `jname`(최상위 첫 `name`, `jver` 관례와 동일한 줄 경계)으로 교체해 둘 다 해소했고 parity 픽스처로 고정했다.
+- **B17이 마커 존재만 보던 결함** (Codex 적대적 리뷰, verdict `needs-attention`). 헤딩을 남긴 채 세 지시를 삭제·약화·반대로 써도 통과했고, 마커를 *설명하는* 텍스트만으로도 통과해 **B17을 문서화하는 파일이 영구 맹점**이 될 수 있었다(`skills/fg-doctor/SKILL.md`가 그 파일이다). 이 지적이 초판의 Non-goal("본문 비교 검사로 승격하지 않는다")을 뒤집었고 옳았다 — 그 근거가 *정확히 일치*를 전제했는데 **포함** 검사면 예외가 0건이다(canonical 529 코드포인트가 22곳 전부에 연속 부분문자열, `fg-ask` 변종은 접두를 갖는 상위집합).
+- **B17 severity가 `fg-doctor` 자기 rubric과 모순되던 것.** `skills/fg-doctor/SKILL.md`가 "error = state/release actually broken · warning = drift that misleads but doesn't block"을 정의하고 `forge-doctor.sh`의 B16 주석이 같은 규칙("drift, not breakage → warning")을 적어 뒀는데, 초판 B17만 `error`였다. `warning`으로 내렸다.
+
 ## [0.6.14] - 2026-08-22
 
 **직전 릴리스가 문서를 반만 고쳤다.** 0.6.13은 Stop 훅을 출하했지만 사용자 문서는 **문장 하나씩만** 갱신돼 있었고, 그중 README의 L3 불릿은 자기모순이었다 — 머리 문장은 *"사용자 조작이 필요하지 않다"* 인데 본문은 옛 메커니즘(`/goal` 붙여넣기, 없으면 한 사이클 후 멈춤)을 그대로 서술했다. 원인은 그 작업이 사용자 문서를 **문장이 아니라 파일 단위로 열거**한 것이고, 그 교훈은 같은 작업의 회고에 이미 적혀 있었다. 기능 변경은 없다.
