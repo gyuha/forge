@@ -224,6 +224,8 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 
 같은 `ECO.md`의 출력 prose 압축 규칙 — 코드/에러는 verbatim으로 두고 그릴링 질문·생성 문서는 full로 보존하되 실행·보고 prose를 간결화해 컨텍스트를 아낀다 — 은 [JuliusBrussee의 caveman 스킬](https://github.com/JuliusBrussee/caveman)에서 차용·각색했다.
 
+모든 `SKILL.md`가 담는 **항상-on `**Explaining forge**` 규율** — forge 전문용어를 첫 등장에서 주석하고, 목적을 메커니즘보다 먼저 쓰고, 결론을 먼저 낸다 — 은 [dreambigou의 eli5 스킬](https://github.com/dreambigou/eli5)(MIT)에서 **개념만** 각색했다. 코드 vendoring이 아니다 — 어휘 교정 규칙만 취하고 청중 표는 버렸으며(forge 출력의 독자는 한 명이다), 의도적으로 eco에 **넣지 않았다** — 주석을 가장 필요로 하는 설치자가 eco를 켜 봤을 리 없는 사람이기 때문이다. 이 규율은 **어휘**를, `ECO.md`의 간결 규칙은 **형태**를 지배하므로 간결함이 주석을 지우지 않는다(ADR `260824-134246`).
+
 랜딩 페이지(`docs/index.html`)는 [Superpowers(Jesse Vincent, obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md)의 **Visual Companion** — 코드를 짜기 전에 목업·레이아웃·색상 옵션을 브라우저 미리보기로 펼쳐 보여주는 디자인 도구 — 로 제작했다.
 
 `fg-security`의 **보안 감사 방법론**은 [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)을 MIT 라이선스로 **vendoring**한 것이다 — 진입 파일과 공격 유형별 플레이북 9종, `report-schema.json`·`validate-findings.cjs`가 `skills/fg-security/`에 있고 라이선스 사본은 `skills/fg-security/LICENSE`다. 개명한 것은 진입 파일 하나뿐이며(`SKILL.md` → `AUDIT.md` — forge의 스킬 자동 탐색 경로와 충돌하지 않도록), 나머지 11개는 업스트림과 **바이트 동일**로 두어 이후 diff가 싸게 유지된다. forge가 더한 것은 루프 통합뿐이다 — 심각도 게이트, 승인 시 fix-forward plan, 그리고 산출물을 리포 밖에 두는 것.

@@ -9,6 +9,8 @@ This is **not** a stage of the forge loop. It is a one-time setup utility: it in
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, confirmations, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
 
+**Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
+
 ## The two install modes (ADR-0029)
 
 forge can occupy the single statusLine in one of two ways. Both share the same thin forge fragment (`forge-statusline.sh`/`.js`) for the forge progress line(s); they differ in what else the statusLine shows and who owns the command.

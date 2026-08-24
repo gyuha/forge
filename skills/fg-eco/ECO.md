@@ -57,6 +57,16 @@ multi-step sequence or security/irreversible/data-loss/accessibility note where
 compression risks misreading — those stay full and clear (the same exceptions
 as "When NOT to be lazy" below).
 
+Division of labour with `**Explaining forge**` — form vs vocabulary. Every
+SKILL.md carries an always-on `**Explaining forge**` rule (gloss a forge-specific
+term on first use, purpose before mechanism, lead with the answer). It is NOT
+gated on eco, so it holds whether eco is on or off. These two never arbitrate:
+terseness governs the **form** (length, padding, filler) while that rule governs
+the **vocabulary**. **A gloss is not filler** — compressing prose is not the same
+as shortening it (see the first paragraph above), so terseness must never delete
+a gloss to save words. eco off = full prose with glosses; eco on = terse prose
+with glosses. The glosses are invariant across both.
+
 (Adapted from the caveman skill by JuliusBrussee — <https://github.com/JuliusBrussee/caveman>.)
 
 ## eco summary table (task-end output)

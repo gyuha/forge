@@ -11,6 +11,8 @@ It **writes nothing** — no `.forge/` state, no files, no plan/backlog/done. It
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — the overview, the per-command detail, and the closing line — in the user's language (detect it from the user's own messages), never mirroring this file's English.** This is the whole reason fg-help is LLM-executed and not a deterministic script (see "Why no script twin" below): each forge skill's `description` is authored in English, and fg-help renders it into the user's language at output time, exactly as every forge skill outputs in the user's language.
 
+**Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
+
 **Forge root**: fg-help reads no `.forge/` state, so forge-root resolution does not apply here. It reads only the plugin's own skill files (below).
 
 ## The single source — each skill's own `description`

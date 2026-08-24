@@ -11,6 +11,8 @@ The engine is vendored from obra/superpowers v6.1.1 (MIT, Copyright (c) 2025 Jes
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — status lines, URLs, prompts, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** Screen content (HTML you push) is also written in the user's language.
 
+**Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
+
 ## What it does
 
 - **`fg-visual` (no argument)** → start a companion session for this conversation: read [`VISUAL.md`](./VISUAL.md) (the full operating guide — when to use the browser vs the terminal, screen authoring, the event loop), start the server, **arm the wake watch** (a persistent `Monitor` on the events file, so a confirmed click can wake you with no terminal turn), and share the keyed URL. Then push screens as the conversation calls for them.

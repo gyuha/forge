@@ -12,6 +12,7 @@ pass=0; fail=0
 mktmp() { mktemp -d "${TMPDIR:-/tmp}/fgdoc.XXXXXX"; }
 assert()      { if [ "$2" = "$3" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s exp:[%s] act:[%s]\n' "$1" "$2" "$3"; fi; }
 assert_grep() { if printf '%s' "$2" | grep -qF "$3"; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (%s not in output)\n' "$1" "$3"; fi; }
+assert_nogrep() { if printf '%s' "$2" | grep -qF "$3"; then fail=$((fail+1)); printf '  FAIL %s (%s unexpectedly in output)\n' "$1" "$3"; else pass=$((pass+1)); fi; }
 
 run_doc() { local wd="$1"; shift
   case "$SCRIPT" in
@@ -83,6 +84,51 @@ run_doc "$t"; assert "B14-active-retired-dup-rc2" 2 "$RC"; assert_grep "B14-ar-m
 t=$(mktmp); mkdir -p "$t/.forge/adr/retired"
 printf '# a\n' > "$t/.forge/adr/260719-161701-active.md"; printf '# r\n' > "$t/.forge/adr/retired/260719-161702-old.md"
 run_doc "$t"; assert "B14-ar-distinct-rc0" 0 "$RC"; rm -rf "$t"
+
+# --- B17: canonical-body validation (ADR 260824-134246, hardened after adversarial review) --
+# The check compares the CANONICAL BODY, not the marker, so these fixtures read the single
+# definition instead of hardcoding a 23rd copy. severity is warning (rc 1), per the rubric in
+# skills/fg-doctor/SKILL.md — a missing style paragraph is drift, not release breakage.
+RULE="$(cat "$(cd "$(dirname "$SCRIPT")" && pwd)/explaining-forge.rule.txt")"
+seed_forge_manifest() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; }
+seed_skill() { printf 'name: foo\ndescription: short core\n---\n**Language**: write in the user language.\n\n' > "$1/skills/foo/SKILL.md"; printf '%s\n' "$2" >> "$1/skills/foo/SKILL.md"; }
+# no rule at all -> warning
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "(nothing here)"
+run_doc "$t"; assert "B17-missing-rc1" 1 "$RC"; assert_grep "B17-missing-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# canonical body present -> clean (the old fixture passed an abbreviated sentence; that is the
+# gap Codex flagged, so this one uses the real canonical text)
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE"
+run_doc "$t"; assert "B17-canonical-rc0" 0 "$RC"; assert_nogrep "B17-canonical-msg" "$OUT" "B17 missing"; rm -rf "$t"
+# SUPERSET (canonical + an appended sentence, exactly what skills/fg-ask/SKILL.md carries)
+# -> clean. This is why containment needs no exception list.
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE **One extra normative sentence.**"
+run_doc "$t"; assert "B17-superset-rc0" 0 "$RC"; assert_nogrep "B17-superset-msg" "$OUT" "B17 missing"; rm -rf "$t"
+# heading-only: marker kept, body gone -> warning (marker-substring check missed this)
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "**Explaining forge**: (body deleted)"
+run_doc "$t"; assert "B17-heading-only-rc1" 1 "$RC"; assert_grep "B17-heading-only-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# truncated: canonical minus its tail -> warning
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$(printf '%s' "$RULE" | cut -c1-200)"
+run_doc "$t"; assert "B17-truncated-rc1" 1 "$RC"; assert_grep "B17-truncated-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# altered: one clause negated -> warning (a rule that says the opposite must not pass)
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$(printf '%s' "$RULE" | sed 's/A gloss is not filler/A gloss IS filler/')"
+run_doc "$t"; assert "B17-altered-rc1" 1 "$RC"; assert_grep "B17-altered-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# mention-only: a file that DOCUMENTS the check (as skills/fg-doctor/SKILL.md must) still fails
+# unless it carries the rule -> warning. Under the old marker test this passed, which would
+# have blinded B17 to its own documentation.
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "- **B17 missing Explaining forge rule** — a SKILL.md without the **Explaining forge** paragraph is a warning."
+run_doc "$t"; assert "B17-mention-only-rc1" 1 "$RC"; assert_grep "B17-mention-only-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# scope guard: not the forge plugin repo -> never flagged (fg-doctor is an AI-free CI gate, so
+# a false finding in a user project would break it)
+t=$(mktmp); mkdir -p "$t/.forge" "$t/.claude-plugin" "$t/skills/theirs"
+printf '{"name":"someone-elses-plugin"}\n' > "$t/.claude-plugin/plugin.json"
+printf 'name: theirs\ndescription: short core\n---\n**Language**: x\n' > "$t/skills/theirs/SKILL.md"
+run_doc "$t"; assert "B17-scope-rc0" 0 "$RC"; assert_nogrep "B17-scope-msg" "$OUT" "B17 missing"; rm -rf "$t"
+# scope guard: nested "name": "forge" (e.g. author.name) must NOT trigger -- jname takes the
+# top-level name only. Reproduced as a real false positive before this fix.
+t=$(mktmp); mkdir -p "$t/.forge" "$t/.claude-plugin" "$t/skills/theirs"
+printf '{"name":"my-plugin","author":{"name":"forge"}}\n' > "$t/.claude-plugin/plugin.json"
+printf 'name: theirs\ndescription: short core\n---\n**Language**: x\n' > "$t/skills/theirs/SKILL.md"
+run_doc "$t"; assert "B17-nested-name-rc0" 0 "$RC"; assert_nogrep "B17-nested-name-msg" "$OUT" "B17 missing"; rm -rf "$t"
 
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

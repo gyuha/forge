@@ -194,6 +194,36 @@ for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue
   n="$(desclen "$desc")"
   [ "$n" -gt "$DESC_MAX" ] && finding warning "B16 description length" "$s ($n chars > $DESC_MAX)" "trim the SKILL.md frontmatter description toward the trigger core — it drives /fg menu readability (ADR 260716-22a)"
 done
+# B17 always-on explanation discipline present (drift guard, ADR 260824-134246): the
+# `**Explaining forge**` rule is inlined in every SKILL.md rather than kept in one shared doc,
+# so a newly added skill silently ships outside the discipline unless something counts. Two
+# properties here were earned by adversarial review, not by the original design:
+#   * It compares the CANONICAL BODY, not the marker. A marker-only substring test passes a
+#     SKILL.md that keeps the heading while deleting, weakening or CONTRADICTING the three
+#     instructions, and it passes any file that merely *mentions* the marker — which would
+#     permanently blind this check to the very file documenting it. Containment (not equality)
+#     is what makes that free: fg-ask appends one sentence, so its variant is a superset and
+#     needs no exception list. Canonical lives in ONE place (explaining-forge.rule.txt), never
+#     hardcoded per twin — two hand-copied strings are the same defect class this check exists
+#     to catch.
+#   * warning, not error, per the rubric in skills/fg-doctor/SKILL.md: "error = state/release
+#     actually broken · warning = drift that misleads but doesn't block". A missing style
+#     paragraph breaks no install and blocks no release; every sibling prose-drift check
+#     (B12/B13/B15/B16) is a warning, and B16's comment above states that same rule.
+# Scoped to the forge plugin repo itself (top-level manifest name == forge) — a user project
+# with its own skills/*/SKILL.md must never be told to carry forge's internal rule, since
+# fg-doctor doubles as an AI-free CI gate. jname takes the FIRST "name" in document order (the
+# top-level one) and is line-bounded exactly like jver, so a nested `"author": {"name":
+# "forge"}` cannot trigger it and the node twin (same [ \t] bound) reaches the same verdict on
+# a manifest whose value sits on the next line.
+jname() { grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$1" | sed -E 's/.*"([^"]*)"$/\1/' | head -1; }
+RULE_FILE="$SCRIPT_DIR/explaining-forge.rule.txt"
+if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ] && [ -f "$RULE_FILE" ]; then
+  rule="$(cat "$RULE_FILE")"
+  for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue
+    grep -qF -e "$rule" "$s" || finding warning "B17 missing Explaining forge rule" "$s" "the canonical **Explaining forge** paragraph is absent or altered — copy it verbatim from scripts/explaining-forge.rule.txt next to this skill's **Language** rule (ADR 260824-134246)"
+  done
+fi
 
 # =============================================================================
 # Verdict

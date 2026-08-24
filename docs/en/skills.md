@@ -44,6 +44,16 @@ The next-step guidance a skill emits at the end renders as a fixed four-row **ha
 
 The single definition is `skills/fg-next/HANDOFF.md`, and all 13 points **reference** it (no copy-pasting — the same convention as `skills/fg-run/FORGE-ROOT.md` and `skills/fg-next/DRIVE.md`).
 
+## Explaining forge — how forge explains its own vocabulary (always)
+
+forge output used to assume its reader knows its vocabulary — `verified: failed`, `unsealed tail`, "pillar 1", `wall: stalled-waiting` are a cipher to anyone who has not read the docs. So all 22 `SKILL.md` files carry an **always-on `**Explaining forge**` rule** next to their `**Language**` rule. It is independent of the `eco` gate — ADR `260824-134246`.
+
+- **Three rules** — ① gloss a forge-specific term at its first use in a message (a few words, not a paragraph), ② put the purpose before the mechanism, ③ lead with the answer and close on what it means for the user.
+- **Keeping it out of eco is the load-bearing decision.** `eco` defaults to `false`, and the people who most need a gloss — those who just installed forge — are exactly the ones least likely to have turned eco on. Bundling it into eco would deliver the discipline backwards. This is a **deliberately different** call from ADR-0014's bundling of caveman into eco, and the difference is that caveman saves tokens (axis: cost) while this one lands meaning (axis: quality).
+- **It divides labour with [`ECO.md`'s terse rules](#fg-eco)** — terseness governs **form** (length, padding), this rule governs **vocabulary**. **A gloss is not filler**, so terseness never deletes one. eco off = full prose with glosses; eco on = terse prose with glosses — the glosses are invariant across both.
+- **Adapted in concept from [eli5 by dreambigou](https://github.com/dreambigou/eli5) (MIT)** — not a code vendoring (no files copied). Its audience tables (24 rows of ages, grades, relationships, job roles) were dropped: no forge output is ever read by a five-year-old, a spouse, or a designer, so there is no audience axis left to keep — the variation is between **fluency levels**, not between people.
+- **Inlined rather than given a single-definition doc** — the rule is three sentences on one line, so a reference line would be about as long as the rule itself (`HANDOFF.md` and `ECO.md` earn a file; three lines do not). The cost, 22-way duplication drift, is held by **`fg-doctor` check B17** — it requires the single definition of the **canonical body** (`scripts/explaining-forge.rule.txt`) **verbatim, by containment**, in all 22 files, so a heading kept over a deleted, truncated, weakened or negated body is caught too. Because it is containment and not equality, `fg-ask`'s deliberate superset (one appended sentence) passes with no exception list. Severity is **warning** — the same rubric as its prose-drift siblings (B12/B13/B15/B16), since a missing style paragraph does not break the release. It applies only inside the forge repo (a user project's own skills would be a false positive, so the scope keys on the *top-level* manifest `name` — a nested `"author": {"name": "forge"}` cannot trigger it).
+
 ## Loop skills (the four stages)
 
 ### fg-ask — ① Ask·plan

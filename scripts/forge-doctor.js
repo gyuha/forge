@@ -177,5 +177,20 @@ for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'ski
   if (n > DESC_MAX) finding('warning', 'B16 description length', `${sf} (${n} chars > ${DESC_MAX})`, 'trim the SKILL.md frontmatter description toward the trigger core — it drives /fg menu readability (ADR 260716-22a)');
 }
 
+// B17 always-on explanation discipline present (drift guard, ADR 260824-134246) — twin of .sh.
+// Compares the CANONICAL BODY from explaining-forge.rule.txt (single definition, never
+// hardcoded here), by containment so fg-ask's superset variant needs no exception. warning,
+// not error, per skills/fg-doctor/SKILL.md's rubric. Scoped to the forge plugin repo via the
+// TOP-LEVEL manifest name; jname is line-bounded ([ \t], like jvers) so a nested
+// `"author": {"name": "forge"}` cannot trigger it and the bash twin agrees on every shape.
+const jname = (f) => { const m = read(f).match(/"name"[ \t]*:[ \t]*"([^"]*)"/); return m ? m[1] : ''; };
+const RULE_FILE = path.join(scriptDir, 'explaining-forge.rule.txt');
+if (isFile(PJ) && jname(PJ) === 'forge' && isFile(RULE_FILE)) {
+  const rule = read(RULE_FILE).replace(/\n+$/, '');
+  for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
+    if (!read(sf).includes(rule)) finding('warning', 'B17 missing Explaining forge rule', sf, "the canonical **Explaining forge** paragraph is absent or altered — copy it verbatim from scripts/explaining-forge.rule.txt next to this skill's **Language** rule (ADR 260824-134246)");
+  }
+}
+
 process.stdout.write(`\n🩺 forge-doctor — ${errN} errors, ${warnN} warnings, ${infoN} info\n`);
 process.exit(errN > 0 ? 2 : warnN > 0 ? 1 : 0);

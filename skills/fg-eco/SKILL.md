@@ -24,6 +24,8 @@ Together these tier the loop as "strong = main session (design + grilling), effi
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
 
+**Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
+
 ## What it does
 
 - **`fg-eco on`** → set `eco: true` in `.forge/config.json`, then read the sibling [`ECO.md`](./ECO.md) and adopt its discipline for the rest of this session (behavior 4 above).
