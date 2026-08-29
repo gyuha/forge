@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.6.17] - 2026-08-29
+
+**비주얼 컴패니언이 forge처럼 보이지 않았다.** vendoring해 온 superpowers 원본의 Apple/iOS 팔레트(`#0071e3` 블루 · `#f5f5f7` 회색 · `system-ui`)를 그대로 쓰고 있었다. 리포 루트에 새로 들어온 `DESIGN.md`(claude.com에서 추출한 Anthropic 디자인 시스템)를 정답 소스로 삼아 리테마했다.
+
+### Added
+- **`DESIGN.md` (리포 루트, 신규 추적).** Anthropic/Claude 디자인 시스템 스펙 — YAML frontmatter의 토큰(colors · rounded · spacing)과 산문 문서. 프레임 주석이 이 파일을 토큰의 출처로 가리키므로 함께 커밋했다.
+- **비주얼 컴패니언 프레임의 Claude 테마.** 크림 캔버스 `#faf9f5` + 코랄 `#cc785c` + editorial serif 디스플레이. 디자인이 `scripts/frame-template.html`의 **CSS 변수에만** 살기 때문에(`:root` 밖 하드코딩 hex 0개, 45곳이 `var()`를 거친다) 리테마는 재작성이 아니라 **라이트 14 + 다크 11 변수 값 교체**였다. 화면 콘텐츠는 프레임이 제공하는 클래스를 쓰므로(`VISUAL.md`: "내용만 쓰면 서버가 감싼다") **에이전트가 미는 모든 화면이 테마를 상속한다** — 화면별 수정이 없다.
+
+### Changed
+- **디스플레이 폰트만 시스템 serif 스택**(`ui-serif, Georgia`, weight 400, tracking −0.02em)으로 교체하고 본문 sans는 유지했다. `DESIGN.md`의 Copernicus/StyreneB는 상용이고 제시된 오픈소스 대체(Cormorant · EB Garamond · Inter)도 다운로드가 필요한데, 이 서버는 **원격 자산이 없는 것이 vendoring 결정**이라(ADR `260719-224442`) 웹폰트를 부를 수 없다. Georgia는 slab이 아니라 transitional serif이므로 근사이지 일치가 아니며, 그 사실을 파일 주석에 적었다.
+- **`helper.js`의 자가스타일 오버레이 2개**(전체화면 "Companion paused" 툼스톤 · 클릭 토스트)도 리터럴을 Claude 리터럴로 교체했다. `var()`로 바꾸지 **않은** 이유는 주석이 밝힌다 — 전체 문서 화면에는 프레임 CSS가 없어 변수가 무색이 된다.
+- **`border-radius`는 건드리지 않았다** — 프레임의 `6px`·`8px`·`12px`가 `DESIGN.md`의 `rounded.sm/md/lg`와 이미 정확히 일치했다.
+- README 이중언어와 `docs/skills.md` 쌍에 프레임 테마의 출처·상속 구조·접근성 트레이드오프를 반영했다.
+
+### Fixed
+- **`skills/fg-visual/SKILL.md`의 "byte-identical" 주장이 거짓이었다.** ADR `260719-224442` §1이 vendoring 시점에 브랜딩·텔레메트리(원격 로고·버전 전송)를 제거했고 각 파일 헤더가 그 수정을 스스로 기록하고 있었으므로, 그 문장은 이미 사실이 아니었다. 업스트림 **형태**(node 서버 · bash 런처 · 트윈 없음)를 유지하되 바이트 동일은 아니며 각 파일이 자기 수정을 기록한다는 정확한 서술로 바꿨다.
+
+### Notes — 알고 받는 접근성 대가
+라이트 테마는 claude.com 실물 값을 **충실히** 옮긴 결과이고, 그래서 여섯 쌍이 WCAG AA 아래다 — 흰 글자 on 코랄 **3.28:1**(기본 CTA), 코랄 on 캔버스 3.11, muted-soft on 캔버스 3.23, muted on 카드 4.48, success 점 2.33, warning 점 2.25. 비주얼 컴패니언 A/B 화면에서 사람이 **충실(faithful)** 을 택한 기록된 결정이며 `DESIGN.md`의 결함도 구현 버그도 아니다. `:root` 위 주석이 여섯 쌍을 표로 담고, 작업의 DoD가 **그 집합 자체를 고정**해 팔레트가 조용히 표류하면 개수나 이름이 달라져 잡힌다. 다크 테마는 전부 통과한다(최저 5.47:1).
+
+`DESIGN.md`에는 **다크 경계선·다크 3차 텍스트·다크용 hover 토큰이 없다**(자신의 Known Gaps에도 미기재). 새 hue를 만들지 않고 팔레트에서 α·명도로 파생했으며 파생식을 주석에 남겼다. 특히 `primary-active`는 *어두워지는* 값이라 다크 표면의 hover로는 방향이 반대여서, 라이트의 "누르면 어두워진다"를 거울로 뒤집은 `#d98a6e`를 썼다.
+
+### Internal
+- 무인 주행이 자동 skip했던 회고 3건을 일괄 승급했다(`#125`·`#126`·`#127`). 별개 발견 하나가 그 회고에 기록됐다 — **아카이브된 `done/*/run.md`를 어떤 단계도 연료로 읽지 않는다**(`fg-ask`·`fg-run` 모두 `.forge/retro/`만 읽는다). waiver의 "학습은 run.md에 남는다"는 약속은 저장은 참이지만 환류는 거짓이다.
+- 코드베이스 지도를 증분 갱신했다(`.forge/codebase/`, 511 → 657줄). 그 과정에서 **출하된 결함 2건**을 재현 확인했다 — `fg-doctor`의 `A9`(stale `drive.md`) 검사가 **bash 트윈에만 존재**해 같은 상태에서 `sh`=exit 1 / `js`=exit 0으로 갈리는 ADR-0022 위반(테스트 54 assertion·parity 11 케이스가 전부 초록인데도 안 잡힌다 — 어느 하네스에도 `drive.md` 픽스처가 없다), 그리고 `fg-help`의 `description`이 768자로 600자 상한을 넘긴 것. 둘 다 아직 미수정이다.
+
 ## [0.6.16] - 2026-08-24
 
 **직전 릴리스가 README에 귀속만 남겼다.** 0.6.15는 항상-on `**Explaining forge**` 규율을 출하했지만 README에는 **Credits 절에만** 실렸다 — Credits는 "어디서 왔나"를 말하고 "forge가 무엇을 다르게 하나"는 말하지 않는다. 그런데 이 규율의 형제 규약 둘(핸드오프 표·eco 요약 표)은 `## Overall flow` 문단에서 **본문 대접**을 받고 있었다. 셋 중 하나만 본문에 없던 비대칭을 없앤다. 기능 변경은 없다.
