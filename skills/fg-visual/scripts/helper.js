@@ -63,7 +63,10 @@
     el.style.setProperty('--status-color', color);
   }
 
-  // Self-styled so it works on framed and full-document screens alike.
+  // Self-styled so it works on framed and full-document screens alike — a
+  // full-document screen has no frame CSS, so var(--...) would resolve to nothing.
+  // Literals therefore stay literals; they are DESIGN.md tokens written out:
+  // rgba(24,23,21,.92) = surface-dark #181715, #faf9f5 = on-dark, 12px = rounded.lg.
   function showTombstone() {
     if (tombstoneShown) return;
     tombstoneShown = true;
@@ -71,7 +74,7 @@
     el.id = 'bs-tombstone';
     el.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;' +
       'align-items:center;justify-content:center;padding:2rem;text-align:center;' +
-      'background:rgba(20,20,22,0.92);color:#f5f5f7;font-family:system-ui,sans-serif';
+      'background:rgba(24,23,21,0.92);color:#faf9f5;font-family:system-ui,sans-serif';
     el.innerHTML = '<div style="max-width:480px">' +
       '<h2 style="margin:0 0 .5rem;font-weight:600">Companion paused</h2>' +
       '<p style="margin:0;opacity:.85">This visual companion has stopped. ' +
@@ -99,7 +102,7 @@
       el = document.createElement('div');
       el.id = 'bs-click-hint';
       el.style.cssText = 'position:fixed;right:1rem;bottom:1rem;z-index:99998;max-width:22rem;' +
-        'padding:0.7rem 0.9rem;border-radius:10px;background:rgba(20,20,22,0.92);color:#f5f5f7;' +
+        'padding:0.7rem 0.9rem;border-radius:12px;background:rgba(24,23,21,0.92);color:#faf9f5;' +
         'font-family:system-ui,-apple-system,sans-serif;font-size:0.8rem;line-height:1.45;' +
         'box-shadow:0 6px 24px rgba(0,0,0,0.3)';
       el.innerHTML = '<div style="font-weight:600;margin-bottom:0.15rem"></div>' +

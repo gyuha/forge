@@ -24,37 +24,60 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { height: 100%; overflow: hidden; }
 
-    /* ===== THEME VARIABLES ===== */
+    /* ===== THEME VARIABLES =====
+     * Palette: the Anthropic/Claude design system documented in the repo-root
+     * DESIGN.md (tinted cream canvas + coral accent + editorial serif display).
+     * Every value below is a DESIGN.md token except the three marked "derived",
+     * where DESIGN.md has no token at all (see the dark block).
+     *
+     * ACCESSIBILITY — KNOWN AND ACCEPTED, NOT A BUG.
+     * The light theme is a faithful transcription of claude.com's live values,
+     * and six pairs land under WCAG AA. This was chosen deliberately (brand
+     * fidelity over contrast); changing it means leaving the DESIGN.md palette.
+     *   muted-soft on canvas ........ 3.23:1  (needs 4.5)
+     *   muted on card ............... 4.48:1  (needs 4.5)
+     *   white on coral (CTA) ........ 3.28:1  (needs 4.5)
+     *   coral on canvas ............. 3.11:1  (needs 4.5)
+     *   success dot on canvas ....... 2.33:1  (needs 3.0)
+     *   warning dot on canvas ....... 2.25:1  (needs 3.0)
+     * The dark theme passes everywhere (lowest pair 5.47:1).
+     */
     :root {
-      --bg-primary: #f5f5f7;
-      --bg-secondary: #ffffff;
-      --bg-tertiary: #e5e5e7;
-      --border: #d1d1d6;
-      --text-primary: #1d1d1f;
-      --text-secondary: #86868b;
-      --text-tertiary: #aeaeb2;
-      --accent: #0071e3;
-      --accent-hover: #0077ed;
-      --success: #34c759;
-      --warning: #ff9f0a;
-      --error: #ff3b30;
-      --selected-bg: #e8f4fd;
-      --selected-border: #0071e3;
+      --bg-primary: #faf9f5;              /* canvas */
+      --bg-secondary: #efe9de;            /* surface-card — one step DARKER than canvas, per DESIGN.md */
+      --bg-tertiary: #e8e0d2;             /* surface-cream-strong */
+      --border: #e6dfd8;                  /* hairline */
+      --text-primary: #141413;            /* ink */
+      --text-secondary: #6c6a64;          /* muted */
+      --text-tertiary: #8e8b82;           /* muted-soft */
+      --accent: #cc785c;                  /* primary (coral) */
+      --accent-hover: #a9583e;            /* primary-active */
+      --success: #5db872;
+      --warning: #d4a017;
+      --error: #c64545;
+      --selected-bg: rgba(204, 120, 92, 0.12);   /* derived: primary at 12% */
+      --selected-border: #cc785c;         /* primary */
     }
 
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg-primary: #1d1d1f;
-        --bg-secondary: #2d2d2f;
-        --bg-tertiary: #3d3d3f;
-        --border: #424245;
-        --text-primary: #f5f5f7;
-        --text-secondary: #86868b;
-        --text-tertiary: #636366;
-        --accent: #0a84ff;
-        --accent-hover: #409cff;
-        --selected-bg: rgba(10, 132, 255, 0.15);
-        --selected-border: #0a84ff;
+        /* Surfaces keep the original progressively-lighter order, so DESIGN.md's
+         * dark-soft (darker) sits at secondary and dark-elevated (lighter) at tertiary. */
+        --bg-primary: #181715;            /* surface-dark */
+        --bg-secondary: #1f1e1b;          /* surface-dark-soft */
+        --bg-tertiary: #252320;           /* surface-dark-elevated */
+        /* derived — DESIGN.md defines no dark hairline token: on-dark-soft at 18% */
+        --border: rgba(160, 157, 150, 0.18);
+        --text-primary: #faf9f5;          /* on-dark */
+        --text-secondary: #a09d96;        /* on-dark-soft */
+        /* derived — DESIGN.md defines no dark tertiary-text token: on-dark-soft at 62% */
+        --text-tertiary: rgba(160, 157, 150, 0.62);
+        --accent: #cc785c;                /* primary — 5.47:1 on surface-dark */
+        /* derived — primary lightened. primary-active (#a9583e) DARKENS, which is the
+         * wrong direction for a hover on a dark surface; this mirrors that relationship. */
+        --accent-hover: #d98a6e;
+        --selected-bg: rgba(204, 120, 92, 0.18);
+        --selected-border: #cc785c;
       }
     }
 
@@ -100,8 +123,20 @@
     }
 
     /* ===== TYPOGRAPHY ===== */
-    h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem; }
-    h3 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
+    /* Editorial display face, per DESIGN.md's serif-display / sans-body split.
+     * DESIGN.md names Copernicus (sub: Tiempos Headline), then Cormorant Garamond /
+     * EB Garamond as open-source substitutes — all of which need a download, and this
+     * server is deliberately network-free (no remote assets; see the vendoring ADR).
+     * So the ladder ends at the system stack. NOTE: Georgia is a transitional serif,
+     * not the slab DESIGN.md describes — this is an approximation, not a match.
+     * Weight stays 400 and tracking negative, which DESIGN.md calls essential. */
+    h2, h3 {
+      font-family: ui-serif, Georgia, 'Times New Roman', serif;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+    h2 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    h3 { font-size: 1.1rem; margin-bottom: 0.25rem; }
     .subtitle { color: var(--text-secondary); margin-bottom: 1.5rem; }
     .section { margin-bottom: 2rem; }
     .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }

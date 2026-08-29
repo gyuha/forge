@@ -47,7 +47,7 @@ fg-ask offers the companion **automatically, just-in-time** during grilling — 
 
 - **The keyed URL is the whole access model.** Always hand the user the complete `url` from the server JSON, `?key=` included — a bare `host:port` gets a 403 by design.
 - **This skill writes no loop state** — it never touches the active slot, backlog, executed, done, or the permanent docs. Its only writes are session files under `.forge/visual/` (or `/tmp` without `--project-dir`).
-- The vendored `scripts/` keep their upstream form (bash launcher + node server) and stay **byte-identical** — they are deliberately outside forge's bash+node twin convention for mechanical scripts (ADR-0022); see the vendoring ADR. The confirm button is an inline `onclick` handler in the screen HTML you push, never a vendored-file edit.
+- The vendored `scripts/` keep their upstream **form** — bash launcher, node server, and deliberately outside forge's bash+node twin convention for mechanical scripts (ADR-0022); see the vendoring ADR. They are **not kept byte-for-byte with upstream**: forge adjusted branding and theme at vendoring time (remote logo and telemetry removed — ADR `260719-224442` §1) and again when the frame was rethemed to the repo-root `DESIGN.md` palette. Each file's header records its own modifications, so upstream tracking stays a readable diff rather than a byte comparison. The confirm button is an inline `onclick` handler in the screen HTML you push, never a vendored-file edit.
 - **`Monitor` is optional, never a hard dependency.** If it's unavailable, the companion runs exactly as before — no wake watch, the user presses 확정 (or submits an Ask input) and still sends a terminal turn to resume you. Same graceful pattern as a missing `fg-map`/eco/tdd.
 
 ## Document impact
