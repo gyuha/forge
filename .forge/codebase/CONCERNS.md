@@ -64,16 +64,16 @@ forge는 공개 배포되어 남의 머신에 설치되고, **세션 시작마�
 - **자동 게이트 0건**: `scripts/forge-doctor.{sh,js}`에 `.forge/codebase/` 검사가 전무하다(이번 세션 grep 0건 재확인). 지도가 통째로 삭제돼도 doctor는 0 findings. 지도는 fg-ask 그릴링의 연료이므로 조용한 드리프트 = 계획 품질 저하.
 - **이 결함이 지금 미해결 의제로 살아 있다** — `.forge/agenda.md`(2026-08-05 개시, 37줄)의 목적지가 정확히 "fg-map 지도를 믿을 수 있게 만든다"이고, 그 문서가 인용하는 상속된 거짓 3건 중 하나가 이 문서의 C15다. 결정 4건이 내려졌고 **열린 질문 4건이 21일째 남아 있다**(C24 — 이 의제는 어떤 결정론 표면에도 안 보인다).
 
-### B6. 브라우저 답변 채널(fg-visual)의 신뢰성이 전부 산문 수명 의무 위에 서 있다 — **major** `[확정/이월]`
-- `Monitor`는 `persistent: true`로 걸며 스스로 만료되지 않는다 — 서버를 멈추는 **모든** 경로가 `TaskStop`을 함께 불러야 하고(`skills/fg-visual/VISUAL.md:357`), 빠뜨리면 죽은 세션의 events 파일을 tail한다. 실제 실행 중 재장전 누락이 두 번 발동(회고 `260805-063357`).
+### B6. 브라우저 답변 채널(fg-showme)의 신뢰성이 전부 산문 수명 의무 위에 서 있다 — **major** `[확정/이월]`
+- `Monitor`는 `persistent: true`로 걸며 스스로 만료되지 않는다 — 서버를 멈추는 **모든** 경로가 `TaskStop`을 함께 불러야 하고(`skills/fg-showme/VISUAL.md:357`), 빠뜨리면 죽은 세션의 events 파일을 tail한다. 실제 실행 중 재장전 누락이 두 번 발동(회고 `260805-063357`).
 - 서버 4시간 유휴 종료는 인증된 요청만 활동으로 세므로 "클릭만 기다리는" 상태가 방치 구간이 된다 — 실측 5시간 11분 뒤 자기 종료. 완화는 "화면 밀기 전 서버 생존 확인" 산문 한 줄뿐.
 - 텍스트 전송 버튼(`VISUAL.md:297`)에 확정 버튼의 `dataset.sent` 중복 전송 가드가 **없다**(확정 쪽에서 798ms 더블클릭 중복 실측, 텍스트 쪽 미수정).
 - 위험의 성격은 중단이 아니라 **침묵** — 사용자가 누르고 기다리는데 아무 일도 안 일어나는 것.
 
 ### B7. 스킬 `description`이 카탈로그 설명과 자동 호출 트리거를 겸한다 — 상한 압력이 **실현됐다** — **major** `[확정 / 이번 세션 재측정]`
-- 압력이 아니라 위반이다. `DESC_MAX=600`(`scripts/forge-doctor.sh`의 B16, 코드포인트 기준) 대비 이번 세션 전수 재측정: **fg-help 768(128% — 리포의 유일한 doctor 경고)** · fg-doctor 591(98%) · fg-visual 573 · fg-security 551 · fg-eco 546 · fg-agents 531 · fg-adversarial-review 531. 신규 스킬 fg-help가 **상한을 28% 넘긴 채 v0.6.16으로 배포됐다** — doctor가 잡는데도(warning) 릴리스가 통과했다는 것이 요점이다(C3: doctor를 부르는 자동화가 없다).
+- 압력이 아니라 위반이다. `DESC_MAX=600`(`scripts/forge-doctor.sh`의 B16, 코드포인트 기준) 대비 이번 세션 전수 재측정: **fg-help 768(128% — 리포의 유일한 doctor 경고)** · fg-doctor 591(98%) · fg-showme 573 · fg-security 551 · fg-eco 546 · fg-agents 531 · fg-adversarial-review 531. 신규 스킬 fg-help가 **상한을 28% 넘긴 채 v0.6.16으로 배포됐다** — doctor가 잡는데도(warning) 릴리스가 통과했다는 것이 요점이다(C3: doctor를 부르는 자동화가 없다).
 - `skills/fg-done/SKILL.md:3`은 여전히 `(Note: 'forge cleanup' routes to fg-cleanup, not here.)`로 트리거 충돌을 산문으로 막는다.
-- fg-doctor의 B16은 **길이만** 본다 — description ↔ 본문의 의미 일치, 자동 호출 정확도의 회귀 테스트는 없다. 문구 드리프트가 곧 동작 드리프트가 된 실사례(fg-visual "표시 전용" 잔존)와 이름 오발동으로 실행 중 개명한 사례(fg-chart→fg-agenda)가 기록돼 있다.
+- fg-doctor의 B16은 **길이만** 본다 — description ↔ 본문의 의미 일치, 자동 호출 정확도의 회귀 테스트는 없다. 문구 드리프트가 곧 동작 드리프트가 된 실사례(fg-showme "표시 전용" 잔존)와 이름 오발동으로 실행 중 개명한 사례(fg-chart→fg-agenda)가 기록돼 있다.
 
 ### B8. 테스트가 프로덕션 호출 형태를 재현하지 않으면 통과가 아무것도 보장하지 않는다 — **major(구조적)** `[확정/이월 + 이번 세션 exec bit 재전수]`
 - 근거: `.forge/done/260727-233237-…/run.md` — 22개 단언 전부 통과 상태에서 훅이 전혀 발화하지 않았다(`hooks/run-hook.cmd` exec bit 부재; 테스트는 `bash "$WRAPPER"`로 불러 통과). exec bit 단언 테스트는 리포 전체 1건(`hooks/run-hook.test.sh:43`).

@@ -43,18 +43,18 @@ mapped: 2026-08-26
 - deploy 잡: `actions/deploy-pages@v4`, environment `github-pages`. **Pages 소스가 "GitHub Actions"로 설정돼 있어야 한다**(레거시 "branch /docs folder" 소스로는 이 아티팩트를 못 서빙 — 워크플로 헤더 주석에 명시).
 - **npm 레지스트리**가 유일한 패키지 의존 경로다(`npm ci` + `package-lock.json`). 플러그인 런타임에는 npm 의존성이 하나도 들어가지 않는다.
 
-## 3. 시각 컴패니언 로컬 서버 (`fg-visual`)
+## 3. 시각 컴패니언 로컬 서버 (`fg-showme`)
 
-- `skills/fg-visual/scripts/server.cjs` — zero-dependency Node HTTP+WebSocket(RFC 6455 직접 구현) 서버. **원격 요청·텔레메트리 없음**(파일 헤더에 명시, superpowers 브랜딩/텔레메트리 제거됨).
-- 랜덤 하이 포트에 기동(`start-server.sh`), 세션 키 URL 인증(`?key=` 토큰), Origin 검사, 포트/키를 `<project>/.forge/visual/.last-port`에 영속해 재시작 시 재사용. 유휴 자동 종료는 `BRAINSTORM_IDLE_TIMEOUT_MS` 환경변수(기본 4시간).
-- 세션 파일은 모든 브랜치에서 최상위 `.forge/visual/<세션>/` (휘발·gitignore).
+- `skills/fg-showme/scripts/server.cjs` — zero-dependency Node HTTP+WebSocket(RFC 6455 직접 구현) 서버. **원격 요청·텔레메트리 없음**(파일 헤더에 명시, superpowers 브랜딩/텔레메트리 제거됨).
+- 랜덤 하이 포트에 기동(`start-server.sh`), 세션 키 URL 인증(`?key=` 토큰), Origin 검사, 포트/키를 `<project>/.forge/showme/.last-port`에 영속해 재시작 시 재사용. 유휴 자동 종료는 `BRAINSTORM_IDLE_TIMEOUT_MS` 환경변수(기본 4시간).
+- 세션 파일은 모든 브랜치에서 최상위 `.forge/showme/<세션>/` (휘발·gitignore).
 - 사용자 입력(클릭·텍스트)은 JSONL 이벤트로 에이전트에 회수 — 보조 답변 채널.
 
 ## 4. Vendored / 개념 차용 (외부 코드 유입 경로)
 
 | 출처 | 라이선스 | 유입 형태 | 위치 |
 | --- | --- | --- | --- |
-| obra/superpowers v6.1.1 Visual Companion | MIT (LICENSE 동봉) | 코드 vendoring (5파일) | `skills/fg-visual/scripts/`, `skills/fg-visual/LICENSE` |
+| obra/superpowers v6.1.1 Visual Companion | MIT (LICENSE 동봉) | 코드 vendoring (5파일) | `skills/fg-showme/scripts/`, `skills/fg-showme/LICENSE` |
 | obra/superpowers `run-hook.cmd` polyglot 패턴 | MIT (파일 헤더 귀속) | 코드 차용 + node 폴백 확장 | `hooks/run-hook.cmd` |
 | cloudflare/security-audit-skill | MIT (LICENSE 동봉, Copyright 2025-2026 Cloudflare, Inc.) | 코드 vendoring (12파일, **원형 유지**·진입 파일만 `SKILL.md`→`AUDIT.md` 개명) | `skills/fg-security/{AUDIT,ATTACK-CLASSES,HUNTING,RECONNAISSANCE,VALIDATION-AND-REPORTING,WEB-PROTOCOL-AND-AUTH,CLIENT-SIDE,AI-AND-LLM,MEMORY-SAFETY-AND-BINARY}.md`, `report-schema.json`, `validate-findings.cjs`, `LICENSE` |
 | mattpocock/skills Wayfinder | MIT | **개념만** 각색 (파일 복사 없음) | `skills/fg-agenda/SKILL.md` |

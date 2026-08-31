@@ -20,7 +20,7 @@ forge는 Claude Code **플러그인**이다. 산출물은 Markdown(스킬 문서
 | 규율 데이터 파일 | plain text (마크다운 아님 — verbatim 대조용 단일 정의) | `scripts/explaining-forge.rule.txt` (1줄; `forge-doctor.sh`/`.js` 둘 다 런타임에 읽어 각 `SKILL.md`에 그 문단이 그대로 있는지 검사 — ADR `260824-134246`) |
 | 훅 디스패처 | bash/cmd polyglot (한 파일이 batch+shell 겸용) | `hooks/run-hook.cmd` |
 | 보안 감사 검증기 | Node CommonJS zero-dependency (`.cjs`, JSON Schema 부분집합을 직접 해석) | `skills/fg-security/validate-findings.cjs` + `skills/fg-security/report-schema.json` (vendored, 원형 유지) |
-| 시각 컴패니언 서버 | Node zero-dependency (내장 모듈 `http`/`crypto`/`fs`/`path`/`child_process`만, WebSocket RFC 6455 직접 구현) | `skills/fg-visual/scripts/server.cjs` (+`helper.js`, `start-server.sh`, `stop-server.sh`, `frame-template.html`) |
+| 시각 컴패니언 서버 | Node zero-dependency (내장 모듈 `http`/`crypto`/`fs`/`path`/`child_process`만, WebSocket RFC 6455 직접 구현) | `skills/fg-showme/scripts/server.cjs` (+`helper.js`, `start-server.sh`, `stop-server.sh`, `frame-template.html`) |
 | 문서 사이트 | VitePress 1.x + `vitepress-plugin-mermaid` + `mermaid` 11.x (설정은 TypeScript ESM) | `docs/.vitepress/config.mts`, 소스는 `docs/*.md`(한글 = root locale) ↔ `docs/en/*.md`(영문) 7쌍, `base: '/forge/docs/'` |
 | 랜딩 페이지 | 정적 단일 HTML (KO/EN `data-l` span 토글) | `docs/index.html` (VitePress 밖 — 워크플로가 아티팩트 루트로 따로 복사) |
 

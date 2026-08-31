@@ -8,7 +8,7 @@ description: forge의 결정론 스크립트 트윈(`scripts/forge-*.sh` + `.js`
 ## 소유 범위
 - `scripts/forge-*.{sh,js}` 트윈 — 현재: `forge-doctor`, `forge-done`, `forge-merge`, `forge-status`, `forge-statusline`, `forge-statusline-full`, `resolve-forge-root`. (`forge-statusline-wrapper.sh`는 원본 statusline 보존 wrapper라 **bash 전용 예외** — node 트윈 없음.)
 - 각 스크립트의 테스트: `*.test.sh`(동작)·`*.parity.test.sh`(패리티).
-- **범위 밖**: `skills/fg-visual/scripts/`(obra/superpowers vendoring — 업스트림 형태 유지, 트윈 규약·패리티 대상 아님, ADR `260719-224442`). LLM 판단(grilling·divergence 평가·검증 결정)은 스크립트로 옮기지 않는다.
+- **범위 밖**: `skills/fg-showme/scripts/`(obra/superpowers vendoring — 업스트림 형태 유지, 트윈 규약·패리티 대상 아님, ADR `260719-224442`). LLM 판단(grilling·divergence 평가·검증 결정)은 스크립트로 옮기지 않는다.
 
 ## 반드시 지키는 규약 (ADR-0022)
 - **이중 디스패치 — bash 1차, node 폴백.** `.sh`와 `.js`는 **동일 동작**이어야 한다: exit code·결과 파일 트리·STATUS 내용·아카이브 레이아웃이 같아야 한다. 한쪽만 고치면 drift다.

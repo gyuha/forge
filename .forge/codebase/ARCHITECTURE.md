@@ -60,11 +60,11 @@ fg-done(봉인)       ──▶ .forge/done/<날짜-slug>/ 로 아카이브, 활
 - `skills/fg-agenda/` — 아직 내리지 않은 결정의 대기열. `.forge/agenda.md` 단일 파일(목적지·결정된 것·열린 질문·fog·범위 밖), 열린 질문 0이면 자기 삭제. fg-next/fg-status 다음-단계 사슬에 미편입(ADR `260805-201313`).
 - `skills/fg-security/` — 코드베이스 보안 감사(96줄 glue + vendored 12파일). **명명 비대칭이 구조를 지탱한다**: vendored 진입 파일이 `AUDIT.md`로 개명돼 있는데, 이는 플러그인 스킬 자동 탐색(`skills/*/SKILL.md`)이 vendored 본문을 **중첩 스킬로 잡아가지 않게** 하기 위한 것이다 — `skills/fg-security/SKILL.md`는 forge 자신의 glue(라우팅·게이트)이고, 방법론 본문은 `AUDIT.md` + 공격유형 플레이북 9종(`ATTACK-CLASSES.md`·`HUNTING.md`·`RECONNAISSANCE.md`·`WEB-PROTOCOL-AND-AUTH.md`·`CLIENT-SIDE.md`·`AI-AND-LLM.md`·`MEMORY-SAFETY-AND-BINARY.md`·`VALIDATION-AND-REPORTING.md`) + `report-schema.json`·`validate-findings.cjs`로, 업스트림(cloudflare/security-audit-skill, MIT `LICENSE`)과 byte-for-byte 유지가 규약이다(수정 금지). forge가 더하는 것은 셋뿐 — 산출물을 **리포 밖**(`~/security-audit-skill/<repo>/run-<N>/`)에 두어 취약점 목록이 커밋될 경로 자체를 없앰, 심각도 게이트(CRITICAL·HIGH 제안 / MEDIUM 제안+묶기 / LOW·INFO 계획 없음) 통과분만 사람 승인 후 fix-forward backlog plan, 무인 주행 항상 skip. 봉인 게이트 아님 — ADR `260820-215004`.
 - `skills/fg-help/` — 사용법 리포터(66줄). 각 `skills/*/SKILL.md`의 frontmatter `description`을 런타임에 읽어 사용자 언어로 렌더하므로 **결정론 트윈이 없는** 유일한 리포터다(번역이 스크립트로 불가 — fg-status/fg-doctor와의 분기점). 사용법 사본 0 → 스킬을 추가해도 fg-help는 수정 불필요(ADR `260814-104534`).
-- 기타: `fg-map`(코드베이스 지도→`.forge/codebase/`), `fg-quick`(경량 차선, `.forge/quick/LOG.md` 한 줄), `fg-merge`(브랜치 forge 통합), `fg-cleanup`(ADR 은퇴→`.forge/adr/retired/`), `fg-drop`(미완 작업 폐기→삭제 또는 `.forge/dropped/`), `fg-tdd`·`fg-eco`(`.forge/config.json` 토글), `fg-statusline`, `fg-doctor`(무결성 검사), `fg-adversarial-review`(6렌즈 적대 리뷰→`.forge/review.md`), `fg-agents`(`.claude/agents/<role>.md` 카드 생성 — 세션 재시작 후 로드, ADR-0024), `fg-visual`(브라우저 컴패니언 — vendored 서버 `skills/fg-visual/scripts/server.cjs` 외 4파일).
+- 기타: `fg-map`(코드베이스 지도→`.forge/codebase/`), `fg-quick`(경량 차선, `.forge/quick/LOG.md` 한 줄), `fg-merge`(브랜치 forge 통합), `fg-cleanup`(ADR 은퇴→`.forge/adr/retired/`), `fg-drop`(미완 작업 폐기→삭제 또는 `.forge/dropped/`), `fg-tdd`·`fg-eco`(`.forge/config.json` 토글), `fg-statusline`, `fg-doctor`(무결성 검사), `fg-adversarial-review`(6렌즈 적대 리뷰→`.forge/review.md`), `fg-agents`(`.claude/agents/<role>.md` 카드 생성 — 세션 재시작 후 로드, ADR-0024), `fg-showme`(브라우저 컴패니언 — vendored 서버 `skills/fg-showme/scripts/server.cjs` 외 4파일).
 
 ## 브랜치별 forge 루트 (ADR-0011)
 
-모든 `.forge/...` 경로는 **해석된 루트** 기준: 기본 브랜치면 `.forge/`, 그 외는 `.forge/branch/<branch>/`(통째 git 추적 — `.gitignore`의 `!.forge/branch/`). 해석 규칙의 단일 정의는 `skills/fg-run/FORGE-ROOT.md`(62줄)이며 모든 루프 스킬이 참조한다. 전역 예외 2개는 항상 최상위: `.forge/config.json`, `.forge/codebase/` (+휘발 예외 `.forge/visual/`). 비기본 브랜치에서 영속 문서(CONTEXT/adr/retro)는 **읽기 overlay**(최상위+브랜치, 브랜치 우선), 쓰기는 브랜치 루트만. 통합은 `git merge` 후 fg-merge(`scripts/forge-merge.sh`/`.js`).
+모든 `.forge/...` 경로는 **해석된 루트** 기준: 기본 브랜치면 `.forge/`, 그 외는 `.forge/branch/<branch>/`(통째 git 추적 — `.gitignore`의 `!.forge/branch/`). 해석 규칙의 단일 정의는 `skills/fg-run/FORGE-ROOT.md`(62줄)이며 모든 루프 스킬이 참조한다. 전역 예외 2개는 항상 최상위: `.forge/config.json`, `.forge/codebase/` (+휘발 예외 `.forge/showme/`). 비기본 브랜치에서 영속 문서(CONTEXT/adr/retro)는 **읽기 overlay**(최상위+브랜치, 브랜치 우선), 쓰기는 브랜치 루트만. 통합은 `git merge` 후 fg-merge(`scripts/forge-merge.sh`/`.js`).
 
 ## 결정론 스크립트 백킹 (ADR-0020/0022/0030/0031)
 
@@ -85,7 +85,7 @@ fg-done(봉인)       ──▶ .forge/done/<날짜-slug>/ 로 아카이브, 활
 | `skills/fg-run/PLAN-FORMAT.md` · `RUN-ALL.md` | fg-run | plan 형식·분할 규칙 / Run-all 절차 |
 | `skills/fg-learn/RETRO-FORMAT.md` | fg-learn | 회고 형식 |
 | `skills/fg-eco/ECO.md` | fg-eco | Eco laziness-first 규율(fg-run 서브에이전트 prepend 등) |
-| `skills/fg-visual/VISUAL.md` | fg-visual | 시각 컴패니언 운용(fg-ask가 파일 참조로 소비) |
+| `skills/fg-showme/VISUAL.md` | fg-showme | 시각 컴패니언 운용(fg-ask가 파일 참조로 소비) |
 | `skills/fg-security/AUDIT.md` | (vendored) | 보안 감사 절차 — fg-security glue가 참조만, 편집 금지 |
 | `scripts/explaining-forge.rule.txt` | (스크립트 데이터) | 항상-on 설명 규율 canonical 본문 — 22 `SKILL.md` 인라인 사본을 fg-doctor B17이 대조 |
 

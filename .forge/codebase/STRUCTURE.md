@@ -20,7 +20,7 @@ mapped: 2026-08-26
 │   ├── fg-next/                 # SKILL.md + HANDOFF.md(핸드오프 표 단일 정의) + DRIVE.md(무인 주행 규율 — Stop 훅 + /goal 폴백)
 │   ├── fg-loop/                 # SKILL.md (262줄 — 최대; waiting·stalled-waiting·blocked-health·budget-exhausted 포함)
 │   ├── fg-eco/                  # SKILL.md + ECO.md
-│   ├── fg-visual/               # SKILL.md + VISUAL.md + LICENSE + scripts/ (server.cjs·helper.js·frame-template.html·start/stop-server.sh — superpowers vendoring)
+│   ├── fg-showme/               # SKILL.md + VISUAL.md + LICENSE + scripts/ (server.cjs·helper.js·frame-template.html·start/stop-server.sh — superpowers vendoring)
 │   ├── fg-security/             # SKILL.md(forge glue 96줄) + LICENSE + vendored 12파일 — 진입 파일이 AUDIT.md(SKILL.md 아님!)
 │   │                            #   ATTACK-CLASSES/HUNTING/RECONNAISSANCE/WEB-PROTOCOL-AND-AUTH/CLIENT-SIDE/
 │   │                            #   AI-AND-LLM/MEMORY-SAFETY-AND-BINARY/VALIDATION-AND-REPORTING .md
@@ -60,7 +60,7 @@ mapped: 2026-08-26
 ## 명명 규칙
 
 - **스킬**: 디렉터리·frontmatter `name` 모두 `fg-<verb|noun>`. 식별자는 frontmatter `name`.
-- **vendored 자산**: 원형 유지가 원칙이되 **진입 파일만 개명**한다 — `skills/fg-security/AUDIT.md`가 업스트림에서 `SKILL.md`였다. `skills/*/SKILL.md` 자동 탐색이 vendored 본문을 중첩 스킬로 잡는 것을 막기 위한 것이고(같은 이유로 `fg-visual/scripts/`는 `.cjs`/`.js`뿐), forge 자신의 glue만 그 디렉터리의 `SKILL.md`를 차지한다. 나머지 파일은 diff를 싸게 유지하려 손대지 않는다.
+- **vendored 자산**: 원형 유지가 원칙이되 **진입 파일만 개명**한다 — `skills/fg-security/AUDIT.md`가 업스트림에서 `SKILL.md`였다. `skills/*/SKILL.md` 자동 탐색이 vendored 본문을 중첩 스킬로 잡는 것을 막기 위한 것이고(같은 이유로 `fg-showme/scripts/`는 `.cjs`/`.js`뿐), forge 자신의 glue만 그 디렉터리의 `SKILL.md`를 차지한다. 나머지 파일은 diff를 싸게 유지하려 손대지 않는다.
 - **스크립트**: `forge-<기능>.sh` + `.js` 트윈, 테스트는 `<이름>.test.sh`·패리티는 `<이름>.parity.test.sh`. shebang `#!/usr/bin/env bash`, `bash script.sh`로 호출, `.gitattributes`가 `*.sh` LF 강제.
 - **ADR ID**: 시간기반 `YYMMDD-HHMMSS`(같은-초 충돌 시 소문자 글자 접미). 구식 `NNNN`(0001–0032)·`YYMMDD-HH글자`(예: `260716-13a`)는 grandfather 공존 — `.forge/adr/` 실물 확인됨. 은퇴는 `adr/retired/`로 이동(번호 불변).
 - **회고**: `.forge/retro/YYMMDD-HHMMSS-slug.md`(신식) — 구식 `YYYY-MM-DD-slug.md` 공존.
