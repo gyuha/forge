@@ -130,7 +130,7 @@ Every internal notification goes through the new SaaS, and the old sending code 
 - **The line between `## Open questions` and `## Not yet sharp` (fog)**: if you **can phrase the question precisely now**, it is an open question — *whether you can answer it* is not the test (an unanswerable question just sinks down the list, it is not thrown out). If you can't even phrase it, it is fog. Fog is not out of scope; it is **in scope but not yet sharp**.
 - `## Open questions` is kept in **answerable-now-first** order. That is why the top line *is* the next thing to do, and why no dependency edges or blocking markers are needed.
 - `## Out of scope` is what you consciously ruled past the destination, plus why. It never graduates.
-- The default resolver is fg-ask; name a different one on the line only when that line needs it (e.g. fg-visual for a visual comparison). There is no ticket-type taxonomy.
+- The default resolver is fg-ask; name a different one on the line only when that line needs it (e.g. fg-showme for a visual comparison). There is no ticket-type taxonomy.
 
 ## Autonomy boundary
 

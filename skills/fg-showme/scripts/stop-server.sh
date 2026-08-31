@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Vendored from obra/superpowers v6.1.1 (skills/brainstorming/scripts/stop-server.sh).
 # MIT License, Copyright (c) 2025 Jesse Vincent — see LICENSE in the parent directory.
-# forge modifications: persistent session dirs live under .forge/visual/.
+# forge modifications: persistent session dirs live under .forge/showme/.
 #
 # Stop the visual companion server and clean up
 # Usage: stop-server.sh <session_dir>
 #
 # Kills the server process. Only deletes session directory if it's
-# under /tmp (ephemeral). Persistent directories (.forge/visual/) are
+# under /tmp (ephemeral). Persistent directories (.forge/showme/) are
 # kept so mockups can be reviewed later.
 
 SESSION_DIR="$1"

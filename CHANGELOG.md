@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased]
+
+**⚠ BREAKING — `fg-visual`이 `fg-showme`로 개명됐다.** 스킬을 매체(`visual`)가 아니라 사용자 쪽 행위(`show me`)로 이름 지었다. 근거와 기각한 대안: ADR `260831-140943`. GitHub 이슈 `#15`.
+
+### Changed (breaking)
+- **`/forge:fg-visual`이 더는 없다 → `/forge:fg-showme`를 쓴다.** 스킬 frontmatter의 `name`은 하나뿐이라 하위호환 별칭이 **구조적으로 불가능**하다. 자연어 트리거(`'visual companion'` · `'시각적으로 보여줘'` · `'목업 보여줘'`)는 `description`에 그대로 남아 있으므로 기존 습관대로 부르는 것은 계속 동작한다.
+- **세션 상태 경로가 `.forge/visual/` → `.forge/showme/`로 바뀐다** (그리고 `--project-dir` 없이 띄울 때의 `/tmp/forge-visual` → `/tmp/forge-showme`). vendored 스크립트 세 개(`start-server.sh` · `stop-server.sh` · `server.cjs`)의 **경로 문자열만** 바뀌고 로직은 불변이다. 기존 `.forge/visual/` 세션은 이전하지 않고 삭제했다 — 전부 종료된 세션이고 휘발 상태다.
+- `skills/fg-visual/` → `skills/fg-showme/`. `VISUAL.md`·`LICENSE`·`scripts/`의 파일명은 그대로다(`ECO.md`·`AUDIT.md`처럼 개념을 따르는 이름이라 스킬명에 매이지 않는다).
+
+### Added
+- **`fg-showme` 제안이 "질문"뿐 아니라 "설명"에서도 발동한다.** 지금까지 fg-ask의 just-in-time 제안은 *질문*(입력을 받는 행위)에만 걸려 있었다. 이제 분기 있는 흐름·상태 전이·다축 비교처럼 **구조를 설명하게 될 때**도 제안한다. 경계는 텍스트 흐름도다 — `A → B → C`로 감당되면 터미널에 쓰고, 그것이 못 담는 것만 브라우저로 보낸다. 규칙을 **긍정 예시**로 쓴 것이 요점이다: 이 제안이 과거에 한 번도 발동하지 않았던 원인이 금지문 위주 서술이었기 때문이다(ADR `260730-224259`). 예시가 4개 → 6개가 됐고 그중 2개가 설명형이다. GitHub 이슈 `#15`.
+
+### Fixed
+- **vendoring 표기 정정.** `SKILL.md`·`VISUAL.md`가 업스트림 v6.1.1만 가리키고 있었다. 실제로 대조해 보니 엔진 다섯 파일이 **v6.3.0과도 forge 자체 수정분을 빼면 동일**하고 업스트림 v6.2.0·v6.3.0에 visual companion 변경이 하나도 없다 — 이식할 것이 없다는 사실을 표기에 적었다.
+
 ## [0.6.17] - 2026-08-29
 
 **비주얼 컴패니언이 forge처럼 보이지 않았다.** vendoring해 온 superpowers 원본의 Apple/iOS 팔레트(`#0071e3` 블루 · `#f5f5f7` 회색 · `system-ui`)를 그대로 쓰고 있었다. 리포 루트에 새로 들어온 `DESIGN.md`(claude.com에서 추출한 Anthropic 디자인 시스템)를 정답 소스로 삼아 리테마했다.

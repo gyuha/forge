@@ -2,11 +2,13 @@
 
 Browser-based visual companion for showing mockups, diagrams, and options during a conversation — most commonly during fg-ask grilling.
 
-> Adapted from obra/superpowers v6.1.1 (`skills/brainstorming/visual-companion.md`), MIT License, Copyright (c) 2025 Jesse Vincent — see [LICENSE](./LICENSE). forge modifications: session paths under `.forge/visual/`, Claude Code-only launch instructions (ADR-0025), forge lifecycle rules.
+> Adapted from obra/superpowers v6.1.1 (`skills/brainstorming/visual-companion.md`; re-checked against v6.3.0 — no upstream change to port), MIT License, Copyright (c) 2025 Jesse Vincent — see [LICENSE](./LICENSE). forge modifications: session paths under `.forge/showme/`, Claude Code-only launch instructions (ADR-0025), forge lifecycle rules.
 
 ## When to Use
 
-Decide per-question, not per-session. The test: **would the user understand this better by seeing it than reading it?**
+Decide per-screen, not per-session. The test: **would the user understand this better by seeing it than reading it?** — and it applies in **both directions**: a *question* whose answer you need from them, and an *explanation* whose structure they need from you. The test says "the user", not "the answer", so an explanation is inside it, not an extension of it.
+
+For an explanation the boundary is a text flow diagram: if `A -> B -> C` carries it, write that in the terminal. The browser is for what a text diagram cannot hold — several branches at once, a state machine's transitions, a deep hierarchy, or a comparison across more than one axis.
 
 **Use the browser** when the content itself is visual:
 
@@ -26,7 +28,7 @@ Decide per-question, not per-session. The test: **would the user understand this
 
 A question *about* a UI topic is not automatically a visual question. "What kind of wizard do you want?" is conceptual — use the terminal. "Which of these wizard layouts feels right?" is visual — use the browser.
 
-**This per-question test is separate from deciding whether the companion will be wanted at all.** fg-ask judges that once, up front (does this task touch a visual surface?), and then makes the *offer* at the moment the first genuinely visual question arrives. Judging early is what keeps the offer from being missed; this test is what keeps conceptual questions out of the browser. Don't collapse the two — see fg-ask's SKILL.md.
+**This test is separate from deciding whether the companion will be wanted at all.** fg-ask judges that once, up front (does this task touch a visual surface, or carry enough structure that explaining it will want a picture?), and then makes the *offer* at the moment the first genuinely visual question **or explanation** arrives. Judging early is what keeps the offer from being missed; this test is what keeps conceptual questions — and explanations a text flow diagram already carries — out of the browser. Don't collapse the two — see fg-ask's SKILL.md.
 
 ## How It Works
 
@@ -41,27 +43,27 @@ The server watches a directory for HTML files and serves the newest one to the b
 ```bash
 # Start AFTER the user approves the companion. --open auto-opens their browser on
 # the first screen; --project-dir persists mockups and enables same-port restart.
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-visual/scripts/start-server.sh" --project-dir /path/to/project --open
+"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
 
 # Returns: {"type":"server-started","port":52341,
 #           "url":"http://localhost:52341/?key=ab12…",
-#           "screen_dir":"/path/to/project/.forge/visual/12345-1706000000/content",
-#           "state_dir":"/path/to/project/.forge/visual/12345-1706000000/state"}
+#           "screen_dir":"/path/to/project/.forge/showme/12345-1706000000/content",
+#           "state_dir":"/path/to/project/.forge/showme/12345-1706000000/state"}
 ```
 
 Save `screen_dir` and `state_dir` from the response. With `--open`, the browser opens itself when you push the first screen — you don't need to ask the user to open it, but still share the URL as a fallback (headless/remote setups won't auto-open).
 
 **The URL contains a session key (`?key=…`).** The server rejects any request without it, so always give the user the **complete** URL from the `url` field — never strip the query string, and never hand out a bare `http://host:port`. The key gates HTTP and WebSocket access so a stray browser tab or another machine on the network can't read the screens or inject events. After the first load the browser remembers the key via a cookie, so reloads and `/files/*` assets work without repeating it.
 
-**Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. If you launched the server in the background and didn't capture stdout, read that file to get the URL and port. When using `--project-dir`, check `<project>/.forge/visual/` for the session directory.
+**Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. If you launched the server in the background and didn't capture stdout, read that file to get the URL and port. When using `--project-dir`, check `<project>/.forge/showme/` for the session directory.
 
-**Note:** Pass the project root as `--project-dir` so mockups persist in `.forge/visual/` and survive server restarts. Without it, files go to `/tmp` and get cleaned up. `.forge/visual/` is volatile display state — make sure it is gitignored (forge's standard `.gitignore` policy excludes `.forge/*` by default and never whitelists `visual/`; remind the user if their project's policy differs).
+**Note:** Pass the project root as `--project-dir` so mockups persist in `.forge/showme/` and survive server restarts. Without it, files go to `/tmp` and get cleaned up. `.forge/showme/` is volatile display state — make sure it is gitignored (forge's standard `.gitignore` policy excludes `.forge/*` by default and never whitelists `showme/`; remind the user if their project's policy differs).
 
 **Launching (Claude Code):**
 
 ```bash
 # Default mode works — the script backgrounds the server itself.
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-visual/scripts/start-server.sh" --project-dir /path/to/project --open
+"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
 ```
 
 On Windows, the script auto-detects and switches to foreground mode (which blocks the tool call). Use `run_in_background: true` on the Bash tool call so the server survives across conversation turns, then read `$STATE_DIR/server-info` on the next turn to get the URL and port.
@@ -69,7 +71,7 @@ On Windows, the script auto-detects and switches to foreground mode (which block
 If the URL is unreachable from your browser (common in remote/containerized setups), bind a non-loopback host:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-visual/scripts/start-server.sh" \
+"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" \
   --project-dir /path/to/project \
   --host 0.0.0.0 \
   --url-host localhost
@@ -81,7 +83,7 @@ Use `--url-host` to control what hostname is printed in the returned URL JSON.
 
 ```
 Monitor(command: "tail -n0 -F <state_dir>/events 2>/dev/null | grep --line-buffered -E '\"choice\":\"(confirm|text):'",
-        description: "fg-visual confirm/text events",
+        description: "fg-showme confirm/text events",
         persistent: true)
 ```
 
@@ -351,19 +353,19 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 ## Lifecycle (forge rules)
 
 - **Within fg-ask**: the companion's job ends where the plan begins — stop the server at Output time (when the plan lands in the backlog and the handoff is delivered). See fg-ask's Forge integration section.
-- **Standalone (fg-visual)**: stop when the visual discussion is done, or when the user says `fg-visual stop`.
+- **Standalone (fg-showme)**: stop when the visual discussion is done, or when the user says `fg-showme stop`.
 - **Abandoned sessions**: the 4-hour idle timeout is the backstop — a forgotten server shuts itself down.
-- Mockup files persist in `.forge/visual/` after stop for later reference (only `/tmp` sessions are deleted).
-- **The wake watch is `persistent` — stop it explicitly.** It never times out on its own, so stop it with `TaskStop` at every point the server itself gets stopped: `fg-visual stop` and fg-ask's Output time (the two bullets above). A server stop without a matching `TaskStop` leaves the watch running against a dead events file.
+- Mockup files persist in `.forge/showme/` after stop for later reference (only `/tmp` sessions are deleted).
+- **The wake watch is `persistent` — stop it explicitly.** It never times out on its own, so stop it with `TaskStop` at every point the server itself gets stopped: `fg-showme stop` and fg-ask's Output time (the two bullets above). A server stop without a matching `TaskStop` leaves the watch running against a dead events file.
 - **A session restart kills the watch but not the server** — the server survives on the same port (see Starting a Session), but the watch was armed by a tool call in the session that just ended. Re-entry must re-arm it (see Starting a Session) before a confirmed click can wake you again.
 
 ## Cleaning Up
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-visual/scripts/stop-server.sh" $SESSION_DIR
+"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/stop-server.sh" $SESSION_DIR
 ```
 
-If the session used `--project-dir`, mockup files persist in `.forge/visual/` for later reference. Only `/tmp` sessions get deleted on stop.
+If the session used `--project-dir`, mockup files persist in `.forge/showme/` for later reference. Only `/tmp` sessions get deleted on stop.
 
 ## Reference
 

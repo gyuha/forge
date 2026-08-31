@@ -1,13 +1,13 @@
 ---
-name: fg-visual
-description: Opens a browser-based visual companion in any conversation — a local zero-dependency server shows mockups, diagrams, and visual A/B options you push as HTML, and takes the user's answers back as events: a click settles a choice, a screen can carry a text box, and a confirmed choice wakes you with no terminal turn. `fg-visual stop` shuts it down. fg-ask offers it just-in-time during grilling (this skill is the standalone entry). On-demand utility outside the loop. Use in contexts like 'forge visual', 'visual companion', '시각적으로 보여줘', '목업 보여줘', '브라우저로 보여줘', '화면으로 비교해줘'.
+name: fg-showme
+description: Opens a browser-based visual companion in any conversation — a local zero-dependency server shows mockups, diagrams, and visual A/B options you push as HTML, and takes the user's answers back as events: a click settles a choice, a screen can carry a text box, and a confirmed choice wakes you with no terminal turn. `fg-showme stop` shuts it down. fg-ask offers it just-in-time during grilling (this skill is the standalone entry). On-demand utility outside the loop. Use in contexts like 'forge visual', 'visual companion', '시각적으로 보여줘', '목업 보여줘', '브라우저로 보여줘', '화면으로 비교해줘'.
 ---
 
-# fg-visual — visual companion (outside the loop)
+# fg-showme — visual companion (outside the loop)
 
 This is **not** a stage of the forge loop. It is an on-demand utility that opens a **browser tab next to the conversation** for content that is better *seen* than read — UI mockups, layout comparisons, architecture diagrams — and takes the user's answers back as structured events — a click settles a choice question, and a screen may carry a text input (ADR `260730-224259`). It is a display surface **and a secondary answer channel**: read both channels and merge them, asking one line only when they genuinely contradict. A **confirmed** selection can now wake you directly, no terminal turn required (the wake watch, armed at session start — ADR `260805-005436`); an unconfirmed, exploratory click still wakes nothing. Pillar #1 stays intact either way — not because only the terminal can resume you, but because the browser is never a runtime input to a Dynamic Workflow, and grilling stays a one-question-at-a-time conversation outside any workflow regardless of what wakes it.
 
-The engine is vendored from obra/superpowers v6.1.1 (MIT, Copyright (c) 2025 Jesse Vincent — see [LICENSE](./LICENSE)): a zero-dependency Node server (`scripts/server.cjs`) with session-key auth, path sandboxing, restart/reconnect survival, and a 4-hour idle shutdown. forge modifications: session files under `.forge/visual/`, superpowers branding/telemetry removed (the server makes no remote requests). Rationale and alternatives: ADR `260719-224442-vendor-superpowers-visual-companion`.
+The engine is vendored from obra/superpowers v6.1.1 and re-checked against **v6.3.0** — the five engine files differ only by forge's own modifications, and upstream shipped no visual-companion change in v6.2.0 or v6.3.0, so there is nothing to port (MIT, Copyright (c) 2025 Jesse Vincent — see [LICENSE](./LICENSE)): a zero-dependency Node server (`scripts/server.cjs`) with session-key auth, path sandboxing, restart/reconnect survival, and a 4-hour idle shutdown. forge modifications: session files under `.forge/showme/`, superpowers branding/telemetry removed (the server makes no remote requests). Rationale and alternatives: ADR `260719-224442-vendor-superpowers-visual-companion`.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — status lines, URLs, prompts, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** Screen content (HTML you push) is also written in the user's language.
 
@@ -15,18 +15,18 @@ The engine is vendored from obra/superpowers v6.1.1 (MIT, Copyright (c) 2025 Jes
 
 ## What it does
 
-- **`fg-visual` (no argument)** → start a companion session for this conversation: read [`VISUAL.md`](./VISUAL.md) (the full operating guide — when to use the browser vs the terminal, screen authoring, the event loop), start the server, **arm the wake watch** (a persistent `Monitor` on the events file, so a confirmed click can wake you with no terminal turn), and share the keyed URL. Then push screens as the conversation calls for them.
-- **`fg-visual stop`** → stop the running session's server **and its wake watch** (`TaskStop`) — mockups persist in `.forge/visual/` for later reference.
+- **`fg-showme` (no argument)** → start a companion session for this conversation: read [`VISUAL.md`](./VISUAL.md) (the full operating guide — when to use the browser vs the terminal, screen authoring, the event loop), start the server, **arm the wake watch** (a persistent `Monitor` on the events file, so a confirmed click can wake you with no terminal turn), and share the keyed URL. Then push screens as the conversation calls for them.
+- **`fg-showme stop`** → stop the running session's server **and its wake watch** (`TaskStop`) — mockups persist in `.forge/showme/` for later reference.
 
 ```
-fg-visual (no arg)
+fg-showme (no arg)
    → read VISUAL.md
    → scripts/start-server.sh --project-dir <repo root> --open
    → arm the wake watch (Monitor, persistent)
    → share the full keyed URL
    → loop: push screen → user looks/clicks/confirms → confirmed click (or submitted text) wakes you, or read state_dir/events + terminal reply
-fg-visual stop
-   → find the session under .forge/visual/ (state/server-info present, no server-stopped)
+fg-showme stop
+   → find the session under .forge/showme/ (state/server-info present, no server-stopped)
    → scripts/stop-server.sh <session_dir>
    → TaskStop the wake watch
 ```
@@ -34,10 +34,10 @@ fg-visual stop
 ## Behavior
 
 1. **Read [`VISUAL.md`](./VISUAL.md) before the first screen.** It is the single operating guide (progressive disclosure — loaded only when the companion actually runs): the browser-vs-terminal test, session start/restart, fragment authoring, CSS classes, the events format, the waiting-screen unload, and cleanup. Follow it; do not improvise a parallel workflow here.
-2. **Start with `--project-dir` = the repo root and `--open`.** Sessions land under the **top-level `.forge/visual/<session>/`** — a deliberate global location on every branch (like `.forge/config.json` / `.forge/codebase/`, never the branch root: a branch root is git-tracked whole, and mockup HTML must not end up in commits). It is volatile display state, excluded by forge's standard `.gitignore` policy (`.forge/*` with no `visual/` whitelist).
+2. **Start with `--project-dir` = the repo root and `--open`.** Sessions land under the **top-level `.forge/showme/<session>/`** — a deliberate global location on every branch (like `.forge/config.json` / `.forge/codebase/`, never the branch root: a branch root is git-tracked whole, and mockup HTML must not end up in commits). It is volatile display state, excluded by forge's standard `.gitignore` policy (`.forge/*` with no `showme/` whitelist).
 3. **Arm the wake watch right after the server starts, and put a confirm button on every choice screen.** A persistent `Monitor` watches the events file for a confirmed selection or a submitted text event only — an exploratory click never matches, so browsing alone never wakes you (VISUAL.md's Starting a Session and Confirm button sections have the exact command and markup; do not restate them here). If `Monitor` is unavailable, skip the watch and fall back to the pre-watch behavior.
 4. **Per-question judgment still applies.** Having the companion open does not mean every exchange goes through it — use the browser only when the content itself is visual (the test in VISUAL.md). Push a waiting screen when the conversation returns to the terminal.
-5. **Stop when the visual discussion is done** — on `fg-visual stop` (which also stops the wake watch), or proactively when the session's purpose is served. The 4-hour idle timeout is the backstop for forgotten servers, not the normal exit.
+5. **Stop when the visual discussion is done** — on `fg-showme stop` (which also stops the wake watch), or proactively when the session's purpose is served. The 4-hour idle timeout is the backstop for forgotten servers, not the normal exit.
 
 ## Relationship to fg-ask (the main consumer)
 
@@ -46,10 +46,10 @@ fg-ask offers the companion **automatically, just-in-time** during grilling — 
 ## Constraints
 
 - **The keyed URL is the whole access model.** Always hand the user the complete `url` from the server JSON, `?key=` included — a bare `host:port` gets a 403 by design.
-- **This skill writes no loop state** — it never touches the active slot, backlog, executed, done, or the permanent docs. Its only writes are session files under `.forge/visual/` (or `/tmp` without `--project-dir`).
+- **This skill writes no loop state** — it never touches the active slot, backlog, executed, done, or the permanent docs. Its only writes are session files under `.forge/showme/` (or `/tmp` without `--project-dir`).
 - The vendored `scripts/` keep their upstream **form** — bash launcher, node server, and deliberately outside forge's bash+node twin convention for mechanical scripts (ADR-0022); see the vendoring ADR. They are **not kept byte-for-byte with upstream**: forge adjusted branding and theme at vendoring time (remote logo and telemetry removed — ADR `260719-224442` §1) and again when the frame was rethemed to the repo-root `DESIGN.md` palette. Each file's header records its own modifications, so upstream tracking stays a readable diff rather than a byte comparison. The confirm button is an inline `onclick` handler in the screen HTML you push, never a vendored-file edit.
 - **`Monitor` is optional, never a hard dependency.** If it's unavailable, the companion runs exactly as before — no wake watch, the user presses 확정 (or submits an Ask input) and still sends a terminal turn to resume you. Same graceful pattern as a missing `fg-map`/eco/tdd.
 
 ## Document impact
 
-- Creates `.forge/visual/<session>/{content,state}/` session files (volatile, gitignored; top-level on every branch). The wake watch is a background `Monitor` task, not a file — it leaves nothing on disk and is stopped with `TaskStop` alongside the server. Nothing else.
+- Creates `.forge/showme/<session>/{content,state}/` session files (volatile, gitignored; top-level on every branch). The wake watch is a background `Monitor` task, not a file — it leaves nothing on disk and is stopped with `TaskStop` alongside the server. Nothing else.

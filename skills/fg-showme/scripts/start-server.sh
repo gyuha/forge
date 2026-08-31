@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Vendored from obra/superpowers v6.1.1 (skills/brainstorming/scripts/start-server.sh).
 # MIT License, Copyright (c) 2025 Jesse Vincent — see LICENSE in the parent directory.
-# forge modifications: session files live under <project>/.forge/visual/ instead of
+# forge modifications: session files live under <project>/.forge/showme/ instead of
 # <project>/.superpowers/brainstorm/.
 #
 # Start the visual companion server and output connection info
@@ -11,7 +11,7 @@
 # Each session gets its own directory to avoid conflicts.
 #
 # Options:
-#   --project-dir <path>  Store session files under <path>/.forge/visual/
+#   --project-dir <path>  Store session files under <path>/.forge/showme/
 #                         instead of /tmp. Files persist after server stops.
 #   --host <bind-host>    Host/interface to bind (default: 127.0.0.1).
 #                         Use 0.0.0.0 in remote/containerized environments.
@@ -119,13 +119,13 @@ umask 077
 SESSION_ID="$$-$(date +%s)"
 
 if [[ -n "$PROJECT_DIR" ]]; then
-  SESSION_DIR="${PROJECT_DIR}/.forge/visual/${SESSION_ID}"
+  SESSION_DIR="${PROJECT_DIR}/.forge/showme/${SESSION_ID}"
   # Persist the bound port and key per project so a restart reuses them and an
   # already-open browser tab reconnects to the same URL with a valid cookie.
-  export BRAINSTORM_PORT_FILE="${PROJECT_DIR}/.forge/visual/.last-port"
-  export BRAINSTORM_TOKEN_FILE="${PROJECT_DIR}/.forge/visual/.last-token"
+  export BRAINSTORM_PORT_FILE="${PROJECT_DIR}/.forge/showme/.last-port"
+  export BRAINSTORM_TOKEN_FILE="${PROJECT_DIR}/.forge/showme/.last-token"
 else
-  SESSION_DIR="/tmp/forge-visual-${SESSION_ID}"
+  SESSION_DIR="/tmp/forge-showme-${SESSION_ID}"
 fi
 
 STATE_DIR="${SESSION_DIR}/state"

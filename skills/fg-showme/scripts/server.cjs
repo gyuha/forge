@@ -1,7 +1,7 @@
 // Vendored from obra/superpowers v6.1.1 (skills/brainstorming/scripts/server.cjs).
 // MIT License, Copyright (c) 2025 Jesse Vincent — see LICENSE in the parent directory.
 // forge modifications: superpowers branding/telemetry removed (the server makes no
-// remote requests); session dirs live under .forge/visual/ (see start-server.sh).
+// remote requests); session dirs live under .forge/showme/ (see start-server.sh).
 const crypto = require('crypto');
 const http = require('http');
 const fs = require('fs');
@@ -103,7 +103,7 @@ function preferredPort() {
 let PORT = preferredPort();
 const HOST = process.env.BRAINSTORM_HOST || '127.0.0.1';
 const URL_HOST = process.env.BRAINSTORM_URL_HOST || (HOST === '127.0.0.1' ? 'localhost' : HOST);
-const SESSION_DIR = process.env.BRAINSTORM_DIR || '/tmp/forge-visual';
+const SESSION_DIR = process.env.BRAINSTORM_DIR || '/tmp/forge-showme';
 const CONTENT_DIR = path.join(SESSION_DIR, 'content');
 const STATE_DIR = path.join(SESSION_DIR, 'state');
 let ownerPid = process.env.BRAINSTORM_OWNER_PID ? Number(process.env.BRAINSTORM_OWNER_PID) : null;
