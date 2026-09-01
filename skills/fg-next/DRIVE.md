@@ -43,3 +43,45 @@ present frozen work ──▶ write <forge-root>/drive.md (primary path: forge's
 │      └─ wall (lane-defined) or terminal state ──▶ DELETE drive.md ──▶ STOP, report why, await human
 └───────────────────────────────────────────────────────────────────────────────────────┘
 ```
+
+## Part 3 — Per-task commit (opt-in): a rollback point the drive leaves behind
+
+**Why.** When several tasks seal while nobody is watching, there is no per-task point to roll back to. Observed: a `fg-next all` drive sealed a task and made **no commit at all**, leaving 23 files uncommitted until an unrelated rule happened to commit them together. This is the **only** place forge touches git in a drive, and it is **off by default** — forge does not know your project's commit convention, branch policy, or what a pre-commit hook will reject. Rationale and the rejected alternatives (push, a tenth wall, an overloaded config key, inferred staging, every seal path): ADR `260901-213128`.
+
+**Scope.** `fg-next all` and `fg-loop` only. Not the explicit single `/fg-done` (a human is present and a commit is one command), not `fg-done all` (it seals work executed days ago, so "changed by this task" is undefined), and not `fg-run` Run-all (it parks into `executed/`, it does not seal). **Commit only — a drive never pushes.** Rollback is complete at the local commit; pushing adds nothing to it and removes reversibility. A project that wants a push writes that in its own instructions, as this repo does.
+
+**Config — two keys, read from the TOP-LEVEL `.forge/config.json`** (the same global-exemption path as `tdd` / `eco`, never the branch root):
+
+- `driveCommit: true|false` — the toggle. **Strict boolean**, default `false`; anything other than `true` is off (the same parsing as `eco`, so a future script twin reads it the same way).
+- `driveCommitMessage: "<template>"` — optional. Absent → the default format below. Placeholders are a **closed set of three**: `{title}` (the plan's `#` title), `{slug}` (its `forge-slug`), `{task}` (its `task:` number). An unknown placeholder → **fall back to the default format and warn in one line** (the default always works, so the safety net stays intact; a config typo must not halt a drive).
+
+**Default message** — the plan's title plus the forge identifier, no prefix, **no body, no attribution**:
+
+```
+{title} (forge task #{task} · {slug})
+```
+
+No `chore(...)`-style prefix is assumed: forge does not know whether the project uses conventional commits. Where a project does enforce one, its commitlint rejects the commit and that routes to the wall below — the rejection is information. The identifier is what makes the rollback point findable later (`git log --grep '<slug>'`). Attribution lines are the project's convention, not the plugin's to stamp on every installer's history.
+
+**Entry check — the drive decides ONCE, up front, whether it will commit at all.** At the same point the lane snapshots its drive set, run `git status --porcelain`:
+
+- **empty** → commit per task for this drive. `git add -A` at each seal then **is** exactly "what this task changed", because nothing else was pending.
+- **not empty** → **this drive makes no commits**; say so in one line alongside the snapshot ("the working tree has pre-existing changes, so this drive will not commit per task — clean the tree and re-run to get rollback points"). Never infer which files belong to the task: a plan's slices are prose, not a file list, and an inferred subset produces an **incomplete** rollback point, which is worse than none.
+
+**At each seal, after the seal succeeds**, `git add -A` and commit. Two outcomes, and they are not the same thing.
+
+**Tell them apart by ORDER, never by the message.** `git commit` exits `1` for *both* "nothing to commit" and "a hook refused" — measured — so exit code alone cannot classify, and parsing stdout/stderr text is brittle across git versions and locales. Instead: **`git add -A`, then check `git status --porcelain --untracked-files=all` for staged content; if there is none it is (a) and you never run `commit` at all. Only when something is staged do you commit, and then ANY failure is (b).** Misreading (b) as (a) is the one outcome this whole discipline exists to prevent — it would walk past a refused commit and seal anyway.
+
+
+- **(a) nothing to commit** — the task changed no tracked file. This is a state, not a failure: **continue silently.** It can only happen on the default branch (a non-default branch root is git-tracked whole, so sealing itself changes tracked files — ADR-0011). This branch is also what makes a project-level commit rule (e.g. an issue-linked commit) compose without any special case: whichever commits first empties the tree, so the other becomes (a).
+- **(b) the commit was refused** — a pre-commit hook rejected it, or the repo is mid-rebase/merge or on a detached HEAD. **Halt as a wall**, reported as the lane's existing `fork (<reason>)` — e.g. `fork (commit rejected — pre-commit hook)`. A refusal is the project saying "this change may not be committed", and the human chooses: fix the code, turn `driveCommit` off, or bypass the hook. No new wall is minted for this; `fork` already means "a consequential branch the drive must not pick" and both lanes already carry it. **Never continue past (b):** sealing empties the active slot, so committing nothing here would leave neither a rollback point nor forge state.
+
+```
+drive entry ──▶ git status --porcelain
+   ├─ not empty ──▶ announce "no commits this drive" ──▶ drive normally, never commit
+   └─ empty ──▶ per task:  seal ──▶ git add -A ──▶ anything staged?
+                                      ├─ no  ──▶ (a) continue silently, never run commit
+                                      └─ yes ──▶ commit
+                                                  ├─ ok ──────▶ next task
+                                                  └─ failed ──▶ (b) DELETE drive.md ──▶ wall: fork (commit rejected — <reason>)
+```

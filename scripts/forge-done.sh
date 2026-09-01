@@ -6,8 +6,18 @@
 # per task. This script does the MECHANICAL seal in one call (like forge-status.sh
 # did for the survey — ADR-0020), so the three seal paths (interactive fg-done,
 # fg-done all, fg-next all via delegation) share one fast, atomic primitive. The
-# JUDGMENT (gate-failure routing, fg-map offer, issue-linked commit, handoff,
-# all-mode confirmation) stays in fg-done's prose — this script never routes.
+# JUDGMENT stays OUT of this script, which never routes. Each piece lives in a
+# named place, and this list must name the place, not just the piece:
+#   * gate-failure routing, fg-map offer, all-mode confirmation, handoff
+#       -> skills/fg-done/SKILL.md
+#   * per-task commit after an unattended-drive seal (opt-in `driveCommit`)
+#       -> skills/fg-next/DRIVE.md Part 3 (shared by fg-next all + fg-loop),
+#          ADR 260901-213128. This script stays git-free either way.
+#   * issue-linked commit/push/close
+#       -> the PROJECT's own instructions (this repo: CLAUDE.md), NOT the plugin.
+#          An earlier version of this comment said it lived in fg-done's prose;
+#          it never did (`issue` appears nowhere in that skill), so a reader was
+#          sent looking for text that does not exist.
 #
 # Unlike forge-status.sh (read-only), this MUTATES/MOVES files, so it is
 # GATE-FIRST, NON-DESTRUCTIVE-ON-REFUSE: it touches nothing until every pre-check
