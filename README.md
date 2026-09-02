@@ -191,7 +191,7 @@ How git and branches are operated with forge — the git-abstinence model, the c
 
 ## The two pillars
 
-1. **Grilling (planning) is conversational, outside the execution workflow.** Question-by-question grilling uses the active host's interactive input and never runs inside parallel agent execution.
+1. **Grilling (planning) is conversational, outside the execution workflow.** Delegated execution — a Dynamic Workflow or Codex subagents — cannot take user input mid-run, so question-by-question grilling uses the active host's interactive input and never runs inside parallel agent execution.
 2. **Docs are the loop's fuel, not its by-product.** Terms sharpened in planning become the standard for execution, and retro learnings become the starting point of the next plan.
 
 ## forge vs. other harnesses

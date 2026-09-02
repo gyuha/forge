@@ -50,5 +50,5 @@ When you lose track: **`/fg-status`** just *shows* how far you got; **`/fg-next`
 
 Break either of these while changing forge and forge stops being forge.
 
-1. **Grilling is never put inside the execution workflow.** Question-by-question grilling uses the host's interactive input and remains separate from parallel agent execution.
+1. **Grilling is never put inside the execution workflow.** Delegated execution — a Dynamic Workflow or Codex subagents — cannot take user input mid-run, so question-by-question grilling uses the host's interactive input and remains separate from parallel agent execution.
 2. **Docs are the loop's fuel, not its by-product.** Terms sharpened in planning become the standard for execution, and retro learnings become the starting point of the next plan.

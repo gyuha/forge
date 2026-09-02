@@ -1,7 +1,6 @@
 ---
 name: fg-done
-description: >-
-  Seals a finished task — confirms the retro, marks STATUS.md done, archives it, empties the active .forge state, and closes the loop (which blocks the same plan from re-running). `fg-done all` batch-seals every already-executed task at once (retros skipped, backlog untouched, verification gate intact). Use when a task's retro is done — '작업 완료', '봉인', '이거 마무리', '작업 정리', 'forge complete', 'fg-done all', '봉인 all', '모두 봉인'. (Note: 'forge cleanup' routes to fg-cleanup, not here.)
+description: Seals a finished task — confirms the retro, marks STATUS.md done, archives it, empties the active .forge state, and closes the loop (which blocks the same plan from re-running). `fg-done all` batch-seals every already-executed task at once (retros skipped, backlog untouched, verification gate intact). Use when a task's retro is done — '작업 완료', '봉인', '이거 마무리', '작업 정리', 'forge complete', 'fg-done all', '봉인 all', '모두 봉인'. (Note: 'forge cleanup' routes to fg-cleanup, not here.)
 ---
 
 # fg-done — ④ Done (tidy-up / re-run guard)

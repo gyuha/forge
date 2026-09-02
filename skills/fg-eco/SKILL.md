@@ -1,7 +1,6 @@
 ---
 name: fg-eco
-description: >-
-  Toggle forge's eco mode on/off — when on: caps fg-run subagents at sonnet, activates the embedded Eco laziness-first discipline (ECO.md — code simplicity + terse output) in fg-run subagents, fg-ask grilling, and the current session, and replaces task-end handoffs (fg-run, fg-done, batch/unattended paths) with a compact summary table. Does NOT switch the main session's model. `fg-eco on`/`off`; no arg shows state. On-demand utility outside the loop. Use in contexts like 'forge eco', 'eco on', 'eco off', '에코 모드', '경제 모드', 'lazy mode', '요약 표'.
+description: Toggle forge's eco mode on/off — when on: caps fg-run subagents at sonnet, activates the embedded Eco laziness-first discipline (ECO.md — code simplicity + terse output) in fg-run subagents, fg-ask grilling, and the current session, and replaces task-end handoffs (fg-run, fg-done, batch/unattended paths) with a compact summary table. Does NOT switch the main session's model. `fg-eco on`/`off`; no arg shows state. On-demand utility outside the loop. Use in contexts like 'forge eco', 'eco on', 'eco off', '에코 모드', '경제 모드', 'lazy mode', '요약 표'.
 ---
 
 # fg-eco — toggle eco mode (outside the loop)

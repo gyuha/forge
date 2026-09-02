@@ -1,7 +1,6 @@
 ---
 name: fg-doctor
-description: >-
-  A read-only integrity health check for forge — a deterministic script (forge-doctor.sh/.js) surveys the .forge/ state contract and docs/manifests and reports inconsistencies with severity + fix hints, exiting 0/1/2 so it doubles as an AI-free CI gate. Catches orphaned/broken state, half-sealed done/, an un-integrated branch root, version drift, README bilingual drift, ADR-ID issues, missing script twins. Writes nothing, never auto-fixes (fg-status: where am I; fg-doctor: is the state healthy). Use in contexts like 'forge doctor', '무결성 검사', '상태 점검', 'health check', 'check forge state'.
+description: A read-only integrity health check for forge — a deterministic script (forge-doctor.sh/.js) surveys the .forge/ state contract and docs/manifests and reports inconsistencies with severity + fix hints, exiting 0/1/2 so it doubles as an AI-free CI gate. Catches orphaned/broken state, half-sealed done/, an un-integrated branch root, version drift, README bilingual drift, ADR-ID issues, missing script twins. Writes nothing, never auto-fixes (fg-status: where am I; fg-doctor: is the state healthy). Use in contexts like 'forge doctor', '무결성 검사', '상태 점검', 'health check', 'check forge state'.
 ---
 
 # fg-doctor — state & docs integrity health check (outside the loop)

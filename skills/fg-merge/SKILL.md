@@ -1,7 +1,6 @@
 ---
 name: fg-merge
-description: >-
-  Integrates a merged branch's forge content (.forge/branch/<branch>/) into .forge/. Two modes: `fg-merge` (no arg) integrates only; `fg-merge <branch>` also runs `git merge <branch>` for you first, then integrates (default branch only; on conflict it stops, leaving the conflict in place). A deterministic script (forge-merge.sh/.js) does the git-free integration — usable AI-free in CI. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘', '머지하고 통합'.
+description: Integrates a merged branch's forge content (.forge/branch/<branch>/) into .forge/. Two modes: `fg-merge` (no arg) integrates only; `fg-merge <branch>` also runs `git merge <branch>` for you first, then integrates (default branch only; on conflict it stops, leaving the conflict in place). A deterministic script (forge-merge.sh/.js) does the git-free integration — usable AI-free in CI. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘', '머지하고 통합'.
 ---
 
 # fg-merge — integrate a branch's forge content into `.forge/` (outside the loop)
