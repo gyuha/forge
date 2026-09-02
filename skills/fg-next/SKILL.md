@@ -13,6 +13,8 @@ By default it does **one step only** (one-shot). After that step, the invoked sk
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
+**Host contract**: `all`-mode driving depends on the host's `prevent_stop` capability, and the backlog selection menu on `structured_choice`. Read [../../core/HOST.md](../../core/HOST.md) and [../../core/INTERACTION.md](../../core/INTERACTION.md), then check `hosts/<host>/capabilities.json`. With `prevent_stop` `false`, `all` is **turn-bounded** — it drives as far as one turn allows and resumes on re-trigger ([`DRIVE.md`](./DRIVE.md) Part 2's honest fallback); say so at entry instead of implying continuous execution. With `structured_choice` `false`, present a numbered text list and take one stable identifier. **The state machine, the walls, and the one-shot semantics are host-neutral.**
+
 **Forge root**: every `.forge/...` path below (and fg-status's state machine it reuses) is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before deriving or acting (ADR-0011).
 
 ## How it works

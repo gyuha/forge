@@ -11,6 +11,8 @@ This skill is **not a stage of the forge loop** (fg-ask → fg-run → fg-learn 
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
+**Host contract**: mapping fans out to subagents, so it needs the host's `spawn_parallel` capability. Read [../../core/HOST.md](../../core/HOST.md) and [../../core/EXECUTION.md](../../core/EXECUTION.md), then check `hosts/<host>/capabilities.json`. When `spawn_parallel` is `false` or the host is unknown, **produce the same seven documents serially** — the map's contents, filenames, and `.forge/codebase/` location do not change with the host; only the delegation does.
+
 **Forge root**: `.forge/codebase/` is a deliberate **global exemption** from branch-root resolution (see `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` / ADR-0011): fg-map always writes, and fg-ask always reads, the top-level `.forge/codebase/` on every branch — never `.forge/branch/<branch>/codebase/`. Reason — the map is shared reference fuel; a branch-local map would leave freshly created branches with no map and break fg-ask's read. So every `.forge/codebase/...` path below is the literal top-level path, not resolved.
 
 ## What it produces — `.forge/codebase/` (7 documents)

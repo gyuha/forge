@@ -13,7 +13,11 @@ delegates, loads project agents, continues a drive, and displays status.
    questions, no role-specific delegation, and no host UI mutation.
 
 Codex may also provide `CLAUDE_PLUGIN_ROOT` for compatibility, so its presence
-alone is not proof that the host is Claude Code.
+alone is not proof that the host is Claude Code. The mirror holds: `PLUGIN_ROOT`
+is a generic name another tool may export, so its presence alone is not proof of
+Codex either. When both signals are weak, prefer explicit host metadata; when
+nothing is conclusive, take the sequential fallback rather than guessing — every
+fallback path below is defined and safe.
 
 When a shell command needs the installed plugin root, normalize it locally:
 
@@ -36,6 +40,18 @@ the state model or maintain a second Codex-specific copy of a skill.
 | `prevent_stop` | Continue only an explicitly active unattended drive. |
 | `project_agents` | Load host-native project agent definitions. |
 | `status_display` | Install or render host-native persistent status UI. |
+
+The table above is the **single vocabulary**: `hosts/<host>/capabilities.json`
+uses exactly these eight keys and nothing else, so a skill can name a capability
+(`spawn_parallel`, `prevent_stop`, …) and look it up mechanically.
+
+**A capability is `true` only when that host has been *observed* to provide it.**
+Unverified defaults to `false`, because every capability has a defined fallback
+(sequential execution, a numbered text list, a stated stop) and a fallback that
+runs is always cheaper than a tool call that does not exist. Flipping a `false`
+to `true` is an observation, not an assumption — and `docs/codex.md`'s support
+table must be updated in the same change, since the two are the same claim in
+two forms.
 
 Read the matching adapter in `hosts/claude/` or `hosts/codex/` before using a
 host-specific capability.

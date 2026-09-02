@@ -9,11 +9,13 @@ mapped: 2026-08-26
 
 데이터베이스·인증 프로바이더·원격 API 호출 코드가 **없다**. 연동 표면은 (1) Claude Code 플러그인 호스트(훅 2종·statusline·트랜스크립트 파일 읽기), (2) GitHub(`gh` CLI·raw 콘텐츠는 문서 규칙으로만, **Actions/Pages는 실제 CI**), (3) 로컬호스트 시각 컴패니언 서버, (4) MIT 코드 vendoring 세 건(+개념 차용 한 건), (5) npm 레지스트리 — **문서 사이트 devDependencies 한정**이다.
 
-## 1. Claude Code 플러그인 표면 (주 연동)
+## 1. 호스트 플러그인 표면 (주 연동 — Claude Code + Codex)
+
+두 호스트가 같은 `skills/`·`scripts/`·`.forge/`를 쓴다. 매니페스트는 `.claude-plugin/`(plugin+marketplace)과 `.codex-plugin/plugin.json` 둘이고, 호스트마다 다른 부분만 `core/`(중립 계약 3파일)와 `hosts/<claude|codex>/`(어댑터 3파일씩) 경계에 산다 — 어댑터가 소유하는 것은 질문·위임·프로젝트 에이전트 로드·주행 계속·상태 UI 다섯뿐이고, 능력 선언은 `hosts/<host>/capabilities.json`의 8개 키다(ADR `260903-080713`).
 
 - **마켓플레이스 겸 플러그인**: 리포 루트가 곧 플러그인. `.claude-plugin/marketplace.json`의 `plugins[0].source: "./"`. 설치는 GitHub `main` 브랜치를 당긴다(push까지가 배포).
 - **스킬 자동 탐색**: `skills/*/SKILL.md` (frontmatter `name`이 식별자).
-- **훅**: `hooks/hooks.json`이 **두 개**를 등록한다. 둘 다 `shell: "bash"`·`async: false`이고 `"${CLAUDE_PLUGIN_ROOT}/hooks/run-hook.cmd" <name>`을 부르며, polyglot 래퍼가 `.sh`(bash 우선) → `.js`(node 폴백)로 디스패치하고 런타임이 없으면 exit 0 침묵한다.
+- **훅**: `hooks/hooks.json`이 **두 개**를 등록한다. 둘 다 `shell: "bash"`·`async: false`이고 `"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/hooks/run-hook.cmd" <name>`을 부르며(Codex 우선·Claude fallback), polyglot 래퍼가 `.sh`(bash 우선) → `.js`(node 폴백)로 디스패치하고 런타임이 없으면 exit 0 침묵한다.
   - `SessionStart` (matcher `startup|resume|clear|compact`) → `session-start` → `scripts/forge-hook-session-start.sh`/`.js`. 미봉인 잔여를 세션 진입 컨텍스트에 주입. `CLAUDE_PROJECT_DIR` 환경변수로 프로젝트 디렉터리에 앵커.
   - `Stop` (matcher 없음 = 전부) → `stop` → `scripts/forge-hook-stop.sh`/`.js`. 무인 주행을 턴 경계 너머로 잇는 forge 자체 대체물(`/goal`은 사용자만 칠 수 있는 세션 스코프 훅이라서). 호스트 규약을 그대로 쓴다 — **`exit 2` = 정지 차단 + stderr가 차단 메시지**, `exit 0`/`1` = 정지 허용. 훅 JSON은 stdin으로 들어오고 `session_id`만 뽑아 쓴다. 판정 입력은 주행이 쓰고 지우는 마커 `<forge-root>/drive.md`(`started:` epoch · `blocked:` 카운트 · `session:`)이며, 훅이 쓰는 유일한 상태는 `blocked:` 증가다. **호스트가 Stop 훅에 루프 보호를 제공하지 않으므로**(`stop_hook_active` 류 입력 필드 없음) 스크립트 내부의 두 상한(`MAX_AGE=1800`초, 차단 횟수)이 유일한 폭주 가드다. 벽 판정은 훅이 아니라 주행이 소유한다(마커 삭제 = "정지해도 좋다").
 - **트랜스크립트 파일 읽기**: `scripts/forge-loop-spend.sh`/`.js`가 `~/.claude/projects/<cwd-slug>/` 아래 세션·서브에이전트 트랜스크립트를 직접 읽어 `message.usage`의 네 필드(`input_tokens`·`cache_creation_input_tokens`·`cache_read_input_tokens`·`output_tokens`)를 합산한다. 호스트가 남긴 파일을 소비할 뿐 API 호출은 없다. 테스트는 `--transcripts DIR`로 이 루트를 갈아끼운다.

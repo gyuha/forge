@@ -5,7 +5,13 @@ const fs = require('fs');
 const path = require('path');
 
 const repo = path.resolve(__dirname, '..');
-const readJson = (p) => JSON.parse(fs.readFileSync(path.join(repo, p), 'utf8'));
+const readJson = (p) => {
+  if (!fs.existsSync(path.join(repo, p))) {
+    process.stderr.write(`release:check: missing manifest: ${p}\n`);
+    process.exit(1);
+  }
+  return JSON.parse(fs.readFileSync(path.join(repo, p), 'utf8'));
+};
 const claude = readJson('.claude-plugin/plugin.json');
 const market = readJson('.claude-plugin/marketplace.json');
 const codex = readJson('.codex-plugin/plugin.json');

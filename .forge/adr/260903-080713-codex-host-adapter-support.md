@@ -33,7 +33,9 @@ ADR-0025의 **(a) 전면 도구 추상화**를 채택한다. 단 "superpowers식
 - **`CLAUDE_PLUGIN_ROOT` 그대로 두기** — Codex가 호환용으로 같은 변수를 제공한다면 22파일 치환이 불필요했다(`core/HOST.md` 자신이 그 가능성을 적어 두었다). 확인되면 되돌릴 수 있는 값싼 결정이라 ADR 바를 넘지 않는다 — 아래 Consequences 참조.
 
 ## Consequences
-- **기능이 비대칭이다, 그리고 그건 정직하게 문서화된다.** `fg-statusline`은 Claude 전용(`statusline: false`), `fg-agents`는 Claude `.claude/agents/` 카드만 생성, Codex 무인 연속 주행은 제한적. 어댑터 `capabilities.json`과 사용자 문서(`docs/codex.md`)가 이를 선언한다.
+- **기능이 비대칭이다, 그리고 그건 정직하게 문서화된다.** `fg-statusline`은 Claude 전용, `fg-agents`는 Claude `.claude/agents/` 카드만 생성, Codex 무인 연속 주행은 제한적. 어댑터 `capabilities.json`과 사용자 문서(`docs/codex.md`)가 **같은 선언의 두 형태**이며 항상 함께 갱신된다.
+- **능력 선언은 보수적 기본값을 따른다 — 관측한 것만 `true`.** 미확인은 `false`이며, 모든 능력에 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있으므로 도는 fallback이 없는 도구 호출보다 항상 싸다. `false`→`true`는 가정이 아니라 관측이고, `docs/codex.md`의 지원 표를 같은 변경에서 함께 고친다. 이 규율이 없으면 어댑터가 "제한적"이라 적어 둔 것을 JSON이 `true`로 주장하는 모순이 다시 생긴다(초기 어댑터에서 실제로 발생했다 — `prevent_stop`·`spawn_role`).
+- **능력 이름은 `core/HOST.md` 표가 유일한 어휘다.** `capabilities.json`은 그 여덟 키만 쓰며, 스킬은 이름으로 능력을 지목해(`spawn_parallel`, `prevent_stop`) 기계적으로 조회한다. 표와 JSON이 다른 어휘를 쓰면 파일은 아무도 읽지 않는 죽은 설정이 된다.
 - **버전 동기 지점이 3곳 → 4곳이 된다** (`.codex-plugin/plugin.json` 추가). `fg-doctor` B8과 `npm run release:check`가 게이트다. CLAUDE.md 배포 규칙도 함께 갱신됐다.
 - **기둥 1은 근거를 유지한다.** "그릴링을 실행 워크플로우에 넣지 않는다"의 이유는 여전히 *위임 실행이 실행 중 사용자 입력을 못 받는다*이며, 호스트가 늘어도 사라지지 않는다.
 - **어댑터 경계를 넘어 상태 모델을 복제하면 이 ADR이 무효가 된다.** 어댑터가 `.forge/` 의미론을 조금이라도 갖기 시작하면 ADR-0025가 옳았던 것이 된다.

@@ -1,7 +1,10 @@
 {
-  "structured_choice": true,
-  "parallel_agents": true,
-  "role_agents": true,
-  "stop_hook": true,
-  "statusline": false
+  "structured_choice": false,
+  "spawn_parallel": true,
+  "spawn_role": false,
+  "plugin_root": true,
+  "session_start": true,
+  "prevent_stop": false,
+  "project_agents": false,
+  "status_display": false
 }
