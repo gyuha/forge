@@ -2,27 +2,31 @@
 
 ![forge](./docs/icon-sm.png)
 
-> 에이전트 엔지니어링을 위한 Claude Code 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
-> 22개의 `fg-` 프리픽스 Claude Code 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
+> 에이전트 엔지니어링을 위한 Claude Code·Codex 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
+> 두 호스트가 함께 쓰는 22개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
 
 [English](./README.md)
 
 아래 문서들은 **[gyuha.com/forge/docs](https://gyuha.com/forge/docs/)** 에 문서 사이트로도 배포돼 있다 — 사이드바 네비·검색·다크모드 (English: [gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)).
 
-계획은 grill-with-docs식 대화형 그릴링으로, 실행은 Claude Code Dynamic Workflow로 수행하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 완료 단계에서 한 바퀴의 잔여물을 정리하며 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
+계획은 grill-with-docs식 대화형 그릴링으로 수행한다. 실행은 활성 호스트 어댑터—Claude Code Dynamic Workflow 또는 Codex collaboration/subagent—를 사용하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
+
+워크플로우와 `.forge/` 상태 계약은 한 벌뿐이다. Claude Code와 Codex가 같은 `skills/`와 결정론 스크립트를 사용하고, 질문·위임·훅·호스트 UI만 어댑터로 나뉜다. 지원 범위와 제한은 [Codex 사용 가이드](./docs/codex.md)에 정리돼 있다.
 
 ## 빠른 시작 — 사실 3개만 쓰면 된다
 
 스킬이 22개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
 
 ```
-/fg-ask   →   /fg-run   →   /fg-next
+fg-ask   →   fg-run   →   fg-next
  (계획)        (실행)        (다음 단계 자동: 검증 → 회고/봉인)
 ```
 
-- **`/fg-ask`** — *모든* 작업은 여기서 시작. 계획을 한 질문씩 같이 그릴링합니다.
-- **`/fg-run`** — 계획을 실행합니다.
-- **`/fg-next`** — *다음 한 단계*를 알아서 해줍니다(검증 → 회고 또는 봉인). 또 부르면 계속 진행.
+- **`fg-ask`** — *모든* 작업은 여기서 시작. 계획을 한 질문씩 같이 그릴링합니다.
+- **`fg-run`** — 활성 호스트의 실행 어댑터로 계획을 실행합니다.
+- **`fg-next`** — *다음 한 단계*를 알아서 해줍니다(검증 → 회고 또는 봉인). 또 부르면 계속 진행.
+
+Claude Code에서는 `/forge:fg-*`, Codex에서는 `$fg-*`로 호출한다. 자연어 트리거는 양쪽에서 동일하다.
 
 **더 짧게** — 한 번 계획하고, 끝까지 알아서 굴리기:
 
@@ -102,7 +106,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | 스킬 | 단계 | 한 줄 역할 |
 | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 |
-| `fg-run` | ② 실행 | 계획을 Dynamic Workflow로 실행(plan 하나면 즉시, 여럿이면 우선순위 선택 목록) |
+| `fg-run` | ② 실행 | 호스트 어댑터로 계획 실행—Claude Code는 Dynamic Workflow, Codex는 collaboration/subagent(plan 하나면 즉시, 여럿이면 우선순위 선택 목록) |
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 |
 | `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 일괄 봉인(회고 skip·백로그 불가침·검증 게이트 유지) |
 | `fg-map` | 유틸리티 | 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드 재탐색 대신 지도를 읽게 함 |
@@ -111,7 +115,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행. 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
 | `fg-tdd` | 유틸리티 | `.forge/config.json`의 영속 TDD 모드 토글 |
-| `fg-eco` | 유틸리티 | eco 모드 토글 — 켜면 위임 서브에이전트를 `sonnet`으로 캡하고, 임베드된 Eco laziness-first 규율(`ECO.md` — 코드 단순성 + 출력 prose 압축)을 활성화(fg-run 주입·fg-ask YAGNI 렌즈·현 세션 채택)하며, **작업 종료 핸드오프를 요약 표로 교체**(fg-run 핸드오프·fg-done 단일 봉인·배치/무인 경로). 실행 *중* narration은 불변 |
+| `fg-eco` | 유틸리티 | eco 모드 토글 — 코드 단순성·출력 압축 규율은 공통이고, Claude Code에서는 위임 서브에이전트를 `sonnet`으로 추가 제한. 작업 종료 핸드오프를 요약 표로 교체하며 실행 중 narration은 불변 |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
@@ -119,7 +123,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-doctor` | 유틸리티 | `.forge/` 상태 계약과 문서/매니페스트 정합의 읽기 전용 무결성 검사 — 스크립트-백킹, AI 없는 CI 게이트로 사용 가능 |
 | `fg-help` | 유틸리티 | 읽기 전용 사용법 도움말 — `/fg-help`는 forge 스킬 전체를 루프 단계 + 루프 밖 유틸리티로 그룹핑한 개요를, `/fg-help <명령>`은 4줄 상세를 출력; 각 스킬의 `description`을 단일 소스로 읽어 사용자 언어로 LLM 렌더(스크립트 트윈 없음) |
 | `fg-drop` | 유틸리티 | 미완 작업(backlog/활성/executed/멈춘 루프) 폐기 — 위험도 표기 목록, 하드 삭제 또는 `.forge/dropped/` 보관 |
-| `fg-agents` | 유틸리티 | 대화형 그릴링으로 프로젝트 도메인 에이전트(`.claude/agents/<role>.md`) 생성 — 세션 재시작 후 fg-run이 매칭 role을 `agentType`으로 호출 |
+| `fg-agents` | 유틸리티 | 대화형 그릴링으로 Claude Code 프로젝트 도메인 에이전트(`.claude/agents/<role>.md`) 생성; Codex 네이티브 프로젝트 에이전트 materialize는 아직 미지원 |
 | `fg-showme` | 유틸리티 | 브라우저 시각 컴패니언(superpowers vendoring, MIT) — zero-dependency 로컬 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 표시하고 당신의 답을 이벤트로 되읽음. **질문뿐 아니라 설명에서도 발동한다** — 분기 있는 흐름·상태 전이·다축 비교처럼 텍스트 흐름도(`A → B → C`)가 담지 못하는 구조를 *설명*할 때도 제안하며, 텍스트로 감당되면 터미널에 남는다 — 선택형 화면의 필수 확정 버튼을 누르면 터미널 턴 없이 바로 당신을 깨우고, 탐색 클릭만으로는 깨우지 않음; fg-ask 그릴링 중 just-in-time 1회 제안(거절하면 재제안 없음), `fg-showme stop`으로 종료. 프레임은 리포 루트 `DESIGN.md`가 정의하는 Anthropic/Claude 디자인 시스템(크림 캔버스 + 코랄 강조 + serif 디스플레이)으로 렌더되므로, 에이전트가 미는 모든 화면이 그것을 상속한다 |
 | `fg-agenda` | 유틸리티 | 안개 속 작업의 결정 대기열 — 목적지를 함께 정한 뒤 무엇을 결정해야 하는지 캐내 `.forge/agenda.md`에 담고, 길이 밝아질 때까지 한 번에 하나씩 해소한 다음 스스로 삭제; 결정을 찾는 것은 에이전트, **답은 당신**이 하며, 빌드 가능해진 것은 백로그로 떠난다 |
 | `fg-security` | 유틸리티 | 코드베이스 보안 감사(방법론은 cloudflare/security-audit-skill vendoring, MIT) — 공격 유형별 다중 에이전트 다단계 hunting, 산출물은 **리포 밖**(업스트림 `~/security-audit-skill/`)에 남아 커밋 경로가 애초에 없고, 심각도 게이트와 당신의 승인을 통과한 findings가 fix-forward 백로그 plan이 된다 |
@@ -142,6 +146,8 @@ fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
 
 ## 설치
 
+### Claude Code
+
 Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인을 설치한다.
 
 ```
@@ -162,7 +168,13 @@ Claude Code 세션에서 GitHub 마켓플레이스로 추가한 뒤 플러그인
 - 스킬은 `skills/<name>/SKILL.md`에서 자동 탐색되므로 추가 설정이 필요 없다.
 - 이후 업데이트는 `/plugin marketplace update forge`, 제거는 `/plugin uninstall forge@forge`.
 
-설치 후 Claude Code 세션에서 `fg-ask`부터 트리거되거나, "forge로 시작" 같은 발화로 루프가 시작된다.
+### Codex
+
+Forge는 `.codex-plugin/plugin.json`을 포함한다. Codex의 플러그인/마켓플레이스 UI에서 이 저장소를 로컬 플러그인으로 설치한 뒤 새 작업을 시작해 공통 스킬과 검토·신뢰한 훅을 로드한다. 스킬은 `$fg-ask`, `$fg-run`, `$fg-next`처럼 호출한다. Codex와 Claude Code는 동일한 `skills/`와 `.forge/` 상태를 사용하고 호스트 어댑터만 다르다. Codex 어댑터는 아직 영속 statusline 설치를 지원하지 않으므로 `$fg-status`를 사용한다.
+
+현재 Codex는 핵심 루프, 상태 유틸리티, 직렬 fallback, 제한된 병렬 subagent, SessionStart 알림을 지원한다. `fg-next all`/`fg-loop` 무인 연속 실행과 Codex 네이티브 `fg-agents`는 제한적이므로 감독 실행을 권장한다. 자세한 내용은 [Codex 가이드](./docs/codex.md)를 참조한다.
+
+설치 후 `fg-ask`(Claude Code는 `/forge:fg-ask`, Codex는 `$fg-ask`) 또는 "forge로 시작" 같은 발화로 루프를 시작한다.
 
 ## 공유 상태와 디렉터리
 
@@ -178,7 +190,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 
 ## 두 기둥
 
-1. **그릴링(계획)은 Dynamic Workflow 밖의 대화형으로.** Dynamic Workflow는 실행 중 사용자 입력을 못 받으므로, 한 질문씩 주고받는 그릴링을 워크플로우 안에 넣지 않는다.
+1. **그릴링(계획)은 실행 워크플로우 밖의 대화형으로.** 한 질문씩 주고받는 그릴링은 활성 호스트의 입력 수단을 사용하고 병렬 에이전트 실행 안에 넣지 않는다.
 2. **문서는 산출물이 아니라 루프의 연료.** 계획에서 다듬은 용어가 실행의 기준이 되고, 회고의 학습이 다음 계획의 출발점이 된다.
 
 ## forge와 다른 하네스 비교
@@ -195,7 +207,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 | 프로젝트 전용 도메인 에이전트를 필요할 때만 생성 | ✓ (그릴링 기반, 자격 갖춘 역할만) | — | △ (25개 이상 고정 내장 전문가 스킬) | — |
 | 비용 절감 내장 규율(서브에이전트 모델 캡+단순성 규율) | ✓ (eco 모드) | — | △ (모델 벤치마킹 도구, 결이 다름) | — |
 | 보안 감사 전용 스킬 | ✓ (`fg-security` — cloudflare 방법론 vendoring; 산출물은 리포 밖) | — | ✓ (`/cso`) | — |
-| 대상 플랫폼 폭 | Claude Code 전용 | 10+ 런타임 | 10개 에이전트 | 9개 이상 에이전트 |
+| 대상 플랫폼 폭 | Claude Code + Codex | 10+ 런타임 | 10개 에이전트 | 9개 이상 에이전트 |
 
 범례: ✓ 명시적으로 지원 · △ 비슷한 것은 있으나 형태·엄격도가 다름 · — 공개 문서에서 확인 안 됨(없다고 단정하지 않음)
 
@@ -205,9 +217,9 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 - 검증 없이는 봉인 없다 — pending/failed(사유)/skipped(사유)/n·a(사유)를 정직하게 구분해, 검증 안 된 작업이 조용히 "완료"로 둔갑하지 못한다.
 - 무인 자동화도 사람이 정의한 벽(실패한 검증·해소 불가한 분기·tension 핑퐁·안전 등급 액션·외부 증거를 기다리다 정체된 대기·도구나 인증 부재로 막힌 체크 명령)에서 스스로 멈춘다.
 - 봉인이 진짜 끝을 의미한다 — 봉인된 작업은 같은 작업이 다시 실행되는 걸 구조적으로 막는다.
-- 인프라가 필요 없다 — DB도 서버도 npm도 없이 `/plugin install` 한 줄로 끝난다.
+- 런타임 인프라가 필요 없다 — DB나 서버 없이 활성 호스트의 플러그인 Marketplace에서 설치한다.
 - 고정된 전문가 세트를 들이미는 대신, 이 프로젝트에 실제로 반복되는 역할이 무엇인지 그릴링으로 찾아 그만큼만 에이전트 카드를 만든다.
-- 정직한 트레이드오프: forge는 Claude Code 전용이라 넷 중 플랫폼 폭이 가장 좁다. 대신 그 자리에서 Dynamic Workflow·AskUserQuestion·Skill 체이닝 같은 Claude Code 고유 기능을 최소공통분모로 깎지 않고 깊게 판다.
+- 정직한 트레이드오프: forge는 Claude Code와 Codex를 지원하지만 일부 호스트 전용 기능은 비대칭이다(`fg-statusline`과 현재 `fg-agents` 출력은 Claude 중심, Codex 무인 연속 실행은 제한적). 공통 상태와 워크플로우 규칙은 복제하지 않고 동일하게 유지한다.
 
 ### forge가 하지 않는 것
 

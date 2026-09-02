@@ -1,6 +1,7 @@
 ---
 name: fg-showme
-description: Opens a browser-based visual companion in any conversation — a local zero-dependency server shows mockups, diagrams, and visual A/B options you push as HTML, and takes the user's answers back as events: a click settles a choice, a screen can carry a text box, and a confirmed choice wakes you with no terminal turn. `fg-showme stop` shuts it down. fg-ask offers it just-in-time during grilling (this skill is the standalone entry). On-demand utility outside the loop. Use in contexts like 'forge showme', 'forge visual', 'visual companion', '시각적으로 보여줘', '목업 보여줘', '브라우저로 보여줘', '화면으로 비교해줘'.
+description: >-
+  Opens a browser-based visual companion in any conversation — a local zero-dependency server shows mockups, diagrams, and visual A/B options you push as HTML, and takes the user's answers back as events: a click settles a choice, a screen can carry a text box, and a confirmed choice wakes you with no terminal turn. `fg-showme stop` shuts it down. fg-ask offers it just-in-time during grilling (this skill is the standalone entry). On-demand utility outside the loop. Use in contexts like 'forge showme', 'forge visual', 'visual companion', '시각적으로 보여줘', '목업 보여줘', '브라우저로 보여줘', '화면으로 비교해줘'.
 ---
 
 # fg-showme — visual companion (outside the loop)

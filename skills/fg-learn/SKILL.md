@@ -5,13 +5,15 @@ description: After execution, classify learnings and promote them to CONTEXT.md,
 
 # fg-learn — ③ Retro (reflect into docs)
 
+**Host contract**: this skill's state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter for any user choice.
+
 This is the third turn of the forge loop. It classifies the learnings gained during execution, routes them to the right doc, and surfaces the next inquiry. The reason to run a retro is simple — if you don't write down what you learned during execution right then, the next person (or future you) hits the same wall again. But if you push every learning into permanent docs, the docs get polluted with noise. So the core of this skill is **classification and promotion discipline**.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
-**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or writing state (ADR-0011).
+**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or writing state (ADR-0011).
 
 This retro **always runs conversationally.** It does not auto-generate a retro draft via a workflow. Deciding what is worth learning and which doc each learning belongs in requires human judgment, so extracting it mechanically only breaks the discipline.
 
@@ -73,8 +75,8 @@ So learnings that don't clear the bar go to the retro log without hesitation. An
 ### 4. Write the docs
 
 - The retro log always lands in `.forge/retro/YYMMDD-HHMMSS-slug.md` (one file per retro'd task, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
-- If you promote a term, reflect it into `CONTEXT.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md` (skill-relative path `../fg-ask/CONTEXT-FORMAT.md`).
-- If you promote a decision, add `.forge/adr/NNNN-slug.md`. Follow the format in `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
+- If you promote a term, reflect it into `CONTEXT.md`. Follow the format in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/CONTEXT-FORMAT.md` (skill-relative path `../fg-ask/CONTEXT-FORMAT.md`).
+- If you promote a decision, add `.forge/adr/NNNN-slug.md`. Follow the format in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
 
 In the "Doc updates" field of the retro log, record what was promoted to where (or none) to leave traceability.
 
@@ -102,7 +104,7 @@ Guide fg-done + surface follow-up candidates
 
 ## Next-flow guidance (handoff)
 
-When the retro is done, **render the handoff table** at the end — its shape is defined once in `${CLAUDE_PLUGIN_ROOT}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, from this material:
+When the retro is done, **render the handoff table** at the end — its shape is defined once in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, from this material:
 
 - **What you just did** — you left a retro at `.forge/retro/...`, and one line on what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
 - **Next step / How to start** — divergence and any remaining retro-awaiting work decide these two cells; fill them by the precedence below.

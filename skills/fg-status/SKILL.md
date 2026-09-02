@@ -5,21 +5,23 @@ description: A read-only status reporter for the forge loop — surveys .forge/ 
 
 # fg-status — read-only status reporter (outside the loop)
 
+**Host contract**: status interpretation is host-neutral. Read [../../core/HOST.md](../../core/HOST.md); render in the current conversation without relying on a host-specific statusline.
+
 This is **not** a stage of the forge loop. It is a read-only dashboard: run it any time to see what has been worked on and what to do next. It **writes nothing** — no plan/run/STATUS/backlog/done/retro/adr/quick is ever created or modified — and it **never auto-runs** the next step; it only reports and points.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The status report and the next-step line are written in the user's language.
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
-**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading state (ADR-0011). (fg-status only reports on the resolved root's branch; it does not survey other branches' roots.)
+**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading state (ADR-0011). (fg-status only reports on the resolved root's branch; it does not survey other branches' roots.)
 
 ## How it runs (script-backed survey + table — ADR-0020 / ADR-0022)
 
 The mechanical survey and the 6-column task table are produced by a **deterministic script**, not by an LLM re-reading `.forge/` and hand-rendering the table (that was slow — ADR-0020). Run the script and treat its rows, order, counts, values, and symbols as canonical — do not re-survey or recompute them. To honor the language contract, **translate only the fixed labels** (`No./Date/Task/Stage/Verify/Retro`, stage words, footer keys, and the no-state sentence) into the user's language while preserving every data value and row exactly; then derive the one next step in prose (the next-step machine below — the script never derives it).
 
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
-- **Has bash** (mac/Linux/WSL/git-bash — the Bash tool's normal case): `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-status.sh"` (full: table + footer) or `… --table` (table only).
-- **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-status.js"` — the node twin produces identical output (guarded by `scripts/forge-status.parity.test.sh`).
+- **Has bash** (mac/Linux/WSL/git-bash — the Bash tool's normal case): `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-status.sh"` (full: table + footer) or `… --table` (table only).
+- **No bash** (e.g. PowerShell-blocked Windows): `node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-status.js"` — the node twin produces identical output (guarded by `scripts/forge-status.parity.test.sh`).
 
 The two sections below (**What it prints** / **Task table**) are the **documentation of the script's output format** — the script emits exactly those columns and footer in canonical tokens. Keep them in sync with the script if the format ever changes (ADR-0020 consequence). Localize only those fixed tokens as described above; never alter task data or silently rebuild the table. The next-step line is also written in the user's language.
 

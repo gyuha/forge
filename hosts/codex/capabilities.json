@@ -1,0 +1,7 @@
+{
+  "structured_choice": true,
+  "parallel_agents": true,
+  "role_agents": true,
+  "stop_hook": true,
+  "statusline": false
+}

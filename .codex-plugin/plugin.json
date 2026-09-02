@@ -1,0 +1,30 @@
+{
+  "name": "forge",
+  "version": "0.7.1",
+  "description": "Agent-engineering workflow skills for Claude Code and Codex.",
+  "author": {
+    "name": "gyuha",
+    "email": "nicegyuha@gmail.com",
+    "url": "https://github.com/gyuha"
+  },
+  "homepage": "https://github.com/gyuha/forge",
+  "repository": "https://github.com/gyuha/forge",
+  "license": "MIT",
+  "keywords": ["forge", "workflow", "planning", "codex", "claude-code"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Forge",
+    "shortDescription": "Plan, execute, learn, and seal agent work",
+    "longDescription": "A shared Claude Code and Codex workflow for turning one task into a reviewed plan, verified execution, retained learning, and a sealed result.",
+    "developerName": "gyuha",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Write"],
+    "websiteURL": "https://github.com/gyuha/forge",
+    "defaultPrompt": [
+      "Start a new task with Forge.",
+      "Show the current Forge status.",
+      "Run the next Forge step."
+    ],
+    "brandColor": "#D97757"
+  }
+}

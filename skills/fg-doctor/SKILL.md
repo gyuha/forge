@@ -1,6 +1,7 @@
 ---
 name: fg-doctor
-description: A read-only integrity health check for forge — a deterministic script (forge-doctor.sh/.js) surveys the .forge/ state contract and docs/manifests and reports inconsistencies with severity + fix hints, exiting 0/1/2 so it doubles as an AI-free CI gate. Catches orphaned/broken state, half-sealed done/, an un-integrated branch root, version drift, README bilingual drift, ADR-ID issues, missing script twins. Writes nothing, never auto-fixes (fg-status: where am I; fg-doctor: is the state healthy). Use in contexts like 'forge doctor', '무결성 검사', '상태 점검', 'health check', 'check forge state'.
+description: >-
+  A read-only integrity health check for forge — a deterministic script (forge-doctor.sh/.js) surveys the .forge/ state contract and docs/manifests and reports inconsistencies with severity + fix hints, exiting 0/1/2 so it doubles as an AI-free CI gate. Catches orphaned/broken state, half-sealed done/, an un-integrated branch root, version drift, README bilingual drift, ADR-ID issues, missing script twins. Writes nothing, never auto-fixes (fg-status: where am I; fg-doctor: is the state healthy). Use in contexts like 'forge doctor', '무결성 검사', '상태 점검', 'health check', 'check forge state'.
 ---
 
 # fg-doctor — state & docs integrity health check (outside the loop)
@@ -20,8 +21,8 @@ The mechanical survey — walking the `.forge/` state contract and the docs/mani
 The script exists so the check **also works AI-free as a CI gate** (see "CI usage"): a pipeline runs `forge-doctor.sh` and fails the build on a non-zero exit. Like fg-status's survey it is **read-only** — it mutates nothing (fg-doctor's contract, ADR-0019). Guarded by `scripts/forge-doctor.test.sh` + `scripts/forge-doctor.parity.test.sh`.
 
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
-- **Has bash**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-doctor.sh"`
-- **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-doctor.js"` — identical findings/severity/exit (guarded by the parity test).
+- **Has bash**: `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-doctor.sh"`
+- **No bash** (e.g. PowerShell-blocked Windows): `node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-doctor.js"` — identical findings/severity/exit (guarded by the parity test).
 
 **Output**: one `[severity] check — path\n   fix: hint` line per finding, then a verdict line `🩺 forge-doctor — N errors, M warnings, K info`. **Exit code**: `0` clean · `1` warnings only · `2` one or more errors.
 

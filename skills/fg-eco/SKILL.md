@@ -1,6 +1,7 @@
 ---
 name: fg-eco
-description: Toggle forge's eco mode on/off — when on: caps fg-run subagents at sonnet, activates the embedded Eco laziness-first discipline (ECO.md — code simplicity + terse output) in fg-run subagents, fg-ask grilling, and the current session, and replaces task-end handoffs (fg-run, fg-done, batch/unattended paths) with a compact summary table. Does NOT switch the main session's model. `fg-eco on`/`off`; no arg shows state. On-demand utility outside the loop. Use in contexts like 'forge eco', 'eco on', 'eco off', '에코 모드', '경제 모드', 'lazy mode', '요약 표'.
+description: >-
+  Toggle forge's eco mode on/off — when on: caps fg-run subagents at sonnet, activates the embedded Eco laziness-first discipline (ECO.md — code simplicity + terse output) in fg-run subagents, fg-ask grilling, and the current session, and replaces task-end handoffs (fg-run, fg-done, batch/unattended paths) with a compact summary table. Does NOT switch the main session's model. `fg-eco on`/`off`; no arg shows state. On-demand utility outside the loop. Use in contexts like 'forge eco', 'eco on', 'eco off', '에코 모드', '경제 모드', 'lazy mode', '요약 표'.
 ---
 
 # fg-eco — toggle eco mode (outside the loop)
@@ -20,7 +21,7 @@ Together these tier the loop as "strong = main session (design + grilling), effi
 
 **Cap, not a set.** Eco only ever lowers: if the session model is already `sonnet` or lighter, delegated agents inherit it unchanged (a savings mode must never raise cost). And an **explicit user model instruction always wins** over eco — eco is a default, not an override of the human.
 
-**`.forge/config.json` is a deliberate global exemption from branch-root resolution** (see `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` / ADR-0011): always read/write the top-level `.forge/config.json` on every branch, never `.forge/branch/<branch>/config.json`.
+**`.forge/config.json` is a deliberate global exemption from branch-root resolution** (see `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` / ADR-0011): always read/write the top-level `.forge/config.json` on every branch, never `.forge/branch/<branch>/config.json`.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
 
@@ -51,7 +52,7 @@ A git-tracked JSON settings file (lazily created on first write; `.gitignore` wh
 - **fg-ask** reads `eco` from the top-level `.forge/config.json` at grilling start: if `true`, applies the [Eco](./ECO.md) YAGNI lens to every slice discussion (no separate question) **and adopts ECO.md's output discipline for its own non-grilling prose (handoff/reporting)** — grilling questions stay clear per the boundary (behavior 4). See fg-ask Forge integration.
 - **fg-run** reads `eco` from the top-level `.forge/config.json`: if `true`, for delegated subagents it (1) caps them at `sonnet` and (2) prepends the full [`ECO.md`](./ECO.md) to each subagent's prompt, **and the main session running fg-run adopts ECO.md's output discipline for its own execution/reporting prose** — the only carrier on the direct, non-workflow path where there are no subagents (behavior 4). Its single-task handoff is also **replaced** by the eco summary table (behavior 5). See fg-run §1 and its "Next-flow handoff".
 - **fg-done** reads `eco` from the top-level `.forge/config.json`: if `true`, the explicit-single-seal summary is rendered in the [eco summary table](./ECO.md) shape rather than bullet prose (behavior 5) — rendering only; the material, the seal script, and the verification/retro gates are untouched. See fg-done's seal-summary block.
-- **fg-next** (and **fg-loop**, which inherits its drive discipline) reads `eco` from the top-level `.forge/config.json`: if `true`, each delegated seal in a drive is reported as **one row** of the batch [eco summary table](./ECO.md) instead of a per-task prose notice (behavior 5) — the single-seal summary chapter stays forbidden in a drive either way. The rule lives in `${CLAUDE_PLUGIN_ROOT}/skills/fg-next/DRIVE.md` Part 1; fg-run's "Run all" and `fg-done all` carry the same batch row shape.
+- **fg-next** (and **fg-loop**, which inherits its drive discipline) reads `eco` from the top-level `.forge/config.json`: if `true`, each delegated seal in a drive is reported as **one row** of the batch [eco summary table](./ECO.md) instead of a per-task prose notice (behavior 5) — the single-seal summary chapter stays forbidden in a drive either way. The rule lives in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-next/DRIVE.md` Part 1; fg-run's "Run all" and `fg-done all` carry the same batch row shape.
 - **fg-map is out of scope** — its mappers write the codebase map that fuels fg-ask grilling, and degrading map quality degrades design quality (ADR-0014).
 
 fg-eco only flips the default; it does not start any work.

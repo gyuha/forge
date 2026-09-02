@@ -5,6 +5,8 @@ description: Set up (or refresh) a Claude Code statusline showing forge's loop p
 
 # fg-statusline — set up the forge progress statusline (outside the loop)
 
+**Codex capability**: persistent statusline installation is not supported by this adapter. On Codex, do not edit settings; explain the limitation and direct the user to `$fg-status`. The remaining instructions apply only to Claude Code.
+
 This is **not** a stage of the forge loop. It is a one-time setup utility: it installs forge's statusline scripts to a stable location and wires one into your Claude Code `settings.json`, so your terminal statusline shows where the forge loop currently stands. Re-run it any time to refresh the installed scripts after a forge update.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, confirmations, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
@@ -29,7 +31,7 @@ The **forge fragment** (`scripts/forge-statusline.sh`) is a deliberately **thin,
 Two facts shape the setup:
 
 - **Only ONE statusLine exists, and there is no stacking.** If you already run another statusline, forge cannot be "added" alongside it — either it is **composed in** (method 1: wrap your existing command so forge shows as an extra row) or forge **takes over** the whole line (method 2: the unified script; any existing command is preserved for restore). Which one is the mode decision above.
-- **Plugin install paths change on every update** (`~/.claude/plugins/cache/<hash>/`), and `${CLAUDE_PLUGIN_ROOT}` is **not** available to the statusLine shell. So the scripts must be **copied to stable paths** the settings can reference under the Claude config dir (`~/.claude/` by default). The fragment reads the current project's `.forge/` (from the session JSON's `cwd`, see below), so one global copy serves every project.
+- **Plugin install paths change on every update** (`~/.claude/plugins/cache/<hash>/`), and `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}` is **not** available to the statusLine shell. So the scripts must be **copied to stable paths** the settings can reference under the Claude config dir (`~/.claude/` by default). The fragment reads the current project's `.forge/` (from the session JSON's `cwd`, see below), so one global copy serves every project.
 - **Reference the scripts by ABSOLUTE path in `settings.json`, never `~`.** The statusLine `command` is not guaranteed to undergo tilde expansion by the host, so a literal `~/.claude/...` can fail to resolve and silently blank the **entire** statusline (including any wrapped original). Resolve `$HOME` (or `$CLAUDE_CONFIG_DIR`) at setup time and write the full absolute path. This matches what working statuslines (claude-hud, powerline scripts) already do. See ADR-0017.
 
 ## What the fragment prints (the forge line(s), both modes)
@@ -98,7 +100,7 @@ Both twins emit identical output (ANSI stripped), guarded by `scripts/forge-stat
 
 ## Setup procedure
 
-Run these steps in conversation (the skill runs in the main session, so it can read files, show diffs, and ask for confirmation). The script sources live under `${CLAUDE_PLUGIN_ROOT}/scripts/` — the fragment (`forge-statusline.sh`/`.js`), the method-1 wrapper (`forge-statusline-wrapper.sh`), and the method-2 unified script (`forge-statusline-full.sh`/`.js`) — all available here, in the skill context, *not* in the statusLine shell later. Let `CFG` be the Claude config dir (`$CLAUDE_CONFIG_DIR` if set, else `$HOME/.claude`); resolve it to an **absolute path** now, because every `settings.json` reference must be absolute (no `~`).
+Run these steps in conversation (the skill runs in the main session, so it can read files, show diffs, and ask for confirmation). The script sources live under `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/` — the fragment (`forge-statusline.sh`/`.js`), the method-1 wrapper (`forge-statusline-wrapper.sh`), and the method-2 unified script (`forge-statusline-full.sh`/`.js`) — all available here, in the skill context, *not* in the statusLine shell later. Let `CFG` be the Claude config dir (`$CLAUDE_CONFIG_DIR` if set, else `$HOME/.claude`); resolve it to an **absolute path** now, because every `settings.json` reference must be absolute (no `~`).
 
 **Mandatory read-only preflight before any copy or chmod:** perform step 2 first — locate settings, read the existing command, detect the current mode/OS drift, and **read the existing `statusLine` before choosing density**. Decide whether this is a refresh, a mode switch, or a new install; obtain any confirmation the path requires. Only then perform step 1's writes and the final settings write. This prevents a declined install from overwriting stable scripts, and it is the only way a refresh can preserve the density already stored in the command.
 
@@ -106,10 +108,10 @@ Run these steps in conversation (the skill runs in the main session, so it can r
 
 Copy all of these and `chmod +x` them (idempotent — a **refresh** after a forge update is just re-running this; copy the whole list regardless of the chosen mode, so a later mode switch needs no extra copy):
 
-- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.sh` → `<CFG>/forge-statusline.sh` (the fragment, both modes)
-- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-wrapper.sh` → `<CFG>/forge-statusline-wrapper.sh` (method 1)
-- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-full.sh` → `<CFG>/forge-statusline-full.sh` (method 2, the unified script)
-- `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline.js` → `<CFG>/forge-statusline.js`, `${CLAUDE_PLUGIN_ROOT}/scripts/forge-statusline-full.js` → `<CFG>/forge-statusline-full.js`, **and** `${CLAUDE_PLUGIN_ROOT}/scripts/resolve-forge-root.js` → `<CFG>/resolve-forge-root.js` — the node fallbacks (ADR-0022) and the resolver they `require` (must sit next to them). Needed for the Windows / no-bash path below; harmless to always copy.
+- `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-statusline.sh` → `<CFG>/forge-statusline.sh` (the fragment, both modes)
+- `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-statusline-wrapper.sh` → `<CFG>/forge-statusline-wrapper.sh` (method 1)
+- `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-statusline-full.sh` → `<CFG>/forge-statusline-full.sh` (method 2, the unified script)
+- `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-statusline.js` → `<CFG>/forge-statusline.js`, `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-statusline-full.js` → `<CFG>/forge-statusline-full.js`, **and** `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/resolve-forge-root.js` → `<CFG>/resolve-forge-root.js` — the node fallbacks (ADR-0022) and the resolver they `require` (must sit next to them). Needed for the Windows / no-bash path below; harmless to always copy.
 
 All the `.sh`/`.js` are generic (no per-install substitution) — the wrapper finds the fragment and the preserved original, and the unified script finds the fragment, **in their own install directory**, resolved at runtime from each script's own path (`BASH_SOURCE` / `__dirname`), **not** from `$CLAUDE_CONFIG_DIR`. The statusLine process may not export that env var, and depending on it would silently blank the whole statusline in a custom config-dir setup (ADR-0017). Since every companion is copied into `CFG` together, one global copy of each serves every project.
 

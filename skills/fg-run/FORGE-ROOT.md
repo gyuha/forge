@@ -47,8 +47,8 @@ read/write <root>/plan.md, <root>/adr/, <root>/backlog/, …
 
 The rule above is also implemented as a deterministic script so a skill can resolve the root without an LLM re-deriving the branch logic. **Dual dispatch (ADR-0022): prefer bash, fall back to node** (node is the fallback where bash is unavailable, e.g. PowerShell-blocked Windows):
 
-- bash: `ROOT="$(bash "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-forge-root.sh")"`
-- node: `ROOT="$(node "${CLAUDE_PLUGIN_ROOT}/scripts/resolve-forge-root.js")"` (also exports `resolveForgeRoot()` for node scripts to `require` directly — `forge-status.js` does this, so the resolution logic lives in exactly one place per language).
+- bash: `ROOT="$(bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/resolve-forge-root.sh")"`
+- node: `ROOT="$(node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/resolve-forge-root.js")"` (also exports `resolveForgeRoot()` for node scripts to `require` directly — `forge-status.js` does this, so the resolution logic lives in exactly one place per language).
 
 Both print the resolved root on stdout (`.forge` or `.forge/branch/<branch>`) and a one-line fallback warning on stderr for detached/non-git. Equivalence of the two is guarded by `scripts/resolve-forge-root.parity.test.sh`. This is the **single implementation** of the rule — `forge-status` consumes it rather than re-deriving the branch logic inline. (Skills written as prose still resolve per the rule above; the script is for the script-backed paths.)
 

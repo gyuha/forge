@@ -2,27 +2,31 @@
 
 ![forge](./docs/icon-sm.png)
 
-> An agent-engineering workflow plugin for Claude Code — one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty-two `fg-`-prefixed Claude Code skills — four that form the loop, plus eighteen utilities outside it.
+> An agent-engineering workflow plugin for Claude Code and Codex — one task through a single cycle of **ask·plan → execute → retro → done**.
+> A loop-style workflow plugin built from twenty-two shared `fg-` skills — four that form the loop, plus eighteen utilities outside it.
 
 [한국어](./README.ko.md)
 
 The full docs below are also published as a docs site — sidebar navigation, search, dark mode — at **[gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)** (Korean: [gyuha.com/forge/docs](https://gyuha.com/forge/docs/)).
 
-Planning happens as grill-with-docs-style conversational grilling, execution runs as a Claude Code Dynamic Workflow, the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log), and the done step tidies up the cycle's leftovers — seals the task so the same task never runs twice.
+Planning happens as grill-with-docs-style conversational grilling. Execution uses the active host adapter—a Claude Code Dynamic Workflow or Codex collaboration/subagents—then the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log), and the done step seals the task so the same task never runs twice.
+
+The workflow and `.forge/` state contract exist once. Claude Code and Codex use the same `skills/` and deterministic scripts; only interaction, delegation, hooks, and host UI are adapted. See [Using forge with Codex](./docs/en/codex.md) for the support matrix and known limits.
 
 ## Quick start — you mostly only need three
 
 Twenty-two skills look like a lot, but day to day you drive with **three**:
 
 ```
-/fg-ask   →   /fg-run   →   /fg-next
+fg-ask   →   fg-run   →   fg-next
  (plan)       (execute)     (auto-continue: verify → retro/seal)
 ```
 
-- **`/fg-ask`** — start *every* task here. It grills the plan with you, one question at a time.
-- **`/fg-run`** — runs the plan.
-- **`/fg-next`** — does the *one next step* for you (verify → retro or seal). Run it again to keep moving.
+- **`fg-ask`** — start *every* task here. It grills the plan with you, one question at a time.
+- **`fg-run`** — runs the plan through the active host's execution adapter.
+- **`fg-next`** — does the *one next step* for you (verify → retro or seal). Run it again to keep moving.
+
+Use `/forge:fg-*` in Claude Code and `$fg-*` in Codex; natural-language triggers work on both.
 
 **Even shorter** — plan once, then let it drive itself to completion:
 
@@ -102,7 +106,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | Skill | Stage | One-line role |
 | --- | --- | --- |
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
-| `fg-run` | ② Execute | Runs the plan as a Dynamic Workflow (one plan runs immediately, several show a priority-sorted selection) |
+| `fg-run` | ② Execute | Runs the plan through the host adapter—Dynamic Workflow on Claude Code, collaboration/subagents on Codex (one plan runs immediately, several show a priority-sorted selection) |
 | `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry |
 | `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
@@ -111,7 +115,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
 | `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass. Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
 | `fg-tdd` | Utility | Toggles persistent TDD mode in `.forge/config.json` |
-| `fg-eco` | Utility | Toggles eco mode — when on, caps delegated workflow subagents at `sonnet`, activates the embedded Eco laziness-first discipline (`ECO.md` — code simplicity + terse-communication output): injected into fg-run subagents, woven into fg-ask grilling as a YAGNI lens, adopted by the session — **and replaces task-end handoffs with a compact summary table** (fg-run's handoff, fg-done's single seal, batch/unattended paths); execution-time narration is untouched |
+| `fg-eco` | Utility | Toggles eco mode — the simplicity and terse-output discipline is shared; Claude Code additionally caps delegated workflow subagents at `sonnet`. Replaces task-end handoffs with a compact summary table; execution-time narration is untouched |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
@@ -119,7 +123,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync — script-backed, usable as an AI-free CI gate |
 | `fg-help` | Utility | Read-only usage help — `/fg-help` prints an overview of every forge skill grouped by loop stage + outside-the-loop utilities, `/fg-help <command>` a 4-line detail; reads each skill's own `description` as the single source, LLM-rendered in your language (no script twin) |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
-| `fg-agents` | Utility | Generates project domain agents (`.claude/agents/<role>.md`) by conversational grilling — fg-run dispatches a matching role as `agentType` after a session restart |
+| `fg-agents` | Utility | Generates Claude Code project domain agents (`.claude/agents/<role>.md`) by conversational grilling; Codex-native project-agent materialization is not yet supported |
 | `fg-showme` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and takes your answers back as events. **It fires for explanations too, not only questions** — when a structural explanation (a branching flow, state transitions, a multi-axis comparison) outgrows a text flow diagram (`A → B → C`), it is offered as well; if the text diagram carries it, the answer stays in the terminal — a required confirm button on choice screens wakes you directly with no terminal turn, exploratory clicks don't; offered just-in-time once during fg-ask grilling (a decline stands), `fg-showme stop` shuts it down. Its frame renders in the Anthropic/Claude design system documented at the repo root in `DESIGN.md` (cream canvas + coral accent + serif display), so every screen an agent pushes inherits it |
 | `fg-agenda` | Utility | Decision queue for work still in fog — settles a destination with you, then surfaces what must be decided and keeps it in `.forge/agenda.md`, resolving one question at a time until the way is clear and then deleting itself; the agent finds the decisions, **you answer them**, and anything that becomes buildable leaves for the backlog |
 | `fg-security` | Utility | Security audit of a codebase (methodology vendored from cloudflare/security-audit-skill, MIT) — multi-phase, multi-agent hunting by attack class; artefacts stay OUTSIDE the repo (upstream's `~/security-audit-skill/`) so a vulnerability list has no path into a commit at all, and findings past a severity gate become fix-forward backlog plans on your approval |
@@ -143,6 +147,8 @@ A detailed flow diagram (loop ↔ document artifacts) is in [docs/state-contract
 
 ## Install
 
+### Claude Code
+
 In a Claude Code session, add the GitHub marketplace, then install the plugin.
 
 ```
@@ -163,7 +169,13 @@ Notes:
 - Skills are auto-discovered from `skills/<name>/SKILL.md`; no extra configuration is needed.
 - To update later, run `/plugin marketplace update forge`, and to remove, `/plugin uninstall forge@forge`.
 
-After installing, the loop starts in a Claude Code session by triggering `fg-ask`, or with an utterance like "start with forge".
+### Codex
+
+Forge ships `.codex-plugin/plugin.json`; install the repository as a local Codex plugin from your Codex plugin/marketplace UI, then start a fresh task so its shared skills and reviewed hooks load. Invoke skills as `$fg-ask`, `$fg-run`, `$fg-next`, and so on. Codex and Claude Code consume the same `skills/` and `.forge/` state; only the host adapters differ. The Codex adapter does not currently install a persistent statusline—use `$fg-status` instead.
+
+Codex currently supports the core loop, state utilities, serial fallback, parallel bounded subagents, and SessionStart notices. `fg-next all`/`fg-loop` unattended continuation and Codex-native `fg-agents` are limited; use them under supervision. Full details: [Codex guide](./docs/en/codex.md).
+
+After installing, start with `fg-ask` (`/forge:fg-ask` on Claude Code, `$fg-ask` on Codex), or an utterance like "start with forge".
 
 ## Shared state and directories
 
@@ -179,7 +191,7 @@ How git and branches are operated with forge — the git-abstinence model, the c
 
 ## The two pillars
 
-1. **Grilling (planning) is conversational, outside the Dynamic Workflow.** A Dynamic Workflow cannot take user input mid-run, so question-by-question grilling never goes inside a workflow.
+1. **Grilling (planning) is conversational, outside the execution workflow.** Question-by-question grilling uses the active host's interactive input and never runs inside parallel agent execution.
 2. **Docs are the loop's fuel, not its by-product.** Terms sharpened in planning become the standard for execution, and retro learnings become the starting point of the next plan.
 
 ## forge vs. other harnesses
@@ -196,7 +208,7 @@ How git and branches are operated with forge — the git-abstinence model, the c
 | Generates project-specific domain agents on demand | ✓ (interview-driven, only roles that earn their place) | — | △ (25+ fixed built-in specialist skills) | — |
 | Built-in cost-discipline mode (subagent model cap + simplicity discipline) | ✓ (eco mode) | — | △ (model benchmarking tool, different angle) | — |
 | A dedicated security-audit skill | ✓ (`fg-security` — vendored cloudflare methodology; artefacts kept outside the repo) | — | ✓ (`/cso`) | — |
-| Target platform breadth | Claude Code only | 10+ runtimes | 10 agents | 9+ agents |
+| Target platform breadth | Claude Code + Codex | 10+ runtimes | 10 agents | 9+ agents |
 
 Legend: ✓ explicitly supported · △ something similar exists but differs in form/rigor · — not found in public docs (not claimed absent)
 
@@ -206,9 +218,9 @@ Legend: ✓ explicitly supported · △ something similar exists but differs in 
 - No seal without verification — pending/failed/skipped(reason)/n-a(reason) are honestly distinguished so an unverified task can never quietly become "done."
 - Unattended automation still stops itself at human-defined walls (failed verification, an unresolvable fork, tension/oscillation ping-pong, safety-class actions, a stalled wait on external evidence, a check command blocked by a missing tool or credential).
 - Sealing means the loop really ends — a sealed task is structurally blocked from ever re-running.
-- Zero infrastructure — no DB, no server, no npm install; just `/plugin install`.
+- Zero runtime infrastructure — no DB or server; install through the active host's plugin Marketplace.
 - Instead of a fixed roster of specialists, forge interviews the project to find which roles actually recur, and generates agent cards only for those.
-- Honest trade-off: forge is Claude Code-only, the narrowest platform reach of the four. In exchange, it goes deep on Claude Code-native capabilities (Dynamic Workflow, AskUserQuestion, Skill chaining) instead of flattening them to a lowest common denominator.
+- Honest trade-off: forge supports Claude Code and Codex, while some host-native extras remain asymmetric (`fg-statusline` and current `fg-agents` output are Claude-oriented; Codex unattended continuation is limited). The shared state and workflow rules stay identical instead of being duplicated.
 
 ### What forge doesn't do
 

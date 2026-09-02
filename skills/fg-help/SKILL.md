@@ -19,7 +19,7 @@ It **writes nothing** — no `.forge/` state, no files, no plan/backlog/done. It
 
 fg-help **never stores a copy** of any usage text. forge's top discipline is single-definition / no-copy-paste (`FORGE-ROOT.md`, `HANDOFF.md`, `DRIVE.md` are the precedents), and skill usage already has a single definition: the frontmatter `description` of each `skills/<name>/SKILL.md`, which by convention carries a human-readable summary **and** bilingual trigger phrases at the end (e.g. fg-status's `... Use in contexts like 'forge status', '상태', ...`). fg-help reads those at runtime; it adds no fifth synchronization surface, and a newly added skill shows up automatically with no edit to fg-help.
 
-**Scope — forge `fg-*` skills only.** Glob `${CLAUDE_PLUGIN_ROOT}/skills/*/SKILL.md` and read each one's frontmatter (`name` + `description`). This file location is the deterministic boundary of "what is a forge skill" (the same auto-discovery convention the plugin uses). Do **not** include other plugins' skills loaded in the session (superpowers, codex, local `.claude/skills/` tools, etc.) — forge does not own or maintain their descriptions, so their help quality can't be guaranteed here; fg-help documents its own house only.
+**Scope — forge `fg-*` skills only.** Glob `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/*/SKILL.md` and read each one's frontmatter (`name` + `description`). This file location is the deterministic boundary of "what is a forge skill" (the same auto-discovery convention the plugin uses). Do **not** include other plugins' skills loaded in the session (superpowers, codex, local `.claude/skills/` tools, etc.) — forge does not own or maintain their descriptions, so their help quality can't be guaranteed here; fg-help documents its own house only.
 
 ## Two modes
 
@@ -63,4 +63,4 @@ fg-help renders **no handoff table** — it has no fixed next stage (a documenta
 
 ## Document impact
 
-- **None.** fg-help creates and modifies nothing — it only reads `${CLAUDE_PLUGIN_ROOT}/skills/*/SKILL.md` and prints. Pure read-only reporting.
+- **None.** fg-help creates and modifies nothing — it only reads `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/*/SKILL.md` and prints. Pure read-only reporting.

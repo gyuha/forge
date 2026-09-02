@@ -114,17 +114,18 @@ fi
 # =============================================================================
 # Group B — docs & manifest integrity (repo root)
 # =============================================================================
-PJ="$repo/.claude-plugin/plugin.json"; MP="$repo/.claude-plugin/marketplace.json"
+PJ="$repo/.claude-plugin/plugin.json"; MP="$repo/.claude-plugin/marketplace.json"; CJ="$repo/.codex-plugin/plugin.json"
 # extract every "version": "X" value in document order (handles multi-per-line JSON)
 jver() { grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$1" | sed -E 's/.*"([^"]*)"$/\1/'; }
 # B8 manifest version sync
 if [ -f "$PJ" ] && [ -f "$MP" ]; then
-  pv="$(jver "$PJ" | head -1)"; m1="$(jver "$MP" | head -1)"; m2="$(jver "$MP" | sed -n 2p)"
-  { [ "$pv" = "$m1" ] && [ "$pv" = "$m2" ]; } || finding error "B8 manifest version drift" "$PJ|$MP" "sync all 3: plugin.json=$pv metadata=$m1 plugins[0]=$m2"
+  pv="$(jver "$PJ" | head -1)"; m1="$(jver "$MP" | head -1)"; m2="$(jver "$MP" | sed -n 2p)"; cv="$pv"
+  [ -f "$CJ" ] && cv="$(jver "$CJ" | head -1)"
+  { [ "$pv" = "$m1" ] && [ "$pv" = "$m2" ] && [ "$pv" = "$cv" ]; } || finding error "B8 manifest version drift" "$PJ|$MP|$CJ" "sync all 4: Claude=$pv metadata=$m1 marketplace=$m2 Codex=$cv"
 fi
 # B9 manifest JSON validity
 if [ -f "$PJ" ] && [ -f "$MP" ] && command -v node >/dev/null 2>&1; then
-  node -e "JSON.parse(require('fs').readFileSync('$PJ','utf8'));JSON.parse(require('fs').readFileSync('$MP','utf8'))" 2>/dev/null || finding error "B9 manifest JSON invalid" "$PJ|$MP" "fix the JSON syntax (install breaks otherwise)"
+  node -e "const f=require('fs');JSON.parse(f.readFileSync('$PJ','utf8'));JSON.parse(f.readFileSync('$MP','utf8'));if(f.existsSync('$CJ'))JSON.parse(f.readFileSync('$CJ','utf8'))" 2>/dev/null || finding error "B9 manifest JSON invalid" "$PJ|$MP|$CJ" "fix the JSON syntax (install breaks otherwise)"
 fi
 # B10 skill name frontmatter
 for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue

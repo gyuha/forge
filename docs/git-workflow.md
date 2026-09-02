@@ -46,7 +46,7 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 | fg-done | git 실행 안 함. 봉인 후 tracked 문서(retro·ADR·CONTEXT)가 미커밋이면 **커밋 리마인드** |
 | fg-learn / fg-ask | git 실행 안 함. tracked 연료(CONTEXT·ADR·retro)를 쓰므로 커밋은 네 몫 |
 | fg-run | git 실행 안 함. 네 코드를 바꾸지만 **커밋을 강제하지 않음** |
-| fg-map / fg-agents | git 실행 안 함. 산출물(`.forge/codebase/` · `.claude/agents/`)이 tracked → 커밋 리마인드 |
+| fg-map / fg-agents | git 실행 안 함. 산출물(`.forge/codebase/` · Claude Code의 `.claude/agents/`)이 tracked → 커밋 리마인드. Codex 네이티브 agent materialize는 아직 미지원 |
 | fg-drop | git 실행 안 함. 비-기본 브랜치에선 삭제가 tracked 변경으로 보임 → 네가 `commit`/`git restore` |
 | fg-doctor | 읽기 전용. `git merge` 후 통합을 잊은 **고아 브랜치 루트를 감지**만(A8) |
 | 그 외 (status·next·quick·loop·tdd·eco·cleanup·statusline·adversarial-review) | git 접점 없음 |

@@ -1,9 +1,12 @@
 ---
 name: fg-done
-description: Seals a finished task — confirms the retro, marks STATUS.md done, archives it, empties the active .forge state, and closes the loop (which blocks the same plan from re-running). `fg-done all` batch-seals every already-executed task at once (retros skipped, backlog untouched, verification gate intact). Use when a task's retro is done — '작업 완료', '봉인', '이거 마무리', '작업 정리', 'forge complete', 'fg-done all', '봉인 all', '모두 봉인'. (Note: 'forge cleanup' routes to fg-cleanup, not here.)
+description: >-
+  Seals a finished task — confirms the retro, marks STATUS.md done, archives it, empties the active .forge state, and closes the loop (which blocks the same plan from re-running). `fg-done all` batch-seals every already-executed task at once (retros skipped, backlog untouched, verification gate intact). Use when a task's retro is done — '작업 완료', '봉인', '이거 마무리', '작업 정리', 'forge complete', 'fg-done all', '봉인 all', '모두 봉인'. (Note: 'forge cleanup' routes to fg-cleanup, not here.)
 ---
 
 # fg-done — ④ Done (tidy-up / re-run guard)
+
+**Host contract**: sealing and `.forge/` state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter for confirmation; keep the deterministic seal scripts as the single implementation.
 
 This is the last step of the forge loop — the ④ **done** stage that seals one loop. Its job is to **tidy up** the residue left by one loop (ask·plan → execute → retro → done): confirm the retro, mark the task's STATUS.md as done, archive it, empty the active state, and close the loop. The unit of cleanup is a single **task** — there is no notion of closing an epic or merging several tasks into one seal. (Even the `all` batch mode below seals each task into its own `done/` directory: it bulk-skips retros, it does not bundle tasks.) Because a task *is* one loop, you only need to tidy up that one loop cleanly.
 
@@ -11,7 +14,7 @@ This is the last step of the forge loop — the ④ **done** stage that seals on
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
-**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. The seal script resolves this itself (shared resolver, ADR-0011); when you read state by hand for routing, resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`).
+**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. The seal script resolves this itself (shared resolver, ADR-0011); when you read state by hand for routing, resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`).
 
 This skill is self-contained and standalone. It depends on no external skills: it reads input from `.forge/` and writes output to `.forge/done/`.
 
@@ -22,8 +25,8 @@ The **mechanical seal** — pre-checks, gate enforcement, STATUS close-out, atom
 Unlike fg-status's read-only survey script, this one **mutates/moves files**, so it is **gate-first, non-destructive-on-refuse**: it touches nothing until every pre-check and gate passes, then closes out STATUS in place and moves atomically. That safety is why the mechanical part is *better* as a script than as hand-bash (no partial states), and why it is guarded by `scripts/forge-done.test.sh` + `scripts/forge-done.parity.test.sh`.
 
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
-- **Has bash**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-done.sh" [args]`
-- **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-done.js" [args]` — identical behavior (exit codes, STATUS content, archive layout), guarded by the parity test.
+- **Has bash**: `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-done.sh" [args]`
+- **No bash** (e.g. PowerShell-blocked Windows): `node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-done.js" [args]` — identical behavior (exit codes, STATUS content, archive layout), guarded by the parity test.
 
 **Arguments** (the judgment this skill supplies to the mechanical seal):
 - `--slug <slug>` — target a parked `executed/<slug>` or a half-sealed `done/*-<slug>`. Omit to seal the **active slot**.
@@ -161,7 +164,7 @@ completion notice (per-task summary + set-aside list)
 
 ## Wrap-up: every terminus ends in the handoff table
 
-**Whichever exit you landed on — the successful seal (0) and each non-zero refusal alike — close with the handoff table**, filled from that exit's routing in the exit-code table above and "Before starting" (read them; do not re-derive the route here). Its shape is defined once in `${CLAUDE_PLUGIN_ROOT}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, **once per invocation** — in `all` mode at the end of the batch, never per task — and not at all when an unattended drive suppressed it (HANDOFF.md, "Unattended drives").
+**Whichever exit you landed on — the successful seal (0) and each non-zero refusal alike — close with the handoff table**, filled from that exit's routing in the exit-code table above and "Before starting" (read them; do not re-derive the route here). Its shape is defined once in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, **once per invocation** — in `all` mode at the end of the batch, never per task — and not at all when an unattended drive suppressed it (HANDOFF.md, "Unattended drives").
 
 `Just did` is always what actually happened this turn, and it may **never assert what a path can falsify** (HANDOFF.md's rule of that name — "the active state is now empty" is exactly the sentence one set-aside task makes false). Fill it from the **first matching case**:
 
@@ -190,5 +193,5 @@ The other rows are filled per exit, branching where the routing branches:
 - The seal itself is done by `scripts/forge-done.sh` / `.js` (ADR-0030) — this skill invokes it and routes; it does not hand-edit STATUS or hand-move files.
 
 If you need the format for retro·ADR·CONTEXT, read the original format docs directly (don't copy per skill):
-`${CLAUDE_PLUGIN_ROOT}/skills/fg-learn/RETRO-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md`, `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/CONTEXT-FORMAT.md`
+`${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-learn/RETRO-FORMAT.md`, `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/ADR-FORMAT.md`, `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/CONTEXT-FORMAT.md`
 (relative paths from the skill directory: `../fg-learn/RETRO-FORMAT.md`, `../fg-ask/<file>`)
