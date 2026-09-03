@@ -16,7 +16,7 @@ The engine is vendored from obra/superpowers v6.1.1 and re-checked against **v6.
 ## What it does
 
 - **`fg-showme` (no argument)** → start a companion session for this conversation: read [`VISUAL.md`](./VISUAL.md) (the full operating guide — when to use the browser vs the terminal, screen authoring, the event loop), start the server, **arm the wake watch** (a persistent `Monitor` on the events file, so a confirmed click can wake you with no terminal turn), and share the keyed URL. Then push screens as the conversation calls for them.
-- **`fg-showme stop`** → stop the running session's server **and its wake watch** (`TaskStop`) — mockups persist in `.forge/showme/` for later reference.
+- **`fg-showme stop`** → stop the running session's server **and its wake watch** (`TaskStop`) — the session directory is deleted with it, and when the last session goes, the whole `.forge/showme/` goes too (nothing left to review or commit; copy a mockup out first if the user wants to keep it).
 
 ```
 fg-showme (no arg)
@@ -34,10 +34,10 @@ fg-showme stop
 ## Behavior
 
 1. **Read [`VISUAL.md`](./VISUAL.md) before the first screen.** It is the single operating guide (progressive disclosure — loaded only when the companion actually runs): the browser-vs-terminal test, session start/restart, fragment authoring, CSS classes, the events format, the waiting-screen unload, and cleanup. Follow it; do not improvise a parallel workflow here.
-2. **Start with `--project-dir` = the repo root and `--open`.** Sessions land under the **top-level `.forge/showme/<session>/`** — a deliberate global location on every branch (like `.forge/config.json` / `.forge/codebase/`, never the branch root: a branch root is git-tracked whole, and mockup HTML must not end up in commits). It is volatile display state, excluded by forge's standard `.gitignore` policy (`.forge/*` with no `showme/` whitelist).
+2. **Start with `--project-dir` = the repo root and `--open`.** Sessions land under the **top-level `.forge/showme/<session>/`** — a deliberate global location on every branch (like `.forge/config.json` / `.forge/codebase/`, never the branch root: a branch root is git-tracked whole, and mockup HTML must not end up in commits). It is volatile display state with **no path into git in any project**: `start-server.sh` writes a self-ignoring `.forge/showme/.gitignore` (a single `*`) on first use, so session artifacts stay out of the user's git even where forge's own `.gitignore` policy doesn't exist — forge never edits the user's own `.gitignore`; this self-ignore inside forge's state directory is the one exception (ADR `260719-224442`, amended 2026-09-02). The same start also sweeps dead sessions (stopped marker or dead PID) left by a crash or the idle timeout — live concurrent sessions and `.last-*` are untouched.
 3. **Arm the wake watch right after the server starts, and put a confirm button on every choice screen.** A persistent `Monitor` watches the events file for a confirmed selection or a submitted text event only — an exploratory click never matches, so browsing alone never wakes you (VISUAL.md's Starting a Session and Confirm button sections have the exact command and markup; do not restate them here). If `Monitor` is unavailable, skip the watch and fall back to the pre-watch behavior.
 4. **Per-screen judgment still applies, in both directions.** Having the companion open does not mean every exchange goes through it — use the browser when the content itself is visual, **or when a structural explanation (branching flow, state transitions, a multi-axis comparison) outgrows a text flow diagram**; if `A -> B -> C` carries it, stay in the terminal (the test in VISUAL.md). Push a waiting screen when the conversation returns to the terminal.
-5. **Stop when the visual discussion is done** — on `fg-showme stop` (which also stops the wake watch), or proactively when the session's purpose is served. The 4-hour idle timeout is the backstop for forgotten servers, not the normal exit.
+5. **Stop when the visual discussion is done** — on `fg-showme stop` (which also stops the wake watch), or proactively when the session's purpose is served. Stopping deletes the session directory (and, when it was the last one, all of `.forge/showme/`). The 4-hour idle timeout is the backstop for forgotten servers, not the normal exit — a directory it leaves behind is swept at the next start.
 
 ## Relationship to fg-ask (the main consumer)
 
@@ -52,4 +52,4 @@ fg-ask offers the companion **automatically, just-in-time** during grilling — 
 
 ## Document impact
 
-- Creates `.forge/showme/<session>/{content,state}/` session files (volatile, gitignored; top-level on every branch). The wake watch is a background `Monitor` task, not a file — it leaves nothing on disk and is stopped with `TaskStop` alongside the server. Nothing else.
+- Creates `.forge/showme/<session>/{content,state}/` session files plus a self-ignoring `.forge/showme/.gitignore` (volatile, structurally kept out of the user's git; top-level on every branch). All of it is deleted again on stop — the session directory, and the whole `.forge/showme/` once the last session goes; dead sessions a crash or the idle timeout leaves are swept at the next start. The wake watch is a background `Monitor` task, not a file — it leaves nothing on disk and is stopped with `TaskStop` alongside the server. Nothing else.

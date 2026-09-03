@@ -2,7 +2,9 @@
 # Vendored from obra/superpowers v6.1.1 (skills/brainstorming/scripts/start-server.sh).
 # MIT License, Copyright (c) 2025 Jesse Vincent — see LICENSE in the parent directory.
 # forge modifications: session files live under <project>/.forge/showme/ instead of
-# <project>/.superpowers/brainstorm/.
+# <project>/.superpowers/brainstorm/; a self-ignoring .gitignore is written into
+# .forge/showme/ so session artifacts never reach the user's git, and dead sessions
+# (stopped marker or dead PID) are swept before a new one starts.
 #
 # Start the visual companion server and output connection info
 # Usage: start-server.sh [--project-dir <path>] [--host <bind-host>] [--url-host <display-host>] [--foreground] [--background]
@@ -12,7 +14,8 @@
 #
 # Options:
 #   --project-dir <path>  Store session files under <path>/.forge/showme/
-#                         instead of /tmp. Files persist after server stops.
+#                         instead of /tmp. The session directory is deleted
+#                         on stop; abandoned ones are swept at the next start.
 #   --host <bind-host>    Host/interface to bind (default: 127.0.0.1).
 #                         Use 0.0.0.0 in remote/containerized environments.
 #   --url-host <host>     Hostname shown in returned URL JSON.
@@ -119,11 +122,34 @@ umask 077
 SESSION_ID="$$-$(date +%s)"
 
 if [[ -n "$PROJECT_DIR" ]]; then
-  SESSION_DIR="${PROJECT_DIR}/.forge/showme/${SESSION_ID}"
+  SHOWME_DIR="${PROJECT_DIR}/.forge/showme"
+  SESSION_DIR="${SHOWME_DIR}/${SESSION_ID}"
   # Persist the bound port and key per project so a restart reuses them and an
   # already-open browser tab reconnects to the same URL with a valid cookie.
-  export BRAINSTORM_PORT_FILE="${PROJECT_DIR}/.forge/showme/.last-port"
-  export BRAINSTORM_TOKEN_FILE="${PROJECT_DIR}/.forge/showme/.last-token"
+  export BRAINSTORM_PORT_FILE="${SHOWME_DIR}/.last-port"
+  export BRAINSTORM_TOKEN_FILE="${SHOWME_DIR}/.last-token"
+
+  # forge: the directory ignores itself entirely, so session artifacts (mockup
+  # HTML, event logs, session-key files) never reach the user's git. forge never
+  # edits the user's own .gitignore — this self-ignore is the one exception.
+  mkdir -p "$SHOWME_DIR"
+  [[ -f "${SHOWME_DIR}/.gitignore" ]] || printf '*\n' > "${SHOWME_DIR}/.gitignore"
+
+  # forge: sweep dead sessions (stopped marker, or a missing/dead PID) before
+  # creating the new one. Live concurrent sessions are untouched, and .last-*
+  # stay so a crashed server's open browser tab can still reconnect on restart.
+  for old_dir in "$SHOWME_DIR"/*/; do
+    [[ -d "$old_dir" ]] || continue
+    if [[ -f "${old_dir}state/server-stopped" ]]; then
+      rm -rf "$old_dir"
+      continue
+    fi
+    old_pid=""
+    [[ -f "${old_dir}state/server.pid" ]] && old_pid="$(tr -d ' \r\n' < "${old_dir}state/server.pid" 2>/dev/null)"
+    if [[ -z "$old_pid" ]] || ! kill -0 "$old_pid" 2>/dev/null; then
+      rm -rf "$old_dir"
+    fi
+  done
 else
   SESSION_DIR="/tmp/forge-showme-${SESSION_ID}"
 fi

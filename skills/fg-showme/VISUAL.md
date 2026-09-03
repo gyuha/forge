@@ -42,7 +42,8 @@ The server watches a directory for HTML files and serves the newest one to the b
 
 ```bash
 # Start AFTER the user approves the companion. --open auto-opens their browser on
-# the first screen; --project-dir persists mockups and enables same-port restart.
+# the first screen; --project-dir keeps the session under .forge/showme/ (deleted
+# on stop) and enables same-port restart.
 "${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
 
 # Returns: {"type":"server-started","port":52341,
@@ -57,7 +58,7 @@ Save `screen_dir` and `state_dir` from the response. With `--open`, the browser 
 
 **Finding connection info:** The server writes its startup JSON to `$STATE_DIR/server-info`. If you launched the server in the background and didn't capture stdout, read that file to get the URL and port. When using `--project-dir`, check `<project>/.forge/showme/` for the session directory.
 
-**Note:** Pass the project root as `--project-dir` so mockups persist in `.forge/showme/` and survive server restarts. Without it, files go to `/tmp` and get cleaned up. `.forge/showme/` is volatile display state — make sure it is gitignored (forge's standard `.gitignore` policy excludes `.forge/*` by default and never whitelists `showme/`; remind the user if their project's policy differs).
+**Note:** Pass the project root as `--project-dir` so the session lives in `.forge/showme/` and survives server restarts (same port, open tab reconnects). Without it, files go to `/tmp`. `.forge/showme/` is volatile display state with **no path into the user's git**: `start-server.sh` writes a self-ignoring `.forge/showme/.gitignore` (a single `*`) on first use — forge never edits the user's own `.gitignore`; this self-ignore inside forge's state directory is the one exception (ADR `260719-224442`, amended 2026-09-02).
 
 **Launching (Claude Code):**
 
@@ -354,8 +355,8 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 
 - **Within fg-ask**: the companion's job ends where the plan begins — stop the server at Output time (when the plan lands in the backlog and the handoff is delivered). See fg-ask's Forge integration section.
 - **Standalone (fg-showme)**: stop when the visual discussion is done, or when the user says `fg-showme stop`.
-- **Abandoned sessions**: the 4-hour idle timeout is the backstop — a forgotten server shuts itself down.
-- Mockup files persist in `.forge/showme/` after stop for later reference (only `/tmp` sessions are deleted).
+- **Abandoned sessions**: the 4-hour idle timeout is the backstop — a forgotten server shuts itself down, and the directory it leaves behind is swept by `start-server.sh` the next time a session starts (dead sessions only; live concurrent ones and `.last-*` are untouched).
+- **A stopped session leaves nothing behind**: `stop-server.sh` deletes the session directory, and when the last one goes, the whole `.forge/showme/` goes with it (`.last-*` and `.gitignore` included).
 - **The wake watch is `persistent` — stop it explicitly.** It never times out on its own, so stop it with `TaskStop` at every point the server itself gets stopped: `fg-showme stop` and fg-ask's Output time (the two bullets above). A server stop without a matching `TaskStop` leaves the watch running against a dead events file.
 - **A session restart kills the watch but not the server** — the server survives on the same port (see Starting a Session), but the watch was armed by a tool call in the session that just ended. Re-entry must re-arm it (see Starting a Session) before a confirmed click can wake you again.
 
@@ -365,7 +366,7 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 "${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/stop-server.sh" $SESSION_DIR
 ```
 
-If the session used `--project-dir`, mockup files persist in `.forge/showme/` for later reference. Only `/tmp` sessions get deleted on stop.
+The session directory is deleted on stop — `/tmp` and `.forge/showme/` sessions alike. If anything on a screen should outlive the session (a mockup the user wants to keep), copy it out before stopping.
 
 ## Reference
 

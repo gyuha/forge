@@ -6,9 +6,11 @@
 # Stop the visual companion server and clean up
 # Usage: stop-server.sh <session_dir>
 #
-# Kills the server process. Only deletes session directory if it's
-# under /tmp (ephemeral). Persistent directories (.forge/showme/) are
-# kept so mockups can be reviewed later.
+# Kills the server process and deletes the session directory (both /tmp
+# and .forge/showme/ sessions — forge modification; upstream kept the
+# persistent ones). When the last .forge/showme/ session is removed, the
+# whole .forge/showme/ directory goes with it (.last-* and .gitignore
+# included), leaving no trace.
 
 SESSION_DIR="$1"
 
@@ -25,6 +27,21 @@ mark_stopped() {
   local reason="$1"
   rm -f "${STATE_DIR}/server-info"
   printf '{"reason":"%s","timestamp":%s}\n' "$reason" "$(date +%s)" > "${STATE_DIR}/server-stopped"
+}
+
+# forge: a stopped session leaves nothing behind. Delete the session directory,
+# and if it was the last one under .forge/showme/, remove that directory whole
+# (.last-* and .gitignore included). The stopped marker above still lands first,
+# so a failed deletion is caught by start-server.sh's sweep on the next start.
+cleanup_session_dir() {
+  rm -rf "$SESSION_DIR"
+  local parent
+  parent="$(dirname "$SESSION_DIR")"
+  if [[ "$(basename "$parent")" == "showme" ]]; then
+    if [[ -z "$(find "$parent" -mindepth 1 -maxdepth 1 -type d 2>/dev/null)" ]]; then
+      rm -rf "$parent"
+    fi
+  fi
 }
 
 read_expected_server_id() {
@@ -82,6 +99,7 @@ if [[ -f "$PID_FILE" ]]; then
   if ! is_brainstorm_server "$pid"; then
     rm -f "$PID_FILE" "$SERVER_ID_FILE"
     mark_stopped "stale_pid"
+    cleanup_session_dir
     echo '{"status": "stale_pid"}'
     exit 0
   fi
@@ -112,11 +130,7 @@ if [[ -f "$PID_FILE" ]]; then
 
   rm -f "$PID_FILE" "$SERVER_ID_FILE" "${STATE_DIR}/server.log"
   mark_stopped "stop-server.sh"
-
-  # Only delete ephemeral /tmp directories
-  if [[ "$SESSION_DIR" == /tmp/* ]]; then
-    rm -rf "$SESSION_DIR"
-  fi
+  cleanup_session_dir
 
   echo '{"status": "stopped"}'
 else
