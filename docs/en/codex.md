@@ -46,6 +46,7 @@ Script paths prefer `PLUGIN_ROOT` and fall back to `CLAUDE_PLUGIN_ROOT`, so both
 | `fg-next all` and `fg-loop` unattended drive | Limited | Supervised use is recommended until Stop-hook re-entry parity is proven |
 | `fg-agents` project roles | Limited | Generation is still centered on `.claude/agents/`; Codex materialization is follow-up work |
 | Structured choice menus | Unverified | Falls back to a numbered text list — correct on any host |
+| `fg-loop`'s `budget-tokens` ceiling | Unsupported | The meter reads Claude Code's transcript files. On Codex declare `budget-tokens: none`, or point it at the host's location with `--transcripts DIR` (otherwise the drive halts at `blocked-health` — fail-closed) |
 | `fg-statusline` | Unsupported | Use `$fg-status` in Codex |
 
 This table is a **declaration**, not prose — the same claim lives in machine-readable form as the eight keys of `hosts/codex/capabilities.json`, and the two are always updated together. **A capability is `true` only when that host has been *observed* to provide it; unverified defaults to `false`** — every capability has a defined fallback (serial execution, a numbered list, a stated stop), and a fallback that runs is always cheaper than a tool call that does not exist. Flipping a `false` to `true` is an observation, not an assumption (`core/HOST.md`).

@@ -46,6 +46,7 @@ forge는 Claude Code와 Codex가 **같은 `skills/`와 `.forge/` 상태**를 사
 | `fg-next all`, `fg-loop` 무인 주행 | 제한적 | Stop 훅의 재진입 동작은 호스트별 차이가 있어 감독 실행 권장 |
 | `fg-agents` 프로젝트 역할 생성 | 제한적 | 현재 생성 포맷이 `.claude/agents/` 중심이므로 Codex 전용 materialize는 후속 작업 |
 | 선택 메뉴 (structured choice) | 미확인 | 번호 텍스트 목록으로 fallback — 어느 호스트에서도 정확하다 |
+| `fg-loop`의 `budget-tokens` 지출 상한 | 미지원 | 계량기가 Claude Code의 트랜스크립트 파일을 읽는다. Codex에서는 `budget-tokens: none`으로 선언하거나 `--transcripts DIR`로 경로를 지정한다(미지정 시 `blocked-health`로 정지 — fail-closed) |
 | `fg-statusline` | 미지원 | Codex에서는 `$fg-status` 사용 |
 
 이 표는 산문이 아니라 **선언**이다 — 같은 내용이 `hosts/codex/capabilities.json`의 8개 키에 기계가 읽는 형태로 들어 있고, 둘은 항상 함께 갱신한다. **능력은 그 호스트가 실제로 제공하는 것을 *관측*했을 때만 `true`이며, 미확인은 `false`가 기본값이다** — 모든 능력에는 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있어서, 도는 fallback이 없는 도구를 부르는 것보다 항상 싸기 때문이다. `false`를 `true`로 바꾸는 것은 가정이 아니라 관측이다(`core/HOST.md`).
