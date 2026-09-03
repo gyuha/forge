@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.8.0] - 2026-09-03
+
+**forge가 Claude Code 전용을 그만뒀다 — 그리고 그 전용을 못 박아 뒀던 ADR을 정식으로 승계했다.** ADR-0025는 "forge는 Claude Code 전용, Codex 포팅 보류"를 결정하면서 **재검토 바**를 함께 명문화했다("실사용자가 Codex에서 forge 루프를 반복적으로 요구할 때"). 그 바가 충족돼 ADR-0025가 지시한 두 길 중 **(a) 전면 도구 추상화**를 밟았다. 실제로 들어간 비용은 ADR-0025의 추정("superpowers식 재작성")보다 작았다 — 계약 3파일 + 어댑터 6파일이면 됐다. 정직한 대가는 **기능 비대칭**이고, 그것을 산문이 아니라 선언으로 남겼다.
+
+### Added
+- **Codex 호스트 지원 — 워크플로 한 벌, `.forge/` 상태 계약 한 벌, `skills/` 한 벌.** 호스트별로 갈리는 것은 *질문 방식·위임 방식·프로젝트 에이전트 로드·주행 계속·상태 UI* 다섯 가지뿐이다. 경계는 `core/`(호스트 중립 계약 3파일 — `HOST.md` 어댑터 선택+능력표 · `EXECUTION.md` · `INTERACTION.md`)와 `hosts/<claude|codex>/`(어댑터 3파일씩)에 있고, **어댑터에 상태 모델을 복제하거나 스킬의 Codex 전용 사본을 만드는 것은 금지**다(그 순간 ADR-0025가 옳았던 것이 된다). ADR `260903-080713`.
+- **`.codex-plugin/plugin.json`** — Codex 매니페스트. `skills`가 `./skills/`를 가리켜 두 호스트가 **같은 스킬 트리**를 로드한다(스킬 사본 0). 호출은 Claude Code `/forge:fg-*` · Codex `$fg-*`이고 자연어 트리거는 양쪽 동일.
+- **배포 전 게이트 `npm run release:check`** (`scripts/release-check.sh`/`.js` 트윈) — **버전 4곳** 동기·공통 `skills/` 경로·기본 훅 파일·양쪽 어댑터 완비를 검사한다. `fg-doctor` B8도 4곳 동기를 검사한다. bash·node 양쪽이 stdout·stderr·exit code·에러 순서까지 동일함을 패리티 테스트 7케이스로 못 박았다.
+- **이중언어 Codex 가이드** `docs/codex.md` / `docs/en/codex.md` — 설치·호출·지원 범위 표·호스트 전환.
+- **`fg-showme` 세션의 git 진입 경로를 구조적으로 없앴다.** `start-server.sh`가 `.forge/showme/.gitignore`(`*` 한 줄) **자체-ignore**를 써 주고, 정상 종료 시 세션 폴더를 삭제하며 마지막 세션이면 `.forge/showme/`를 통째 제거하고, 크래시·유휴 타임아웃이 남긴 죽은 세션은 다음 시작 때 **sweep**한다(정지 마커·pid 파일 부재·죽은 PID 3종). 살아있는 동시 세션과 `.last-port`/`.last-token`은 불변이라 크래시 후 열린 탭 재연결이 보존된다. **사용자 루트 `.gitignore`는 불가침** — forge가 자기 상태 디렉터리 안에 쓰는 자체-ignore만 유일 예외다. ADR `260719-224442`·`260820-215004` 개정.
+
+### Changed
+- **능력 선언에 보수적 기본값 규율을 도입했다 — 관측한 것만 `true`.** 미확인은 `false`이고, 모든 능력에 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있으므로 도는 fallback이 없는 도구를 부르는 것보다 항상 싸다. `false`→`true`는 가정이 아니라 관측이며 `docs/codex.md`의 지원 표를 같은 변경에서 함께 고친다. 초기 어댑터가 `prevent_stop`·`spawn_role`을 관측 없이 `true`로 주장해 자기 문서와 모순됐던 것이 이 규율의 출처다 — 없는 안전장치를 있다고 믿는 무인 주행이 가장 위험했다.
+- **능력 이름의 유일 어휘는 `core/HOST.md` 표다.** `hosts/<host>/capabilities.json`은 그 여덟 키만 쓰고, 스킬은 이름으로 능력을 지목해(`spawn_parallel`·`prevent_stop`) 기계적으로 조회한다.
+- **위임이 무거운 스킬에도 호스트 계약을 붙였다** — `fg-map`·`fg-adversarial-review`·`fg-security`(`spawn_parallel`), `fg-loop`·`fg-next`(`prevent_stop`·`structured_choice`), 그리고 `DRIVE.md` Part 2에 **"Stop 훅은 호스트 능력이지 전제가 아니다"**. `prevent_stop`이 `false`면 마커를 쓰지 않고 턴 경계형임을 정직하게 알린다. 벽·게이트·상한은 전부 호스트 중립이라 불변.
+- **기둥 1이 근거를 되찾았다.** "그릴링은 실행 워크플로우 안에 넣지 않는다"의 이유 — **위임 실행은 실행 중 사용자 입력을 못 받는다** — 는 호스트가 늘어도 사라지지 않는다. CLAUDE.md·README 양쪽·docs/index 양쪽에 같은 문구로 복원했다.
+- **배포 규칙이 4곳 체제가 됐다.** CLAUDE.md의 "버전 3곳"이 그대로였다면 문서화된 절차를 따르는 것만으로 `fg-doctor` B8이 실패했다. 패키징 구조 절에도 `.codex-plugin/`·`core/`·`hosts/`를 넣었다.
+- ADR-0025를 `.forge/adr/retired/`로 은퇴시키고 supersede를 마킹했다 — 활성 결정 집합이 코드와 모순되면 fg-ask 그릴링이 거짓 연료를 읽는다.
+
+### Fixed
+- **`fg-doctor` B16(description 길이 린트)이 조용히 눈을 감았던 것을 되돌렸다.** 스킬 5개의 `description`이 YAML 접힘 스칼라(`>-`)로 바뀌어 doctor가 값을 `>-`(2자)로 읽었고, 상한 600자에 가장 가까웠던 5개(478~591자)가 통째로 검사 사각지대에 들어갔다. 내용 변경은 0인 순수 형식 churn이었으므로 단일 라인으로 복원했다.
+- **`release-check.sh`가 `exec node` 셸이라 bash 전용 환경에서 무용했다**(ADR-0022 트윈 취지 위배) — 실제 bash 구현으로 교체했다.
+- 구형 플러그인 루트 관례를 지시·기술하던 `.claude/agents/skill-author.md`와 `.forge/codebase/INTEGRATIONS.md`를 갱신했다.
+
+### Known
+- `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}` 치환이 정말 필요한지는 **Codex가 `CLAUDE_PLUGIN_ROOT`를 제공하는가**라는 미관측 사실 하나에 달려 있다(`core/HOST.md` 스스로 그 가능성을 적어 두었다). 제공한다면 22파일 치환과 `hooks/hooks.json`의 중첩 확장을 되돌리는 쪽이 단순하고, `run-hook.cmd`가 상정하는 cmd.exe 경로 리스크도 사라진다. 추측으로 고치지 않고 ADR `260903-080713`의 Consequences에 남겼다.
+
 ## [0.7.1] - 2026-09-01
 
 **무인 주행이 롤백 지점을 남길 수 있게 됐다 — 옵트인.** 8/31 `fg-next all` 주행이 task를 봉인했는데 커밋이 하나도 없어 23파일이 미커밋으로 쌓였고, 중간에 틀어졌다면 되돌릴 지점이 없었다. GitHub 이슈 `#16`(블로그 포스팅의 자율 루프 기법 검토)의 7축 중 실제로 빈 것이 이것 하나였다 — 나머지 5축(정지 조건·비용·정체 대응·단일 태스크 원칙·자동 재시작)은 fg-loop이 이미 앞서 있고, 2축(초기 수동 검증·주행 중 개입 통로)은 fg-loop의 형태와 부딪혀 기각했다.
