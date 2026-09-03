@@ -42,6 +42,8 @@ seed_orphan() { mkdir -p "$1/.forge"; printf 'x\n' > "$1/.forge/run.md"; }  # A1
 seed_t3()     { mkdir -p "$1/.forge/adr"; printf '# a\n' > "$1/.forge/adr/0001-a.md"; printf '# t\n' > "$1/.forge/adr/260716-14a-z.md"; }  # no false gap
 seed_desclen() { mkdir -p "$1/.forge" "$1/skills/foo"; local d; d="$(head -c 700 < /dev/zero | tr '\0' x)"; printf 'name: foo\ndescription: %s\n' "$d" > "$1/skills/foo/SKILL.md"; }  # B16 over-length
 seed_retired_dup() { mkdir -p "$1/.forge/adr/retired"; printf '# a\n' > "$1/.forge/adr/260719-161701-active.md"; printf '# r\n' > "$1/.forge/adr/retired/260719-161701-old.md"; }  # B14 active<->retired time-ID dup
+seed_desc_folded() { mkdir -p "$1/.forge" "$1/skills/foo"; local d; d="$(head -c 700 < /dev/zero | tr '\0' x)"; printf 'name: foo\ndescription: >-\n  %s\n---\nbody\n' "$d" > "$1/skills/foo/SKILL.md"; }  # B16 folded scalar (was fail-open)
+seed_halfexec() { mkdir -p "$1/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$1/.forge/plan.md"; printf '# run\n' > "$1/.forge/run.md"; }  # A1(b) plan+run, no STATUS
 seed_b17_missing() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; printf 'name: foo\ndescription: short core\n---\n**Language**: x\n' > "$1/skills/foo/SKILL.md"; }  # B17 rule missing
 seed_b17_scoped_out() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/theirs"; printf '{"name":"someone-elses-plugin"}\n' > "$1/.claude-plugin/plugin.json"; printf 'name: theirs\ndescription: short core\n---\n**Language**: x\n' > "$1/skills/theirs/SKILL.md"; }  # B17 scope guard
 # The three fixtures below are the shapes that actually DIVERGED before the hardening: bash
@@ -58,6 +60,8 @@ check "mixed findings"        seed_mixed
 check "A1 orphan"             seed_orphan
 check "T3 no-false-gap"       seed_t3
 check "B16 desc length"       seed_desclen
+check "B16 folded scalar"    seed_desc_folded
+check "A1b half-exec slot"   seed_halfexec
 check "B14 active<->retired dup" seed_retired_dup
 check "B17 rule missing"       seed_b17_missing
 check "B17 scope guard"        seed_b17_scoped_out

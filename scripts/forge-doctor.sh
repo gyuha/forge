@@ -40,6 +40,12 @@ slugof() { sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "
 if { [ -f "$root/run.md" ] || [ -f "$root/STATUS.md" ]; } && [ ! -f "$root/plan.md" ]; then
   finding error "A1 active-slot orphan" "$root/run.md|STATUS.md (no plan.md)" "an orphaned run/STATUS with no plan — seal via fg-done or discard via fg-drop"
 fi
+# A1(b) the mirror case: a run happened but its companion marker was never written.
+# A5 demands plan+run+STATUS for executed/<slug>; the active slot had no such arm,
+# so a half-executed slot passed clean and was only caught by the session-start hook.
+if [ -f "$root/plan.md" ] && [ -f "$root/run.md" ] && [ ! -f "$root/STATUS.md" ]; then
+  finding warning "A1 active-slot incomplete" "$root (plan.md+run.md present, STATUS.md missing)" "fg-run writes STATUS.md right after run.md — re-enter fg-run for its verification-only resume (it writes verified: without re-executing)"
+fi
 # A2/A3/A4/A5 over every STATUS.md (active slot + executed/ + done/)  (skip dropped/)
 check_status() { # <status-file> <ctx: active|executed|done>
   local sf="$1" ctx="$2" st ver rt dir slug pslug
@@ -189,8 +195,29 @@ desclen() { # <string> -> codepoint count
   c="$(printf '%s' "$s" | LC_ALL=C tr -dc '\200-\277' | wc -c)"; c="${c//[![:digit:]]/}"
   echo $(( b - c ))
 }
+# A YAML block scalar (`>`, `>-`, `|`, `|2-`, …) puts the value on the FOLLOWING
+# indented lines, so a line-wise read saw only the indicator (`>-` = 2 chars) and
+# every length passed — fail-open, and it blinded exactly the 5 longest descriptions.
+# Folding joins each break with one character in either style, so joining with a
+# single space gives the same count for `>` and `|` and matches the .js twin.
+descof() { # <skill-file> -> the effective description text
+  awk '
+    /^description:/ {
+      v = $0; sub(/^description:[ \t]*/, "", v); gsub(/\r/, "", v)
+      if (v ~ /^[>|][-+]?[0-9]*$/) { blk = 1; next }
+      print v; exit
+    }
+    blk {
+      if ($0 ~ /^[^ \t]/) { print out; blk = 0; exit }   # awk runs END even after exit
+      line = $0; sub(/^[ \t]+/, "", line); gsub(/\r/, "", line)
+      if (line == "") next
+      out = (out == "" ? line : out " " line)
+    }
+    END { if (blk) print out }
+  ' "$1"
+}
 for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue
-  desc="$(sed -n 's/^description:[[:space:]]*//p' "$s" | head -1 | tr -d '\r')"
+  desc="$(descof "$s")"
   [ -n "$desc" ] || continue
   n="$(desclen "$desc")"
   [ "$n" -gt "$DESC_MAX" ] && finding warning "B16 description length" "$s ($n chars > $DESC_MAX)" "trim the SKILL.md frontmatter description toward the trigger core — it drives /fg menu readability (ADR 260716-22a)"

@@ -39,6 +39,12 @@ function slugof(f) { const m = read(f).match(/forge-slug:[ \t]*(\S*)[ \t]*-->/);
 if ((isFile(path.join(root, 'run.md')) || isFile(path.join(root, 'STATUS.md'))) && !isFile(path.join(root, 'plan.md'))) {
   finding('error', 'A1 active-slot orphan', `${root}/run.md|STATUS.md (no plan.md)`, 'an orphaned run/STATUS with no plan — seal via fg-done or discard via fg-drop');
 }
+// A1(b) the mirror case: a run happened but its companion marker was never written.
+// A5 demands plan+run+STATUS for executed/<slug>; the active slot had no such arm,
+// so a half-executed slot passed clean and was only caught by the session-start hook.
+if (isFile(path.join(root, 'plan.md')) && isFile(path.join(root, 'run.md')) && !isFile(path.join(root, 'STATUS.md'))) {
+  finding('warning', 'A1 active-slot incomplete', `${root} (plan.md+run.md present, STATUS.md missing)`, 'fg-run writes STATUS.md right after run.md — re-enter fg-run for its verification-only resume (it writes verified: without re-executing)');
+}
 function checkStatus(sf, ctx) {
   if (!isFile(sf)) return;
   const st = field(sf, 'status'), ver = field(sf, 'verified'), rt = field(sf, 'retro');
@@ -172,8 +178,24 @@ for (const f of ls(path.join(repo, 'scripts'))) {
 // [...desc].length counts Unicode codepoints, matching the .sh locale-independent count exactly.
 const DESC_MAX = 600;
 for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
-  const m = read(sf).match(/^description:[ \t]*(.*)$/m); if (!m) continue;
-  const desc = m[1].replace(/\r/g, ''); if (!desc) continue;
+  // A YAML block scalar (`>`, `>-`, `|`, `|2-`, …) puts the value on the FOLLOWING
+  // indented lines; a line-wise read saw only the indicator (`>-` = 2 chars) and every
+  // length passed — fail-open. Folding joins each break with one character either way,
+  // so a single-space join matches the .sh twin's count exactly.
+  const lines = read(sf).split('\n');
+  const di = lines.findIndex((l) => /^description:/.test(l));
+  if (di < 0) continue;
+  let desc = lines[di].replace(/^description:[ \t]*/, '').replace(/\r/g, '');
+  if (/^[>|][-+]?[0-9]*$/.test(desc)) {
+    const parts = [];
+    for (let i = di + 1; i < lines.length; i++) {
+      if (/^[^ \t]/.test(lines[i])) break;
+      const t = lines[i].replace(/^[ \t]+/, '').replace(/\r/g, '');
+      if (t) parts.push(t);
+    }
+    desc = parts.join(' ');
+  }
+  if (!desc) continue;
   const n = [...desc].length;
   if (n > DESC_MAX) finding('warning', 'B16 description length', `${sf} (${n} chars > ${DESC_MAX})`, 'trim the SKILL.md frontmatter description toward the trigger core — it drives /fg menu readability (ADR 260716-22a)');
 }

@@ -73,6 +73,26 @@ run_doc "$t"; assert "B15-rc1" 1 "$RC"; assert_grep "B15-msg" "$OUT" "B15 missin
 # --- B16 description too long (> 600 chars) -> warning ------------------------
 t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/foo"; longdesc="$(head -c 700 < /dev/zero | tr '\0' x)"; printf 'name: foo\ndescription: %s\n' "$longdesc" > "$t/skills/foo/SKILL.md"
 run_doc "$t"; assert "B16-rc1" 1 "$RC"; assert_grep "B16-msg" "$OUT" "B16 description length"; rm -rf "$t"
+# --- B16 folded block scalar -> measured, NOT read as the 2-char indicator -----
+# Regression: a `description: >-` value lives on the FOLLOWING indented lines, so a
+# line-wise read saw `>-` (2 chars) and every length passed — fail-open, and it blinded
+# the five longest descriptions until they were reverted by hand.
+t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/foo"; longdesc="$(head -c 700 < /dev/zero | tr '\0' x)"
+printf 'name: foo\ndescription: >-\n  %s\n---\nbody\n' "$longdesc" > "$t/skills/foo/SKILL.md"
+run_doc "$t"; assert "B16fold-rc1" 1 "$RC"; assert_grep "B16fold-msg" "$OUT" "700 chars > 600"; rm -rf "$t"
+# --- B16 folded block scalar under the cap -> clean (no false positive) --------
+t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/foo"
+printf 'name: foo\ndescription: >-\n  short core spread\n  over two lines\n---\nbody\n' > "$t/skills/foo/SKILL.md"
+run_doc "$t"; assert "B16foldshort-rc0" 0 "$RC"; rm -rf "$t"
+# --- A1(b) half-executed active slot: plan+run, no STATUS -> warning ----------
+# The mirror of A1. A5 demands plan+run+STATUS for executed/<slug>, but the active slot
+# had no such arm, so this state passed clean and was caught only by the session hook.
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"; printf '# run\n' > "$t/.forge/run.md"
+run_doc "$t"; assert "A1b-rc1" 1 "$RC"; assert_grep "A1b-msg" "$OUT" "A1 active-slot incomplete"; rm -rf "$t"
+# --- A1(b) complete active slot -> no A1(b) finding ---------------------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"; printf '# run\n' > "$t/.forge/run.md"
+printf 'slug: s\nstatus: executed\nverified: pending\nretro: pending\n' > "$t/.forge/STATUS.md"
+run_doc "$t"; assert_nogrep "A1b-none" "$OUT" "A1 active-slot incomplete"; rm -rf "$t"
 # --- B16 short description -> no B16 finding, clean ---------------------------
 t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/bar"; printf 'name: bar\ndescription: short and sweet trigger core\n' > "$t/skills/bar/SKILL.md"
 run_doc "$t"; assert "B16short-rc0" 0 "$RC"; rm -rf "$t"
