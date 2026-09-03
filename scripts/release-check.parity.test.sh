@@ -24,10 +24,25 @@ mkrepo() { # $1=version-claude $2=version-codex $3=skills-field
   printf '{"name":"forge","version":"%s","skills":"%s"}\n' "$2" "$3" \
     > "$d/.codex-plugin/plugin.json"
   printf '{}\n' > "$d/hooks/hooks.json"
+  # The capability vocabulary is NOT restated here — copy the real core/HOST.md so the
+  # fixture's 8 keys can never drift from the canonical table the scripts parse.
+  mkdir -p "$d/core"; cp "$HERE/../core/HOST.md" "$d/core/HOST.md"
+  local caps; caps="$(caps_json "$d/core/HOST.md")"
   for h in claude codex; do
-    for f in interaction.md execution.md capabilities.json; do printf 'x\n' > "$d/hosts/$h/$f"; done
+    printf 'x\n' > "$d/hosts/$h/interaction.md"
+    printf 'x\n' > "$d/hosts/$h/execution.md"
+    printf '%s\n' "$caps" > "$d/hosts/$h/capabilities.json"
   done
   printf '%s' "$d"
+}
+
+# Build a valid all-true capabilities.json from HOST.md's table (bash only, no node).
+caps_json() {
+  local out="" k
+  for k in $(grep -oE '^\| `[a-z_]+`' "$1" | sed -E 's/^\| `([a-z_]+)`/\1/'); do
+    out="${out:+$out,}\"$k\":true"
+  done
+  printf '{%s}' "$out"
 }
 
 assert_parity() { # $1=desc $2=repo $3=must-contain
@@ -61,6 +76,23 @@ F="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$F/.codex-plugin/plugin.json"
 assert_parity "missing manifest" "$F" "missing manifest: .codex-plugin/plugin.json"
 G="$(mkrepo 9.9.9 9.9.8 ./elsewhere/)"; rm "$G/hooks/hooks.json"
 assert_parity "multiple violations, same order" "$G" "manifest version drift"
+
+# --- capability vocabulary validation (the hole this check was added to close) ---
+# Before it existed, capabilities.json could be reduced to one key or replaced with
+# "not json" and BOTH twins still exited 0. These cases pin that shut.
+H="$(mkrepo 9.9.9 9.9.9 ./skills/)"; printf '{"structured_choice":true,"bogus_key":true}\n' > "$H/hosts/codex/capabilities.json"
+assert_parity "capabilities unknown key" "$H" "unknown keys: bogus_key"
+I="$(mkrepo 9.9.9 9.9.9 ./skills/)"; printf '{"structured_choice":true}\n' > "$I/hosts/codex/capabilities.json"
+assert_parity "capabilities missing keys" "$I" "missing keys: spawn_parallel"
+J="$(mkrepo 9.9.9 9.9.9 ./skills/)"; printf 'not json\n' > "$J/hosts/codex/capabilities.json"
+assert_parity "capabilities broken JSON" "$J" "must be a flat object of boolean values"
+K="$(mkrepo 9.9.9 9.9.9 ./skills/)"
+sed -i.bak 's/"prevent_stop":true/"prevent_stop":"maybe"/' "$K/hosts/codex/capabilities.json" && rm -f "$K/hosts/codex/capabilities.json.bak"
+assert_parity "capabilities non-boolean" "$K" "must be a flat object of boolean values"
+L="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$L/core/HOST.md"
+assert_parity "HOST.md vocabulary gone" "$L" "cannot derive the capability vocabulary"
+M="$(mkrepo 9.9.9 9.9.9 ./skills/)"; printf '{"structured_choice":true,"zzz":true}\n' > "$M/hosts/claude/capabilities.json"
+assert_parity "claude host checked too" "$M" "hosts/claude/capabilities.json"
 
 rm -f /tmp/rc.sh.err /tmp/rc.js.err
 [ "$fails" -eq 0 ] && { echo "RELEASE-CHECK PARITY OK"; exit 0; }

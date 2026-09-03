@@ -27,6 +27,35 @@ for (const host of ['claude', 'codex']) {
   }
 }
 
+// Capability vocabulary — derived from core/HOST.md's table, never hardcoded here.
+// That table is the single definition (see core/HOST.md); a second copy in this
+// script would be the very drift this check exists to prevent.
+const hostDoc = path.join(repo, 'core', 'HOST.md');
+const canonical = fs.existsSync(hostDoc)
+  ? (fs.readFileSync(hostDoc, 'utf8').match(/^\| `[a-z_]+`/gm) || []).map((l) => l.replace(/^\| `([a-z_]+)`/, '$1'))
+  : [];
+if (!canonical.length) {
+  errors.push('cannot derive the capability vocabulary from core/HOST.md');
+} else {
+  for (const host of ['claude', 'codex']) {
+    const cap = path.join(repo, 'hosts', host, 'capabilities.json');
+    if (!fs.existsSync(cap)) continue; // already reported above
+    let obj = null;
+    try { obj = JSON.parse(fs.readFileSync(cap, 'utf8')); } catch (_) { obj = null; }
+    const flatBool = obj !== null && typeof obj === 'object' && !Array.isArray(obj)
+      && Object.values(obj).every((v) => typeof v === 'boolean');
+    if (!flatBool) {
+      errors.push(`hosts/${host}/capabilities.json must be a flat object of boolean values`);
+      continue;
+    }
+    const keys = Object.keys(obj);
+    const missing = canonical.filter((k) => !keys.includes(k));
+    const unknown = keys.filter((k) => !canonical.includes(k));
+    if (missing.length) errors.push(`hosts/${host}/capabilities.json missing keys: ${missing.join(', ')}`);
+    if (unknown.length) errors.push(`hosts/${host}/capabilities.json unknown keys: ${unknown.join(', ')}`);
+  }
+}
+
 if (errors.length) {
   for (const error of errors) process.stderr.write(`release:check: ${error}\n`);
   process.exit(1);

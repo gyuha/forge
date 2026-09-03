@@ -30,6 +30,36 @@ for host in claude codex; do
   done
 done
 
+# Capability vocabulary — derived from core/HOST.md's table, never hardcoded here.
+# That table is the single definition; a second copy in this script would be the
+# very drift this check exists to prevent. The contract validated per host is
+# "a flat object of boolean values" — checkable without a JSON parser, so the
+# bash twin stays node-free (ADR-0022) and matches the .js twin exactly.
+canonical=$(grep -oE '^\| `[a-z_]+`' "$repo/core/HOST.md" 2>/dev/null | sed -E 's/^\| `([a-z_]+)`/\1/')
+if [ -z "$canonical" ]; then
+  errors+=("cannot derive the capability vocabulary from core/HOST.md")
+else
+  for host in claude codex; do
+    cap="$repo/hosts/$host/capabilities.json"
+    [ -f "$cap" ] || continue   # already reported above
+    compact=$(tr -d ' \t\n\r' < "$cap")
+    if ! printf '%s' "$compact" | grep -qE '^\{("[a-z_]+":(true|false),)*"[a-z_]+":(true|false)\}$'; then
+      errors+=("hosts/$host/capabilities.json must be a flat object of boolean values")
+      continue
+    fi
+    keys=$(printf '%s' "$compact" | grep -oE '"[a-z_]+":' | sed -E 's/"([a-z_]+)":/\1/')
+    missing=""; unknown=""
+    for k in $canonical; do
+      printf '%s\n' "$keys" | grep -qx "$k" || missing="${missing:+$missing, }$k"
+    done
+    for k in $keys; do
+      printf '%s\n' "$canonical" | grep -qx "$k" || unknown="${unknown:+$unknown, }$k"
+    done
+    [ -n "$missing" ] && errors+=("hosts/$host/capabilities.json missing keys: $missing")
+    [ -n "$unknown" ] && errors+=("hosts/$host/capabilities.json unknown keys: $unknown")
+  done
+fi
+
 if [ ${#errors[@]} -gt 0 ]; then
   for e in "${errors[@]}"; do printf 'release:check: %s\n' "$e" >&2; done
   exit 1
