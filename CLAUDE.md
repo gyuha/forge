@@ -8,6 +8,8 @@ forge는 **Claude Code·Codex 플러그인**이다 — 코드를 빌드하는 �
 
 **플러그인 본체에는 빌드·테스트·린트 시스템이 없다.** Makefile 없고, 스킬 Markdown·매니페스트 JSON을 빌드하는 단계도 없다. "개발"은 Markdown/JSON을 편집하는 것이고, 검증은 아래 방법으로 한다. **예외는 문서 사이트 하나뿐** — 루트 `package.json`(VitePress)과 `.github/workflows/docs.yml`이 `docs/`의 Markdown을 `gyuha.com/forge/docs/`로 빌드·배포한다(랜딩 `gyuha.com/forge/`는 그대로 유지, ADR `260815-094725`). 이 `package.json`은 **문서 도구이지 플러그인 빌드가 아니다** — 이 경계를 흐리지 말 것.
 
+> **CI 워크플로우는 둘이다.** `docs.yml`(문서 사이트 배포, `docs/**`·`package.json` 경로에만 발동)과 `release-check.yml`(**릴리스 게이트** — 매니페스트 4곳 버전 동기·공통 skills 경로·기본 훅 파일·호스트 어댑터 완비 + `core/HOST.md`에서 파싱한 capability 8키 계약. `.claude-plugin/`·`.codex-plugin/`·`core/`·`hosts/`·`hooks/`·`scripts/release-check.*` 경로에 발동하며 두 트윈과 패리티 테스트를 함께 돌린다). **게이트를 `docs.yml`에 넣지 말 것** — 그쪽은 `docs/**`에만 발동하므로 정작 지켜야 할 매니페스트·어댑터 변경에 발동하지 않는 fail-open 게이트가 된다(배선된 것처럼 보이는 게이트는 없는 것보다 나쁘다). `fg-doctor`는 CI에 배선하지 않았다 — 현재 B16 warning 1건으로 exit 1이라 즉시 붉어진다.
+
 > **루트 `package.json`에 `"type"` 필드를 넣지 말 것.** `scripts/*.js` 트윈 8개가 CommonJS(`require`)라 `"type": "module"`을 넣으면 리포 전체 `.js`가 ESM으로 해석되어 fg-done·fg-doctor·fg-status·fg-merge·세션 시작 훅이 전부 죽는다(bash 없는 Windows에서 실제 증상이 드러난다). VitePress 설정은 `.mts` 확장자만으로 이미 ESM이므로 이 필드가 애초에 필요 없다. 실제로 한 번 넣었다가 적대적 리뷰에서 잡혔다 — ADR `260815-094725`.
 
 **문서 사이트를 검증할 때 반드시 볼 두 가지** — 라이트모드에서 페이지가 200으로 열리는 것만으로는 부족하다:

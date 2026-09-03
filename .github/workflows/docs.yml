@@ -73,6 +73,8 @@ jobs:
           test -f _site/index.html
           test -f _site/docs/index.html
           test -f _site/docs/skills.html
+          test -f _site/docs/codex.html
+          test -f _site/docs/en/codex.html
           test -f _site/docs/examples/github-actions-forge-check.yml
           test -f _site/docs/icon.png
 

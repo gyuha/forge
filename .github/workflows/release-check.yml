@@ -1,0 +1,58 @@
+# The AI-free release gate: manifest version sync (4 places), the shared skills
+# path, the default hook file, and host-adapter completeness including the
+# capability vocabulary derived from core/HOST.md.
+#
+# Why this is NOT a step in docs.yml (the repo's only other workflow): that one
+# triggers on `docs/**` and `package.json` only, so a gate living there would
+# never fire for the very files it guards (`.codex-plugin/`, `hosts/`, `core/`).
+# A gate that looks wired but cannot fire is worse than no gate.
+#
+# Both twins run (ADR-0022): bash is the primary, node the fallback, and CI is
+# where a silent divergence between them would otherwise go unnoticed.
+name: Release gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.claude-plugin/**'
+      - '.codex-plugin/**'
+      - 'core/**'
+      - 'hosts/**'
+      - 'hooks/**'
+      - 'scripts/release-check.*'
+      - '.github/workflows/release-check.yml'
+  pull_request:
+    paths:
+      - '.claude-plugin/**'
+      - '.codex-plugin/**'
+      - 'core/**'
+      - 'hosts/**'
+      - 'hooks/**'
+      - 'scripts/release-check.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # No `npm ci` — the gate is zero-dependency by design.
+      - name: Release gate (bash primary)
+        run: bash scripts/release-check.sh
+
+      - name: Release gate (node twin)
+        run: node scripts/release-check.js
+
+      - name: Twin parity (stdout · stderr · exit code · error ordering)
+        run: bash scripts/release-check.parity.test.sh

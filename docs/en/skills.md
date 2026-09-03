@@ -35,14 +35,14 @@ The next-step guidance a skill emits at the end renders as a fixed four-row **ha
 
 - **The table renders in the user's language.** The canonical row labels are English (`Just did` · `Next step` · `How to start` · `Alternative`) — those are the names used to refer to a cell, since skill documents are written in English — and they are translated into the user's language on screen. Only paths, `.forge/` fields, and `/commands` are verbatim; **natural-language triggers are not verbatim** — the cell is filled with whichever of the skill's registered Korean/English triggers matches the user's language.
 
-- **Applies at 13 points** — the loop's four stages (`fg-ask` · `fg-run` · `fg-learn` · `fg-done`) plus the nine utilities that have a real next step to point at (`fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents`).
+- **Applies at 14 points** — the loop's four stages (`fg-ask` · `fg-run` · `fg-learn` · `fg-done`) plus the ten utilities that have a real next step to point at (`fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents` · `fg-security`).
 - **Excluded at 8 points** — `fg-tdd` · `fg-eco` · `fg-statusline` are toggles and setup, so they have nothing to point at and their one-line body is shorter than any table. `fg-cleanup` · `fg-drop` · `fg-showme` · `fg-help` emit no next-step guidance in the first place. `fg-merge` is excluded on the narrowest rationale — what it emits are **git-state recovery instructions** ("resolve the conflicts → `git commit` → run `fg-merge` again"), not a loop handoff.
 - **The table is not a menu.** The statement form is unchanged (ADR-0015) — it is never emitted via `AskUserQuestion`, the `Alternative` row is not a question asking you to choose, and the skill states and stops. Chaining is still `fg-next`'s job.
 - **A conditional next step is filled by a precedence rule.** Pin one branch into the row and push the rest into `Alternative`, and the table ends up instructing the user to do the very thing the skill just advised against (`fg-run`'s and `fg-learn`'s divergence rules are the examples).
 - **In an unattended drive the delegated skill renders no table** — `fg-next all` and `fg-loop` suppress it and render only at their own step (a wall or completion). If a delegated "run fg-learn" instruction leaks to the user, the drive stalls (`DRIVE.md`).
 - **It is a different thing from the [`eco` summary table](#fg-eco)** — that one answers *what was done* (its axis is slices, and only when `eco: true`), this one *what comes next*. Where both render, each drops the row the other owns.
 
-The single definition is `skills/fg-next/HANDOFF.md`, and all 13 points **reference** it (no copy-pasting — the same convention as `skills/fg-run/FORGE-ROOT.md` and `skills/fg-next/DRIVE.md`).
+The single definition is `skills/fg-next/HANDOFF.md`, and all 14 points **reference** it (no copy-pasting — the same convention as `skills/fg-run/FORGE-ROOT.md` and `skills/fg-next/DRIVE.md`).
 
 ## Explaining forge — how forge explains its own vocabulary (always)
 

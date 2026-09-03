@@ -35,14 +35,14 @@
 
 - **표는 사용자 언어로 렌더된다.** 라벨의 canonical 이름은 영문(`Just did` · `Next step` · `How to start` · `Alternative`)이고 — 스킬 문서가 영문이므로 셀을 가리킬 때 쓰는 이름이다 — 화면에 나갈 때 사용자 언어로 번역된다(한국어 세션이면 위 네 라벨). 경로·`.forge/` 필드·`/명령`만 verbatim이며, **자연어 트리거는 verbatim이 아니라** 스킬 `description`에 등록된 한/영 트리거 중 사용자 언어에 맞는 것을 골라 채운다.
 
-- **적용 13곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 9개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`).
+- **적용 14곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 10개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`·`fg-security`).
 - **제외 8곳** — `fg-tdd`·`fg-eco`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-showme`·`fg-help`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
 - **표는 메뉴가 아니다.** 진술형은 불변이다(ADR-0015) — `AskUserQuestion`으로 내지 않고, `대안` 행은 고르라는 질문이 아니며, 알리고 멈춘다. 체이닝은 여전히 `fg-next`의 몫이다.
 - **조건부 다음 단계는 우선순위 규칙으로 채운다.** 한 분기를 행에 못 박고 나머지를 `대안`으로 밀면 표가 스킬이 방금 하지 말라고 한 것을 지시하게 된다(`fg-run`·`fg-learn`의 divergence 규칙이 그 예다).
 - **무인 주행에서는 위임 스킬이 표를 렌더하지 않는다** — `fg-next all`·`fg-loop`에서 주행자가 억제하고 자기 단계(벽·완료)에만 낸다. 위임된 "fg-learn 실행" 안내가 사용자에게 새어 나가면 주행이 정지한다(`DRIVE.md`).
 - **[`eco` 요약 표](#fg-eco)와는 다른 것**이다 — 그쪽은 *무엇을 했나*(축은 슬라이스, `eco: true`에서만), 이쪽은 *다음에 무엇을*. 둘이 함께 뜨는 지점에서는 각자 상대가 소유한 행을 뺀다.
 
-단일 정의는 `skills/fg-next/HANDOFF.md` 하나이며 13곳이 이를 **참조**한다(복붙 금지 — `skills/fg-run/FORGE-ROOT.md`·`skills/fg-next/DRIVE.md`와 같은 관례).
+단일 정의는 `skills/fg-next/HANDOFF.md` 하나이며 14곳이 이를 **참조**한다(복붙 금지 — `skills/fg-run/FORGE-ROOT.md`·`skills/fg-next/DRIVE.md`와 같은 관례).
 
 ## Explaining forge — forge가 자기 어휘를 설명하는 방식 (항상)
 
