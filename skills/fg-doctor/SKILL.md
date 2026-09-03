@@ -20,8 +20,8 @@ The mechanical survey — walking the `.forge/` state contract and the docs/mani
 The script exists so the check **also works AI-free as a CI gate** (see "CI usage"): a pipeline runs `forge-doctor.sh` and fails the build on a non-zero exit. Like fg-status's survey it is **read-only** — it mutates nothing (fg-doctor's contract, ADR-0019). Guarded by `scripts/forge-doctor.test.sh` + `scripts/forge-doctor.parity.test.sh`.
 
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
-- **Has bash**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-doctor.sh"`
-- **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-doctor.js"` — identical findings/severity/exit (guarded by the parity test).
+- **Has bash**: `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-doctor.sh"`
+- **No bash** (e.g. PowerShell-blocked Windows): `node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-doctor.js"` — identical findings/severity/exit (guarded by the parity test).
 
 **Output**: one `[severity] check — path\n   fix: hint` line per finding, then a verdict line `🩺 forge-doctor — N errors, M warnings, K info`. **Exit code**: `0` clean · `1` warnings only · `2` one or more errors.
 

@@ -85,6 +85,7 @@ assert_grep "4-directive" "$OUT" "Do NOT decide on your own to run or seal anyth
 # fg-ask STEP 0's approved auto-close (ADR 260727-201115).
 assert_grep "4-directive-exception" "$OUT" "fg-ask's STEP 0 auto-close is the one approved exception."
 assert_grep "4-pointer"   "$OUT" "/forge:fg-next"
+assert_grep "4-codex-pointer" "$OUT" '$fg-next'
 assert_ngrep "4-no-backlog-line" "$OUT" "Backlog:"
 assert_ngrep "4-no-more-line"    "$OUT" "more parked"
 rm -rf "$t"

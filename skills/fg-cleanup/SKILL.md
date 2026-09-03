@@ -11,7 +11,7 @@ This is **not** a stage of the forge loop (fg-ask → fg-run → fg-learn → fg
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
-**Forge root**: ADRs live under the resolved forge root — `.forge/adr/` on the default branch, `.forge/branch/<branch>/adr/` on any other branch. Resolve it per `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or moving any ADR.
+**Forge root**: ADRs live under the resolved forge root — `.forge/adr/` on the default branch, `.forge/branch/<branch>/adr/` on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or moving any ADR.
 
 ## First, confirm intent (avoid the muscle-memory trap)
 
@@ -62,4 +62,4 @@ Report what was retired and where → end
 - Creates/changes nothing else — no loop state (`plan/run/STATUS/backlog/done`) is touched. This is a permanent-doc utility, not a loop stage.
 - `.forge/adr/` (including `retired/`) is git-tracked via the `!.forge/adr/` whitelist, so retirements are committed like any other ADR change.
 
-For the ADR format, read `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` (skill-relative `../fg-ask/ADR-FORMAT.md`) — do not copy it here.
+For the ADR format, read `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/ADR-FORMAT.md` (skill-relative `../fg-ask/ADR-FORMAT.md`) — do not copy it here.

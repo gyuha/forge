@@ -106,14 +106,15 @@ if (isDir(brDir)) {
 }
 
 // ---- Group B ----------------------------------------------------------------
-const PJ = path.join(repo, '.claude-plugin', 'plugin.json'), MP = path.join(repo, '.claude-plugin', 'marketplace.json');
+const PJ = path.join(repo, '.claude-plugin', 'plugin.json'), MP = path.join(repo, '.claude-plugin', 'marketplace.json'), CJ = path.join(repo, '.codex-plugin', 'plugin.json');
 const jvers = (f) => (read(f).match(/"version"[ \t]*:[ \t]*"([^"]*)"/g) || []).map((s) => s.match(/"([^"]*)"[ \t]*$/) ? s.replace(/.*"version"[ \t]*:[ \t]*"([^"]*)".*/, '$1') : '');
 if (isFile(PJ) && isFile(MP)) {
   const pv = jvers(PJ)[0] || '', mv = jvers(MP);
-  if (!(pv === (mv[0] || '') && pv === (mv[1] || ''))) finding('error', 'B8 manifest version drift', `${PJ}|${MP}`, `sync all 3: plugin.json=${pv} metadata=${mv[0] || ''} plugins[0]=${mv[1] || ''}`);
+  const cv = isFile(CJ) ? (jvers(CJ)[0] || '') : pv;
+  if (!(pv === (mv[0] || '') && pv === (mv[1] || '') && pv === cv)) finding('error', 'B8 manifest version drift', `${PJ}|${MP}|${CJ}`, `sync all 4: Claude=${pv} metadata=${mv[0] || ''} marketplace=${mv[1] || ''} Codex=${cv}`);
 }
 if (isFile(PJ) && isFile(MP)) {
-  try { JSON.parse(read(PJ)); JSON.parse(read(MP)); } catch (_) { finding('error', 'B9 manifest JSON invalid', `${PJ}|${MP}`, 'fix the JSON syntax (install breaks otherwise)'); }
+  try { JSON.parse(read(PJ)); JSON.parse(read(MP)); if (isFile(CJ)) JSON.parse(read(CJ)); } catch (_) { finding('error', 'B9 manifest JSON invalid', `${PJ}|${MP}|${CJ}`, 'fix the JSON syntax (install breaks otherwise)'); }
 }
 for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
   if (!/^name:/m.test(read(sf))) finding('error', 'B10 skill missing name:', sf, "add a frontmatter 'name:' (else not auto-discovered)");

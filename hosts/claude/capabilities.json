@@ -1,0 +1,10 @@
+{
+  "structured_choice": true,
+  "spawn_parallel": true,
+  "spawn_role": true,
+  "plugin_root": true,
+  "session_start": true,
+  "prevent_stop": true,
+  "project_agents": true,
+  "status_display": true
+}

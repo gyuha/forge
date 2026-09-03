@@ -3,6 +3,7 @@
   "private": true,
   "description": "Build tooling for the forge documentation site only — the forge plugin itself (skill Markdown, manifest JSON) has no build step.",
   "scripts": {
+    "release:check": "node scripts/release-check.js",
     "docs:dev": "vitepress dev docs",
     "docs:build": "vitepress build docs",
     "docs:preview": "vitepress preview docs"

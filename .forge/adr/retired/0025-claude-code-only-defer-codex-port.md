@@ -1,7 +1,9 @@
 # forge는 Claude Code 전용 — Codex/크로스플랫폼 포팅 보류
 
+Status: Superseded by ADR-260903-080713 (재검토 바 충족 — 실제 Codex 사용 수요 발생, (a) 전면 도구 추상화 채택)
+
 ## Status
-accepted (deferred — 재검토 바는 아래)
+superseded by ADR-260903-080713 (원문 당시: accepted (deferred — 재검토 바는 아래))
 
 ## 맥락
 "forge를 Codex(또는 Gemini/Copilot 등 다른 에이전트)에서도 쓸 수 있나?"라는 질문이 나왔다. 제기자의 전제는 "Claude Code의 ultracode/Dynamic Workflow가 Codex엔 없어서 못 쓰지 않나"였다. 코드베이스 결합도를 조사하니 **그 전제는 빗나갔고** 진짜 결합점은 다른 곳에 있다:

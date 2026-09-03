@@ -31,7 +31,7 @@ JSON_DUMP="$(cat "$HOOKS_JSON")"
 assert_grep "hooks.json-event"    "$JSON_DUMP" '"SessionStart"'
 assert_grep "hooks.json-matcher" "$JSON_DUMP" 'startup|resume|clear|compact'
 assert_grep "hooks.json-command" "$JSON_DUMP" '/hooks/run-hook.cmd\" session-start'
-assert_grep "hooks.json-plugin-root" "$JSON_DUMP" '${CLAUDE_PLUGIN_ROOT}'
+assert_grep "hooks.json-codex-root" "$JSON_DUMP" '${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}'
 assert_grep "hooks.json-sync"     "$JSON_DUMP" '"async": false'
 
 # --- wrapper: MUST be executable (the bug this test exists for) -------------

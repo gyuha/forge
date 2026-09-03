@@ -44,7 +44,7 @@ The server watches a directory for HTML files and serves the newest one to the b
 # Start AFTER the user approves the companion. --open auto-opens their browser on
 # the first screen; --project-dir keeps the session under .forge/showme/ (deleted
 # on stop) and enables same-port restart.
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
+"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
 
 # Returns: {"type":"server-started","port":52341,
 #           "url":"http://localhost:52341/?key=ab12…",
@@ -64,7 +64,7 @@ Save `screen_dir` and `state_dir` from the response. With `--open`, the browser 
 
 ```bash
 # Default mode works — the script backgrounds the server itself.
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
+"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-showme/scripts/start-server.sh" --project-dir /path/to/project --open
 ```
 
 On Windows, the script auto-detects and switches to foreground mode (which blocks the tool call). Use `run_in_background: true` on the Bash tool call so the server survives across conversation turns, then read `$STATE_DIR/server-info` on the next turn to get the URL and port.
@@ -72,7 +72,7 @@ On Windows, the script auto-detects and switches to foreground mode (which block
 If the URL is unreachable from your browser (common in remote/containerized setups), bind a non-loopback host:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/start-server.sh" \
+"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-showme/scripts/start-server.sh" \
   --project-dir /path/to/project \
   --host 0.0.0.0 \
   --url-host localhost
@@ -363,7 +363,7 @@ If `$STATE_DIR/events` doesn't exist, the user didn't interact with the browser 
 ## Cleaning Up
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/skills/fg-showme/scripts/stop-server.sh" $SESSION_DIR
+"${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-showme/scripts/stop-server.sh" $SESSION_DIR
 ```
 
 The session directory is deleted on stop — `/tmp` and `.forge/showme/` sessions alike. If anything on a screen should outlive the session (a mockup the user wants to keep), copy it out before stopping.

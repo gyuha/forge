@@ -5,7 +5,7 @@ description: Integrates a merged branch's forge content (.forge/branch/<branch>/
 
 # fg-merge — integrate a branch's forge content into `.forge/` (outside the loop)
 
-This is **not** a stage of the forge loop. It is the integration step for branch isolation (ADR-0011): when a feature branch has been run with its forge state under `.forge/branch/<branch>/` (a git-tracked, namespaced mini-root — see `${CLAUDE_PLUGIN_ROOT}/skills/fg-run/FORGE-ROOT.md`), fg-merge folds that branch's permanent forge docs into the default-branch `.forge/`.
+This is **not** a stage of the forge loop. It is the integration step for branch isolation (ADR-0011): when a feature branch has been run with its forge state under `.forge/branch/<branch>/` (a git-tracked, namespaced mini-root — see `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md`), fg-merge folds that branch's permanent forge docs into the default-branch `.forge/`.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The integration summary and any conflict question are written in the user's language.
 
@@ -42,8 +42,8 @@ The **mechanical integration** — resolving the branch root, moving ADRs (time-
 The script exists so the integration **also works AI-free in CI** (see "CI usage" below): a pipeline can run `forge-merge.sh` after a merge, and a non-zero exit fails the build so a human resolves it locally. Like forge-done.sh it is **gate-first, non-destructive-on-refuse**: it detects blocking conditions and exits non-zero **before moving anything**. Guarded by `scripts/forge-merge.test.sh` + `scripts/forge-merge.parity.test.sh`.
 
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
-- **Has bash**: `bash "${CLAUDE_PLUGIN_ROOT}/scripts/forge-merge.sh" [<branch>]`
-- **No bash** (e.g. PowerShell-blocked Windows): `node "${CLAUDE_PLUGIN_ROOT}/scripts/forge-merge.js" [<branch>]` — identical behavior (exit codes, resulting `.forge/` tree), guarded by the parity test.
+- **Has bash**: `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-merge.sh" [<branch>]`
+- **No bash** (e.g. PowerShell-blocked Windows): `node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-merge.js" [<branch>]` — identical behavior (exit codes, resulting `.forge/` tree), guarded by the parity test.
 
 **Argument**: passing `<branch>` selects that branch root **and** triggers the merge step above (git merge → integrate). Omitting it means integrate-only, letting the script resolve the root — exactly one leaf root → that one; several → it exits 6 with the list, and you ask the user which, then re-invoke. (Because merge-and-integrate always names the branch, exit 6's ambiguity only arises in integrate-only mode.)
 
@@ -130,4 +130,4 @@ run forge-merge.sh (bash) | forge-merge.js (no bash)   ← git-free integration,
 - Does **not** touch `.forge/config.json` or `.forge/codebase/` (global exemptions). The **core script** does **not** run git (except a best-effort read-only `git diff` for the warn-only external-ref grep). The **skill** runs `git merge` only in merge-and-integrate mode (`fg-merge <branch>`, default branch) — never the script, never a commit, never a push (ADR `260717-10a`).
 - The mechanical integration is `scripts/forge-merge.sh` / `.js` — this skill invokes it and routes; it does not hand-move files.
 
-For the ADR/CONTEXT formats, read `${CLAUDE_PLUGIN_ROOT}/skills/fg-ask/ADR-FORMAT.md` / `CONTEXT-FORMAT.md` (skill-relative `../fg-ask/`) — do not copy them here.
+For the ADR/CONTEXT formats, read `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/ADR-FORMAT.md` / `CONTEXT-FORMAT.md` (skill-relative `../fg-ask/`) — do not copy them here.

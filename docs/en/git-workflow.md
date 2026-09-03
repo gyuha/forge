@@ -46,7 +46,7 @@ Where each skill touches git, at a glance:
 | fg-done | Never runs git. After sealing, if tracked docs (retro·ADR·CONTEXT) are uncommitted, it **reminds you to commit** |
 | fg-learn / fg-ask | Never runs git. They write tracked fuel (CONTEXT·ADR·retro), so committing is yours |
 | fg-run | Never runs git. It changes your code but **never forces a commit** |
-| fg-map / fg-agents | Never runs git. Their output (`.forge/codebase/` · `.claude/agents/`) is tracked → commit reminder |
+| fg-map / fg-agents | Never runs git. Their output (`.forge/codebase/` · Claude Code's `.claude/agents/`) is tracked → commit reminder. Codex-native agent materialization is not yet supported |
 | fg-drop | Never runs git. On a non-default branch a deletion shows up as a tracked change → you `commit` or `git restore` |
 | fg-doctor | Read-only. It only **detects an orphaned branch root** you forgot to integrate after `git merge` (A8) |
 | Everything else (status·next·quick·loop·tdd·eco·cleanup·statusline·adversarial-review) | No git contact |
