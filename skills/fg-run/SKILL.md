@@ -7,7 +7,7 @@ description: Runs a refined plan (.forge/plan.md, or a waiting plan in .forge/ba
 
 The second turn of the forge loop. It takes the `.forge/plan.md` that fg-ask refined and applies it through the active host's execution adapter. Claude Code uses a Dynamic Workflow; Codex uses bounded collaboration/subagent calls. The shared selection, state, integration, and verification rules below do not change by host.
 
-**Host adapter**: read [../../core/HOST.md](../../core/HOST.md), [../../core/EXECUTION.md](../../core/EXECUTION.md), and the matching `hosts/<host>/execution.md` before delegating. If the host is unknown or delegation is unavailable, execute serially while preserving every state transition and verification gate.
+**Host adapter**: read [../../core/HOST.md](../../core/HOST.md), [../../core/EXECUTION.md](../../core/EXECUTION.md), and the matching `../../hosts/<host>/execution.md` before delegating. If the host is unknown or delegation is unavailable, execute serially while preserving every state transition and verification gate.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 

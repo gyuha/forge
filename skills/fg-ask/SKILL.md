@@ -17,7 +17,7 @@ If a question can be answered by exploring the codebase, explore the codebase in
 
 ## Host interaction
 
-Read [../../core/HOST.md](../../core/HOST.md), [../../core/INTERACTION.md](../../core/INTERACTION.md), and the matching `hosts/<host>/interaction.md`. All grilling semantics are shared. Only the mechanism used to present a bounded choice differs between Claude Code and Codex.
+Read [../../core/HOST.md](../../core/HOST.md), [../../core/INTERACTION.md](../../core/INTERACTION.md), and the matching `../../hosts/<host>/interaction.md`. All grilling semantics are shared. Only the mechanism used to present a bounded choice differs between Claude Code and Codex.
 
 ## Domain awareness
 

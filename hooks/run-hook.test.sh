@@ -31,8 +31,32 @@ JSON_DUMP="$(cat "$HOOKS_JSON")"
 assert_grep "hooks.json-event"    "$JSON_DUMP" '"SessionStart"'
 assert_grep "hooks.json-matcher" "$JSON_DUMP" 'startup|resume|clear|compact'
 assert_grep "hooks.json-command" "$JSON_DUMP" '/hooks/run-hook.cmd\" session-start'
-assert_grep "hooks.json-codex-root" "$JSON_DUMP" '${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}'
 assert_grep "hooks.json-sync"     "$JSON_DUMP" '"async": false'
+
+# --- hooks.json: the command STRING must RESOLVE, not merely be present -----
+# A grep for the host-root expression only proves the author's own string is
+# still in the file -- it can fail when someone edits it, never when it is
+# wrong. A shell-form hook command (no "args") is handed to the shell as-is,
+# with CLAUDE_PLUGIN_ROOT set in the hook process's environment -- textual
+# ${CLAUDE_PLUGIN_ROOT} substitution is the SKILL-BODY mechanism, not this one,
+# which is why the priority here can be inverted without breaking Claude Code.
+# So the real question is whether the command expands to the wrapper -- and
+# whether a stray PLUGIN_ROOT from an unrelated tool can hijack it
+# (core/HOST.md warns PLUGIN_ROOT is a generic name others export).
+# A hijack kills BOTH hooks: SessionStart's residue notice and the Stop hook
+# that unattended drives depend on. So execute the string, twice.
+CMD="$(node -e "console.log(JSON.parse(require('fs').readFileSync('$HOOKS_JSON','utf8')).hooks.SessionStart[0].hooks[0].command)")"
+t=$(mktmp); mkdir -p "$t/.forge"
+printf '<!-- forge-slug: expand-check -->\n<!-- task: 80 -->\n# T\n' > "$t/.forge/plan.md"
+printf 'run\n' > "$t/.forge/run.md"
+printf 'slug: expand-check\nstatus: executed\nverified: yes (t)\nretro: pending\n' > "$t/.forge/STATUS.md"
+OUT="$( cd "$t" && env -u PLUGIN_ROOT CLAUDE_PLUGIN_ROOT="$HERE/.." /bin/sh -c "$CMD" 2>/dev/null )"; RC=$?
+assert      "hooks.json-command-resolves"      0 "$RC"
+assert_grep "hooks.json-command-resolves-body" "$OUT" '`expand-check`'
+OUT="$( cd "$t" && PLUGIN_ROOT="$t/decoy" CLAUDE_PLUGIN_ROOT="$HERE/.." /bin/sh -c "$CMD" 2>/dev/null )"; RC=$?
+assert      "hooks.json-command-decoy-immune"      0 "$RC"
+assert_grep "hooks.json-command-decoy-immune-body" "$OUT" '`expand-check`'
+rm -rf "$t"
 
 # --- wrapper: MUST be executable (the bug this test exists for) -------------
 # Claude Code does not run `bash <wrapper>` — it hands the command string to

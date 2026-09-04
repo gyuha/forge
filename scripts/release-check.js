@@ -54,6 +54,21 @@ if (!canonical.length) {
     if (missing.length) errors.push(`hosts/${host}/capabilities.json missing keys: ${missing.join(', ')}`);
     if (unknown.length) errors.push(`hosts/${host}/capabilities.json unknown keys: ${unknown.join(', ')}`);
   }
+
+  // docs/codex.md claims to be "the same declaration in two forms" as the Codex
+  // capabilities.json. Enforce the part a machine can settle: every capability
+  // key is NAMED in that table. The status wording itself stays human-reviewed —
+  // this gate does not claim more than it checks.
+  for (const doc of ['docs/codex.md', 'docs/en/codex.md']) {
+    const f = path.join(repo, doc);
+    if (!fs.existsSync(f)) {
+      errors.push(`${doc} is missing (the Codex capability table has no home)`);
+      continue;
+    }
+    const text = fs.readFileSync(f, 'utf8');
+    const undocumented = canonical.filter((k) => !text.includes(`\`${k}\``));
+    if (undocumented.length) errors.push(`${doc} does not name capability keys: ${undocumented.join(', ')}`);
+  }
 }
 
 if (errors.length) {

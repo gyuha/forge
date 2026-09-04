@@ -58,6 +58,22 @@ else
     [ -n "$missing" ] && errors+=("hosts/$host/capabilities.json missing keys: $missing")
     [ -n "$unknown" ] && errors+=("hosts/$host/capabilities.json unknown keys: $unknown")
   done
+
+  # docs/codex.md claims to be "the same declaration in two forms" as the Codex
+  # capabilities.json. Enforce the part a machine can settle: every capability
+  # key is NAMED in that table. The status wording itself stays human-reviewed —
+  # this gate does not claim more than it checks.
+  for doc in docs/codex.md docs/en/codex.md; do
+    if [ ! -f "$repo/$doc" ]; then
+      errors+=("$doc is missing (the Codex capability table has no home)")
+      continue
+    fi
+    undocumented=""
+    for k in $canonical; do
+      grep -qF "\`$k\`" "$repo/$doc" || undocumented="${undocumented:+$undocumented, }$k"
+    done
+    [ -n "$undocumented" ] && errors+=("$doc does not name capability keys: $undocumented")
+  done
 fi
 
 if [ ${#errors[@]} -gt 0 ]; then

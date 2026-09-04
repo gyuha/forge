@@ -22,8 +22,24 @@ fallback path below is defined and safe.
 When a shell command needs the installed plugin root, normalize it locally:
 
 ```sh
-FORGE_PLUGIN_ROOT="${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT:-}}"
+FORGE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"
 ```
+
+The host's **own** variable comes first: `PLUGIN_ROOT` is a generic name another
+tool may export (see above), so letting it win would let an unrelated tool
+redirect a path that `CLAUDE_PLUGIN_ROOT` already resolves correctly. Adapter
+*selection* still treats `PLUGIN_ROOT` as a Codex signal — that is a separate
+question from *resolving a path*.
+
+Two distinct mechanisms are at work, and confusing them is what makes the
+precedence above look dangerous when it is not. A **shell-form hook command**
+(no `args`) is handed to the shell verbatim, with `CLAUDE_PLUGIN_ROOT` set in
+the hook process's *environment* — so the shell expands it, and inverting the
+precedence is safe. Textual `${CLAUDE_PLUGIN_ROOT}` substitution is the
+**skill-body** mechanism instead, and it replaces that exact literal token only
+— which is why skill bodies keep `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}`
+(inverting *there* would leave an unexpanded expression for the agent to read).
+Do not "fix" one to match the other.
 
 Skills should prefer paths relative to their own directory. They must not fork
 the state model or maintain a second Codex-specific copy of a skill.
@@ -53,5 +69,5 @@ to `true` is an observation, not an assumption — and `docs/codex.md`'s support
 table must be updated in the same change, since the two are the same claim in
 two forms.
 
-Read the matching adapter in `hosts/claude/` or `hosts/codex/` before using a
+Read the matching adapter in `../hosts/claude/` or `../hosts/codex/` (relative to this file) before using a
 host-specific capability.

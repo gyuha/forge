@@ -22,6 +22,8 @@ on:
       - 'hooks/**'
       - 'scripts/release-check.*'
       - '.github/workflows/release-check.yml'
+      - 'docs/codex.md'
+      - 'docs/en/codex.md'
   pull_request:
     paths:
       - '.claude-plugin/**'
@@ -30,6 +32,9 @@ on:
       - 'hosts/**'
       - 'hooks/**'
       - 'scripts/release-check.*'
+      - '.github/workflows/release-check.yml'
+      - 'docs/codex.md'
+      - 'docs/en/codex.md'
   workflow_dispatch:
 
 permissions:

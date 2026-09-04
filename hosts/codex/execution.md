@@ -1,6 +1,8 @@
 # Codex execution adapter
 
 Use Codex collaboration/subagent tools for independent slices. Spawn only
-bounded tasks that can run independently, keep dependent slices serial, and
-have the primary agent collect results, integrate edits, run UAT, and write
-`.forge/run.md`. If collaboration tools are unavailable, execute serially.
+bounded tasks that can run independently, and keep dependent slices serial. If
+collaboration tools are unavailable, execute serially.
+
+Delegation is all this adapter owns. Result integration, UAT, and every
+`.forge/` write stay with the shared skill — see [../../core/EXECUTION.md](../../core/EXECUTION.md).

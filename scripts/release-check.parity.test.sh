@@ -33,6 +33,15 @@ mkrepo() { # $1=version-claude $2=version-codex $3=skills-field
     printf 'x\n' > "$d/hosts/$h/execution.md"
     printf '%s\n' "$caps" > "$d/hosts/$h/capabilities.json"
   done
+  # A valid fixture also has the two support-table docs, derived from the SAME
+  # HOST.md keys (never restated) so they cannot drift from the vocabulary either.
+  mkdir -p "$d/docs/en"
+  local keyrow k
+  for k in $(grep -oE '^\| `[a-z_]+`' "$d/core/HOST.md" | sed -E 's/^\| `([a-z_]+)`/\1/'); do
+    keyrow="${keyrow:+$keyrow }\`$k\`"
+  done
+  printf '%s\n' "$keyrow" > "$d/docs/codex.md"
+  printf '%s\n' "$keyrow" > "$d/docs/en/codex.md"
   printf '%s' "$d"
 }
 
@@ -93,6 +102,28 @@ L="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$L/core/HOST.md"
 assert_parity "HOST.md vocabulary gone" "$L" "cannot derive the capability vocabulary"
 M="$(mkrepo 9.9.9 9.9.9 ./skills/)"; printf '{"structured_choice":true,"zzz":true}\n' > "$M/hosts/claude/capabilities.json"
 assert_parity "claude host checked too" "$M" "hosts/claude/capabilities.json"
+
+# --- docs/codex.md must NAME every capability key -----------------------------
+# docs/codex.md calls itself "the same declaration in two forms" as the Codex
+# capabilities.json, but nothing enforced it and two keys (spawn_role,
+# plugin_root) had no row at all. The check is presence-only by design (status
+# wording stays human-reviewed), so these cases pin exactly that much.
+N="$(mkrepo 9.9.9 9.9.9 ./skills/)"; mkdir -p "$N/docs/en"
+allkeys='`structured_choice` `spawn_parallel` `spawn_role` `plugin_root` `session_start` `prevent_stop` `project_agents` `status_display`'
+printf '%s\n' "$allkeys" > "$N/docs/codex.md"
+printf '%s\n' "$allkeys" > "$N/docs/en/codex.md"
+assert_parity "docs name every capability key (clean)" "$N" "ok (forge 9.9.9"
+O="$(mkrepo 9.9.9 9.9.9 ./skills/)"; mkdir -p "$O/docs/en"
+printf '%s\n' "$allkeys" | sed 's/`spawn_role` //' > "$O/docs/codex.md"
+printf '%s\n' "$allkeys" > "$O/docs/en/codex.md"
+assert_parity "docs missing a capability key" "$O" "docs/codex.md does not name capability keys: spawn_role"
+P="$(mkrepo 9.9.9 9.9.9 ./skills/)"; mkdir -p "$P/docs/en"
+printf '%s\n' "$allkeys" > "$P/docs/codex.md"
+printf '%s\n' "$allkeys" | sed 's/`status_display`//' > "$P/docs/en/codex.md"
+assert_parity "en docs checked too" "$P" "docs/en/codex.md does not name capability keys: status_display"
+
+Q="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$Q/docs/en/codex.md"
+assert_parity "support-table doc missing" "$Q" "docs/en/codex.md is missing"
 
 rm -f /tmp/rc.sh.err /tmp/rc.js.err
 [ "$fails" -eq 0 ] && { echo "RELEASE-CHECK PARITY OK"; exit 0; }

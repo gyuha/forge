@@ -65,7 +65,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 ```
 
 - **fg-ask** — grill-with-docs식 대화형 그릴링. 계획을 도메인·용어·결정에 대고 검증해 `.forge/backlog/<slug>.md`로 적재. **반드시 본 세션 대화로** 진행(워크플로우 밖). 시작 시 STEP 0이 **미봉인 잔여**(활성 슬롯의 미봉인 `status: executed`)를 확인해, 판단이 남지 않았으면(검증 봉인 가능 + 회고 해결, 또는 회고만 밀렸고 저-divergence) **묻지 않고 봉인**한 뒤 한 줄 보고하고 같은 턴에 그릴링을 잇고, 판단이 남았으면(고-divergence·`verified: pending|failed`·멈춘 loop) 묻되 **새 요청을 버리지 않고 마감 후 그 자리로 복귀**한다 — 재트리거 요구는 폐기됐다. 사정거리는 활성 슬롯 1건이며 `executed/` park은 개수만 보고하고 손대지 않는다(의도된 대기 — `fg-done all`/`fg-learn` 소관), 검증 게이트(ADR-0009)는 불가침, 위임 봉인이라 상세 요약을 내지 않는다(ADR-0032 개정) — ADR `260727-201115`.
-- **fg-run** — `.forge/plan.md`를 Claude Code Dynamic Workflow로 실행, 계획↔실제 차이를 `.forge/run.md`에 기록.
+- **fg-run** — `.forge/plan.md`를 활성 호스트의 실행 어댑터로 실행(Claude Code는 Dynamic Workflow, Codex는 collaboration/subagent), 계획↔실제 차이를 `.forge/run.md`에 기록.
 - **fg-learn** — 학습을 분류해 영속 문서로 승급, `.forge/retro/`에 회고 남김. 항상 대화형.
 - **fg-done** — 루프의 ④ 완료(봉인) 단계: 한 바퀴의 잔여물을 정리(tidy up)해 마감한다 — 회고 확인, `STATUS.md`를 `done`으로 마감, 작업을 `.forge/done/<날짜-slug>/`로 봉인하고 활성 `.forge/`를 비워 루프를 닫음 → **재실행 방지의 핵심 메커니즘**. 기계적 봉인(사전점검·게이트 강제·STATUS 마감·아카이브·슬롯 비우기)은 결정론 스크립트 `forge-done.sh`/`.js`가 처리하고(세 봉인 경로 공유·게이트-우선-비파괴, ADR-0030) 이 스킬은 exit code로 라우팅만 한다 — fg-status(ADR-0020)에 이은 스크립트 백킹. `all` 인자(`fg-done all`)는 **이미 실행된** 작업(활성 슬롯+`executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인하는 봉인 전용 batch — 백로그 미실행 작업은 promote·run하지 않고(그건 fg-next all), 검증 게이트(ADR-0009)는 불가침, `failed`는 봉인 안 하고 fg-run으로 라우팅, 확인 게이트 1회. fg-next all의 봉인 전용 사촌(완화 계열 ADR-0002/0010/0016 옆) — ADR-0023.
 

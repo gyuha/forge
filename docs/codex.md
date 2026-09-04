@@ -33,7 +33,7 @@ forge는 Claude Code와 Codex가 **같은 `skills/`와 `.forge/` 상태**를 사
 - `hosts/codex/`: Codex의 입력 및 collaboration/subagent 실행 방식
 - `hosts/claude/`: Claude Code의 `AskUserQuestion` 및 Dynamic Workflow 방식
 
-스크립트 경로는 `PLUGIN_ROOT`를 우선하고 `CLAUDE_PLUGIN_ROOT`로 fallback한다. 따라서 두 호스트가 동일한 결정론 스크립트를 실행한다.
+스크립트 경로는 호스트 **자신의** 변수를 우선한다 — `CLAUDE_PLUGIN_ROOT`를 먼저 보고 `PLUGIN_ROOT`로 fallback한다(`PLUGIN_ROOT`는 다른 도구도 export할 수 있는 일반적인 이름이라, 그쪽이 이기면 무관한 도구가 경로를 가로챌 수 있다). 이 순서로 두 호스트가 동일한 결정론 스크립트를 실행한다. 정규화 형태의 단일 정의는 `core/HOST.md`다.
 
 ## 현재 지원 범위
 
@@ -41,15 +41,17 @@ forge는 Claude Code와 Codex가 **같은 `skills/`와 `.forge/` 상태**를 사
 | --- | --- | --- |
 | 핵심 루프 (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) | 지원 | 동일한 상태 전이와 검증·봉인 규칙 사용 |
 | 상태/도구 (`fg-status`, `fg-doctor`, `fg-quick`, `fg-tdd`) | 지원 | 공통 스크립트와 스킬 사용 |
-| 독립 작업 병렬 실행 | 지원 | Codex collaboration/subagent 도구가 없으면 직렬 fallback |
-| SessionStart 알림 | 지원 | `hooks/hooks.json` 기본 탐색; 사용자가 훅을 검토하고 신뢰해야 함 |
-| `fg-next all`, `fg-loop` 무인 주행 | 제한적 | Stop 훅의 재진입 동작은 호스트별 차이가 있어 감독 실행 권장 |
-| `fg-agents` 프로젝트 역할 생성 | 제한적 | 현재 생성 포맷이 `.claude/agents/` 중심이므로 Codex 전용 materialize는 후속 작업 |
-| 선택 메뉴 (structured choice) | 미확인 | 번호 텍스트 목록으로 fallback — 어느 호스트에서도 정확하다 |
+| 독립 작업 병렬 실행 (`spawn_parallel`) | 지원 | Codex collaboration/subagent 도구가 없으면 직렬 fallback. **관측 미완** — 도구 부재 시 fallback을 전제하므로 Codex 실측 뒤 확정한다 |
+| SessionStart 알림 (`session_start`) | 지원 | `hooks/hooks.json` 기본 탐색; 사용자가 훅을 검토하고 신뢰해야 함. **관측 미완** — `.codex-plugin/plugin.json`은 훅을 선언하지 않으므로 Codex 실측 뒤 확정한다 |
+| `fg-next all`, `fg-loop` 무인 주행 (`prevent_stop`) | 제한적 | Stop 훅의 재진입 동작은 호스트별 차이가 있어 감독 실행 권장 |
+| `fg-agents` 프로젝트 역할 생성 (`project_agents`) | 제한적 | 현재 생성 포맷이 `.claude/agents/` 중심이므로 Codex 전용 materialize는 후속 작업 |
+| 역할 지정 위임 (`spawn_role`) | 미확인 | 역할 카드가 `.claude/agents/` 포맷이라 Codex 등가물이 없다 — 기본 서브에이전트로 fallback |
+| 플러그인 파일 경로 해석 (`plugin_root`) | 지원 | Codex에선 `PLUGIN_ROOT`로 해석. 우선순위와 정규화 형태는 `core/HOST.md` |
+| 선택 메뉴 (`structured_choice`) | 미확인 | 번호 텍스트 목록으로 fallback — 어느 호스트에서도 정확하다 |
 | `fg-loop`의 `budget-tokens` 지출 상한 | 미지원 | 계량기가 Claude Code의 트랜스크립트 파일을 읽는다. Codex에서는 `budget-tokens: none`으로 선언하거나 `--transcripts DIR`로 경로를 지정한다(미지정 시 `blocked-health`로 정지 — fail-closed) |
-| `fg-statusline` | 미지원 | Codex에서는 `$fg-status` 사용 |
+| `fg-statusline` (`status_display`) | 미지원 | Codex에서는 `$fg-status` 사용 |
 
-이 표는 산문이 아니라 **선언**이다 — 같은 내용이 `hosts/codex/capabilities.json`의 8개 키에 기계가 읽는 형태로 들어 있고, 둘은 항상 함께 갱신한다. **능력은 그 호스트가 실제로 제공하는 것을 *관측*했을 때만 `true`이며, 미확인은 `false`가 기본값이다** — 모든 능력에는 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있어서, 도는 fallback이 없는 도구를 부르는 것보다 항상 싸기 때문이다. `false`를 `true`로 바꾸는 것은 가정이 아니라 관측이다(`core/HOST.md`).
+이 표는 산문이 아니라 **선언**이다 — 같은 내용이 `hosts/codex/capabilities.json`의 8개 키에 기계가 읽는 형태로 들어 있고, 둘은 항상 함께 갱신한다. `npm run release:check`가 **8개 키가 모두 이 표에 이름으로 등장하는지**를 강제한다(상태 문구 자체의 타당성은 사람이 검토한다 — 게이트가 하는 일을 넘겨 말하지 않는다). **능력은 그 호스트가 실제로 제공하는 것을 *관측*했을 때만 `true`이며, 미확인은 `false`가 기본값이다** — 모든 능력에는 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있어서, 도는 fallback이 없는 도구를 부르는 것보다 항상 싸기 때문이다. `false`를 `true`로 바꾸는 것은 가정이 아니라 관측이다(`core/HOST.md`).
 
 ## 호스트를 바꿔 이어서 작업하기
 
