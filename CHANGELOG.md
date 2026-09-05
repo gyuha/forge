@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.8.1] - 2026-09-05
+## [0.8.2] - 2026-09-05
+
+**설정 표면을 하나로 모은 릴리스다 — 스킬 22 → 21.** 키별 토글 스킬(fg-eco·fg-tdd)은 키가 늘수록 스킬이 늘어나는 구조라, 여섯 키의 단일 진입점 `fg-config`로 교체하고 새 설정 `simple`을 들였다 (GitHub #18, ADR `260905-212045`).
+
+### Added
+- **`fg-config`** — `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 통합 설정 스킬. 무인자 호출은 현재 설정 표를 보여준 뒤 메뉴로 변경까지 받고(값 키는 자유 입력), `fg-config <key> <value>` 직접 지정도 된다. 옛 트리거("eco on"·"TDD 켜")를 흡수한다.
+- **`simple` 모드 (자동 봉인)** — 켜면 fg-run이 UAT(검증) 후 회고를 무조건 skip(`retro: skipped (simple mode)`)하고 같은 턴에 결정론 봉인까지 잇는다. 체감은 ask → run 두 단계, 내부적으로 verify·seal은 전부 돈다. **검증 게이트(ADR-0009)는 불가침** — `verified: pending|failed`는 자동 봉인하지 않는다. 배선: fg-run 핸드오프·Run all·fg-status 표시·DRIVE(무인 주행에는 no-op 명시).
+
+### Changed
+- **fg-eco·fg-tdd 제거** — 설정 의미론(ADR-0008·0014)은 불변, 진입 표면만 fg-config가 승계. `ECO.md`는 `skills/fg-config/ECO.md`로 이관하고 참조 19곳을 갱신했다.
+- **CLAUDE.md 설정 서술 정정** — "키는 넷" → 여섯 키 + fg-config 단일 진입점("의도된 비대칭" 서술 폐기). 카탈로그 표면(매니페스트·README 쌍·docs 쌍·랜딩·codebase 지도) 22 → 21 동기.
 
 **0.8.0이 Codex 지원을 들여오면서 Claude Code 쪽에 남긴 것들을 걷어낸 패치 릴리스다.** 여섯 커밋이 하나의 주제를 공유한다 — **fail-open**. 검사가 위반 상태에서 초록을 냈고, 게이트가 잡으라고 만든 드리프트에 발동하지 못했고, 완료 기준이 산출물이 깨진 채로 통과했다. 조용히 통과하는 검사는 없는 검사보다 나쁘다.
 
