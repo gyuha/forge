@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.8.3] - 2026-09-05
+
+**0.8.2의 카탈로그 동기가 놓친 문서 드리프트를 걷어낸 문서 전용 패치다.** 플러그인 산출물(스킬·매니페스트·스크립트)은 바뀌지 않았다. 원인은 0.8.2 작업의 완료 기준이 갱신 사이트를 `docs/skills.md`로만 열거한 것 — CLAUDE.md가 이미 경고하는 "카탈로그를 종류로 적으면 나머지가 조용히 옛 상태로 남는다"를 한 번 더 밟았다.
+
+### Fixed
+- **폐지된 스킬을 가리키던 문서 쌍 셋** — `state-contract`(`config.json` 설명이 세 키만 나열 → 여섯 키 + `fg-config` 진입점, 다이어그램 캡션의 "설정 토글(fg-tdd·fg-eco)" → "설정 스킬(fg-config)") · `forge-vs-loop-engineering`(토큰 비용 항목의 `fg-eco` → `fg-config`의 `eco` 설정) · `codex`(지원 기능 표의 `fg-tdd` → `fg-config`). 한/영 양쪽 동시.
+- **상태 계약의 회고 서술 보강** — divergence를 보지 않는 무조건 skip 경로(무인 주행 · `simple` 설정)가 ADR-0002의 저-divergence 게이트와 별개임을 명시했다. `done/` 이력의 `retro: skipped (simple mode)`가 규칙 위반으로 오독되던 여지를 없앤다.
+
 ## [0.8.2] - 2026-09-05
 
 **설정 표면을 하나로 모은 릴리스다 — 스킬 22 → 21.** 키별 토글 스킬(fg-eco·fg-tdd)은 키가 늘수록 스킬이 늘어나는 구조라, 여섯 키의 단일 진입점 `fg-config`로 교체하고 새 설정 `simple`을 들였다 (GitHub #18, ADR `260905-212045`).
