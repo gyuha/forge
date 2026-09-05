@@ -41,7 +41,7 @@ fg-showme stop
 
 ## Relationship to fg-ask (the main consumer)
 
-fg-ask offers the companion **automatically, just-in-time** during grilling — the first time a question would be clearer shown than told — and drives it by reading this directory's files directly (`VISUAL.md`, `scripts/`); it does **not** invoke this skill (the same file-reference pattern as `fg-eco/ECO.md` and `fg-run/FORGE-ROOT.md`). Within fg-ask, the server stops at Output time (plan written → companion's job done). The offer discipline lives in fg-ask's Forge integration section; this skill is the **standalone** entry for every other conversation.
+fg-ask offers the companion **automatically, just-in-time** during grilling — the first time a question would be clearer shown than told — and drives it by reading this directory's files directly (`VISUAL.md`, `scripts/`); it does **not** invoke this skill (the same file-reference pattern as `fg-config/ECO.md` and `fg-run/FORGE-ROOT.md`). Within fg-ask, the server stops at Output time (plan written → companion's job done). The offer discipline lives in fg-ask's Forge integration section; this skill is the **standalone** entry for every other conversation.
 
 ## Constraints
 

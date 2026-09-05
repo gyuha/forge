@@ -19,7 +19,7 @@ Branch names containing `/` (e.g. `feature/x`) become nested directories: `.forg
 
 Two paths are **always** read/written at the top-level `.forge/`, on every branch — they are shared, not per-task loop state:
 
-- **`.forge/config.json`** — holds `defaultBranch` (which *this* rule must read before it can resolve anything — a branch-local config would be a bootstrap paradox) plus project-wide settings like `tdd` and `eco`. It is one global project setting file. `fg-tdd`/`fg-eco` write it and `fg-ask`/`fg-run` read from it — all at `.forge/config.json` regardless of branch.
+- **`.forge/config.json`** — holds `defaultBranch` (which *this* rule must read before it can resolve anything — a branch-local config would be a bootstrap paradox) plus project-wide settings like `tdd` and `eco`. It is one global project setting file. `fg-config` writes it and `fg-ask`/`fg-run` read from it — all at `.forge/config.json` regardless of branch.
 - **`.forge/codebase/`** — the fg-map codebase map is shared reference fuel. If it were branch-local, a freshly created branch would have an empty `codebase/` and `fg-ask` would lose the map (the whole context-rot benefit). So `fg-map` writes and `fg-ask` reads `.forge/codebase/` globally; a branch reads main's map as its base.
 
 Everything else — backlog, plan, run, STATUS, executed, done, **adr/**, **retro/**, **CONTEXT.md** — resolves to the branch root. (These are exactly the things that collide across branches, which is the point of isolating them.)

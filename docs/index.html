@@ -125,7 +125,7 @@ document.documentElement.className+=' fg-js';
 
   <p style="position:relative;margin:26px 0 0;font-size:clamp(21px,3.4vw,30px);font-weight:600;letter-spacing:-0.02em;line-height:1.18;color:#f5f5f7;max-width:660px"><span data-l="ko">에이전트 엔지니어링. 하나의 작업을 하나의 사이클로.</span><span data-l="en">Agent engineering. One task, one cycle.</span><br><span style="color:rgba(255,255,255,0.62);font-weight:400">ask·plan → execute → retro → done.</span></p>
 
-  <p style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">22개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 회고는 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from twenty-two <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and retros stay in the docs.</span></p>
+  <p style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">21개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 회고는 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from twenty-one <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and retros stay in the docs.</span></p>
 
   <div style="position:relative;display:flex;gap:14px;margin-top:38px;flex-wrap:wrap;justify-content:center">
     <a href="#install" style="text-decoration:none;font-size:15px;font-weight:500;color:#fff;background:#0071e3;padding:12px 26px;border-radius:980px;transition:background .25s ease" onmouseover="this.style.background='#0077ed'" onmouseout="this.style.background='#0071e3'"><span data-l="ko">설치하기</span><span data-l="en">Install</span></a>
@@ -211,7 +211,7 @@ document.documentElement.className+=' fg-js';
 <section id="skills" style="padding:120px 24px 130px;background:#f5f5f7">
   <div style="max-width:1040px;margin:0 auto">
     <p data-reveal style="margin:0;font-size:14px;font-weight:500;color:#c25a1a;text-align:center">Skill catalog</p>
-    <h2 data-reveal style="margin:12px 0 0;font-size:clamp(34px,5vw,52px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;color:#1d1d1f;text-align:center"><span data-l="ko">22개의 스킬.<br>하나의 흐름.</span><span data-l="en">Twenty-two skills.<br>One flow.</span></h2>
+    <h2 data-reveal style="margin:12px 0 0;font-size:clamp(34px,5vw,52px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;color:#1d1d1f;text-align:center"><span data-l="ko">21개의 스킬.<br>하나의 흐름.</span><span data-l="en">Twenty-one skills.<br>One flow.</span></h2>
 
     <div data-reveal style="margin-top:20px;text-align:center"><span style="font-size:13px;font-weight:600;color:#c25a1a;background:rgba(194,90,26,0.1);padding:5px 13px;border-radius:980px"><span data-l="ko">루프를 이루는 4개</span><span data-l="en">The four that form the loop</span></span></div>
     <div class="fg-grid-loopcards" style="margin-top:26px;display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
@@ -272,12 +272,8 @@ document.documentElement.className+=' fg-js';
         <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">goal 주도 한정 재계획 루프. 기계 검증 가능한 정지 조건이 통과할 때까지 run → UAT → 봉인을 자동 주행하고, 실패 체크는 상한 내에서 fix-forward로 재계획합니다.</span><span data-l="en">Goal-driven loop with bounded replan. Drives run → UAT → seal until machine-verifiable checks pass, auto-generating fix-forward work for failing checks within a cap.</span></p>
       </div>
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-tdd</div>
-        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">.forge/config.json에 TDD 모드를 on/off로 저장. 켜면 fg-ask는 test-first를 묻고 fg-run은 테스트 우선으로 실행.</span><span data-l="en">Stores TDD mode on/off in .forge/config.json. When on, fg-ask asks test-first and fg-run runs test-first.</span></p>
-      </div>
-      <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-eco</div>
-        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">eco 모드 토글. 켜면 위임 서브에이전트를 sonnet으로 캡하고, 임베드된 Eco laziness-first 규율(코드 단순성 + 출력 압축)을 fg-run·fg-ask에 주입하며, 작업이 끝나는 지점의 산문 요약을 eco 요약 표로 교체합니다(다음 단계를 알리는 핸드오프 표는 eco와 무관하게 항상 뜹니다).</span><span data-l="en">Toggles eco mode. When on, caps delegated subagents at sonnet, injects the embedded Eco laziness-first discipline (code simplicity + terse output) into fg-run and fg-ask, and replaces the prose recap at task-end points with a compact eco summary table (the handoff table naming the next step renders always, eco or not).</span></p>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-config</div>
+        <p style="margin:0;font-size:12.5px;line-height:1.5;color:rgba(0,0,0,0.6)"><span data-l="ko">통합 설정 진입점. .forge/config.json의 여섯 키(simple·eco·tdd·driveCommit·driveCommitMessage·defaultBranch)를 읽고 씁니다. simple을 켜면 fg-run이 검증 후 같은 턴에 봉인까지 잇습니다(검증 게이트는 불가침). 옛 키별 토글 스킬을 대체합니다.</span><span data-l="en">Unified settings surface. Reads and writes the six .forge/config.json keys (simple·eco·tdd·driveCommit·driveCommitMessage·defaultBranch). With simple on, fg-run verifies then seals in the same turn (the verification gate stays inviolable). Replaces the former per-key toggle skills.</span></p>
       </div>
       <div data-reveal class="fg-card" style="background:#fff;border-radius:16px;padding:22px 20px;box-shadow:rgba(0,0,0,0.05) 0 2px 14px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600;color:#1d1d1f;margin-bottom:8px">fg-merge</div>
@@ -602,8 +598,8 @@ document.documentElement.className+=' fg-js';
 (function () {
   // language toggle (KO/EN) — pill in nav; swaps data-lang, <html lang>, title, meta description; remembers choice
   var LANG_META = {
-    ko: { title: 'forge — Claude Code 워크플로우 플러그인', desc: '하나의 작업을 하나의 사이클로. 22개의 fg- 스킬로 만든 Claude Code 루프형 워크플로우 플러그인.' },
-    en: { title: 'forge — Claude Code workflow plugin', desc: 'One task, one cycle. A loop-style Claude Code workflow plugin built from twenty-two fg- skills.' }
+    ko: { title: 'forge — Claude Code 워크플로우 플러그인', desc: '하나의 작업을 하나의 사이클로. 21개의 fg- 스킬로 만든 Claude Code 루프형 워크플로우 플러그인.' },
+    en: { title: 'forge — Claude Code workflow plugin', desc: 'One task, one cycle. A loop-style Claude Code workflow plugin built from twenty-one fg- skills.' }
   };
   var langBtns = Array.prototype.slice.call(document.querySelectorAll('[data-setlang]'));
   var metaDesc = document.querySelector('meta[name="description"]');

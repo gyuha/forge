@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > An agent-engineering workflow plugin for Claude Code and Codex — one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty-two shared `fg-` skills — four that form the loop, plus eighteen utilities outside it.
+> A loop-style workflow plugin built from twenty-one shared `fg-` skills — four that form the loop, plus seventeen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -94,14 +94,14 @@ Reach for the right sequence by situation. The everyday and unattended rows poin
 | **Re-entry / health** | *where am I*: `fg-status` (shows) / `fg-next` (does the next step) · *is the state healthy*: `fg-doctor` |
 | **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-learn` (retro) → `fg-done` (seal) → type `배포` (deploy) |
 | **Security check** (whole codebase) | `fg-security` (audit) → approve severity-gated findings → `fg-run` (fix-forward plans) → re-audit (upstream recommends repeat runs) |
-| **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · toggles `fg-tdd`/`fg-eco` · statusline `fg-statusline` |
+| **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · settings `fg-config` · statusline `fg-statusline` |
 | **Team use** (branches + CI) | seal on the branch → `git merge` → `fg-merge` (or `fg-merge <branch>` to do both; `forge-merge.sh` in CI) · `forge-doctor` as an AI-free CI gate — see **[docs/team-workflow.md](./docs/team-workflow.md)** |
 
 First-time setup is the one sequence *Quick start* skips: on a fresh project, map the code and (optionally) generate domain agents **before** your first `fg-ask` — `fg-agents` cards load only at session start, so restart once after generating them (ADR-0024).
 
 ## Skill catalog
 
-The four loop stages, then the eighteen utilities outside the loop:
+The four loop stages, then the seventeen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -114,8 +114,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
 | `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass. Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
-| `fg-tdd` | Utility | Toggles persistent TDD mode in `.forge/config.json` |
-| `fg-eco` | Utility | Toggles eco mode — the simplicity and terse-output discipline is shared; Claude Code additionally caps delegated workflow subagents at `sonnet`. Replaces task-end handoffs with a compact summary table; execution-time narration is untouched |
+| `fg-config` | Utility | Unified settings surface for the six `.forge/config.json` keys (`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`) — `simple` auto-seals after verification in the same turn (the verification gate stays inviolable), `eco` and `tdd` keep their former semantics. Replaces the former per-key toggle skills |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
@@ -235,7 +234,7 @@ Legend: ✓ explicitly supported · △ something similar exists but differs in 
 
 The grilling/documentation pattern of `fg-ask` (including the verbatim original) and `CONTEXT-FORMAT.md`/`ADR-FORMAT.md` are inherited from [grill-with-docs in mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs).
 
-The code-simplicity discipline used by **eco mode** (`fg-eco`) — the laziness-first decision ladder embedded in `skills/fg-eco/ECO.md` and injected into fg-run subagents / fg-ask grilling — is adapted from the [Ponytail skill by DietrichGebert](https://github.com/DietrichGebert/ponytail).
+The code-simplicity discipline used by **eco mode** (`fg-config`'s `eco` key) — the laziness-first decision ladder embedded in `skills/fg-config/ECO.md` and injected into fg-run subagents / fg-ask grilling — is adapted from the [Ponytail skill by DietrichGebert](https://github.com/DietrichGebert/ponytail).
 
 The terse-communication output rules in the same `ECO.md` — compressing execution/reporting prose to save context while keeping code/errors verbatim and leaving grilling questions and generated docs in full — are adapted from the [caveman skill by JuliusBrussee](https://github.com/JuliusBrussee/caveman).
 

@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > 에이전트 엔지니어링을 위한 Claude Code·Codex 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
-> 두 호스트가 함께 쓰는 22개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
+> 두 호스트가 함께 쓰는 21개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 17개.
 
 [English](./README.md)
 
@@ -15,7 +15,7 @@
 
 ## 빠른 시작 — 사실 3개만 쓰면 된다
 
-스킬이 22개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
+스킬이 21개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -94,14 +94,14 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | **재진입 / 점검** | *어디까지 했지*: `fg-status`(보여줌) / `fg-next`(다음 단계 실행) · *상태 건강한가*: `fg-doctor` |
 | **마무리 / 배포** | (선택 적대적 검토: `fg-adversarial-review`) → `fg-learn`(회고) → `fg-done`(봉인) → `배포` 입력 |
 | **보안 점검** (코드베이스 전체) | `fg-security`(감사) → 심각도 게이트 통과분 승인 → `fg-run`(수정 plan 실행) → 재감사(업스트림이 복수 실행 권장) |
-| **유지보수** | 오래된 ADR 은퇴 `fg-cleanup` · 머지된 브랜치 통합 `fg-merge` · 미완 작업 폐기 `fg-drop` · 토글 `fg-tdd`/`fg-eco` · 상태바 `fg-statusline` |
+| **유지보수** | 오래된 ADR 은퇴 `fg-cleanup` · 머지된 브랜치 통합 `fg-merge` · 미완 작업 폐기 `fg-drop` · 설정 `fg-config` · 상태바 `fg-statusline` |
 | **팀 사용** (브랜치 + CI) | 브랜치에서 봉인 → `git merge` → `fg-merge`(또는 `fg-merge <branch>`로 둘 다 한 번에; CI에선 `forge-merge.sh`) · `forge-doctor` AI 없는 CI 게이트 — **[docs/team-workflow.md](./docs/team-workflow.md)** 참조 |
 
 처음 셋업은 *빠른 시작*이 건너뛰는 유일한 순서다: 새 프로젝트에선 코드를 매핑하고 (선택적으로) 도메인 에이전트를 첫 `fg-ask` **전에** 만든다 — `fg-agents` 카드는 세션 시작 시에만 로드되므로 생성 후 한 번 재시작한다(ADR-0024).
 
 ## 스킬 카탈로그
 
-루프 4단계, 그다음 루프 밖 유틸리티 18개:
+루프 4단계, 그다음 루프 밖 유틸리티 17개:
 
 | 스킬 | 단계 | 한 줄 역할 |
 | --- | --- | --- |
@@ -114,8 +114,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-status` | 유틸리티 | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 다음 단계 하나를 출력 |
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행. 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
-| `fg-tdd` | 유틸리티 | `.forge/config.json`의 영속 TDD 모드 토글 |
-| `fg-eco` | 유틸리티 | eco 모드 토글 — 코드 단순성·출력 압축 규율은 공통이고, Claude Code에서는 위임 서브에이전트를 `sonnet`으로 추가 제한. 작업 종료 핸드오프를 요약 표로 교체하며 실행 중 narration은 불변 |
+| `fg-config` | 유틸리티 | `.forge/config.json` 여섯 키(`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`)의 통합 설정 진입점 — `simple`은 검증 후 같은 턴에 자동 봉인(검증 게이트는 불가침), `eco`·`tdd` 의미론은 종전 그대로. 옛 키별 토글 스킬을 대체 |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
@@ -234,7 +233,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 
 `fg-ask`의 그릴링·문서화 패턴(원문 포함)과 `CONTEXT-FORMAT.md`/`ADR-FORMAT.md`는 [mattpocock/skills의 grill-with-docs](https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs)를 계승했다.
 
-**eco 모드**(`fg-eco`)가 쓰는 코드 단순성 규율 — `skills/fg-eco/ECO.md`에 임베드되어 fg-run 서브에이전트·fg-ask 그릴링에 주입되는 laziness-first 결정 사다리 — 은 [DietrichGebert의 Ponytail 스킬](https://github.com/DietrichGebert/ponytail)에서 차용·각색했다.
+**eco 모드**(`fg-config`의 `eco` 키)가 쓰는 코드 단순성 규율 — `skills/fg-config/ECO.md`에 임베드되어 fg-run 서브에이전트·fg-ask 그릴링에 주입되는 laziness-first 결정 사다리 — 은 [DietrichGebert의 Ponytail 스킬](https://github.com/DietrichGebert/ponytail)에서 차용·각색했다.
 
 같은 `ECO.md`의 출력 prose 압축 규칙 — 코드/에러는 verbatim으로 두고 그릴링 질문·생성 문서는 full로 보존하되 실행·보고 prose를 간결화해 컨텍스트를 아낀다 — 은 [JuliusBrussee의 caveman 스킬](https://github.com/JuliusBrussee/caveman)에서 차용·각색했다.
 

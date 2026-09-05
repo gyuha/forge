@@ -15,8 +15,7 @@
 | `fg-status` | 리포터(루프 밖) | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 지금 필요한 다음 단계 하나를 출력; 아무것도 쓰지 않고 자동 실행도 안 함 | `.forge/*` (읽기 전용) | 출력 보고(파일 없음) | — (다음 단계 제안) |
 | `fg-next` | 오케스트레이터(루프 밖) | fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행 — 보고만 하지 않음, one-shot; fg-status는 보고, fg-next는 행동 | `.forge/*` (자신은 읽기 전용) | 없음 — 호출한 스킬에 위임 | — (다음 스킬을 호출) |
 | `fg-loop` | 오케스트레이터(루프 밖) | goal 주도 한정 재계획 루프 — 정지 체크·fix-forward 범위·상한을 못 박고 run → UAT → 회고 skip → 봉인을 주행; failed active task는 제자리 수리, 빈 슬롯의 실패 체크는 새 plan 생성 | goal(질의), `.forge/loop.md`, `backlog/` | 봉인된 작업들 + `repaired-by` 제자리 수리 / `generated-by` fix-forward plan | — (종료 보고; 추후 `fg-learn`으로 일괄 승급) |
-| `fg-tdd` | 토글(루프 밖) | `.forge/config.json`의 TDD 모드를 켜고 끔 — `fg-ask`가 작업마다 이 설정을 기본 답으로 질문하고, plan의 marker가 켜져 있으면 `fg-run`이 test-first로 실행 | `on`/`off`/(없음) | `.forge/config.json`(`tdd`) | — (설정만) |
-| `fg-eco` | 토글(루프 밖) | eco 모드 토글 — 켜면 (1) `fg-run` 위임 서브에이전트를 `sonnet`으로 캡(내리기만; 세션 모델 불변), (2) Eco laziness-first 절제 규율(`ECO.md`)을 fg-run 서브에이전트·fg-ask 그릴링·현 세션에 주입, (3) **eco 요약 표** — 작업 종료 지점(fg-run 핸드오프·fg-done 단일 봉인·배치/무인)의 산문을 요약+슬라이스 표로 교체 | `on`/`off`/(없음) | `.forge/config.json`(`eco`) | — (설정만) |
+| `fg-config` | 설정(루프 밖) | `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 통합 설정 진입점 — `fg-config`(무인자)는 전체 설정 표, `fg-config <key> <값>`은 설정. `simple`은 자동 봉인 모드(fg-run이 UAT 후 같은 턴에 회고 skip+봉인, 검증 게이트 불가침), `eco`·`tdd` 의미론은 불변. 옛 키별 토글 스킬 대체(ADR `260905-212045`) | `<key> <값>`/(없음) | `.forge/config.json` | — (설정만) |
 | `fg-merge` | 통합기(루프 밖) | `git merge` 뒤 브랜치 forge root 통합 — **결정론 스크립트(forge-merge.sh/.js)**가 시간ID ADR을 그대로 이동(충돌 시 다음 글자, cascade 재번호 없음)·task 번호 재부여·CONTEXT/retro/done/backlog 병합, 구조 충돌 시 nonzero exit(**AI 없이 CI 게이트 가능**). 코어 스크립트는 git-free(CI)·`fg-merge <branch>`는 대화형에서 git merge 대행(ADR `260717-10a`) | `.forge/branch/<branch>/` | 통합된 `.forge/` 문서 | — (통합 단계) |
 | `fg-cleanup` | 은퇴기(루프 밖) | 오래된/대체된 ADR을 활성 결정 집합에서 은퇴 — 후보를 근거와 함께 제시하고, 승인 시 각 ADR을 `.forge/adr/retired/<NNNN>-slug.md`로 이동+supersede/retire 마킹. 번호 불변·재사용 금지·삭제 안 함. fg-ask는 `retired/`를 정답소스로 안 읽음 | `.forge/adr/*.md` | `.forge/adr/retired/*` | — (ADR 정비) |
 | `fg-statusline` | 설정 유틸리티(루프 밖) | statusline에 forge 진행 상태를 두 모드 중 하나로 표시 — 방법 1(append)은 기존 statusline을 아래 별도 줄로 자동 래핑(얇은 forge fragment, ADR-0017), 방법 2(merge)는 daleseo식 시스템 정보(모델·디렉터리·⎇git·Context/크기+그라디언트 바+$비용/±라인/경과)+forge 진행을 의미 단위 그룹 대괄호로 한 스크립트에 출력하며 compact/full 밀도 토글(command 인자)까지 갖춘 통합 스크립트 설치(ADR-0029) | 기존 `settings.json` | `~/.claude/`의 statusline 스크립트 + `statusLine` 설정 | — (터미널 표시) |
@@ -36,23 +35,23 @@
 - **표는 사용자 언어로 렌더된다.** 라벨의 canonical 이름은 영문(`Just did` · `Next step` · `How to start` · `Alternative`)이고 — 스킬 문서가 영문이므로 셀을 가리킬 때 쓰는 이름이다 — 화면에 나갈 때 사용자 언어로 번역된다(한국어 세션이면 위 네 라벨). 경로·`.forge/` 필드·`/명령`만 verbatim이며, **자연어 트리거는 verbatim이 아니라** 스킬 `description`에 등록된 한/영 트리거 중 사용자 언어에 맞는 것을 골라 채운다.
 
 - **적용 14곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 10개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`·`fg-security`).
-- **제외 8곳** — `fg-tdd`·`fg-eco`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-showme`·`fg-help`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
+- **제외 7곳** — `fg-config`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-showme`·`fg-help`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
 - **표는 메뉴가 아니다.** 진술형은 불변이다(ADR-0015) — `AskUserQuestion`으로 내지 않고, `대안` 행은 고르라는 질문이 아니며, 알리고 멈춘다. 체이닝은 여전히 `fg-next`의 몫이다.
 - **조건부 다음 단계는 우선순위 규칙으로 채운다.** 한 분기를 행에 못 박고 나머지를 `대안`으로 밀면 표가 스킬이 방금 하지 말라고 한 것을 지시하게 된다(`fg-run`·`fg-learn`의 divergence 규칙이 그 예다).
 - **무인 주행에서는 위임 스킬이 표를 렌더하지 않는다** — `fg-next all`·`fg-loop`에서 주행자가 억제하고 자기 단계(벽·완료)에만 낸다. 위임된 "fg-learn 실행" 안내가 사용자에게 새어 나가면 주행이 정지한다(`DRIVE.md`).
-- **[`eco` 요약 표](#fg-eco)와는 다른 것**이다 — 그쪽은 *무엇을 했나*(축은 슬라이스, `eco: true`에서만), 이쪽은 *다음에 무엇을*. 둘이 함께 뜨는 지점에서는 각자 상대가 소유한 행을 뺀다.
+- **[`eco` 요약 표](#fg-config)와는 다른 것**이다 — 그쪽은 *무엇을 했나*(축은 슬라이스, `eco: true`에서만), 이쪽은 *다음에 무엇을*. 둘이 함께 뜨는 지점에서는 각자 상대가 소유한 행을 뺀다.
 
 단일 정의는 `skills/fg-next/HANDOFF.md` 하나이며 14곳이 이를 **참조**한다(복붙 금지 — `skills/fg-run/FORGE-ROOT.md`·`skills/fg-next/DRIVE.md`와 같은 관례).
 
 ## Explaining forge — forge가 자기 어휘를 설명하는 방식 (항상)
 
-forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 사람에게 암호다. 그래서 22개 `SKILL.md` 전부가 `**Language**` 규칙 옆에 **항상-on `**Explaining forge**` 규율**을 담는다. `eco` 게이트와 무관하다 — ADR `260824-134246`.
+forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 사람에게 암호다. 그래서 21개 `SKILL.md` 전부가 `**Language**` 규칙 옆에 **항상-on `**Explaining forge**` 규율**을 담는다. `eco` 게이트와 무관하다 — ADR `260824-134246`.
 
 - **규칙 3개** — ① forge 전문용어는 한 메시지 안 첫 등장에서 즉시 주석(몇 단어, 문단 아님) ② 목적을 메커니즘보다 먼저 ③ 결론을 먼저 내고 사용자에게 갖는 의미로 닫기.
 - **eco에 넣지 않은 것이 핵심 결정이다.** `eco` 기본값은 `false`이고, 주석을 가장 필요로 하는 사람 — forge를 방금 설치한 사용자 — 이 바로 eco를 켜 봤을 리 없는 사람이다. eco에 번들하면 규율이 거꾸로 배달된다. ADR-0014가 caveman을 eco에 번들한 것과 **의도적으로 다른** 결정이며, 차이의 근거는 caveman이 토큰 절약(축=비용)이고 이것은 정확한 전달(축=품질)이라는 것이다.
-- **[`ECO.md`의 간결 규칙](#fg-eco)과 분업한다** — 간결 규칙은 **형태**(길이·군더더기), 이 규율은 **어휘**를 지배한다. **주석은 군더더기가 아니므로** 간결함이 주석을 지우지 않는다. `eco` off = 장문+주석, on = 간결+주석 — 주석은 두 상태에서 불변이다.
+- **[`ECO.md`의 간결 규칙](#fg-config)과 분업한다** — 간결 규칙은 **형태**(길이·군더더기), 이 규율은 **어휘**를 지배한다. **주석은 군더더기가 아니므로** 간결함이 주석을 지우지 않는다. `eco` off = 장문+주석, on = 간결+주석 — 주석은 두 상태에서 불변이다.
 - **[dreambigou의 eli5](https://github.com/dreambigou/eli5)(MIT)에서 개념만 각색했다** — 코드 vendoring이 아니다(파일 복사 0). 청중 표(나이·학년·관계·직무 24행)는 버렸다: forge 출력을 5살이나 배우자나 디자이너가 읽지 않으므로 남길 청중 축이 없고, 청중 변화는 사람 사이가 아니라 **숙련도 사이**에 있다.
-- **단일정의 문서를 만들지 않고 인라인했다** — 규칙이 3문장 1줄이라 참조 한 줄이 규칙 본문과 길이가 비슷해진다(`HANDOFF.md`·`ECO.md`는 파일을 벌지만 3줄은 못 번다). 대가인 22중 복제 드리프트는 **`fg-doctor` 검사 B17**이 막는다 — **canonical 본문**의 단일 정의(`scripts/explaining-forge.rule.txt`)를 22곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩만 남기고 본문을 삭제·축약·약화·반대로 쓴 경우까지 잡힌다. **포함**(동일성 아님)이라 `fg-ask`의 의도된 상위집합(문장 하나 추가)은 예외 목록 없이 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 forge 리포에 한정된다(사용자 프로젝트의 자기 스킬은 오탐이 되므로 **최상위** 매니페스트 `name`으로 스코프를 좁혔다 — 중첩된 `"author": {"name": "forge"}`는 발동시키지 못한다).
+- **단일정의 문서를 만들지 않고 인라인했다** — 규칙이 3문장 1줄이라 참조 한 줄이 규칙 본문과 길이가 비슷해진다(`HANDOFF.md`·`ECO.md`는 파일을 벌지만 3줄은 못 번다). 대가인 21중 복제 드리프트는 **`fg-doctor` 검사 B17**이 막는다 — **canonical 본문**의 단일 정의(`scripts/explaining-forge.rule.txt`)를 21곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩만 남기고 본문을 삭제·축약·약화·반대로 쓴 경우까지 잡힌다. **포함**(동일성 아님)이라 `fg-ask`의 의도된 상위집합(문장 하나 추가)은 예외 목록 없이 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 forge 리포에 한정된다(사용자 프로젝트의 자기 스킬은 오탐이 되므로 **최상위** 매니페스트 `name`으로 스코프를 좁혔다 — 중첩된 `"author": {"name": "forge"}`는 발동시키지 못한다).
 
 ## 루프 스킬 (4단계)
 
@@ -82,7 +81,7 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](https://github.com/gyuha/forge/blob/main/.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (18개)
+## 루프 밖 유틸리티 (17개)
 
 ### fg-map
 
@@ -106,19 +105,23 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 **무인 주행의 태스크당 커밋(옵트인).** `fg-next all`과 `fg-loop`은 `.forge/config.json`의 `driveCommit`(**엄격 불리언·기본 `false`**)이 켜져 있으면 태스크를 봉인할 때마다 그 태스크의 변경을 **로컬 커밋**해 태스크 단위 롤백 지점을 남긴다 — 여러 태스크가 사람 없이 봉인되면 어디로 되돌릴지가 사라지기 때문이다. **커밋만 하고 push는 하지 않는다**(롤백은 로컬 커밋에서 완결되고 push는 되돌림 가능성만 뺀다). 스테이징을 추론하지 않는 것이 핵심이다 — 주행 **진입 시** `git status --porcelain`이 비어 있어야 커밋하고(그때 `git add -A`가 곧 "이 태스크가 바꾼 것 전부"다), 비어 있지 않으면 그 주행은 커밋 없이 진행하며 한 줄로 알린다. 커밋할 것이 없으면 정상으로 보고 조용히 계속하고, **거부되면**(pre-commit 훅·detached HEAD·머지 중) 기존 `fork (commit rejected — <사유>)` 벽으로 멈춘다 — 열 번째 벽을 만들지 않는다. 메시지 기본값은 `{title} (forge task #{task} · {slug})`이고 `driveCommitMessage` 템플릿으로 바꿀 수 있다(치환자는 `{title}`·`{slug}`·`{task}` 셋뿐, 미지 치환자는 기본 형식으로 폴백+경고). 단일 정의는 `skills/fg-next/DRIVE.md` Part 3, 근거는 ADR `260901-213128`.
 
-### fg-tdd
+### fg-config
 
-`fg-tdd`도 **루프 밖**이다 — `.forge/config.json`의 영속 TDD 모드 토글(`fg-tdd on|off`, 인자 없으면 상태 표시). `fg-ask`가 작업마다 이 설정을 기본 답으로 "이 작업 TDD로?"를 묻고, plan의 tdd marker가 켜져 있으면 `fg-run`이 test-first로 실행한다. "forge tdd", "tdd on/off", "TDD 켜/꺼" 같은 발화에서 트리거된다.
+`fg-config`도 **루프 밖**이다 — `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 **단일 진입점**(`fg-config` 무인자 = 전체 설정 표 · `fg-config <key>` = 한 키 · `fg-config <key> <값>` = 설정). 옛 키별 토글 스킬을 대체하며 "eco on"·"TDD 켜" 같은 옛 트리거도 흡수한다(ADR `260905-212045`).
 
-### fg-eco
+**`simple` — 자동 봉인 모드(신설, ADR `260905-212045`).** `simple: true`면 fg-run이 UAT(검증) 후 회고를 무조건 skip(`retro: skipped (simple mode)`)하고 같은 턴에 봉인까지 잇는다. **검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침** — `verified: pending|failed`는 자동 봉인하지 않고 fg-run이 종전대로 멈춰 보고한다. fg-next·fg-loop는 이미 자동 봉인이라 영향 없다.
 
-`fg-eco`도 **루프 밖**이다 — `.forge/config.json`에 저장되는 eco 모드 토글(`fg-eco on|off`, 인자 없으면 상태 표시 + 켜기/끄기 선택). eco는 binary on/off이며, 켜지면 "forge 루프에서 낭비하지 않는다"는 한 원칙의 **세 효율 동작**이 활성화된다 ([ADR-0014](https://github.com/gyuha/forge/blob/main/.forge/adr/0014-fg-eco-subagent-model-tiering.md) 개정, ADR `260730-230321`).
+**`tdd` — test-first 기본(ADR-0008, 의미론 불변).** `fg-ask`가 작업마다 이 설정을 기본 답으로 "이 작업 TDD로?"를 묻고, plan의 tdd marker가 켜져 있으면 `fg-run`이 test-first로 실행한다.
+
+**`eco` — eco 모드(의미론 불변).** binary on/off이며, 켜지면 "forge 루프에서 낭비하지 않는다"는 한 원칙의 **세 효율 동작**이 활성화된다 ([ADR-0014](https://github.com/gyuha/forge/tree/main/.forge/adr) (eco subagent model tiering) 개정, ADR `260730-230321`).
 
 1. **모델 캡 (비용 절약).** `fg-run`이 위임 Dynamic Workflow 서브에이전트를 `sonnet`으로 캡한다 — **내리기만** 하고(티어를 올리지 않음, 이미 sonnet 이하면 상속 그대로), 사용자의 명시적 모델 지시가 우선하며, **메인 세션 모델은 건드리지 않는다**. 스킬은 세션 모델을 바꿀 수 없으므로(그래서 자동 단계별 모델 전환은 불가능 — ADR-0014의 전제) 설계(fg-ask)·완료(fg-done)는 사용자가 고른 모델 그대로이고, 결과는 **강력=메인 세션 · 일반=위임 실행**의 2단 티어다. `fg-map`은 의도적으로 범위 밖이다(지도 품질=그릴링 연료라 절감 폭 대비 리스크가 크다).
-2. **Eco laziness-first 규율 (코드·계획 복잡도 절약).** 임베드된 절제 규율(`skills/fg-eco/ECO.md` — "가장 좋은 코드는 쓰지 않은 코드")이 세 곳에 적용된다: (a) **fg-run** 각 위임 서브에이전트 프롬프트에 6단 사다리(YAGNI → stdlib → 네이티브 → 기존 의존성 → 한 줄 → 최소 코드)와 핵심 제약이 prepend되고, (b) **fg-ask** 그릴링에 조용한 YAGNI 렌즈("이게 꼭 필요한가? 최소 버전은? 기존 메커니즘이 커버하나?")로 녹아들며, (c) **현 세션**도 `eco: true`를 **관측할 때마다** 그 규율을 채택한다 — 토글뿐 아니라 no-arg가 on 유지·fg-run 직접 실행·fg-ask 핸드오프 등 main-session eco-read에서 발동하는 **상태 기반**(모델은 여전히 불변; 단 어떤 스킬도 안 돈 새 세션 첫 시점은 세션 시작 훅이 없어 자가 채택 불가 — 처음 eco를 읽는 스킬이 집어감). 신뢰 경계 검증·데이터 손실 방지·보안·접근성·명시 요청은 절대 단순화하지 않으며, 비-trivial 로직은 runnable check 하나를 남긴다. 이 규율은 독립 스킬이 아니라 eco의 일부이고(별도 토글 없음), DietrichGebert의 Ponytail에서 차용·각색했다(크레딧은 README). 여기에 더해 ECO.md는 **출력 prose 압축**(실행·보고 prose 간결화 — 코드/명령/에러는 verbatim, 그릴링 질문·생성 문서·명시 요청 설명은 압축 제외; JuliusBrussee의 caveman 차용)도 담아 소통 토큰을 아낀다(ADR-0014 2차 개정).
+2. **Eco laziness-first 규율 (코드·계획 복잡도 절약).** 임베드된 절제 규율(`skills/fg-config/ECO.md` — "가장 좋은 코드는 쓰지 않은 코드")이 세 곳에 적용된다: (a) **fg-run** 각 위임 서브에이전트 프롬프트에 6단 사다리(YAGNI → stdlib → 네이티브 → 기존 의존성 → 한 줄 → 최소 코드)와 핵심 제약이 prepend되고, (b) **fg-ask** 그릴링에 조용한 YAGNI 렌즈("이게 꼭 필요한가? 최소 버전은? 기존 메커니즘이 커버하나?")로 녹아들며, (c) **현 세션**도 `eco: true`를 **관측할 때마다** 그 규율을 채택한다 — 토글뿐 아니라 no-arg가 on 유지·fg-run 직접 실행·fg-ask 핸드오프 등 main-session eco-read에서 발동하는 **상태 기반**(모델은 여전히 불변; 단 어떤 스킬도 안 돈 새 세션 첫 시점은 세션 시작 훅이 없어 자가 채택 불가 — 처음 eco를 읽는 스킬이 집어감). 신뢰 경계 검증·데이터 손실 방지·보안·접근성·명시 요청은 절대 단순화하지 않으며, 비-trivial 로직은 runnable check 하나를 남긴다. 이 규율은 독립 스킬이 아니라 eco의 일부이고(별도 토글 없음), DietrichGebert의 Ponytail에서 차용·각색했다(크레딧은 README). 여기에 더해 ECO.md는 **출력 prose 압축**(실행·보고 prose 간결화 — 코드/명령/에러는 verbatim, 그릴링 질문·생성 문서·명시 요청 설명은 압축 제외; JuliusBrussee의 caveman 차용)도 담아 소통 토큰을 아낀다(ADR-0014 2차 개정).
 3. **eco 요약 표 (읽는 부담 절약).** 작업이 **끝나는** 지점 — fg-run 단일작업 핸드오프·fg-done 명시적 단일 봉인·배치/무인 경로(Run all·`fg-done all`·`fg-next` 위임 봉인·`fg-next all`·fg-loop) — 의 산문 핸드오프를 **교체**한다(추가가 아니라 교체 — 덧붙이면 글이 더 늘어 목적에 반한다): 헤더 한 줄(제목·`#task`·`verified`·divergence) + `▸ 요청`(plan Goal 한 줄) + `▸ 수행`(슬라이스 표: `#`·슬라이스·결과·계획 대비) + `▸ 다음`(다음 단계·트리거 한 줄). 배치 경로는 **작업당 1행** 표다. 2번의 압축이 *스타일* 지시라 지킴 여부가 보이지 않아 실제로 부족했다는 실증에서 나온 ***형태*** 규율이며, 표의 재료를 보장하기 위해 fg-run이 `run.md`에 **슬라이스별 한 줄 결과를 항상 기록**한다(eco 무관 — 나중 세션에서 봉인해도 표가 성립하도록). 검증 상태(`verified:`)는 봉인 가능 여부를 판단하는 정보라 헤더에서 절대 빠지지 않는다(ADR-0009). **실행 *중* narration은 그대로** 두어 어디서 막혔는지 보이고, 그릴링·회고·생성 문서(plan/run/retro/CONTEXT/ADR)·`fg-quick`은 제외이며, `eco: false`면 종전 산문 그대로다. 형태 정의는 `ECO.md` 한 곳에만 있고 fg-run·fg-done·`DRIVE.md`는 참조만 한다 (ADR `260730-230321`, GitHub 이슈 #7).
 
-"forge eco", "eco on/off", "에코 모드", "경제 모드", "lazy mode", "게으른 모드", "요약 표" 같은 발화에서 트리거된다.
+**`driveCommit`/`driveCommitMessage`·`defaultBranch`** — 무인 주행의 태스크당 로컬 커밋과 그 메시지 템플릿(위 fg-loop 절 참조, ADR `260901-213128`), 그리고 forge 루트 해석의 기본 브랜치(ADR-0011).
+
+"forge config", "설정", "simple 모드", "eco on/off", "에코 모드", "tdd 켜/꺼" 같은 발화에서 트리거된다.
 
 ### fg-merge
 

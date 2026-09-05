@@ -29,7 +29,7 @@ mapped: 2026-09-03
 │   ├── fg-done/                 # SKILL.md (196줄 — 봉인은 scripts/forge-done.* 위임)
 │   ├── fg-next/                 # SKILL.md + HANDOFF.md(핸드오프 표 단일 정의) + DRIVE.md(89줄 — 무인 주행 3부: 턴내 계속·Stop 훅(prevent_stop 조건부)·태스크당 커밋)
 │   ├── fg-loop/                 # SKILL.md (264줄 — 최대; waiting·stalled-waiting·blocked-health·budget-exhausted 포함)
-│   ├── fg-eco/                  # SKILL.md + ECO.md
+│   ├── fg-config/               # SKILL.md + ECO.md (통합 설정 스킬 — 옛 eco·tdd 토글 스킬 대체, ADR `260905-212045`)
 │   ├── fg-showme/               # SKILL.md + VISUAL.md + LICENSE + scripts/ (server.cjs·helper.js·frame-template.html·start/stop-server.sh — superpowers vendoring)
 │   ├── fg-security/             # SKILL.md(forge glue 98줄) + LICENSE + vendored 12파일 — 진입 파일이 AUDIT.md(SKILL.md 아님!)
 │   │                            #   ATTACK-CLASSES/HUNTING/RECONNAISSANCE/WEB-PROTOCOL-AND-AUTH/CLIENT-SIDE/

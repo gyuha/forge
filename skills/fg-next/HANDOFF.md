@@ -46,7 +46,7 @@ Rendered in a Korean session, the shape above comes out as:
 
 ### List-shaped content goes below the table
 
-Some skills must emit a list, and a list does not fit a cell — cramming paths in with `·` separators wraps the column and breaks it, and paths are verbatim-preserved (`../fg-eco/ECO.md`, "Terse communication"), so they cannot be shortened. Put the list **below** the table as bullets:
+Some skills must emit a list, and a list does not fit a cell — cramming paths in with `·` separators wraps the column and breaks it, and paths are verbatim-preserved (`../fg-config/ECO.md`, "Terse communication"), so they cannot be shortened. Put the list **below** the table as bullets:
 
 ```
 | 항목        | 내용                          |
@@ -104,7 +104,7 @@ So, without exception:
 
 | Skills | Why |
 | --- | --- |
-| `fg-tdd` · `fg-eco` · `fg-statusline` | Toggles and setup: there is nothing to point at, and their one-line body is already shorter than any table |
+| `fg-config` · `fg-statusline` | Toggles and setup: there is nothing to point at, and their one-line body is already shorter than any table |
 | `fg-cleanup` · `fg-drop` · `fg-showme` | They emit no next-step guidance at all — there is nothing to reshape |
 | `fg-merge` | Excluded on a narrower rationale: what it emits are **git-state recovery instructions** ("resolve the conflicts, `git commit`, then run `fg-merge`"), not a loop handoff. It is the weakest line in this split — if the recovery instruction should be a table, wire it; do not defend the exclusion by claiming the file is silent, because it is not |
 
@@ -126,7 +126,7 @@ fg-next all · fg-loop               → no delegated table; the driver renders 
 
 ## Interaction with eco — a role split, not a precedence rule
 
-When `eco` is `true` in the **top-level** `.forge/config.json` (a global exemption — never the branch root; treat as off if the file or key is absent), the **human-facing** task-end points — `fg-run`'s handoff, `fg-done`'s explicit single seal, and `fg-run`'s Run-all batch end — already render the **eco summary table**, defined once in [`../fg-eco/ECO.md`](../fg-eco/ECO.md), section "eco summary table". Do not restate that layout here or there.
+When `eco` is `true` in the **top-level** `.forge/config.json` (a global exemption — never the branch root; treat as off if the file or key is absent), the **human-facing** task-end points — `fg-run`'s handoff, `fg-done`'s explicit single seal, and `fg-run`'s Run-all batch end — already render the **eco summary table**, defined once in [`../fg-config/ECO.md`](../fg-config/ECO.md), section "eco summary table". Do not restate that layout here or there.
 
 **Unattended drives are not in this list.** Inside `fg-next all` / `fg-loop` a delegated step renders nothing at all (see the section above), so there is no handoff table to combine there; the driver's own accumulated eco rows stand alone, per [`DRIVE.md`](./DRIVE.md). Run all is a human-facing batch end, **not** a drive — it stops at the retro — so it does render.
 

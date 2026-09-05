@@ -7,7 +7,7 @@ description: forge 플러그인의 스킬 문서(`skills/*/SKILL.md`, `*-FORMAT.
 
 ## 소유 범위
 - `skills/<name>/SKILL.md` 작성·편집.
-- 형식문서(`skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/{PLAN-FORMAT,FORGE-ROOT,RUN-ALL}.md`, `skills/fg-learn/RETRO-FORMAT.md`, `skills/fg-eco/ECO.md`).
+- 형식문서(`skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`, `skills/fg-run/{PLAN-FORMAT,FORGE-ROOT,RUN-ALL}.md`, `skills/fg-learn/RETRO-FORMAT.md`, `skills/fg-config/ECO.md`).
 
 ## 반드시 지키는 컨벤션 (어기면 forge가 forge가 아니게 됨)
 - **언어**: 스킬 본문·형식문서는 **영문**으로 작성한다. 단 스킬이 **사용자에게 출력하는 언어는 사용자 언어**를 따르므로, "respond in the user's language" 지시를 본문에 명시한다. 생성되는 산출 문서(plan·회고·CONTEXT·ADR)도 사용자 언어.

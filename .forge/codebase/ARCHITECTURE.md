@@ -94,7 +94,7 @@ fg-done(봉인)       ──▶ .forge/done/<날짜-slug>/ 로 아카이브, 활
 - `skills/fg-agenda/` — 아직 내리지 않은 결정의 대기열. `.forge/agenda.md` 단일 파일(목적지·결정된 것·열린 질문·fog·범위 밖), 열린 질문 0이면 자기 삭제. fg-next/fg-status 다음-단계 사슬에 미편입(ADR `260805-201313`).
 - `skills/fg-security/` — 코드베이스 보안 감사(98줄 glue + vendored 12파일). **명명 비대칭이 구조를 지탱한다**: vendored 진입 파일이 `AUDIT.md`로 개명돼 있는데, 이는 플러그인 스킬 자동 탐색(`skills/*/SKILL.md`)이 vendored 본문을 **중첩 스킬로 잡아가지 않게** 하기 위한 것이다 — `skills/fg-security/SKILL.md`는 forge 자신의 glue(라우팅·게이트)이고, 방법론 본문은 `AUDIT.md` + 공격유형 플레이북 9종(`ATTACK-CLASSES.md`·`HUNTING.md`·`RECONNAISSANCE.md`·`WEB-PROTOCOL-AND-AUTH.md`·`CLIENT-SIDE.md`·`AI-AND-LLM.md`·`MEMORY-SAFETY-AND-BINARY.md`·`VALIDATION-AND-REPORTING.md`) + `report-schema.json`·`validate-findings.cjs`로, 업스트림(cloudflare/security-audit-skill, MIT `LICENSE`)과 byte-for-byte 유지가 규약이다(수정 금지). forge가 더하는 것은 셋뿐 — 산출물을 **리포 밖**(`~/security-audit-skill/<repo>/run-<N>/`)에 두어 취약점 목록이 커밋될 경로 자체를 없앰, 심각도 게이트(CRITICAL·HIGH 제안 / MEDIUM 제안+묶기 / LOW·INFO 계획 없음) 통과분만 사람 승인 후 fix-forward backlog plan, 무인 주행 항상 skip. 봉인 게이트 아님 — ADR `260820-215004`.
 - `skills/fg-help/` — 사용법 리포터(66줄). 각 `skills/*/SKILL.md`의 frontmatter `description`을 런타임에 읽어 사용자 언어로 렌더하므로 **결정론 트윈이 없는** 유일한 리포터다(번역이 스크립트로 불가 — fg-status/fg-doctor와의 분기점). 사용법 사본 0 → 스킬을 추가해도 fg-help는 수정 불필요(ADR `260814-104534`).
-- 기타: `fg-map`(코드베이스 지도→`.forge/codebase/`), `fg-quick`(경량 차선, `.forge/quick/LOG.md` 한 줄), `fg-merge`(브랜치 forge 통합), `fg-cleanup`(ADR 은퇴→`.forge/adr/retired/`), `fg-drop`(미완 작업 폐기→삭제 또는 `.forge/dropped/`), `fg-tdd`·`fg-eco`(`.forge/config.json` 토글), `fg-statusline`, `fg-doctor`(무결성 검사), `fg-adversarial-review`(6렌즈 적대 리뷰→`.forge/review.md`), `fg-agents`(`.claude/agents/<role>.md` 카드 생성 — 세션 재시작 후 로드, ADR-0024), `fg-showme`(브라우저 컴패니언 — vendored 서버 `skills/fg-showme/scripts/server.cjs` 외 4파일. 세션 디렉터리는 최상위 `.forge/showme/<세션>/`이고 **git 진입 경로가 구조적으로 없다**: `start-server.sh`가 `.forge/showme/.gitignore`에 `*` 한 줄을 자체-기록(`printf '*\n'` — 사용자 루트 `.gitignore`는 불가침, 이것이 유일 예외)하고, `stop-server.sh`가 세션 폴더를 `rm -rf`하며 마지막 세션이면 `.forge/showme/` 부모까지 제거하고, 크래시가 남긴 죽은 세션(stopped 마커 또는 죽은 PID)은 다음 시작 때 sweep한다 — ADR `260719-224442` 개정).
+- 기타: `fg-map`(코드베이스 지도→`.forge/codebase/`), `fg-quick`(경량 차선, `.forge/quick/LOG.md` 한 줄), `fg-merge`(브랜치 forge 통합), `fg-cleanup`(ADR 은퇴→`.forge/adr/retired/`), `fg-drop`(미완 작업 폐기→삭제 또는 `.forge/dropped/`), `fg-config`(`.forge/config.json` 여섯 키 통합 설정 — 옛 eco·tdd 토글 스킬 대체, ADR `260905-212045`), `fg-statusline`, `fg-doctor`(무결성 검사), `fg-adversarial-review`(6렌즈 적대 리뷰→`.forge/review.md`), `fg-agents`(`.claude/agents/<role>.md` 카드 생성 — 세션 재시작 후 로드, ADR-0024), `fg-showme`(브라우저 컴패니언 — vendored 서버 `skills/fg-showme/scripts/server.cjs` 외 4파일. 세션 디렉터리는 최상위 `.forge/showme/<세션>/`이고 **git 진입 경로가 구조적으로 없다**: `start-server.sh`가 `.forge/showme/.gitignore`에 `*` 한 줄을 자체-기록(`printf '*\n'` — 사용자 루트 `.gitignore`는 불가침, 이것이 유일 예외)하고, `stop-server.sh`가 세션 폴더를 `rm -rf`하며 마지막 세션이면 `.forge/showme/` 부모까지 제거하고, 크래시가 남긴 죽은 세션(stopped 마커 또는 죽은 PID)은 다음 시작 때 sweep한다 — ADR `260719-224442` 개정).
 
 ## 브랜치별 forge 루트 (ADR-0011)
 
@@ -119,11 +119,11 @@ fg-done(봉인)       ──▶ .forge/done/<날짜-slug>/ 로 아카이브, 활
 | `hosts/<host>/{interaction,execution}.md` · `capabilities.json` | hosts | 호스트별 다섯 가지(질문·위임·프로젝트 에이전트·주행 계속·상태 UI)만 |
 | `skills/fg-run/FORGE-ROOT.md` | fg-run | 브랜치별 forge 루트 해석 — 전 루프 스킬 참조 |
 | `skills/fg-next/HANDOFF.md` | fg-next | 핸드오프 표 형태 — 14곳 참조(나머지 8개 스킬은 종전 산문 유지) |
-| `skills/fg-next/DRIVE.md` | fg-next | 무인 주행 규율(Part 1 턴 내 계속 · Part 2 forge 자체 `Stop` 훅, `/goal`은 폴백) — fg-next all·fg-loop·fg-done·fg-eco 참조 |
+| `skills/fg-next/DRIVE.md` | fg-next | 무인 주행 규율(Part 1 턴 내 계속 · Part 2 forge 자체 `Stop` 훅, `/goal`은 폴백) — fg-next all·fg-loop·fg-done·fg-config 참조 |
 | `skills/fg-ask/CONTEXT-FORMAT.md` · `ADR-FORMAT.md` | fg-ask | 글로서리·ADR 형식(grill-with-docs verbatim) |
 | `skills/fg-run/PLAN-FORMAT.md` · `RUN-ALL.md` | fg-run | plan 형식·분할 규칙 / Run-all 절차 |
 | `skills/fg-learn/RETRO-FORMAT.md` | fg-learn | 회고 형식 |
-| `skills/fg-eco/ECO.md` | fg-eco | Eco laziness-first 규율(fg-run 서브에이전트 prepend 등) |
+| `skills/fg-config/ECO.md` | fg-config | Eco laziness-first 규율(fg-run 서브에이전트 prepend 등) |
 | `skills/fg-showme/VISUAL.md` | fg-showme | 시각 컴패니언 운용(fg-ask가 파일 참조로 소비) |
 | `skills/fg-security/AUDIT.md` | (vendored) | 보안 감사 절차 — fg-security glue가 참조만, 편집 금지 |
 | `scripts/explaining-forge.rule.txt` | (스크립트 데이터) | 항상-on 설명 규율 canonical 본문 — 22 `SKILL.md` 인라인 사본을 fg-doctor B17이 대조 |
