@@ -40,7 +40,7 @@ forge는 Claude Code와 Codex가 **같은 `skills/`와 `.forge/` 상태**를 사
 | 기능 | Codex 상태 | 설명 |
 | --- | --- | --- |
 | 핵심 루프 (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) | 지원 | 동일한 상태 전이와 검증·봉인 규칙 사용 |
-| 상태/도구 (`fg-status`, `fg-doctor`, `fg-quick`, `fg-tdd`) | 지원 | 공통 스크립트와 스킬 사용 |
+| 상태/도구 (`fg-status`, `fg-doctor`, `fg-quick`, `fg-config`) | 지원 | 공통 스크립트와 스킬 사용 |
 | 독립 작업 병렬 실행 (`spawn_parallel`) | 지원 | Codex collaboration/subagent 도구가 없으면 직렬 fallback. **관측 미완** — 도구 부재 시 fallback을 전제하므로 Codex 실측 뒤 확정한다 |
 | SessionStart 알림 (`session_start`) | 지원 | `hooks/hooks.json` 기본 탐색; 사용자가 훅을 검토하고 신뢰해야 함. **관측 미완** — `.codex-plugin/plugin.json`은 훅을 선언하지 않으므로 Codex 실측 뒤 확정한다 |
 | `fg-next all`, `fg-loop` 무인 주행 (`prevent_stop`) | 제한적 | Stop 훅의 재진입 동작은 호스트별 차이가 있어 감독 실행 권장 |

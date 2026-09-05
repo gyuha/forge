@@ -40,7 +40,7 @@ Script paths prefer the host's **own** variable — `CLAUDE_PLUGIN_ROOT` first, 
 | Capability | Codex status | Notes |
 | --- | --- | --- |
 | Core loop (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) | Supported | Same state transitions, verification, and sealing rules |
-| State utilities (`fg-status`, `fg-doctor`, `fg-quick`, `fg-tdd`) | Supported | Shared scripts and skills |
+| State utilities (`fg-status`, `fg-doctor`, `fg-quick`, `fg-config`) | Supported | Shared scripts and skills |
 | Parallel independent work (`spawn_parallel`) | Supported | Serial fallback when Codex collaboration/subagent tools are unavailable. **Not yet observed** — it presumes a fallback when the tools are absent, so confirm it on Codex |
 | SessionStart notice (`session_start`) | Supported | Default `hooks/hooks.json` discovery; the user must review and trust hooks. **Not yet observed** — `.codex-plugin/plugin.json` declares no hooks, so confirm it on Codex |
 | `fg-next all` and `fg-loop` unattended drive (`prevent_stop`) | Limited | Supervised use is recommended until Stop-hook re-entry parity is proven |

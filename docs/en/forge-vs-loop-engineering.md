@@ -26,7 +26,7 @@ The warnings Osmani piles up in the back half of the post are not advice in forg
 
 | Warning | How forge institutionalizes it |
 | --- | --- |
-| Token cost volatility | `fg-eco` — when on, caps delegated subagents at sonnet and adds the Eco laziness-first discipline (`ECO.md`), which cuts code and plan complexity too (ADR-0014, amended). Plus the estimate-cost-first principle (fg-run Constraints) |
+| Token cost volatility | `fg-config`'s `eco` setting — when on, caps delegated subagents at sonnet and adds the Eco laziness-first discipline (`ECO.md`), which cuts code and plan complexity too (ADR-0014, amended). Plus the estimate-cost-first principle (fg-run Constraints) |
 | "A loop running unattended is a loop making mistakes unattended" | **no-seal-without-verification** — no seal unless a verification decision is recorded (ADR-0009). `failed` cannot be sealed by any waiver |
 | Comprehension debt | The retro is the default (ADR-0002) — skipping is allowed only at low divergence, and auditably (`retro: skipped (<reason>)`). Learnings are promoted into permanent docs |
 | Cognitive surrender | Pillar 1 — grilling and the retro are conversation outside the workflow. Even `fg-next all` halts and hands back to the human on a failed UAT, a genuine fork, or a costly judgment call |

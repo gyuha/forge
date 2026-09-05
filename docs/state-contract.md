@@ -16,7 +16,7 @@ repo/
     ├── adr/retired/           # 은퇴/대체된 ADR (fg-cleanup이 이동)
     ├── retro/YYMMDD-HHMMSS-*.md  # 회고 로그 (구 YYYY-MM-DD-*는 grandfather)
     ├── codebase/*.md          # fg-map이 만든 코드베이스 지도
-    ├── config.json            # 프로젝트 설정(tdd · eco · defaultBranch) — 전역, 브랜치 해석 안 함
+    ├── config.json            # 프로젝트 설정 여섯 키(simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch) — 전역, 브랜치 해석 안 함. 진입점은 fg-config
     │                          # ── 휘발 루프 상태 (gitignore) ──
     ├── backlog/<slug>.md      # ① fg-ask 그릴링 산출 — 미실행 plan 대기열
     ├── plan.md                # 활성 슬롯: 지금 도는 한 바퀴의 정답 기준 (fg-run가 백로그에서 승격)
@@ -52,7 +52,7 @@ repo/
 - **`run.md`는 산문 외에 슬라이스별 한 줄 결과를 담는다** (`S1 … — ✅ 계획대로` / `S2 … — ⚠ <차이>`). eco 여부와 무관하게 항상 기록되며, 나중에 **다른 세션에서 봉인**해도 "슬라이스별 결과"를 읽을 수 있게 하는 **재료 보장**이다 — fg-done의 봉인 요약(ADR-0032)과 eco 요약 표가 이 줄들을 읽는다. 형식 규정은 `skills/fg-run/SKILL.md` step 4에 있고 별도 `RUN-FORMAT.md`는 없다 (ADR `260730-230321`).
 - 입력 파일이 없으면 스킬은 앞 단계를 안내한다.
 - 활성 슬롯·백로그·회고 대기열이 모두 비어 있으면 = 진행 중 작업 없음. `fg-run`는 빈 상태에서 실행하지 않는다(재실행 방지). 완료 판별은 `done/*/STATUS.md`(status: done)다.
-- 회고는 사소한 **저-divergence** 작업에 한해 **건너뛸 수 있다**. fg-run가 핸드오프에서 명시 선택지로 제시한다 — 자동이 아니고, 계획과 크게 어긋난 실행에는 제시하지 않는다(그때야말로 배울 게 있다). 건너뛰면 STATUS.md에 `retro: skipped`를 기록하고 회고 파일은 만들지 않으며, fg-done이 이를 봉인 가드 통과로 인정한다. 회고가 기본값이다 ([ADR-0002](https://github.com/gyuha/forge/blob/main/.forge/adr/0002-optional-retro-skip.md)).
+- 회고는 사소한 **저-divergence** 작업에 한해 **건너뛸 수 있다**. fg-run가 핸드오프에서 명시 선택지로 제시한다 — 자동이 아니고, 계획과 크게 어긋난 실행에는 제시하지 않는다(그때야말로 배울 게 있다). 건너뛰면 STATUS.md에 `retro: skipped`를 기록하고 회고 파일은 만들지 않으며, fg-done이 이를 봉인 가드 통과로 인정한다. 회고가 기본값이다 ([ADR-0002](https://github.com/gyuha/forge/blob/main/.forge/adr/0002-optional-retro-skip.md)). **divergence 무관 무조건 skip은 별개 경로다** — 무인 주행(`fg-next all`·`fg-loop`)과 `simple` 설정(ADR `260905-212045`)이 그것이며, `done/` 이력에서 `retro: skipped (fg-next all auto-drive …)`·`retro: skipped (simple mode)`로 구분된다. 학습은 아카이브된 `run.md`에 남고 승급은 이후 사람의 fg-learn으로 유예된다.
 - 작업은 봉인 전에 **검증 결정이 기록된다**. 루프 순서는 run → verify → learn → done이다. 실행 직후 fg-run의 대화형 핸드오프가 계획의 목표에 대고 UAT를 수행하고 결과를 STATUS.md `verified:`에 기록한다 — `yes (증거)`(동작 확인 + *어떻게* 확인했는지 한 줄 증거를 동반: 돌린 명령·관찰한 출력, 예: `yes (npm test → 42 passing)`; TDD 모드에선 통과한 슬라이스 테스트가 곧 그 증거) / `n/a (사유)`(확인할 런타임 없음, 예: 문서만 변경) / `skipped (사유)`(의도적·감사 가능한 waiver). 두 상태는 봉인을 **차단**한다: `pending`(UAT 미수행 — 초기값 또는 중단된 핸드오프)과 `failed (사유)`(UAT를 수행했으나 목표 미달 — 수정·재실행 또는 재그릴로 가며 절대 봉인 안 됨). fg-done은 `verified:`가 차단 상태이면 봉인하지 않는다(**no-seal-without-verification 가드**) — 기록된 *봉인 가능* 결정 없이는 아무것도 `done/`에 들어가지 않는다. 단 `skipped`는 **봉인을 통과한다** — confirmation이 아니라 명시적 waiver다(retro-skip과 동일한 절제). 이 게이트가 보장하는 것은 "조용한 누락 없음"이지 "모든 작업이 동작 확인됨"이 아니다 ([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md)). ADR-0009 이전에 봉인된 작업은 이 필드가 없던 시절이라 `verified: n/a (legacy pre-ADR-0009)`로 채워져 있다 — `done/` 이력에서 `verified:`가 비어 있으면 게이트 실패가 아니라 legacy 데이터라는 뜻이다.
 
 ### 미봉인 잔여 알림 (SessionStart 훅)
@@ -104,7 +104,7 @@ repo/
 
 ## 전체 흐름 상세도
 
-루프와 문서(`.forge/`)의 산출·소비 관계를 한눈에 본 다이어그램. 텍스트 흐름도는 [README](https://github.com/gyuha/forge/blob/main/README.ko.md#전체-흐름)에 있다. **루프 4단계의 재귀 흐름**과 거기 물린 `.forge/` 상태 파일, 그리고 그 흐름에 직접 관여하는 루프 밖 유틸리티(fg-map·fg-cleanup·fg-loop·fg-adversarial-review·fg-drop)만 표시한다. 설정 토글(fg-tdd·fg-eco), 상태를 직접 쓰지 않는 리포터·오케스트레이터(fg-status·fg-next·fg-doctor), 그리고 재귀 루프 밖의 일회성 유틸리티(fg-quick·fg-merge·fg-statusline)는 이 흐름에 들지 않아 생략했다.
+루프와 문서(`.forge/`)의 산출·소비 관계를 한눈에 본 다이어그램. 텍스트 흐름도는 [README](https://github.com/gyuha/forge/blob/main/README.ko.md#전체-흐름)에 있다. **루프 4단계의 재귀 흐름**과 거기 물린 `.forge/` 상태 파일, 그리고 그 흐름에 직접 관여하는 루프 밖 유틸리티(fg-map·fg-cleanup·fg-loop·fg-adversarial-review·fg-drop)만 표시한다. 설정 스킬(fg-config), 상태를 직접 쓰지 않는 리포터·오케스트레이터(fg-status·fg-next·fg-doctor), 그리고 재귀 루프 밖의 일회성 유틸리티(fg-quick·fg-merge·fg-statusline)는 이 흐름에 들지 않아 생략했다.
 
 ```mermaid
 flowchart LR

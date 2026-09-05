@@ -26,7 +26,7 @@ Osmani가 후반부에 쏟는 경고들은 forge에서 권고가 아니라 **게
 
 | 경고 | forge의 제도화 |
 | --- | --- |
-| Token cost volatility | `fg-eco` — 켜면 위임 서브에이전트를 sonnet으로 캡 + Eco laziness-first 규율(`ECO.md`)로 코드·계획 복잡도까지 절감(ADR-0014 개정). 비용 추정 우선 원칙(fg-run Constraints) |
+| Token cost volatility | `fg-config`의 `eco` 설정 — 켜면 위임 서브에이전트를 sonnet으로 캡 + Eco laziness-first 규율(`ECO.md`)로 코드·계획 복잡도까지 절감(ADR-0014 개정). 비용 추정 우선 원칙(fg-run Constraints) |
 | "A loop running unattended is a loop making mistakes unattended" | **no-seal-without-verification** — 검증 결정이 기록되지 않으면 봉인 불가(ADR-0009). `failed`는 어떤 waiver로도 봉인 못 함 |
 | Comprehension debt | 회고가 기본값(ADR-0002) — 건너뛰기는 저-divergence에서만, 감사 가능하게(`retro: skipped (사유)`). 학습은 영속 문서로 승급 |
 | Cognitive surrender | 기둥 1 — 그릴링·회고는 워크플로우 밖 대화. `fg-next all`조차 실패한 UAT·진짜 fork·고비용 판단에서는 멈춰 사람에게 돌려준다 |
