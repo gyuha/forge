@@ -15,7 +15,7 @@
 | `fg-status` | 리포터(루프 밖) | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 지금 필요한 다음 단계 하나를 출력; 아무것도 쓰지 않고 자동 실행도 안 함 | `.forge/*` (읽기 전용) | 출력 보고(파일 없음) | — (다음 단계 제안) |
 | `fg-next` | 오케스트레이터(루프 밖) | fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행 — 보고만 하지 않음, one-shot; fg-status는 보고, fg-next는 행동 | `.forge/*` (자신은 읽기 전용) | 없음 — 호출한 스킬에 위임 | — (다음 스킬을 호출) |
 | `fg-loop` | 오케스트레이터(루프 밖) | goal 주도 한정 재계획 루프 — 정지 체크·fix-forward 범위·상한을 못 박고 run → UAT → 회고 skip → 봉인을 주행; failed active task는 제자리 수리, 빈 슬롯의 실패 체크는 새 plan 생성 | goal(질의), `.forge/loop.md`, `backlog/` | 봉인된 작업들 + `repaired-by` 제자리 수리 / `generated-by` fix-forward plan | — (종료 보고; 추후 `fg-learn`으로 일괄 승급) |
-| `fg-config` | 설정(루프 밖) | `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 통합 설정 진입점 — `fg-config`(무인자)는 전체 설정 표, `fg-config <key> <값>`은 설정. `simple`은 자동 봉인 모드(fg-run이 UAT 후 같은 턴에 회고 skip+봉인, 검증 게이트 불가침), `eco`·`tdd` 의미론은 불변. 옛 키별 토글 스킬 대체(ADR `260905-212045`) | `<key> <값>`/(없음) | `.forge/config.json` | — (설정만) |
+| `fg-config` | 설정(루프 밖) | `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 통합 설정 진입점 — `fg-config`(무인자)는 전체 설정 표+변경 메뉴, `fg-config <key> <값>`은 설정. `simple`은 자동 봉인 모드(fg-run이 UAT 후 같은 턴에 회고 skip+봉인, 검증 게이트 불가침), `eco`·`tdd` 의미론은 불변. 옛 키별 토글 스킬 대체(ADR `260905-212045`) | `<key> <값>`/(없음) | `.forge/config.json` | — (설정만) |
 | `fg-merge` | 통합기(루프 밖) | `git merge` 뒤 브랜치 forge root 통합 — **결정론 스크립트(forge-merge.sh/.js)**가 시간ID ADR을 그대로 이동(충돌 시 다음 글자, cascade 재번호 없음)·task 번호 재부여·CONTEXT/retro/done/backlog 병합, 구조 충돌 시 nonzero exit(**AI 없이 CI 게이트 가능**). 코어 스크립트는 git-free(CI)·`fg-merge <branch>`는 대화형에서 git merge 대행(ADR `260717-10a`) | `.forge/branch/<branch>/` | 통합된 `.forge/` 문서 | — (통합 단계) |
 | `fg-cleanup` | 은퇴기(루프 밖) | 오래된/대체된 ADR을 활성 결정 집합에서 은퇴 — 후보를 근거와 함께 제시하고, 승인 시 각 ADR을 `.forge/adr/retired/<NNNN>-slug.md`로 이동+supersede/retire 마킹. 번호 불변·재사용 금지·삭제 안 함. fg-ask는 `retired/`를 정답소스로 안 읽음 | `.forge/adr/*.md` | `.forge/adr/retired/*` | — (ADR 정비) |
 | `fg-statusline` | 설정 유틸리티(루프 밖) | statusline에 forge 진행 상태를 두 모드 중 하나로 표시 — 방법 1(append)은 기존 statusline을 아래 별도 줄로 자동 래핑(얇은 forge fragment, ADR-0017), 방법 2(merge)는 daleseo식 시스템 정보(모델·디렉터리·⎇git·Context/크기+그라디언트 바+$비용/±라인/경과)+forge 진행을 의미 단위 그룹 대괄호로 한 스크립트에 출력하며 compact/full 밀도 토글(command 인자)까지 갖춘 통합 스크립트 설치(ADR-0029) | 기존 `settings.json` | `~/.claude/`의 statusline 스크립트 + `statusLine` 설정 | — (터미널 표시) |
@@ -107,7 +107,7 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 ### fg-config
 
-`fg-config`도 **루프 밖**이다 — `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 **단일 진입점**(`fg-config` 무인자 = 전체 설정 표 · `fg-config <key>` = 한 키 · `fg-config <key> <값>` = 설정). 옛 키별 토글 스킬을 대체하며 "eco on"·"TDD 켜" 같은 옛 트리거도 흡수한다(ADR `260905-212045`).
+`fg-config`도 **루프 밖**이다 — `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 **단일 진입점**(`fg-config` 무인자 = 전체 설정 표+변경 메뉴 · `fg-config <key>` = 한 키 · `fg-config <key> <값>` = 설정). 옛 키별 토글 스킬을 대체하며 "eco on"·"TDD 켜" 같은 옛 트리거도 흡수한다(ADR `260905-212045`).
 
 **`simple` — 자동 봉인 모드(신설, ADR `260905-212045`).** `simple: true`면 fg-run이 UAT(검증) 후 회고를 무조건 skip(`retro: skipped (simple mode)`)하고 같은 턴에 봉인까지 잇는다. **검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침** — `verified: pending|failed`는 자동 봉인하지 않고 fg-run이 종전대로 멈춰 보고한다. fg-next·fg-loop는 이미 자동 봉인이라 영향 없다.
 
