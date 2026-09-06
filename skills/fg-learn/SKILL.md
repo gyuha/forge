@@ -1,6 +1,6 @@
 ---
 name: fg-learn
-description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, and the retro log (.forge/retro), then surface the next inquiry. Always conversational; respects the promotion discipline. Use to record what you learned after a task — 'forge learn', '회고하자', '이번 작업 정리해줘'.
+description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, evals (machine-checkable learnings promoted into the project's test suite), and the retro log (.forge/retro), then surface the next inquiry. Always conversational; respects the promotion discipline. Use to record what you learned after a task — 'forge learn', '회고하자', '이번 작업 정리해줘'.
 ---
 
 # fg-learn — ③ Retro (reflect into docs)
@@ -56,15 +56,18 @@ Work through the following with the human. Don't dump it all at once — draw it
 
 If nothing notable happened, things went per plan, and there's nothing learned, don't stretch it out. A retro is not a ritual. Record it in one line and move on.
 
-### 2. Classify learnings into three kinds
+### 2. Classify learnings into four kinds
 
-Split what you learned into three branches by nature and route each to its doc. Learnings that don't clear the promotion bar **all go to the retro log** — that's the reason the retro log exists.
+Split what you learned into four branches by nature and route each to its doc. Learnings that don't clear the promotion bar **all go to the retro log** — that's the reason the retro log exists.
 
 | Nature of the learning | Destination | Promotion bar |
 | --- | --- | --- |
 | New/changed domain term | `CONTEXT.md` | Only if it's a context-specific concept. General concepts and implementation details are excluded |
 | A decision that is hard to reverse, puzzling, and a real trade-off | `.forge/adr/NNNN-slug.md` | Only when **all three** conditions are met |
+| A mechanically checkable learning — a failure or trap that could recur (a structural trap, not a one-off mistake) | The project's own test suite as a persistent regression check (an "eval"); in a repo with no test suite, an equivalent executable landing spot (e.g. an fg-doctor check in forge's own repo) | Only when **all three** hold — mechanically checkable · recurrence plausible (structural, not one-off) · cheap to run (does not slow the suite/CI) |
 | Process/session learning | `.forge/retro/YYMMDD-HHMMSS-slug.md` | If it's worth recording |
+
+**Eval size split.** When the eval is small (one or two tests, immediately writable and runnable green), write it **inline during the retro** — the same inline-update precedent as CONTEXT.md/ADR entries. When it needs infrastructure or touches several files, do **not** bloat the retro — load it as a backlog plan via fg-ask instead. Newly authored fix-forward plans already carry this mechanically via PLAN-FORMAT.md's fix-forward eval rule (see [`../fg-run/PLAN-FORMAT.md`](../fg-run/PLAN-FORMAT.md)) — ADR `260906-171420`.
 
 ### 3. Respect the promotion discipline
 
@@ -95,6 +98,7 @@ Retro questions (conversational)
 Classify each learning (promote only past the bar, after human confirmation):
    • domain-specific term ──▶ CONTEXT.md
    • hard-to-reverse · puzzling · trade-off (all three) ──▶ new ADR
+   • mechanically checkable · recurrence plausible · cheap to run (all three) ──▶ eval in the project's test suite
    • everything else ──▶ no promotion
    ▼
 .forge/retro/ retro log   (every learning lands here, promoted or not)

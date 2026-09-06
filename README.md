@@ -9,7 +9,7 @@
 
 The full docs below are also published as a docs site — sidebar navigation, search, dark mode — at **[gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)** (Korean: [gyuha.com/forge/docs](https://gyuha.com/forge/docs/)).
 
-Planning happens as grill-with-docs-style conversational grilling. Execution uses the active host adapter—a Claude Code Dynamic Workflow or Codex collaboration/subagents—then the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log), and the done step seals the task so the same task never runs twice.
+Planning happens as grill-with-docs-style conversational grilling. Execution uses the active host adapter—a Claude Code Dynamic Workflow or Codex collaboration/subagents—then the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log · evals — machine-checkable learnings promoted into the project's own test suite), and the done step seals the task so the same task never runs twice.
 
 The workflow and `.forge/` state contract exist once. Claude Code and Codex use the same `skills/` and deterministic scripts; only interaction, delegation, hooks, and host UI are adapted. See [Using forge with Codex](./docs/en/codex.md) for the support matrix and known limits.
 
@@ -107,7 +107,7 @@ The four loop stages, then the seventeen utilities outside the loop:
 | --- | --- | --- |
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
 | `fg-run` | ② Execute | Runs the plan through the host adapter—Dynamic Workflow on Claude Code, collaboration/subagents on Codex (one plan runs immediately, several show a priority-sorted selection) |
-| `fg-learn` | ③ Retro | Promotes learnings to docs, surfaces the next inquiry |
+| `fg-learn` | ③ Retro | Promotes learnings to docs — `CONTEXT.md`, ADRs, the retro log, and **evals** (a machine-checkable learning becomes a persistent regression check in the project's own test suite; where there is no suite, an equivalent executable landing spot) ([ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) — and surfaces the next inquiry |
 | `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |

@@ -42,6 +42,7 @@ Documents are written in the user's language; the headings below are canonical E
 | --- | --- | --- |
 | New/changed domain term | `CONTEXT.md` | Only when it's a context-specific concept. Exclude general concepts and implementation details |
 | A decision that is hard to reverse, puzzling without context, and a real tradeoff | `.forge/adr/NNNN-slug.md` | Only when all three conditions are met |
+| A mechanically checkable learning — a failure or trap that could recur | The project's own test suite as a persistent regression check (an "eval"); with no test suite, an equivalent executable landing spot | Only when all three hold — mechanically checkable · recurrence plausible (structural, not one-off) · cheap to run |
 | Process/session learning | `.forge/retro/YYMMDD-HHMMSS-slug.md` | If it's worth recording (= here, the retro log) |
 
 For CONTEXT.md/ADR formats, see `../fg-ask/CONTEXT-FORMAT.md`/`../fg-ask/ADR-FORMAT.md`.

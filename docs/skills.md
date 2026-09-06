@@ -8,7 +8,7 @@
 | --- | --- | --- | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 | 사용자 요청 | `.forge/backlog/<slug>.md` + CONTEXT/ADR | `fg-run` |
 | `fg-run` | ② 실행 | 호스트 어댑터로 실행 — Claude Code는 Dynamic Workflow, Codex는 collaboration/subagent; 위임 불가 시 직렬 fallback | `.forge/backlog/`, `plan.md` | 결과 + `.forge/run.md` + `STATUS.md` (또는 `executed/`) | `fg-learn` |
-| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-done` (크게 어긋났으면 `fg-ask`로 재그릴링) |
+| `fg-learn` | ③ 회고 | 학습을 문서로 승급(기계 확인 가능한 학습은 eval — 영속 회귀 체크 — 로 승급), 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-done` (크게 어긋났으면 `fg-ask`로 재그릴링) |
 | `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기. 기계적 봉인은 결정론 스크립트(`forge-done.sh`/`.js`)가 처리(ADR-0030). `all` 모드는 실행된 작업 일괄 봉인(회고 skip·백로그 불가침) | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 | `fg-map` | 유틸리티(루프 밖) | 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드를 다시 탐색하지 않고 지도를 읽게 한다(context rot 감소) | 코드베이스 | `.forge/codebase/*.md` (7개 문서) | — (`fg-ask`가 소비) |
 | `fg-quick` | 경량 차선(루프 밖) | 사소한 작업용 — 가볍게 그릴링한 뒤 형식 산출물(ADR/plan/회고) 없이 바로 실행; 비-trivial로 드러나면 `fg-ask`로 bail | 사용자 요청 | `.forge/quick/LOG.md`에 항목 하나 | — (자체 완결) |
@@ -69,7 +69,7 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 ### fg-learn — ③ 회고
 
-실행 뒤 학습을 분류해 `CONTEXT.md`·ADR·회고 로그(`.forge/retro`)로 승급하고 다음 질의를 드러낸다. "forge learn", "회고하자", "이번 작업 정리해줘"에서 트리거된다. 항상 대화형이며 승급 절제를 지킨다.
+실행 뒤 학습을 분류해 `CONTEXT.md`·ADR·회고 로그(`.forge/retro`)로 승급하고 다음 질의를 드러낸다. 네 번째 목적지로, 기계 확인 가능한 학습은 **eval** — 프로젝트 자신의 테스트 스위트에 남는 영속 회귀 체크(스위트가 없는 리포는 상응하는 실행 착지점) — 로 승급한다 (ADR `260906-171420`). "forge learn", "회고하자", "이번 작업 정리해줘"에서 트리거된다. 항상 대화형이며 승급 절제를 지킨다.
 
 ### fg-done — ④ 완료
 

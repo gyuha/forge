@@ -9,7 +9,7 @@
 
 아래 문서들은 **[gyuha.com/forge/docs](https://gyuha.com/forge/docs/)** 에 문서 사이트로도 배포돼 있다 — 사이드바 네비·검색·다크모드 (English: [gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)).
 
-계획은 grill-with-docs식 대화형 그릴링으로 수행한다. 실행은 활성 호스트 어댑터—Claude Code Dynamic Workflow 또는 Codex collaboration/subagent—를 사용하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
+계획은 grill-with-docs식 대화형 그릴링으로 수행한다. 실행은 활성 호스트 어댑터—Claude Code Dynamic Workflow 또는 Codex collaboration/subagent—를 사용하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그 · eval — 기계 확인 가능한 학습을 프로젝트 자신의 테스트 스위트로 승급)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
 
 워크플로우와 `.forge/` 상태 계약은 한 벌뿐이다. Claude Code와 Codex가 같은 `skills/`와 결정론 스크립트를 사용하고, 질문·위임·훅·호스트 UI만 어댑터로 나뉜다. 지원 범위와 제한은 [Codex 사용 가이드](./docs/codex.md)에 정리돼 있다.
 
@@ -107,7 +107,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 |
 | `fg-run` | ② 실행 | 호스트 어댑터로 계획 실행—Claude Code는 Dynamic Workflow, Codex는 collaboration/subagent(plan 하나면 즉시, 여럿이면 우선순위 선택 목록) |
-| `fg-learn` | ③ 회고 | 학습을 문서로 승급, 다음 질의 도출 |
+| `fg-learn` | ③ 회고 | 학습을 문서로 승급 — `CONTEXT.md`·ADR·회고 로그, 그리고 **eval**(기계 확인 가능한 학습은 프로젝트 자신의 테스트 스위트에 남는 영속 회귀 체크로 승급; 스위트가 없는 리포는 상응하는 실행 착지점) ([ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) — 하고 다음 질의 도출 |
 | `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 일괄 봉인(회고 skip·백로그 불가침·검증 게이트 유지) |
 | `fg-map` | 유틸리티 | 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드 재탐색 대신 지도를 읽게 함 |
 | `fg-quick` | 유틸리티 | 사소한 작업용 경량 차선 — 가볍게 그릴링한 뒤 형식 산출물 없이 바로 실행 |
