@@ -1,6 +1,6 @@
 ---
 name: fg-help
-description: A read-only usage-help reporter for forge — `/forge:fg-help` prints an overview of every forge fg-* skill grouped by the loop's four stages plus the outside-the-loop utilities, and `/forge:fg-help <command>` prints a short usage detail (what it does · when to use · trigger · next step) for one skill. It reads each skill's own SKILL.md `description` as the single source (no copied usage text) and renders the output in the user's language at runtime, so it is an LLM-executed skill with no deterministic script twin (unlike fg-status/fg-doctor — the translation is why). Writes nothing, never auto-runs. On-demand utility outside the loop. Use in contexts like 'forge help', 'fg-help', '도움말', '사용법', 'how do I use forge', 'what commands are there', 'fg-help fg-run'.
+description: A read-only usage-help reporter for forge — `/forge:fg-help` prints an overview of every fg-* skill grouped by the loop's four stages plus the outside-the-loop utilities, and `/forge:fg-help <command>` a short detail (what it does · when to use · trigger · next step) for one skill. Each skill's own SKILL.md `description` is the single source, rendered in the user's language. Writes nothing, never auto-runs. Outside the loop. Use in contexts like 'forge help', 'fg-help', '도움말', '사용법', 'how do I use forge', 'what commands are there', 'fg-help fg-run'.
 ---
 
 # fg-help — forge usage help (read-only, outside the loop)
