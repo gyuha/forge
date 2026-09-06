@@ -1,6 +1,6 @@
 {
   "name": "forge",
-  "version": "0.8.4",
+  "version": "0.8.5",
   "description": "Agent-engineering workflow skills for Claude Code and Codex.",
   "author": {
     "name": "gyuha",
