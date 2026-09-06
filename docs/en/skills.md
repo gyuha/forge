@@ -111,7 +111,7 @@ The `all` argument (`fg-done all`, "seal all") is a **seal-only batch mode** —
 
 `fg-config` is also **outside the loop** — the **single entry point** for the six `.forge/config.json` keys (`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`) (`fg-config` with no argument = the full settings table + a change menu · `fg-config <key>` = one key · `fg-config <key> <value>` = set it). It replaces the former per-key toggle skills and absorbs their old triggers like "eco on" and "turn TDD on" (ADR `260905-212045`).
 
-**`simple` — auto-seal mode (new, ADR `260905-212045`).** With `simple: true`, fg-run unconditionally skips the retro after UAT (verification) (`retro: skipped (simple mode)`) and chains into the seal in the same turn. **The verification gate ([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md)) is inviolable** — `verified: pending|failed` is never auto-sealed; fg-run stops and reports as it always did. fg-next and fg-loop already auto-seal, so they are unaffected.
+**`simple` — auto-seal mode (new, ADR `260905-212045`).** With `simple: true`, fg-run unconditionally skips the retro after UAT (verification) and chains into the seal in the same turn (the verification gate stays inviolable). For the flow comparison table, the diagram, and when to turn it on or off, see the [config modes guide](config-modes.md).
 
 **`tdd` — the test-first default (ADR-0008, semantics unchanged).** `fg-ask` asks "TDD for this task?" per task with this setting as the default answer, and when the plan's tdd marker is on, `fg-run` runs test-first.
 

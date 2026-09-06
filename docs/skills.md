@@ -109,7 +109,7 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 `fg-config`도 **루프 밖**이다 — `.forge/config.json` 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 **단일 진입점**(`fg-config` 무인자 = 전체 설정 표+변경 메뉴 · `fg-config <key>` = 한 키 · `fg-config <key> <값>` = 설정). 옛 키별 토글 스킬을 대체하며 "eco on"·"TDD 켜" 같은 옛 트리거도 흡수한다(ADR `260905-212045`).
 
-**`simple` — 자동 봉인 모드(신설, ADR `260905-212045`).** `simple: true`면 fg-run이 UAT(검증) 후 회고를 무조건 skip(`retro: skipped (simple mode)`)하고 같은 턴에 봉인까지 잇는다. **검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침** — `verified: pending|failed`는 자동 봉인하지 않고 fg-run이 종전대로 멈춰 보고한다. fg-next·fg-loop는 이미 자동 봉인이라 영향 없다.
+**`simple` — 자동 봉인 모드(신설, ADR `260905-212045`).** `simple: true`면 fg-run이 UAT(검증) 후 회고를 무조건 skip하고 같은 턴에 봉인까지 잇는다(검증 게이트는 불가침). 흐름 비교표·다이어그램·켜고 끄는 기준은 [설정 모드 가이드](config-modes.md)를 보라.
 
 **`tdd` — test-first 기본(ADR-0008, 의미론 불변).** `fg-ask`가 작업마다 이 설정을 기본 답으로 "이 작업 TDD로?"를 묻고, plan의 tdd marker가 켜져 있으면 `fg-run`이 test-first로 실행한다.
 

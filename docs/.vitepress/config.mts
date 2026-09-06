@@ -30,6 +30,7 @@ const sidebarKo = [
       { text: 'git 워크플로우', link: '/git-workflow' },
       { text: '팀 워크플로우', link: '/team-workflow' },
       { text: 'fg-agenda 사용 가이드', link: '/agenda' },
+      { text: '설정 모드 (simple)', link: '/config-modes' },
     ],
   },
   {
@@ -57,6 +58,7 @@ const sidebarEn = [
       { text: 'Git workflow', link: '/en/git-workflow' },
       { text: 'Team workflow', link: '/en/team-workflow' },
       { text: 'fg-agenda guide', link: '/en/agenda' },
+      { text: 'Config modes (simple)', link: '/en/config-modes' },
     ],
   },
   {
