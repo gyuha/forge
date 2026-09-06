@@ -121,7 +121,8 @@ if (isFile(planPath)) {
   if (isFile(path.join(root, 'run.md'))) {
     const st = path.join(root, 'STATUS.md');
     let v = '';
-    if (isFile(st)) v = (read(st).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '';
+    // lowercased — see the .sh twin
+    if (isFile(st)) v = ((read(st).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '').toLowerCase();
     switch (v) {
       case 'yes': flag = '✓'; stage = 'learn'; break;
       case 'failed': flag = '✗'; stage = 'run'; break;
@@ -145,13 +146,22 @@ if (isFile(planPath)) {
 // --- Queue counts ------------------------------------------------------------
 const execDir = path.join(root, 'executed');
 const backlogDir = path.join(root, 'backlog');
-const awaitN = isDir(execDir) ? fs.readdirSync(execDir).filter((f) => isDir(path.join(execDir, f))).length : 0;
+// `awaiting retro` counts only parks that CAN be retro'd — a `verified: failed`
+// park is blocked from both retro and seal (fg-run recovery) and is tallied
+// separately, the same split the SessionStart hook reports. See the .sh twin.
+let awaitN = 0, failedN = 0;
+if (isDir(execDir)) {
+  for (const d of fs.readdirSync(execDir).filter((f) => isDir(path.join(execDir, f)))) {
+    const pv = ((read(path.join(execDir, d, 'STATUS.md')).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '').toLowerCase();
+    if (pv === 'failed') failedN++; else awaitN++;
+  }
+}
 const queuedN = isDir(backlogDir) ? fs.readdirSync(backlogDir).filter((f) => f.endsWith('.md')).length : 0;
 
 // Mode indicators render only alongside real activity (an active task or a
 // non-empty queue) — never on a fully idle repo or the loop-only fallback, so
 // "nothing when idle" holds (ADR-0017). tdd already implies an active plan.
-const modesAllowed = haveForge || queuedN > 0 || awaitN > 0;
+const modesAllowed = haveForge || queuedN > 0 || awaitN > 0 || failedN > 0;
 const tddInd = modesAllowed && tdd ? '🧪' : '';
 const ecoInd = modesAllowed && eco ? '♻️' : '';
 
@@ -177,7 +187,8 @@ if (DENSITY === 'compact') {
   }
   const queuedBit = queuedN > 0 ? `📋 ${queuedN} queued` : '';
   const awaitBit = awaitN > 0 ? `📝 ${awaitN} awaiting retro` : '';
-  const line2 = grp(queuedBit, awaitBit, ecoInd, tddInd);
+  const failedBit = failedN > 0 ? `✗ ${failedN} failed` : '';
+  const line2 = grp(queuedBit, awaitBit, failedBit, ecoInd, tddInd);
   if (line1) lines.push(line1);
   if (line2) lines.push(line2);
 }

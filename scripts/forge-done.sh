@@ -78,6 +78,18 @@ root="$(bash "$SCRIPT_DIR/resolve-forge-root.sh" 2>/dev/null)"
 [ -n "$root" ] || root=".forge"
 [ -d "$root" ] || { echo "EMPTY no-forge-state ($root missing)"; exit 2; }
 
+# The resolver returns an ABSOLUTE root inside a git repo (so forge works from a
+# subdirectory). Paths recorded into STATUS must not carry that machine prefix:
+# on a non-default branch the forge root is git-tracked whole (ADR-0011), so an
+# absolute path would be committed and mean nothing to a teammate or CI.
+repo_top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+relpath() { # absolute path under the repo -> repo-relative; anything else unchanged
+  case "${repo_top:+x}" in
+    x) case "$1" in "$repo_top"/*) printf '%s' "${1#"$repo_top"/}"; return ;; esac ;;
+  esac
+  printf '%s' "$1"
+}
+
 # --- field extractors (accept `field:` and `- field:`; strip CR) --------------
 field() { [ -f "$1" ] || return 0; sed -n "s/^[[:space:]]*-\{0,1\}[[:space:]]*$2:[[:space:]]*\([^ ]*\).*/\1/p" "$1" | head -1 | tr -d '\r'; }
 fullfield() { [ -f "$1" ] || return 0; sed -n "s/^[[:space:]]*-\{0,1\}[[:space:]]*$2:[[:space:]]*//p" "$1" | head -1 | tr -d '\r'; }
@@ -145,22 +157,54 @@ else
   echo "EMPTY slug-not-found slug=$slug"; exit 2
 fi
 
+# Normalize a STATUS field token before deciding on it: lowercase, and keep only
+# the leading [a-z/] run. `Yes`, `N/A`, `yes(ok)` (no space before the reason) all
+# then read as the canonical `yes`/`n/a`. Without this the surfaces disagree —
+# `retro: Skipped` displayed as "retro done" while forge-done refused to seal on it.
+norm() { printf '%s' "$1" | tr 'A-Z' 'a-z' | sed 's/^\([a-z/]*\).*$/\1/'; }
+
 # --- GATE 1: verification (before any mutation) ------------------------------
-vtok="$(field "$S" verified)"
+vtok="$(norm "$(field "$S" verified)")"
 case "$vtok" in
   yes|skipped|n/a) : ;;
   *) echo "GATE_VERIFY not-sealable verified=[$(fullfield "$S" verified)] slug=$slug"; exit 3 ;;
 esac
+
+# --- Retro file lookup (EXACT, not a suffix glob) -----------------------------
+# `*-<slug>.md` matches any retro whose slug merely ENDS WITH `-<slug>`, so a task
+# slugged `promotion` was satisfied by another task's `…-eval-promotion.md` and
+# sealed with no retro of its own (fail-open on an irreversible action). Require
+# the whole prefix to be a retro timestamp: `YYMMDD-HHMMSS[a-z]` or the
+# grandfathered `YYYY-MM-DD` (RETRO-FORMAT.md, ADR `260719-161701`).
+# The path is emitted RELATIVE to the repo when $root is (see relpath below), so
+# STATUS never records an absolute machine path.
+find_retro() { # $1=slug -> path of the single matching retro, or empty
+  slug_fr="$1"; hit_fr=""
+  for f_fr in "$root"/retro/*.md; do
+    [ -e "$f_fr" ] || continue
+    base_fr="${f_fr##*/}"; name_fr="${base_fr%.md}"
+    pfx_fr="${name_fr%-"$slug_fr"}"
+    [ "$pfx_fr" != "$name_fr" ] || continue      # did not end with -<slug>
+    case "$pfx_fr" in
+      [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+      [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]) ;;
+      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;;
+      *) continue ;;
+    esac
+    [ -z "$hit_fr" ] && hit_fr="$f_fr"
+  done
+  [ -n "$hit_fr" ] && relpath "$hit_fr"
+}
 
 # --- GATE 2: retro done-or-skipped (before any mutation) ---------------------
 retro_out=""
 if [ "$skip_given" -eq 1 ]; then
   retro_out="skipped ($skip_retro)"
 else
-  rf="$(ls "$root"/retro/*-"$slug".md 2>/dev/null | head -1)"
+  rf="$(find_retro "$slug")"
   if [ -n "$rf" ]; then
     retro_out="$rf"
-  elif printf '%s' "$(fullfield "$S" retro)" | grep -q '^skipped'; then
+  elif [ "$(norm "$(field "$S" retro)")" = "skipped" ]; then
     retro_out="$(fullfield "$S" retro)"
   else
     echo "GATE_RETRO retro-owed slug=$slug"; exit 4
@@ -169,7 +213,7 @@ fi
 
 # --- SEAL (mutation only past this point) ------------------------------------
 reviewed=""
-[ -f "$V" ] && reviewed="$V"
+[ -f "$V" ] && reviewed="$(relpath "$V")"   # repo-relative, never a machine path
 # 1) close out STATUS in place first (so an interruption leaves it recoverable)
 close_out_status "$S" "$slug" "$retro_out" "$reviewed"
 # 2) archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a

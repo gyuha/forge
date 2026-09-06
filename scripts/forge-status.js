@@ -50,22 +50,29 @@ function taskof(file) {
 function looptag(file) {
   return /generated-by:[\t ]*fg-loop/.test(read(file)) ? ' (loop)' : '';
 }
+// Normalize a STATUS field token before deciding on it — see the .sh twin.
+const norm = (v) => (String(v || '').toLowerCase().match(/^[a-z/]*/) || [''])[0];
 function vsym(v) {
-  switch (v) {
+  switch (norm(v)) {
     case 'yes': return 'O';
     case 'skipped': case 'n/a': return '~';
     case 'failed': return 'x';
     default: return '-';
   }
 }
+// EXACT match, not a `*-<slug>.md` suffix glob — see the .sh twin's comment.
+const RETRO_PREFIX = /^(\d{6}-\d{6}[a-z]?|\d{4}-\d{2}-\d{2})$/;
 function retroFileExists(slug) {
   const dir = path.join(root, 'retro');
   if (!isDir(dir)) return false;
-  return fs.readdirSync(dir).some((f) => f.endsWith(`-${slug}.md`));
+  const suffix = `-${slug}.md`;
+  return fs.readdirSync(dir)
+    .some((f) => f.endsWith(suffix) && RETRO_PREFIX.test(f.slice(0, -suffix.length)));
 }
 function rsym(r, slug) {
-  if (r === 'skipped') return 'X';
-  if (r === '' || r === 'pending') return retroFileExists(slug) ? 'O' : '-';
+  const n = norm(r);
+  if (n === 'skipped') return 'X';
+  if (n === '' || n === 'pending') return retroFileExists(slug) ? 'O' : '-';
   return 'O'; // a retro path
 }
 
@@ -87,7 +94,11 @@ if (isFile(planPath)) {
   const st = path.join(root, 'STATUS.md');
   if (isFile(path.join(root, 'run.md'))) {
     let date = field(st, 'executed') || '-';
-    addRow(no, date, `${slug}${tag}`, 'learn', vsym(field(st, 'verified')), rsym(field(st, 'retro'), slug));
+    const v = field(st, 'verified');
+    // Stage is gated on the verification gate, not on run.md's existence — see
+    // the bash twin's comment (fg-run still owns a pending/failed UAT).
+    const stage = ['yes', 'skipped', 'n/a'].includes(norm(v)) ? 'learn' : 'run';
+    addRow(no, date, `${slug}${tag}`, stage, vsym(v), rsym(field(st, 'retro'), slug));
   } else {
     addRow(no, '-', `${slug}${tag}`, 'run', '-', '-');
   }
@@ -121,7 +132,11 @@ for (const d of subDirs(path.join(root, 'executed'))) {
   let slug = slugof(p) || d;
   let no = taskof(p); no = no ? `#${no}` : '-';
   let date = field(st, 'executed') || '-';
-  addRow(no, date, `${slug}${looptag(p)}`, 'learn', vsym(field(st, 'verified')), rsym(field(st, 'retro'), slug));
+  const v = field(st, 'verified');
+  // Only `failed` goes back to fg-run (unpark); a parked `pending` routes to
+  // fg-learn — see the bash twin's comment.
+  const stage = norm(v) === 'failed' ? 'run' : 'learn';
+  addRow(no, date, `${slug}${looptag(p)}`, stage, vsym(v), rsym(field(st, 'retro'), slug));
 }
 
 // Done (most recent DONE_ROWS by directory name, which is date-prefixed)
@@ -137,8 +152,12 @@ if (isDir(doneRoot)) {
     const st = path.join(dir, 'STATUS.md');
     // Date from STATUS (format-agnostic YYYY-MM-DD); fall back to the legacy dirname prefix.
     // The dir name is a timestamp prefix (YYMMDD-HHMMSS or old YYYY-MM-DD), NOT always a date.
-    const date = field(st, 'completed') || field(st, 'executed') || name.slice(0, 10);
-    let slug = slugof(p) || field(st, 'slug') || name.slice(11);
+    // Fallback split by FORM, not fixed offsets — see the .sh twin.
+    const m = name.match(/^(\d{6}-\d{6}[a-z]?|\d{4}-\d{2}-\d{2})-(.+)$/);
+    const idPfx = m ? m[1] : name;
+    const nameSlug = m ? m[2] : name;
+    const date = field(st, 'completed') || field(st, 'executed') || idPfx;
+    let slug = slugof(p) || field(st, 'slug') || nameSlug;
     let no = taskof(p); no = no ? `#${no}` : '-';
     addRow(no, date, `${slug}${looptag(p)}`, 'done', vsym(field(st, 'verified')), rsym(field(st, 'retro'), slug));
   }

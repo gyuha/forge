@@ -48,7 +48,7 @@ full density — up to two lines:
           (the loop group appears only under a goal loop; the flag part only when run.md exists)
   Line 1 (ask.md, no active slot): [⚒ <working-slug> · ● ask → ○ run → ○ learn → ○ done]
   Line 1 (loop only, no slot/ask): [🔁 rN/cap]
-  Line 2 (activity present): [📋 N queued · 📝 M awaiting retro[ · ♻️][ · 🧪]]
+  Line 2 (activity present): [📋 N queued · 📝 M awaiting retro[ · ✗ K failed][ · ♻️][ · 🧪]]
           (each part omitted when absent; the whole group omitted when idle)
 
 compact density — a single line, forge + queue-count + modes folded into one group:
@@ -68,7 +68,7 @@ compact density — a single line, forge + queue-count + modes folded into one g
   The exact colors are an implementation detail tuned live in a real terminal, not a fixture concern — tests strip ANSI codes and assert on the visible text/symbols.
 - **#N task number** — read from the active plan's `<!-- task: N -->` marker (marker-anchored parsing, same style as the `forge-slug` marker) and shown just before the slug. Omitted when the plan has no marker (older plans — graceful), and never shown on the `ask.md`-only line 1 (no plan exists yet at the ask stage).
 - **flag** (present whenever `run.md` exists, regardless of whether `run` or `learn` is the current stage) — `✓` verified yes · `⏳` verification pending · `✗` verified failed · (omitted) for `skipped`/`n/a`. It sits at the **end of the forge group** (`[⚒ #N slug · <pipeline> · <flag>]`), joined by the SEP. The `ask.md`-only forge group never carries a flag.
-- **🧪 ♻️ mode indicators** — `🧪` lights when the active plan carries `<!-- tdd: on -->`; `♻️` lights when the **top-level** `.forge/config.json` has `"eco": true` (the branch-independent global exception — the same key fg-config writes; this script only reads it). Only the lit ones show. Placement is density-dependent (they replaced the earlier `Ⓣ`/`Ⓔ` circled-letters, ADR-0029): in **full** density they sit in the **line-2 queue group** (`[📋 N queued · 📝 M awaiting retro · ♻️ · 🧪]`); in **compact** they fold into the single forge group. They render **only alongside real activity** (an active task or a non-empty queue) — never on the `🔁`-only fallback or a fully idle repo, so "nothing when idle" holds. `🧪` requires an active plan, so it can never appear at the `ask.md` stage; `♻️` can (with activity).
+- **🧪 ♻️ mode indicators** — `🧪` lights when the active plan carries `<!-- tdd: on -->`; `♻️` lights when the **top-level** `.forge/config.json` has `"eco": true` (the branch-independent global exception — the same key fg-config writes; this script only reads it). Only the lit ones show. Placement is density-dependent (they replaced the earlier `Ⓣ`/`Ⓔ` circled-letters, ADR-0029): in **full** density they sit in the **line-2 queue group** (`[📋 N queued · 📝 M awaiting retro · ✗ K failed · ♻️ · 🧪]`); in **compact** they fold into the single forge group. They render **only alongside real activity** (an active task or a non-empty queue) — never on the `🔁`-only fallback or a fully idle repo, so "nothing when idle" holds. `🧪` requires an active plan, so it can never appear at the `ask.md` stage; `♻️` can (with activity).
 - **🔁 rN/cap** — present whenever `loop.md` exists (an fg-loop goal drive is in flight), showing its replan round / cap, rendered as a **leading `[🔁 rN/cap]` group** before the forge group (both densities); shown as its own group alone when there is no active slot and no `ask.md`.
 - Every rendered unit is a bracketed group; the `⚒ ` prefix lives inside the forge group's first segment (both lines/densities carry groups, not a bare prefix).
 - It resolves the branch-isolated forge root (ADR-0011): `.forge/` on the default branch, `.forge/branch/<branch>/` otherwise.
@@ -84,7 +84,7 @@ full density (4 lines):
   Line 1: [<model> | <effort>] [<dir> | ⎇ <branch [↑N ↓N] [+s !m ?u]>] [⏱ (D) | $X.XX | +A −R]
   Line 2: [<emoji> Context[/<size>] <bar> N% | 5h <bar> N% (~H) | 7d <bar> N% (~H)]
   Line 3: [⚒ [#N ]<slug> | <pipeline>[ | <flag>]]                    (delegated to the fragment)
-  Line 4: [📋 N queued | 📝 M awaiting retro[ | ♻️][ | 🧪]]           (delegated to the fragment)
+  Line 4: [📋 N queued | 📝 M awaiting retro[ | ✗ K failed][ | ♻️][ | 🧪]]  (delegated to the fragment)
 
 compact density (2 lines): system groups + the usage-bars group on ONE line, then the
 fragment's single compact group; the session group (⏱/$/±lines) is dropped.

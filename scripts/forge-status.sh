@@ -50,11 +50,34 @@ slugof() { sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "
 taskof() { sed -n 's/.*task:[[:space:]]*\([0-9]\{1,\}\).*/\1/p' "$1" 2>/dev/null | head -1; }
 looptag() { grep -q 'generated-by:[[:space:]]*fg-loop' "$1" 2>/dev/null && printf ' (loop)'; }
 
-vsym() { case "$1" in yes) echo O;; skipped|n/a) echo '~';; failed) echo x;; *) echo '-';; esac; }
+# Normalize a STATUS field token before deciding on it: lowercase, and keep only
+# the leading [a-z/] run. `Yes`, `N/A`, `yes(ok)` (no space before the reason) all
+# then read as the canonical `yes`/`n/a`. Without this the surfaces disagree —
+# `retro: Skipped` displayed as "retro done" while forge-done refused to seal on it.
+norm() { printf '%s' "$1" | tr 'A-Z' 'a-z' | sed 's/^\([a-z/]*\).*$/\1/'; }
+vsym() { case "$(norm "$1")" in yes) echo O;; skipped|n/a) echo '~';; failed) echo x;; *) echo '-';; esac; }
+retro_exists() { # $1=slug — EXACT match, not a `*-<slug>.md` suffix glob.
+  # The glob also matched any retro whose slug merely ENDS WITH `-<slug>`, so a
+  # task slugged `promotion` showed Retro=O on another task's `…-eval-promotion.md`
+  # (and forge-done sealed on it). Require the prefix to be a retro timestamp:
+  # `YYMMDD-HHMMSS[a-z]` or grandfathered `YYYY-MM-DD` (RETRO-FORMAT.md).
+  for f_re in "$root"/retro/*.md; do
+    [ -e "$f_re" ] || continue
+    n_re="${f_re##*/}"; n_re="${n_re%.md}"
+    p_re="${n_re%-"$1"}"
+    [ "$p_re" != "$n_re" ] || continue
+    case "$p_re" in
+      [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]) return 0 ;;
+      [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]) return 0 ;;
+      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) return 0 ;;
+    esac
+  done
+  return 1
+}
 rsym() { # $1=retro value  $2=slug
-  case "$1" in
+  case "$(norm "$1")" in
     skipped) echo X ;;
-    ""|pending) ls "$root"/retro/*-"$2".md >/dev/null 2>&1 && echo O || echo '-' ;;
+    ""|pending) retro_exists "$2" && echo O || echo '-' ;;
     *) echo O ;;   # a retro path
   esac
 }
@@ -82,8 +105,13 @@ if [ -f "$root/plan.md" ]; then
   st="$root/STATUS.md"
   date="$(field "$st" executed)"; [ -z "$date" ] && date="-"
   if [ -f "$root/run.md" ]; then
-    stage="learn"
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
+    # Stage is gated on the verification gate, not on run.md's existence: while
+    # `verified:` is not sealable, fg-run still owns the task (verification-only
+    # resume for pending, fix-and-re-run for failed), so `learn` would contradict
+    # the next-step machine (SKILL.md step 1) on the same screen. Same gating the
+    # statusline already applies (ADR-0017, 3rd amendment).
+    case "$(norm "$v")" in yes|skipped|n/a) stage="learn" ;; *) stage="run" ;; esac
     add_row "$no" "$date" "${slug}${tag}" "$stage" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   else
     add_row "$no" "-" "${slug}${tag}" "run" "-" "-"
@@ -120,7 +148,11 @@ if [ -d "$root/executed" ]; then
     no="$(taskof "$p")"; [ -z "$no" ] && no="-" || no="#$no"
     date="$(field "$st" executed)"; [ -z "$date" ] && date="-"
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
-    add_row "$no" "$date" "${slug}$(looptag "$p")" "learn" "$(vsym "$v")" "$(rsym "$r" "$slug")"
+    # Only `failed` leaves fg-run's hands here: fg-run unparks it into the active
+    # slot. A parked `pending` routes to fg-learn (its gate confirms the UAT
+    # first), so it stays `learn` — the discriminator is who owns the next step.
+    case "$(norm "$v")" in failed) stage="run" ;; *) stage="learn" ;; esac
+    add_row "$no" "$date" "${slug}$(looptag "$p")" "$stage" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   done
 fi
 
@@ -134,8 +166,21 @@ if [ -d "$root/done" ]; then
     p="$dir/plan.md"; st="$dir/STATUS.md"
     # Date from STATUS (format-agnostic YYYY-MM-DD); fall back to the legacy dirname prefix.
     # The dir name is a timestamp prefix (YYMMDD-HHMMSS or old YYYY-MM-DD), NOT always a date.
-    date="$(field "$st" completed)"; [ -z "$date" ] && date="$(field "$st" executed)"; [ -z "$date" ] && date="${name:0:10}"
-    slug="$(slugof "$p")"; [ -z "$slug" ] && slug="$(field "$st" slug)"; [ -z "$slug" ] && slug="${name:11}"
+    # Fallback split by FORM, not fixed offsets: the id prefix is `YYMMDD-HHMMSS`
+    # (13/14 chars, optional serial letter) or the grandfathered `YYYY-MM-DD` (10).
+    # The old `${name:0:10}` / `${name:11}` assumed the legacy width for every dir,
+    # so a new-format `260615-143022-new-task` rendered Date `260615-143` and Task
+    # `22-new-task`. Only reachable when the plan has no forge-slug AND STATUS has
+    # no slug/completed/executed (hand-made or damaged dir) — but wrong by design.
+    id_pfx=""; name_slug=""
+    case "$name" in
+      [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9][a-z]-*) id_pfx="${name%%"${name#??????-???????}"}"; name_slug="${name#??????-???????-}" ;;
+      [0-9][0-9][0-9][0-9][0-9][0-9]-[0-9][0-9][0-9][0-9][0-9][0-9]-*)      id_pfx="${name%%"${name#??????-??????}"}";  name_slug="${name#??????-??????-}" ;;
+      [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*)                          id_pfx="${name%%"${name#??????????}"}";     name_slug="${name#??????????-}" ;;
+      *) id_pfx="$name"; name_slug="$name" ;;
+    esac
+    date="$(field "$st" completed)"; [ -z "$date" ] && date="$(field "$st" executed)"; [ -z "$date" ] && date="$id_pfx"
+    slug="$(slugof "$p")"; [ -z "$slug" ] && slug="$(field "$st" slug)"; [ -z "$slug" ] && slug="$name_slug"
     no="$(taskof "$p")"; [ -z "$no" ] && no="-" || no="#$no"
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
     add_row "$no" "$date" "${slug}$(looptag "$p")" "done" "$(vsym "$v")" "$(rsym "$r" "$slug")"

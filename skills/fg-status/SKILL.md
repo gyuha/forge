@@ -79,8 +79,13 @@ No. | Date | Task | Stage | Verify | Retro
   | --- | --- |
   | `backlog/` (planned, unexecuted) | `ask` |
   | active slot, `plan.md` only (no run.md) | `run` |
-  | active slot `run.md` present (retro pending) / `executed/` | `learn` |
+  | active slot `run.md` present, `verified:` **not** sealable (`pending`/missing/`failed`) | `run` |
+  | active slot `run.md` present, `verified:` sealable (`yes`/`skipped`/`n/a`) | `learn` |
+  | `executed/`, `verified: failed` | `run` |
+  | `executed/`, anything else | `learn` |
   | `done/` (sealed) | `done` |
+
+  **Once a plan has run, the discriminator is who owns the next step — not which files exist.** (Before that it is simply where the work sits: an unexecuted `backlog/` plan reads `ask` even though fg-run is what promotes it.) A run whose UAT is owed or broken is still fg-run's — its verification-only resume (`pending`) or fix-and-re-run (`failed`) — so rendering it `learn` would contradict the next-step machine below on the same screen (the table would read `learn` while the handoff says `/forge:fg-run`). A parked `pending` is the one case that inverts: fg-run cannot reach it, so it routes to fg-learn (step 3) and stays `learn`. The statusline applies this same gating (ADR-0017, 3rd amendment) — the table now matches it.
 
 - **Verify (O/~/—/✗)** — from the STATUS `verified:` field: `yes` → `O`; `skipped`/`n/a` → `~` (sealable waiver / not-applicable, not a positive confirmation); `pending` / missing / not yet reached → `—`; `failed` → `✗` (UAT ran, result broken — blocks seal). A `—` on a task that already has a `run.md` means the UAT is still owed; a `✗` means it needs fixing or re-grilling (see the next-step machine below). On a sealed `done/` task a `—` means **legacy** (sealed before ADR-0009, no `verified:` field) — not an in-flight pending; render it `—` (or note "legacy") and don't treat it as a gate violation.
 - **Retro (O/X/—)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; **a matching `.forge/retro/*-<slug>.md` file exists while STATUS still reads `pending` (normal pre-seal state — fg-done fills the field at seal; see the next-step machine) → `O`**; `skipped` → `X`; anything else (pending with no retro file / not yet reached) → `—`.

@@ -154,6 +154,108 @@ else
   echo "FAIL - backlog order: got [$order_sh] expected [$exp_order]"; fails=$((fails+1))
 fi
 
+# --- Fixture H: Stage is gated on `verified:`, not on run.md's existence -----
+# Regression: the table printed `learn` for an active run whose UAT was still
+# owed (`verified: pending`), while the next-step machine sent the user to
+# fg-run on the same screen — the table contradicted the handoff.
+H="$(mktemp -d)"; mkdir -p "$H/.forge"
+printf '<!-- forge-slug: uat-owed --> <!-- task: 33 -->\n# T\n' > "$H/.forge/plan.md"
+: > "$H/.forge/run.md"
+printf 'slug: uat-owed\nstatus: executed\nexecuted: 2026-09-06\nverified: pending\nretro: pending\n' > "$H/.forge/STATUS.md"
+assert_parity "verified pending: stage gated sh==js" "$H" "--table" "uat-owed"
+stage_h="$(cd "$H" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}')"
+if [ "$stage_h" = "run" ]; then
+  echo "ok   - active run.md + verified pending → stage run (not learn)"
+else
+  echo "FAIL - verified pending stage: got [$stage_h] expected [run]"; fails=$((fails+1))
+fi
+printf 'slug: uat-owed\nstatus: executed\nexecuted: 2026-09-06\nverified: failed (goal missed)\nretro: pending\n' > "$H/.forge/STATUS.md"
+assert_parity "verified failed: stage gated sh==js" "$H" "--table" "uat-owed"
+stage_hf="$(cd "$H" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}')"
+if [ "$stage_hf" = "run" ]; then
+  echo "ok   - active run.md + verified failed → stage run"
+else
+  echo "FAIL - verified failed stage: got [$stage_hf] expected [run]"; fails=$((fails+1))
+fi
+
+# --- Fixture I: parked tasks — only `failed` returns to fg-run ---------------
+# The discriminator is who owns the next step: fg-run unparks a `failed` task,
+# while a parked `pending` routes to fg-learn (its gate confirms the UAT), so it
+# stays `learn` (fg-status SKILL.md, next-step machine step 3).
+I="$(mktemp -d)"; mkdir -p "$I/.forge/executed/failed-task" "$I/.forge/executed/pending-task"
+printf '<!-- forge-slug: failed-task --> <!-- task: 1 -->\n# F\n' > "$I/.forge/executed/failed-task/plan.md"
+printf 'slug: failed-task\nstatus: executed\nexecuted: 2026-09-06\nverified: failed (broken)\nretro: pending\n' > "$I/.forge/executed/failed-task/STATUS.md"
+printf '<!-- forge-slug: pending-task --> <!-- task: 2 -->\n# P\n' > "$I/.forge/executed/pending-task/plan.md"
+printf 'slug: pending-task\nstatus: executed\nexecuted: 2026-09-06\nverified: pending\nretro: pending\n' > "$I/.forge/executed/pending-task/STATUS.md"
+assert_parity "parked stages: sh==js" "$I" "--table" "failed-task"
+stages_i="$(cd "$I" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}' | tr '\n' ',')"
+if [ "$stages_i" = "run,learn," ]; then
+  echo "ok   - parked failed → run · parked pending → learn"
+else
+  echo "FAIL - parked stages: got [$stages_i] expected [run,learn,]"; fails=$((fails+1))
+fi
+
+# --- Fixture J: retro lookup is EXACT, not a `*-<slug>.md` suffix glob --------
+# Regression: slug `promotion` showed Retro=O on another task's
+# `…-eval-promotion.md` (and forge-done sealed on it).
+J="$(mktemp -d)"; mkdir -p "$J/.forge/retro"
+: > "$J/.forge/retro/260906-171420-eval-promotion.md"
+printf '<!-- forge-slug: promotion --> <!-- task: 1 -->\n# T\n' > "$J/.forge/plan.md"
+: > "$J/.forge/run.md"
+printf 'slug: promotion\nstatus: executed\nexecuted: 2026-09-06\nverified: yes (t)\nretro: pending\n' > "$J/.forge/STATUS.md"
+assert_parity "retro exact match: sh==js" "$J" "--table" "promotion"
+r_j="$(cd "$J" && bash "$SH" --table 2>/dev/null | awk 'NR==2{print $6}')"
+if [ "$r_j" = "-" ]; then
+  echo "ok   - another task's retro does NOT count as this task's (Retro —)"
+else
+  echo "FAIL - retro suffix collision: got [$r_j] expected [-]"; fails=$((fails+1))
+fi
+: > "$J/.forge/retro/260906-180000-promotion.md"
+r_j2="$(cd "$J" && bash "$SH" --table 2>/dev/null | awk 'NR==2{print $6}')"
+if [ "$r_j2" = "O" ]; then
+  echo "ok   - the task's own retro does count (Retro O)"
+else
+  echo "FAIL - own retro not detected: got [$r_j2] expected [O]"; fails=$((fails+1))
+fi
+
+# --- Fixture K: STATUS values decide case/space-insensitively -----------------
+# `Yes`, `N/A`, `yes(ok)` must read as sealable, and `retro: Skipped` must render
+# X — it used to render O (retro done) while forge-done refused to seal on it.
+K="$(mktemp -d)"; mkdir -p "$K/.forge"
+printf '<!-- forge-slug: t --> <!-- task: 1 -->\n# T\n' > "$K/.forge/plan.md"
+: > "$K/.forge/run.md"
+for pair in "Yes (ok)|pending|learn|O|-" "N/A (docs)|pending|learn|~|-" "yes(ok)|pending|learn|O|-" "yes (ok)|Skipped (why)|learn|O|X"; do
+  IFS='|' read -r vv rr xs xv xr <<EOF
+$pair
+EOF
+  printf 'slug: t\nstatus: executed\nexecuted: 2026-09-06\nverified: %s\nretro: %s\n' "$vv" "$rr" > "$K/.forge/STATUS.md"
+  assert_parity "STATUS token [$vv / $rr]: sh==js" "$K" "--table" "t"
+  got="$(cd "$K" && bash "$SH" --table 2>/dev/null | awk 'NR==2{print $4" "$5" "$6}')"
+  if [ "$got" = "$xs $xv $xr" ]; then
+    echo "ok   - [$vv / $rr] → $got"
+  else
+    echo "FAIL - [$vv / $rr]: got [$got] expected [$xs $xv $xr]"; fails=$((fails+1))
+  fi
+done
+
+# --- Fixture L: done/ dir name split by FORM, not fixed offsets ---------------
+# `${name:0:10}` / `${name:11}` assumed the legacy YYYY-MM-DD width, so
+# `260615-143022-new-task` rendered Date `260615-143` / Task `22-new-task`.
+L="$(mktemp -d)"
+for d in 260615-143022-new-task 260615-143022a-serial-task 2026-06-10-legacy-task; do
+  mkdir -p "$L/.forge/done/$d"
+  printf '# no markers\n' > "$L/.forge/done/$d/plan.md"
+  printf 'status: done\n' > "$L/.forge/done/$d/STATUS.md"
+done
+assert_parity "done dir name split: sh==js" "$L" "--table" "new-task"
+got_l="$(cd "$L" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $2"/"$3}' | LC_ALL=C sort | tr '\n' ' ')"
+exp_l="2026-06-10/legacy-task 260615-143022/new-task 260615-143022a/serial-task "
+if [ "$got_l" = "$exp_l" ]; then
+  echo "ok   - done dir Date/Task split across all three id forms"
+else
+  echo "FAIL - done dir split: got [$got_l] expected [$exp_l]"; fails=$((fails+1))
+fi
+
 echo ""
 if [ "$fails" -eq 0 ]; then echo "PARITY OK (all cases identical)"; exit 0
 else echo "PARITY FAILED ($fails case(s))"; exit 1; fi

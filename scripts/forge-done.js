@@ -51,6 +51,21 @@ const isFile = (p) => { try { return fs.statSync(p).isFile(); } catch (_) { retu
 const read = (p) => { try { return fs.readFileSync(p, 'utf8'); } catch (_) { return ''; } };
 if (!isDir(root)) die(`EMPTY no-forge-state (${root} missing)`, 2);
 
+// The resolver returns an ABSOLUTE root inside a git repo (so forge works from a
+// subdirectory). Paths recorded into STATUS must not carry that machine prefix:
+// on a non-default branch the forge root is git-tracked whole (ADR-0011), so an
+// absolute path would be committed and mean nothing to a teammate or CI.
+let repoTop = '';
+try {
+  repoTop = require('child_process')
+    .execSync('git rev-parse --show-toplevel', { stdio: ['ignore', 'pipe', 'ignore'] })
+    .toString().trim();
+} catch (_) { repoTop = ''; }
+function relpath(p) {
+  if (repoTop && p.startsWith(repoTop + path.sep)) return p.slice(repoTop.length + 1);
+  return p;
+}
+
 // --- field extractors (match the .sh: `field:` / `- field:`, strip CR) --------
 function field(file, name) {
   const m = read(file).match(new RegExp(`^[ \\t]*-?[ \\t]*${name}:[ \\t]*(\\S*)`, 'm'));
@@ -83,12 +98,20 @@ function closeOutStatus(sf, slug, retroOut, reviewed) {
   fs.writeFileSync(sf, out);
 }
 
-// find retro file *-<slug>.md under root/retro
+// Retro file lookup — EXACT, not a suffix glob. `*-<slug>.md` also matched any
+// retro whose slug merely ENDS WITH `-<slug>` (a task slugged `promotion` was
+// satisfied by `…-eval-promotion.md` and sealed with no retro of its own), so the
+// whole prefix must be a retro timestamp: `YYMMDD-HHMMSS[a-z]` or grandfathered
+// `YYYY-MM-DD` (RETRO-FORMAT.md). Returns a repo-relative path — see relpath.
+const RETRO_PREFIX = /^(\d{6}-\d{6}[a-z]?|\d{4}-\d{2}-\d{2})$/;
 function findRetro(slug) {
   const dir = path.join(root, 'retro');
   if (!isDir(dir)) return '';
-  const hit = fs.readdirSync(dir).filter((f) => f.endsWith(`-${slug}.md`)).sort()[0];
-  return hit ? path.join(dir, hit) : '';
+  const suffix = `-${slug}.md`;
+  const hit = fs.readdirSync(dir)
+    .filter((f) => f.endsWith(suffix) && RETRO_PREFIX.test(f.slice(0, -suffix.length)))
+    .sort()[0];
+  return hit ? relpath(path.join(dir, hit)) : '';
 }
 
 // --- determine target slug ---------------------------------------------------
@@ -134,8 +157,11 @@ if (isDir(execPath)) {
   die(`EMPTY slug-not-found slug=${slug}`, 2);
 }
 
+// Normalize a STATUS field token before deciding on it — see the .sh twin.
+const norm = (v) => (String(v || '').toLowerCase().match(/^[a-z/]*/) || [''])[0];
+
 // --- GATE 1: verification ----------------------------------------------------
-const vtok = field(S, 'verified');
+const vtok = norm(field(S, 'verified'));
 if (vtok !== 'yes' && vtok !== 'skipped' && vtok !== 'n/a') {
   die(`GATE_VERIFY not-sealable verified=[${fullfield(S, 'verified')}] slug=${slug}`, 3);
 }
@@ -147,12 +173,12 @@ if (skipGiven) {
 } else {
   const rf = findRetro(slug);
   if (rf) retroOut = rf;
-  else if (/^skipped/.test(fullfield(S, 'retro'))) retroOut = fullfield(S, 'retro');
+  else if (norm(field(S, 'retro')) === 'skipped') retroOut = fullfield(S, 'retro');
   else die(`GATE_RETRO retro-owed slug=${slug}`, 4);
 }
 
 // --- SEAL (mutation only past this point) ------------------------------------
-const reviewed = isFile(V) ? V : '';
+const reviewed = isFile(V) ? relpath(V) : '';   // repo-relative, never a machine path
 closeOutStatus(S, slug, retroOut, reviewed);
 // archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
 // same-second same-slug collision — rare, the dup scan already caught prior seals)

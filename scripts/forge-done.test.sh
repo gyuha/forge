@@ -250,5 +250,50 @@ assert "m2-arg-slug-rc64" 64 "$RC"
 assert_file "m2-plan-untouched" "$t/.forge/plan.md"
 rm -rf "$t"
 
+# --- (n) retro lookup is EXACT, not a `*-<slug>.md` suffix glob ---------------
+# Regression: a task slugged `promotion` was satisfied by ANOTHER task's
+# `…-eval-promotion.md`, so the retro gate passed and it sealed with no retro of
+# its own — fail-open on an irreversible action.
+t=$(mktmp); seed_active "$t" "promotion" "yes (ok)" "pending"
+mkdir -p "$t/.forge/retro"; : > "$t/.forge/retro/260906-171420-eval-promotion.md"
+run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
+assert "n1-suffix-collision-rc4" 4 "$RC"
+assert_file "n1-plan-untouched" "$t/.forge/plan.md"
+assert_nofile "n1-no-archive" "$t/.forge/done/$SID-promotion"
+# the task's OWN retro (either id form) still satisfies the gate
+: > "$t/.forge/retro/260906-180000-promotion.md"
+run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
+assert "n2-own-retro-rc0" 0 "$RC"
+assert_grep "n2-status-done" "$t/.forge/done/$SID-promotion/STATUS.md" "status: done"
+# and the recorded path is repo-relative, never an absolute machine path
+assert_grep "n3-retro-path-relative" "$t/.forge/done/$SID-promotion/STATUS.md" "retro: .forge/retro/260906-180000-promotion.md"
+rm -rf "$t"
+
+# every path STATUS records must be repo-relative, `reviewed:` included — the
+# forge root resolves absolute inside a git repo, and on a non-default branch the
+# root is git-tracked whole, so an absolute path would be committed (ADR-0011).
+t=$(mktmp); seed_active "$t" "reviewed-task" "yes (ok)" "pending"
+mkdir -p "$t/.forge/retro"; : > "$t/.forge/retro/260906-180000-reviewed-task.md"
+printf 'findings\n' > "$t/.forge/review.md"
+( cd "$t" && git init -q . && git commit -q --allow-empty -m x ) 2>/dev/null
+run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
+assert "n6-reviewed-rc0" 0 "$RC"
+assert_grep "n6-reviewed-path-relative" "$t/.forge/done/$SID-reviewed-task/STATUS.md" "reviewed: .forge/review.md"
+rm -rf "$t"
+
+# a non-timestamp prefix must NOT satisfy the gate either (only real retro ids do)
+t=$(mktmp); seed_active "$t" "widget" "yes (ok)" "pending"
+mkdir -p "$t/.forge/retro"; : > "$t/.forge/retro/notes-widget.md"
+run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
+assert "n4-non-timestamp-prefix-rc4" 4 "$RC"
+rm -rf "$t"
+
+# grandfathered YYYY-MM-DD retro ids still satisfy it
+t=$(mktmp); seed_active "$t" "legacy-task" "yes (ok)" "pending"
+mkdir -p "$t/.forge/retro"; : > "$t/.forge/retro/2026-06-11-legacy-task.md"
+run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
+assert "n5-legacy-id-rc0" 0 "$RC"
+rm -rf "$t"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

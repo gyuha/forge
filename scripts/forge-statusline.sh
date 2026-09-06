@@ -137,7 +137,9 @@ if [ -f "$root/plan.md" ]; then
   grep -q '<!--[[:space:]]*tdd:[[:space:]]*on[[:space:]]*-->' "$root/plan.md" && tdd="on"
   if [ -f "$root/run.md" ]; then
     v=""
-    [ -f "$root/STATUS.md" ] && v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1)"
+    # lowercased: `Yes`/`N/A` must decide the same as `yes`/`n/a` (else the
+    # pipeline shows a verified task as still-owed)
+    [ -f "$root/STATUS.md" ] && v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1 | tr 'A-Z' 'a-z')"
     case "$v" in
       yes)         flag="✓"; stage="learn" ;;
       failed)      flag="✗"; stage="run" ;;
@@ -161,8 +163,20 @@ elif [ -f "$root/ask.md" ]; then
 fi
 
 # --- Queue counts (backlog + executed) ---------------------------------------
-queued_n=0; await_n=0
-[ -d "$root/executed" ] && await_n="$(find "$root/executed" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+queued_n=0; await_n=0; failed_n=0
+# `awaiting retro` counts only parks that CAN be retro'd. A `verified: failed`
+# park is blocked from both retro and seal and needs fg-run recovery, so it gets
+# its own tally — the same split the SessionStart hook already reports (calling it
+# "awaiting retro" told the user to do something the gate refuses).
+if [ -d "$root/executed" ]; then
+  for d_ex in "$root"/executed/*/; do
+    [ -d "$d_ex" ] || continue
+    case "$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "${d_ex}STATUS.md" 2>/dev/null | head -1 | tr 'A-Z' 'a-z')" in
+      failed) failed_n=$((failed_n + 1)) ;;
+      *)      await_n=$((await_n + 1)) ;;
+    esac
+  done
+fi
 [ -d "$root/backlog" ] && queued_n="$(ls -1 "$root/backlog"/*.md 2>/dev/null | wc -l | tr -d ' ')"
 
 tdd_ind=""; [ -n "$tdd" ] && tdd_ind="🧪"
@@ -171,7 +185,7 @@ eco_ind=""; [ -n "$eco" ] && eco_ind="♻️"
 # Mode indicators render only alongside real activity (an active task or a
 # non-empty queue) — never on a fully idle repo or the loop-only fallback, so
 # "nothing when idle" holds (ADR-0017). tdd already implies an active plan.
-if [ "$have_forge" -ne 1 ] && [ "${queued_n:-0}" -eq 0 ] && [ "${await_n:-0}" -eq 0 ]; then
+if [ "$have_forge" -ne 1 ] && [ "${queued_n:-0}" -eq 0 ] && [ "${await_n:-0}" -eq 0 ] && [ "${failed_n:-0}" -eq 0 ]; then
   tdd_ind=""; eco_ind=""
 fi
 
@@ -205,7 +219,8 @@ fi
 
 queued_bit=""; [ "${queued_n:-0}" -gt 0 ] && queued_bit="📋 ${queued_n} queued"
 await_bit="";  [ "${await_n:-0}" -gt 0 ] && await_bit="📝 ${await_n} awaiting retro"
-line2="$(grp "$queued_bit" "$await_bit" "$eco_ind" "$tdd_ind")"
+failed_bit=""; [ "${failed_n:-0}" -gt 0 ] && failed_bit="✗ ${failed_n} failed"
+line2="$(grp "$queued_bit" "$await_bit" "$failed_bit" "$eco_ind" "$tdd_ind")"
 
 [ -n "$line1" ] && printf '%s\n' "$line1"
 [ -n "$line2" ] && printf '%s\n' "$line2"
