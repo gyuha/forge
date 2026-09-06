@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.4] - 2026-09-06
+
+**루프의 학습이 봉인 뒤에도 살아남는 자리를 얻은 릴리스다.** AI-native SDLC playbook의 "모든 인시던트가 영속 eval이 된다"를 forge 어휘로 옮겼다(ADR `260906-171420`, 같은 날 개정). 그리고 그 규칙을 자기 자신에게 처음 적용해, 리포팅·봉인 표면의 결함 여섯을 red→green 회귀 체크와 함께 고쳤다 — 그중 하나는 **회고 없이 봉인되던 fail-open**이다.
+
+### Added
+- **eval 승급 (fg-learn의 네 번째 목적지)** — 용어→CONTEXT.md · 결정→ADR · 산문→retro에 이어, **기계 확인 가능한 학습→프로젝트 자신의 테스트 스위트**(스위트가 없는 리포는 fg-doctor 검사 같은 상응하는 실행 착지점). 승급 바는 세 조건 — 기계 확인 가능 · 재발이 그럴듯(구조적 함정이지 일회성 실수가 아님) · 실행이 저렴. 작으면 회고 자리에서 인라인, 크면 백로그 plan으로.
+- **fix-forward eval 규칙 (`skills/fg-run/PLAN-FORMAT.md` 단일 정의)** — 새로 작성되는 fix-forward plan(`generated-by` 계열: fg-adversarial-review · fg-security · fg-loop 자동 생성)은 원래 실패가 기계 확인 가능하면 **영속 회귀 체크 슬라이스 + red→green DoD**를 담고, 불가능하면 **DoD 절 안에 사유 한 줄**을 남긴다(면제는 침묵이 아니라 감지 가능한 산출물). 이미 실행된 plan을 고치는 두 경로(fg-run fix-and-re-run · fg-loop 제자리 수리)는 권고에 그친다. **새 게이트는 없다** — 다만 슬라이스 누락 자체를 잡는 기계도 없다는 공백을 문서에 명시했다.
+- **글로서리 `eval`** — DoD 명령(봉인과 함께 죽음) · stop-check(드라이브 수명) · 회귀 가드(plan 한 건의 DoD 항목)와의 구분 포함.
+- **`docs/config-modes.md` 쌍** — `simple` 자동 봉인 모드의 흐름 비교표·다이어그램·켜고 끄는 기준을 전용 가이드로 분리(문서 쌍 7 → 8).
+
+### Fixed
+- **[critical] 회고 없이 봉인되던 fail-open** — 회고 파일 조회가 `*-<slug>.md` 접미사 글로브라, slug가 다른 작업 slug의 접미사이면 매칭됐다(`promotion` ← `…-eval-promotion.md`). 회고 게이트가 **남의 회고로 통과**해 봉인이 되돌리기 어려운 상태로 진행됐다. 접두를 회고 ID(`YYMMDD-HHMMSS[a-z]` 또는 grandfather `YYYY-MM-DD`)로 못 박은 정확 매칭으로 교체(forge-done · forge-status 각 트윈).
+- **봉인이 STATUS에 절대 머신 경로를 기록** — 해석된 forge 루트가 git 리포 안에서 절대이기 때문인데, 비-기본 브랜치의 루트는 통째로 git 추적(ADR-0011)이라 그 경로가 커밋된다. `retro:`·`reviewed:` 모두 리포 상대경로로 정규화.
+- **fg-status 단계 열이 다음 단계 안내와 모순** — `run.md`만 보고 무조건 `learn`으로 찍어, `verified: pending`인 작업이 "learn 단계"인데 안내는 `/forge:fg-run`이었다. statusline이 이미 적용하던 검증 게이팅(ADR-0017 3차 개정)을 표에도 적용한다.
+- **statusline이 `verified: failed` park을 "회고 대기"로 계수** — 회고도 봉인도 막힌 상태라 fg-run 회수가 필요하다. 세션 시작 훅과 같은 분리로 `✗ K failed`를 따로 낸다.
+- **STATUS 값 표기에 표가 뒤집힘** — `Yes`·`N/A`·`yes(ok)`가 미검증으로 읽혔고, `retro: Skipped`는 표에 "회고 완료"로 뜨면서 봉인은 거부되는 모순을 냈다. 판정 전 토큰을 정규화한다.
+- **done 디렉터리 이름 폴백이 구형식 기준** — `${name:0:10}`/`${name:11}`이 옛 `YYYY-MM-DD-` 너비를 전제해 `260615-143022-new-task`가 Date `260615-143` / Task `22-new-task`로 깨졌다. 고정 오프셋 대신 ID 형태로 분리.
+- **문서 드리프트** — CLAUDE.md의 문서 쌍 개수(7 → 8), 매니페스트의 fg-learn 문언(eval 승급 반영), 외부 https 링크가 VitePress dead-link 검사 대상이 아니라는 교훈을 문서 검증 항목에 추가.
+
+### Changed
+- **회귀 체크 14건 신설** — `forge-done.test.sh` 5건(접미사 충돌 차단 · 자기 회고 통과 · 비-타임스탬프 접두 거부 · grandfather ID · 경로 상대성) + `forge-status.parity.test.sh` 9건(단계 게이팅 · 회고 정확 매칭 · STATUS 값 표기 4종 · done 디렉터리 3형식). 전부 수정 전 RED를 실증한 뒤 GREEN을 확인했다 — fix-forward eval 규칙의 첫 실사용이다.
+
 ## [0.8.3] - 2026-09-05
 
 **0.8.2의 카탈로그 동기가 놓친 문서 드리프트를 걷어낸 문서 전용 패치다.** 플러그인 산출물(스킬·매니페스트·스크립트)은 바뀌지 않았다. 원인은 0.8.2 작업의 완료 기준이 갱신 사이트를 `docs/skills.md`로만 열거한 것 — CLAUDE.md가 이미 경고하는 "카탈로그를 종류로 적으면 나머지가 조용히 옛 상태로 남는다"를 한 번 더 밟았다.
