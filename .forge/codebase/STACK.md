@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0be20755431c3864dd25f295e8f1af45425445c2
-mapped: 2026-09-07
+last_mapped_commit: b7c1a15fcad1b38674f455ddd34540a523efb704
+mapped: 2026-09-08
 ---
 
 # STACK — 기술 스택
@@ -20,7 +20,7 @@ forge는 **두 에이전트 호스트(Claude Code + Codex)용 플러그인**이�
 | 호스트 중립 계약 | Markdown (영문, 짧음) | `core/HOST.md`(어댑터 선택 규칙 + 8능력 표), `core/EXECUTION.md`, `core/INTERACTION.md` |
 | 호스트 어댑터 | Markdown ×2 + JSON ×1 (호스트마다) | `hosts/claude/{interaction.md,execution.md,capabilities.json}`, `hosts/codex/{...}` |
 | 결정론 스크립트 | bash (`#!/usr/bin/env bash`) — **주 경로** | `scripts/forge-*.sh`, `scripts/resolve-forge-root.sh`, `scripts/release-check.sh` |
-| 결정론 스크립트 | Node (CommonJS, `'use strict'`) — **폴백 트윈** | `scripts/forge-*.js`, `scripts/resolve-forge-root.js`, `scripts/release-check.js` (11개, 총 ~1,987줄) |
+| 결정론 스크립트 | Node (CommonJS, `'use strict'`) — **폴백 트윈** | `scripts/forge-*.js`, `scripts/resolve-forge-root.js`, `scripts/release-check.js` (11개, 총 2,003줄) |
 | 규율 데이터 파일 | plain text (마크다운 아님 — verbatim 대조용 단일 정의) | `scripts/explaining-forge.rule.txt` (1줄; `forge-doctor.sh`/`.js` 둘 다 런타임에 읽어 각 `SKILL.md`에 그 문단이 그대로 있는지 검사 — ADR `260824-134246`) |
 | 훅 디스패처 | bash/cmd polyglot (한 파일이 batch+shell 겸용) | `hooks/run-hook.cmd` |
 | 보안 감사 검증기 | Node CommonJS zero-dependency (`.cjs`, JSON Schema 부분집합을 직접 해석) | `skills/fg-security/validate-findings.cjs` + `skills/fg-security/report-schema.json` (vendored, 원형 유지) |
@@ -52,7 +52,7 @@ forge는 **두 에이전트 호스트(Claude Code + Codex)용 플러그인**이�
 6. **capability 어휘 계약(신규)** — 어휘를 스크립트에 하드코딩하지 않고 `core/HOST.md`의 표에서 `^\| \`[a-z_]+\`` 정규식으로 **도출**한다(사본을 두면 그게 바로 이 검사가 막으려는 드리프트라고 주석이 밝힌다). 도출 실패 자체가 위반이고, 각 `hosts/<host>/capabilities.json`은 **평평한 불리언 객체**여야 하며(bash 트윈은 공백 제거 후 정규식 한 방으로 판정해 node-free 유지) 누락 키·미지 키를 각각 보고한다.
 7. **`docs/codex.md`·`docs/en/codex.md` 쌍(신규)** — 두 파일이 존재하고 **capability 키 8개를 모두 백틱으로 이름 지어야** 한다. 상태 문구(지원/미지원)는 기계가 판정하지 않고 사람 리뷰로 남긴다 — 주석이 *"this gate does not claim more than it checks"*로 그 한계를 명시한다.
 
-`package.json`의 `scripts.release:check`는 **node 트윈**(`node scripts/release-check.js`)을 부른다 — npm 경로라 bash를 전제하지 않는 쪽을 골랐다. **이제 CI에도 걸려 있다** — `.github/workflows/release-check.yml`(잡 이름 `gate`, `runs-on: ubuntu-latest`, `permissions: contents: read`, node 20, **`npm ci` 없음** = zero-dependency 설계)이 `main` push·PR·`workflow_dispatch`에 발동하며 발동 경로는 `.claude-plugin/**`·`.codex-plugin/**`·`core/**`·`hosts/**`·`hooks/**`·`scripts/release-check.*`·`docs/{,en/}codex.md`·자기 자신이다. 세 스텝을 순서대로 돌린다: `bash scripts/release-check.sh`(주 경로) → `node scripts/release-check.js`(트윈) → `bash scripts/release-check.parity.test.sh`(패리티) — **트윈의 조용한 갈라짐을 CI에서 잡겠다는 것이 두 스텝을 다 돌리는 이유**다(ADR-0022). `fg-doctor`는 여전히 CI에 없다(현재 warning 1건으로 exit 1).
+`package.json`의 `scripts.release:check`는 **node 트윈**(`node scripts/release-check.js`)을 부른다 — npm 경로라 bash를 전제하지 않는 쪽을 골랐다. **이제 CI에도 걸려 있다** — `.github/workflows/release-check.yml`(잡 이름 `gate`, `runs-on: ubuntu-latest`, `permissions: contents: read`, node 20, **`npm ci` 없음** = zero-dependency 설계)이 `main` push·PR·`workflow_dispatch`에 발동하며 발동 경로는 `.claude-plugin/**`·`.codex-plugin/**`·`core/**`·`hosts/**`·`hooks/**`·`scripts/release-check.*`·`docs/{,en/}codex.md`·자기 자신이다. 세 스텝을 순서대로 돌린다: `bash scripts/release-check.sh`(주 경로) → `node scripts/release-check.js`(트윈) → `bash scripts/release-check.parity.test.sh`(패리티) — **트윈의 조용한 갈라짐을 CI에서 잡겠다는 것이 두 스텝을 다 돌리는 이유**다(ADR-0022). `fg-doctor`는 여전히 CI에 없으며, 현재 리포 실측은 `0 errors, 0 warnings, 0 info`다.
 
 ## 스크립트 트윈 패턴 (ADR-0022)
 
@@ -72,7 +72,7 @@ forge는 **두 에이전트 호스트(Claude Code + Codex)용 플러그인**이�
 - **behavior**: `scripts/forge-<name>.test.sh` — mktemp 샌드박스에 상태를 seed하고 출력/exit code 검증
 - **parity**: `scripts/forge-<name>.parity.test.sh` — 같은 입력에 대해 sh↔js가 동일 결과(파일 변이 스크립트는 결과 `.forge/` 트리까지 비교, `scripts/forge-done.parity.test.sh` 참조)
 - `forge-hook-stop`·`forge-loop-spend`도 같은 하니스: `scripts/forge-hook-stop.test.sh`/`.parity.test.sh`, `scripts/forge-loop-spend.test.sh`/`.parity.test.sh`. 둘 다 시간·경로를 주입해 결정론을 확보한다 — 훅은 `--now <epoch>`, spend는 `--transcripts DIR`/`--now ISO`.
-- 파일 개수는 그대로 **21 스위트**(`scripts/*.test.sh` 20 + `hooks/run-hook.test.sh`)이고, 이번 구간에 늘어난 것은 파일이 아니라 **케이스**다 — `forge-doctor.test.sh`(+63줄, B18 케이스)·`forge-done.test.sh`(+45줄)·`forge-status.parity.test.sh`(+102줄)·`release-check.parity.test.sh`(+65줄, capability 어휘·codex 문서 쌍 케이스).
+- 파일 개수는 그대로 **21 스위트**(`scripts/*.test.sh` 20 + `hooks/run-hook.test.sh`)이고, 이번 구간에 늘어난 것은 파일이 아니라 **케이스**다. 현재 `scripts/forge-doctor.test.sh`는 84개 assertion을 통과하고, `scripts/forge-doctor.parity.test.sh`는 25개 시나리오에서 bash↔Node 결과를 대조한다. 추가 fixture는 A9의 stale·unparseable·live `drive.md`와 B18의 두 HANDOFF 개수·CONTEXT 개수·섹션 범위 계약을 각각 양성/음성으로 고정한다.
 - **`release-check`만 behavior 테스트 파일이 없다** — `scripts/release-check.parity.test.sh`만 있고 `.test.sh`는 없다. 다만 그 parity 테스트가 mktemp에 **버려지는 가짜 리포**(두 스크립트를 그 리포의 `scripts/`에 복사 — 스크립트가 자기 위치로 리포 루트를 잡으므로)를 케이스마다 조립하고 각 케이스가 sentinel 부분문자열까지 단정하므로, 실질적으로 behavior까지 덮는다. `set -euo pipefail`이 걸려 있어 "둘 다 아무것도 안 냈으니 같다"가 통과로 새지 않는다.
 - 훅 래퍼도 자체 테스트: `hooks/run-hook.test.sh`
 - 실행은 `bash scripts/<file>.test.sh` 직접 호출 (러너 없음)
@@ -81,8 +81,9 @@ forge는 **두 에이전트 호스트(Claude Code + Codex)용 플러그인**이�
 
 ## 설정
 
-- **플러그인 버전은 이제 4곳 동기**(종전 3곳): `.claude-plugin/plugin.json`의 `version`, `.claude-plugin/marketplace.json`의 `metadata.version`과 `plugins[0].version`, **`.codex-plugin/plugin.json`의 `version`** (현재 **0.8.5**). 검사 지점은 이제 셋 — `scripts/release-check.sh`/`.js`(로컬 + CI 게이트)와 `forge-doctor`의 **B8**(둘 다 4-way), 그리고 `forge-doctor` **B9**가 Codex 매니페스트까지 JSON 유효성을 검사한다(존재할 때만 — `existsSync` 가드).
-- **`forge-doctor`에 검사 하나가 늘었다 — B18**(`fg-debug` 계약 정합, ADR `260907-140655`). 산문 계약을 grep으로 대조하는 성격이라 대상이 리포 내부 문서다: `skills/fg-next/HANDOFF.md`의 「Applies」/「Does NOT apply」 **선언 개수 ↔ 백틱 열거 개수** 일치, `.forge/CONTEXT.md`의 핸드오프 용어 개수 동기, 그리고 `skills/fg-debug/SKILL.md`가 네 계약(활성 `verified: failed` → fg-run 복귀 · Phase 1 명령의 영속/일회성 분류 · 모든 종료 경로 정리 · 불확정 종료 경로)을 실제로 진술하는지. 전부 **warning**이다.
+- **플러그인 버전은 이제 4곳 동기**(종전 3곳): `.claude-plugin/plugin.json`의 `version`, `.claude-plugin/marketplace.json`의 `metadata.version`과 `plugins[0].version`, **`.codex-plugin/plugin.json`의 `version`** (현재 **0.8.6**). 검사 지점은 이제 셋 — `scripts/release-check.sh`/`.js`(로컬 + CI 게이트)와 `forge-doctor`의 **B8**(둘 다 4-way), 그리고 `forge-doctor` **B9**가 Codex 매니페스트까지 JSON 유효성을 검사한다(존재할 때만 — `existsSync` 가드).
+- **`forge-doctor`의 A9가 `drive.md` 잔여를 진단한다.** `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`는 `started:`에서 숫자 epoch를 추출하지 못하면 `A9 unparseable drive.md`, 현재 시각보다 1,800초를 넘겨 오래됐으면 `A9 stale drive.md` warning을 낸다. 30분 안의 live 마커는 조용히 통과하며, 검사는 읽기 전용이라 마커를 지우지 않는다.
+- **`forge-doctor`의 B18은 `fg-debug` 계약 정합을 검사한다**(ADR `260907-140655`). 대상은 `skills/fg-next/HANDOFF.md`의 「Applies」/「Does NOT apply」 **선언 개수 ↔ 백틱 열거 개수**, `.forge/CONTEXT.md`의 핸드오프 적용 개수, 그리고 `skills/fg-debug/SKILL.md`의 네 계약(활성 `verified: failed` → fg-run 복귀 · Phase 1 명령의 영속/일회성 분류 · 모든 종료 경로 정리 · 불확정 종료 경로)이다. fg-debug 신호는 각각의 소유 절 안에서만 검사해 다른 절에 흩어진 키워드가 누락 계약을 대신하지 못하며, 전부 **warning**이다.
 - 사용자 프로젝트 측 영속 설정: `.forge/config.json`. **키는 이제 여섯**(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch` — 신설 `simple`은 자동 봉인 모드, ADR `260905-212045`)이고 단일 진입점은 `fg-config` 스킬이다. **스크립트가 실제로 읽는 키는 여전히 둘뿐** — `eco`(`scripts/forge-statusline.sh`/`.js`)와 `defaultBranch`(`scripts/resolve-forge-root.sh`/`.js`, `forge-statusline.sh`). `simple`·`tdd`·`driveCommit`·`driveCommitMessage`는 스킬 지시문 층에서만 소비된다(실측: `simple`은 `scripts/`에 0건 — 자동 봉인은 fg-run이 결정하고 `forge-done` 트윈을 부르는 구조). 이 리포 자체의 것은 여전히 `{"eco": false}`.
 - **루트 `package.json`에 `"type"` 필드를 넣으면 안 된다** — `name: "forge-docs"`, `private: true`, `scripts`는 `release:check`/`docs:dev`/`docs:build`/`docs:preview` 넷이고 devDependencies는 `vitepress`·`mermaid`·`vitepress-plugin-mermaid`. `scripts/*.js` 트윈 11개가 CommonJS(`require`)라 `"type": "module"`이면 리포 전체 `.js`가 ESM으로 해석돼 전부 죽는다(`release:check`가 node 트윈을 부르므로 이제 릴리스 게이트 자신도 같이 죽는다). VitePress 설정은 `.mts` 확장자만으로 이미 ESM이라 이 필드가 필요 없다 (ADR `260815-094725`).
 - `.gitignore`: `.forge/*` 기본 제외 + 영속 문서 화이트리스트(`!.forge/CONTEXT.md`, `!.forge/adr/`, `!.forge/retro/`, `!.forge/codebase/`, `!.forge/config.json`, `!.forge/branch/`). 문서 사이트 몫으로 `node_modules/`·`docs/.vitepress/dist/`·`docs/.vitepress/cache/`가 추가됐다(문서 소스 `docs/*.md`와 `package-lock.json`은 추적).

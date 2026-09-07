@@ -1,14 +1,14 @@
 ---
-last_mapped_commit: 0be20755431c3864dd25f295e8f1af45425445c2
-mapped: 2026-09-07
+last_mapped_commit: b7c1a15fcad1b38674f455ddd34540a523efb704
+mapped: 2026-09-08
 ---
 
 # TESTING
 
-이 문서는 **구현 사실만** 다룬다. 아래 수치는 이 커밋의 작업 트리에서 2026-09-07에 **전체 테스트를 실제로 돌려** 얻은 값이다(macOS/darwin 25.5.0, **21개 파일 전부 rc=0**). 같은 시점:
+이 문서는 **구현 사실만** 다룬다. 아래 수치는 이 커밋의 작업 트리에서 2026-09-08에 **전체 테스트를 실제로 돌려** 얻은 값이다(macOS/darwin 25.5.0, **21개 파일 전부 rc=0**). 같은 시점:
 
 - `bash scripts/forge-doctor.sh` = **0 errors / 0 warnings / 0 info**(node 트윈도 동일). **처음으로 완전 클린이다** — 종전 유일한 warning이던 B16(`skills/fg-help/SKILL.md` 768자 > 600)이 커밋 `7d5623c`에서 description을 트리거 코어로 줄여 해소됐다(현재 최장은 `skills/fg-showme/SKILL.md` 649바이트이고 B16은 코드포인트로 세므로 600 미만). **이것이 "fg-doctor를 CI에 배선하지 않았다"의 근거를 무효화한다** — `CLAUDE.md`는 아직 "현재 B16 warning 1건으로 exit 1이라 즉시 붉어진다"고 적고 있으나 실측은 exit 0이다(§8).
-- `bash scripts/release-check.sh` / `node scripts/release-check.js` = 둘 다 `ok (forge 0.8.5, shared skills + Claude/Codex adapters)`.
+- `bash scripts/release-check.sh` / `node scripts/release-check.js` = 둘 다 `ok (forge 0.8.6, shared skills + Claude/Codex adapters)`.
 
 ## 1. 프레임워크: 없음 — 순수 bash 스크립트 테스트
 
@@ -20,10 +20,10 @@ mapped: 2026-09-07
 
 두 종류가 있다 — **behavior 테스트**(`*.test.sh`, 픽스처 대비 단일 구현의 계약 검증)와 **parity 테스트**(`*.parity.test.sh`, 같은 픽스처에 `.sh`와 `.js`를 둘 다 돌려 출력 동일성 단언 — ADR-0022의 진짜 drift 가드).
 
-| 파일 | 종류 | 2026-09-07 실행 결과 (괄호는 이전 판 대비) |
+| 파일 | 종류 | 2026-09-08 실행 결과 (괄호는 이전 판 대비) |
 |---|---|---|
-| `scripts/forge-doctor.test.sh` | behavior | **78 passed**(54 → 78 = B18 단언 18개 + B16 folded-scalar 3개 + A1b half-exec 3개) |
-| `scripts/forge-doctor.parity.test.sh` | parity | PARITY OK (**22 케이스**, 11 → 22: B18 9개 추가) |
+| `scripts/forge-doctor.test.sh` | behavior | **84 passed**(78 → 84: A9 stale/unparseable/live 단언 6개 추가) |
+| `scripts/forge-doctor.parity.test.sh` | parity | PARITY OK (**25 케이스**, 22 → 25: A9 stale/unparseable/live 3개 추가) |
 | `scripts/forge-done.test.sh` | behavior | **70 passed**(60 → 70: 회고 조회 정확성·경로 상대성) |
 | `scripts/forge-done.parity.test.sh` | parity | PARITY OK |
 | `scripts/forge-hook-session-start.test.sh` | behavior | 65 passed |
@@ -44,7 +44,7 @@ mapped: 2026-09-07
 | `scripts/resolve-forge-root.parity.test.sh` | parity | PARITY OK |
 | `hooks/run-hook.test.sh` | behavior(배선) | **25 passed**(22 → 25: 문자열 grep 단언 1개를 **실행** 단언 4개로 교체 — §3) |
 
-파일 **개수는 21개로 그대로**이고(신규 테스트 파일 0), 늘어난 것은 전부 기존 파일 안의 케이스다. 총 6개 파일이 +260줄 −2줄 변경됐다.
+파일 **개수는 21개로 그대로**이고(신규 테스트 파일 0), A9 회귀 검사는 기존 `scripts/forge-doctor.test.sh`와 `scripts/forge-doctor.parity.test.sh` 안에 추가됐다.
 
 비대칭 주의(**3건**): `forge-status`·`resolve-forge-root`·`release-check`는 **parity 테스트만** 있고 단독 behavior 테스트 파일이 없다(parity의 populated 케이스가 sentinel 검사로 일부 behavior를 겸함). `release-check`의 경우 parity 케이스가 7 → **17개**로 자라 위반 유형을 더 촘촘히 덮으므로 이 비대칭이 더 굳었다 — 실측 케이스 이름: `all in sync`·`version drift`·`wrong skills field`·`missing hooks.json`·`missing host adapter`·`missing manifest`·`multiple violations, same order`·`capabilities unknown key`·`capabilities missing keys`·`capabilities broken JSON`·`capabilities non-boolean`·`HOST.md vocabulary gone`·`claude host checked too`·`docs name every capability key (clean)`·`docs missing a capability key`·`en docs checked too`·`support-table doc missing`.
 
@@ -114,16 +114,7 @@ node -e "['.claude-plugin/plugin.json','.claude-plugin/marketplace.json','.codex
 
 **B15는 "파일이 두 개 있는지"만 보고 "구현이 두 개인지"는 못 본다.** `scripts/release-check.sh`는 처음 `exec node`로 js를 부르는 shim이었고 B15·parity 둘 다 통과했다 — parity는 같은 결과를 낼 수밖에 없고, B15는 존재만 세니까. node 없는 bash-only 환경이라는 ADR-0022의 목적이 통째로 무력화된 상태가 초록으로 보였다. 현재는 83줄의 실제 bash 구현이다. §3의 "parity는 두 트윈이 *같이 틀린 것*을 못 잡는다"의 사촌 실패 유형이고, 여기서는 **한쪽이 다른 쪽이었다**. 산문 스킬 층은 테스트 0 — 리포 변경의 다수가 이 무테스트 층에서 일어나고, 그 층의 유일한 기계 가드가 fg-doctor의 산문 드리프트 검사(B12/B13/B16/B17/**B18**)다.
 
-**측정된 실제 parity 공백 하나 — fg-doctor `A9`가 `.js` 트윈에 아예 없다(이 지도 작성 중 실측 확인, 기존 상태).** `scripts/forge-doctor.sh`는 `A9 stale drive.md`/`A9 unparseable drive.md`를 warning으로 내지만 `scripts/forge-doctor.js`에는 `A9`도 `drive` 문자열도 **0건**이다(`grep -n 'drive' scripts/forge-doctor.js` → B16 fix 힌트의 "drives"만 매치). 직접 재현:
-
-```bash
-mkdir -p /tmp/a9probe/.forge && cd /tmp/a9probe
-printf 'started: 1\nsession: x\ncount: 1\n' > .forge/drive.md
-bash <repo>/scripts/forge-doctor.sh   # → 0 errors, 1 warnings  (A9 stale drive.md)
-node <repo>/scripts/forge-doctor.js   # → 0 errors, 0 warnings
-```
-
-**22개 parity 케이스가 초록이고, 게다가 `FGDOCTOR_IMPL=.../forge-doctor.js bash scripts/forge-doctor.test.sh`가 78개 behavior 단언을 전부 통과한다** — 검사 하나가 통째로 없는 트윈이 양쪽 하네스를 모두 초록으로 통과한다는 뜻이다(실측). 원인은 단순하다: 어느 픽스처도 `drive.md`를 심지 않는다(`grep -c 'drive'`가 behavior·parity 테스트 양쪽에서 0). **baseline 커밋 `524c6a3`에서도 같은 상태였으므로 신규 회귀가 아니라 처음부터 있던 공백**이다. 교훈은 §3의 ground-truth 교차 검산·(e) 가드와 같은 계열이고 여기서 셋이 나란히 선다 — **B15는 파일 존재만 보고, parity는 픽스처가 닿는 코드 경로만 비교하고, behavior 테스트를 js에 재사용하는 idiom도 그 픽스처 집합을 물려받는다.** 세 가드가 모두 같은 맹점을 공유하므로 "트윈이 검증됐다"의 실제 사정거리는 **픽스처 집합의 사정거리와 정확히 같다**.
+**fg-doctor `A9` 트윈 공백은 닫혔다.** `scripts/forge-doctor.js`가 이제 `.sh` 트윈과 같이 `drive.md`의 `started:`를 읽어 30분 초과 marker에는 `A9 stale drive.md`, 유효한 시작 시각이 없으면 `A9 unparseable drive.md` warning을 내고, 아직 유효한 marker에는 침묵한다. `scripts/forge-doctor.test.sh`가 세 경로를 6개 단언으로 잠그며, `scripts/forge-doctor.parity.test.sh`도 같은 stale/unparseable/live 픽스처 3개를 포함한다. 실측으로 bash와 Node behavior가 각각 **84 passed**, parity **25개 케이스**가 전부 초록이다. 이 수정이 보존하는 교훈은 그대로다 — **B15는 파일 존재만 보고, parity와 behavior 재사용은 픽스처가 닿는 코드 경로만 검증하므로, "트윈이 검증됐다"의 실제 사정거리는 픽스처 집합의 사정거리와 정확히 같다.**
 
 **테스트 하네스 밖의 검증 스크립트 1개**: `skills/fg-security/validate-findings.cjs`(201줄, zero-dependency Node, exit 0/1)가 `skills/fg-security/report-schema.json`(210줄)을 **런타임에 읽어** `findings.json`을 검증한다 — 스키마가 단일 정의이고 규칙 사본이 없다(스키마로 표현 못 하는 제약[trace가 `entrypoint`에서 시작해 `sink`로 끝나야 함]만 명시적 semantic 층으로 뒤에 붙음). `.test.sh` 하네스와 **다른 idiom**이고 vendoring된 원형이라 자체 테스트 파일이 없다.
 

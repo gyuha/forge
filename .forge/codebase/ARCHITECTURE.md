@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0be20755431c3864dd25f295e8f1af45425445c2
-mapped: 2026-09-07
+last_mapped_commit: b7c1a15fcad1b38674f455ddd34540a523efb704
+mapped: 2026-09-08
 ---
 
 # ARCHITECTURE — forge
@@ -11,7 +11,7 @@ forge는 코드를 빌드하는 앱이 아니라 **에이전트 호스트 플러
 
 **스킬 개수는 22로 그대로이지만 구성이 바뀌었다**: 단일 키 토글이던 `fg-eco`·`fg-tdd`가 삭제되고 통합 설정 스킬 `fg-config`(ADR `260905-212045`)와 vendored 진단 스킬 `fg-debug`(ADR `260907-140655`)가 들어왔다. `fg-eco/ECO.md`는 100% rename으로 `skills/fg-config/ECO.md`로 이동했다(내용 불변, 소유자만 이동).
 
-- Claude Code 플러그인 매니페스트: `.claude-plugin/plugin.json` (v0.8.5)
+- Claude Code 플러그인 매니페스트: `.claude-plugin/plugin.json` (v0.8.6)
 - 마켓플레이스 매니페스트: `.claude-plugin/marketplace.json` (`plugins[0].source: "./"` — 리포 루트가 곧 플러그인)
 - **Codex 플러그인 매니페스트: `.codex-plugin/plugin.json`** — 같은 리포의 두 번째 매니페스트. `"skills": "./skills/"`로 **공유 스킬 트리를 직접 가리켜** 두 호스트가 동일 스킬을 읽는다. `interface` 블록(displayName·category·`defaultPrompt` 3개·brandColor)은 Codex 전용 표현 계층이다. 버전 동기 지점이 3곳→**4곳**으로 늘어난 원인.
 - 스킬은 `skills/*/SKILL.md` frontmatter `name`으로 자동 탐색(Claude 매니페스트에 skills 필드 없음 / Codex 매니페스트는 트리 경로를 명시)

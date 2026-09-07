@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0be20755431c3864dd25f295e8f1af45425445c2
-mapped: 2026-09-07
+last_mapped_commit: b7c1a15fcad1b38674f455ddd34540a523efb704
+mapped: 2026-09-08
 ---
 
 # STRUCTURE — forge
@@ -10,7 +10,7 @@ mapped: 2026-09-07
 ```
 / (리포 루트 = 플러그인 루트 = 마켓플레이스 — Claude Code + Codex 양쪽 호스트)
 ├── .claude-plugin/
-│   ├── plugin.json              # Claude Code 매니페스트 (version 0.8.5)
+│   ├── plugin.json              # Claude Code 매니페스트 (version 0.8.6)
 │   └── marketplace.json         # 마켓플레이스 등록 (plugins[0].source: "./", 버전 2곳 더)
 ├── .codex-plugin/
 │   └── plugin.json              # Codex 매니페스트 (버전 4번째 지점) — "skills": "./skills/" 로 공유 트리 직접 참조
@@ -40,7 +40,7 @@ mapped: 2026-09-07
 │   └── fg-{status,quick,map,merge,cleanup,doctor,drop,statusline,agenda,agents,adversarial-review,help}/  # 각 SKILL.md 단일 파일
 ├── scripts/                     # 결정론 스크립트 트윈 + 테스트 + 데이터 1 (44파일)
 │   ├── forge-{status,done,merge,doctor,hook-session-start,hook-stop,loop-spend,statusline,statusline-full}.{sh,js}
-│   │                                        # forge-doctor.{sh,js}(313/270줄) 검사 = A1–A9(상태 계약) + B8–B18(문서·매니페스트·산문 계약)
+│   │                                        # forge-doctor.{sh,js}(313/286줄) 검사 = A1–A9(상태 계약) + B8–B18(문서·매니페스트·산문 계약)
 │   ├── release-check.{sh,js}                # 릴리스 게이트(83/78줄) — 버전 4곳 + Codex skills 경로 + hooks.json + 어댑터 6파일
 │   │                                        #   + capability 어휘 정합(core/HOST.md 표에서 도출) + docs/{en/,}codex.md 키 언급
 │   ├── resolve-forge-root.{sh,js}
@@ -66,7 +66,7 @@ mapped: 2026-09-07
 ├── .forge/                      # 상태 + 영속 문서 (아래 절)
 ├── .claude/agents/              # 도메인 에이전트 카드 3장 (skill-author, script-twin-engineer, manifest-doc-syncer)
 ├── DESIGN.md                    # Claude 제품 디자인 시스템 토큰(색·타입·컴포넌트, 589줄) — fg-showme 화면 리테마의 참조원, 플러그인 계약 아님
-├── AGENTS.md                    # 5줄 포인터(신규, git 미추적) — CLAUDE.md를 권위 있는 지시서로 읽으라 지시하고 충돌 시 CLAUDE.md 우선. 내용 복제 0
+├── AGENTS.md                    # 5줄 포인터 — `CLAUDE.md`를 권위 있는 지시서로 읽으라 지시하고 충돌 시 `CLAUDE.md` 우선. 내용 복제 0
 ├── CLAUDE.md · README.md · README.ko.md · CHANGELOG.md
 └── .gitignore                   # .forge/* 제외 + 영속 문서 화이트리스트 + node_modules/·docs/.vitepress/{dist,cache}/ + graphify-out/·.planning/·.omx
 ```
@@ -87,7 +87,7 @@ mapped: 2026-09-07
 - **봉인 폴더**: `.forge/done/<날짜-slug>/`(신식 `260810-084200-slug`, 구식 `2026-06-04-slug` 공존), 각각 `STATUS.md` + plan/run 동반.
 - **plan slug**: plan 첫 줄 `<!-- forge-slug: ... -->` 주석이 회고·봉인 짝 맞춤 키. 분할 작업은 `-1of3` 접미(ADR-0004).
 - **언어**: SKILL.md·`*-FORMAT.md`·공유 규율 문서는 영문, 화면 출력·산출 문서는 사용자 언어. 스킬 문서 내 흐름도는 Mermaid 금지·텍스트 흐름도(영문).
-- **버전 동기 4곳**(3곳에서 늘었다): `.claude-plugin/plugin.json` `version` + `.claude-plugin/marketplace.json` `metadata.version`·`plugins[0].version` + **`.codex-plugin/plugin.json` `version`**. 현재 전부 `0.8.5`. 기계 검증은 `scripts/release-check.{sh,js}`(`npm run release:check` + `release-check.yml` CI)와 `forge-doctor` B8.
+- **버전 동기 4곳**(3곳에서 늘었다): `.claude-plugin/plugin.json` `version` + `.claude-plugin/marketplace.json` `metadata.version`·`plugins[0].version` + **`.codex-plugin/plugin.json` `version`**. 현재 전부 `0.8.6`. 기계 검증은 `scripts/release-check.{sh,js}`(`npm run release:check` + `release-check.yml` CI)와 `forge-doctor` B8.
 - **호스트 capability 키**: `hosts/<host>/capabilities.json`은 `core/HOST.md` 표의 **8개 키만** 사용(`structured_choice`·`spawn_parallel`·`spawn_role`·`plugin_root`·`session_start`·`prevent_stop`·`project_agents`·`status_display`). 파일 형태는 **boolean 값만 갖는 flat object**로 고정(중첩·문자열 금지 — `release-check`가 정규식으로 이 형태를 검사한다). 값은 관측 기반이며 미검증은 `false`. 어댑터 파일명은 소문자 고정(`interaction.md`·`execution.md`·`capabilities.json`) — `release-check`가 6파일 존재 + 키 집합 일치(missing/unknown) + `docs/{en/,}codex.md`가 8개 키를 이름으로 언급하는지를 검사한다. **키 목록은 어디에도 하드코딩되지 않고 `core/HOST.md` 표에서 도출**된다.
 - **플러그인 루트 참조 — 두 형태가 일부러 다르다**: **스킬 본문**은 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}`(61곳, 텍스트 치환 메커니즘), **`hooks/hooks.json`**은 `${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}`(2곳, 셸 env 확장 메커니즘), **셸 스크립트**는 `core/HOST.md`가 지시하는 `FORGE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"`. 어느 쪽도 bare `${CLAUDE_PLUGIN_ROOT}`로 남기지 않으며, **한쪽을 다른 쪽에 맞춰 "고치지" 말 것**(`core/HOST.md`의 "두 메커니즘" 문단이 근거이고 `hooks/run-hook.test.sh`의 decoy 테스트가 역전을 잡는다). 스킬 간 참조는 가능하면 디렉터리 상대경로(`../fg-run/FORGE-ROOT.md`), `core/`·`hosts/` 참조는 `../../core/HOST.md` 상대 링크.
 - **호출 접두**: Claude Code `/forge:fg-*` / Codex `$fg-*` — 사용자 안내 문구에는 둘 다 적는다.
