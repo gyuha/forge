@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.8.6] - 2026-09-07
+
+**스킬이 22개가 된 릴리스다** — 어려운 버그의 대화형 진단 `fg-debug`를 vendoring으로 들였다(ADR `260907-140655`). 그리고 그 카탈로그 변경을 검증하는 과정에서 **정합 결함 둘**을 잡았는데, 하나는 두 스크립트 트윈의 **exit code가 갈리는 패리티 위반**이었고 둘 다 기존 게이트가 구조적으로 못 잡는 형태였다.
+
+### Added
+- **`fg-debug` — 어려운 버그·성능 회귀의 대화형 진단(루프 밖, 22번째 스킬)** — 방법론은 [mattpocock/skills](https://github.com/mattpocock/skills)의 `diagnosing-bugs`를 MIT 귀속과 함께 **바이트 보존 vendoring**한다(`DIAGNOSE.md` · `LICENSE` · `scripts/hitl-loop.template.sh`, 진입 파일만 개명 — `fg-security`의 `AUDIT.md` 선례로 forge 자동 탐색 충돌을 피한다). 네 결정: ① **진단 전용**으로 Phase 1–4(red를 낼 수 있는 피드백 루프 구축 · 재현 · 최소화 · 가설 순위화와 계측)만 소유하고 Phase 5–6 수정·정리는 루프의 것이며, **상태를 크기보다 먼저 판정**한다 — 활성 `verified: failed`는 trivial이어도 기존 fg-run fix-and-re-run으로 복귀하고, 독립 진단만 trivial→`fg-quick` / non-trivial→사람 승인 `<!-- generated-by: fg-debug -->` fix-forward plan으로 갈린다 ② Phase 1의 red 명령은 그 자체가 영속 체크일 때만 eval이고 일회성이면 plan이 영속 회귀 체크 슬라이스 또는 기계적 영속화 불가 사유를 요구한다 ③ **새 `.forge/` 상태를 만들지 않는다** — 비밀 제거된 fixture와 영속 테스트만 워킹 트리에 남고 원본 캡처는 리포 밖 임시 위치에서 다루며, 성공·불확정·`fg-quick` 이관을 포함한 **모든 종료 경로**에서 임시 산출물을 정리한다 ④ 대화형이라 `fg-next all`·`fg-loop` 무인 주행에선 항상 skip한다. 봉인 게이트가 아니다.
+- **`forge-doctor` 검사 B18 — fg-debug 계약 정합** — 두 HANDOFF 절(`Applies` · `Does NOT apply`)의 선언 개수와 실제 열거가 일치하는지, CONTEXT의 핸드오프 개수가 `Applies`와 맞는지, 그리고 fg-debug 계약 신호 넷(활성 실패 복귀 · 활성/독립 분리 · 영속 eval · 전 경로 정리)이 서 있는지 본다. B17이 canonical 본문을 verbatim 대조하는 것과 달리 **의미 신호 기반**이라, 개수만 맞추고 내용을 비운 경우도 걸린다.
+- **루트 `AGENTS.md`** — `CLAUDE.md`를 정답소스로 읽는 다른 에이전트 하네스를 위한 5줄 포인터. 내용을 복제하지 않아 두 파일이 어긋날 여지가 없고, 충돌 시 `CLAUDE.md`를 따르도록 명시했다.
+
+### Fixed
+- **[critical] `forge-doctor` 두 트윈의 A9 격차 — 같은 상태에서 exit code가 갈렸다** — `drive.md`(무인 주행 마커) 검사가 `forge-doctor.sh`에만 있고 `.js`에는 아예 없어(`drive.md` 언급 7회 vs 0회), 30분 상한을 넘긴 마커가 있는 리포에서 bash는 `warning 1건 · exit 1`, node는 `0건 · exit 0`을 냈다. bash 없는 Windows에서 node 트윈으로 게이트를 걸면 **조용히 통과한다.** 더 나쁜 것은 **세 겹 가드가 맹점을 공유했다**는 점 — B15는 트윈 파일의 *존재*만 보고, 패리티 22케이스와 behavior 78건은 어느 fixture도 `drive.md`를 심지 않아 그 경로를 한 번도 실행하지 않았다. `.js`에 이식하고 fixture 3종(stale · unparseable · **live 음성 케이스**)을 behavior·parity 양쪽에 고정했으며, `.js`에서 A9를 다시 제거하는 **뮤테이션으로 가드가 실제로 잡는 것을 확인**했다(parity FAILED 2 · behavior FAILED 4). `skills/fg-doctor/SKILL.md`의 열거도 A8에서 끊겨 있었다 — 검사가 한쪽 트윈에만 있고 문서에도 없고 fixture도 없었으니 세 인터벌간 보이지 않은 것이 당연했다. 이제 문서·`.sh`·`.js` 세 표면이 A1–A9로 일치한다.
+- **랜딩 페이지가 스킬 수 21에 남고 `fg-debug` 카드가 없었다** — `docs/index.html`이 히어로 문단 · 섹션 헤딩 · `<title>`/meta description 여섯 곳(KO 3 + EN 3)에서 21을 말하는 동안 나머지 전 표면은 22였고, 유틸리티 카드 그리드는 **전수 열거**(17카드 = 유틸리티 17개)인데 `fg-debug` 카드만 빠져 있었다. **KO와 EN span이 함께 어긋나** 이중언어 span 쌍 대조(119=119)로는 구조적으로 걸리지 않는 형태다 — 랜딩은 가장 눈에 잘 띄는 표면인데 하필 어떤 게이트도 보고 있지 않다. 개수 여섯 곳과 카드를 갱신했다(span 120/120).
+
+### Changed
+- **핸드오프 표 적용 지점 14 → 15곳** — `fg-debug`가 편입됐다(루프 4단계 + 다음 단계가 실재하는 유틸리티 11개). `skills/fg-next/HANDOFF.md` 단일 정의와 `.forge/CONTEXT.md`의 개수를 함께 갱신하고, 다음 단계를 내지 않는 7곳의 사유 표에 `fg-help`를 명시했다.
+- **`PLAN-FORMAT.md`의 fix-forward 범위에 `generated-by: fg-debug` 편입** — 새로 작성되는 fix-forward plan이 지키는 eval 규칙(원래 실패가 기계 확인 가능하면 영속 회귀 체크 슬라이스 + red→green DoD, 불가면 사유 한 줄)의 적용 대상에 fg-debug가 생성하는 plan을 더했다.
+- **`.forge/codebase/` 지도 증분 갱신** — 스탬프 `524c6a3` 이후 커밋 18개 + 미커밋 변경을 반영해 7문서를 제자리 수정했다(811 → 1007줄). 갱신 중 두 매퍼가 독립적으로 `CLAUDE.md`의 낡은 진술 하나를 잡아냈다 — "fg-doctor는 B16 warning 1건으로 exit 1"은 0.8.5에서 해소돼 사실이 아니다(현재 0/0/0 · exit 0). 문장 정정과 CI 배선 여부는 별개 판단으로 남긴다.
+
 ## [0.8.5] - 2026-09-07
 
 **`fg-doctor`가 처음으로 완전 청결(0 errors · 0 warnings)해진 패치다.** 남아 있던 B16 warning 하나를 걷어냈다.
