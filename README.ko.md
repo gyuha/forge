@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > 에이전트 엔지니어링을 위한 Claude Code·Codex 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
-> 두 호스트가 함께 쓰는 21개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 17개.
+> 두 호스트가 함께 쓰는 22개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
 
 [English](./README.md)
 
@@ -15,7 +15,7 @@
 
 ## 빠른 시작 — 사실 3개만 쓰면 된다
 
-스킬이 21개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
+스킬이 22개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -101,7 +101,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 
 ## 스킬 카탈로그
 
-루프 4단계, 그다음 루프 밖 유틸리티 17개:
+루프 4단계, 그다음 루프 밖 유틸리티 18개:
 
 | 스킬 | 단계 | 한 줄 역할 |
 | --- | --- | --- |
@@ -126,12 +126,13 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-showme` | 유틸리티 | 브라우저 시각 컴패니언(superpowers vendoring, MIT) — zero-dependency 로컬 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 표시하고 당신의 답을 이벤트로 되읽음. **질문뿐 아니라 설명에서도 발동한다** — 분기 있는 흐름·상태 전이·다축 비교처럼 텍스트 흐름도(`A → B → C`)가 담지 못하는 구조를 *설명*할 때도 제안하며, 텍스트로 감당되면 터미널에 남는다 — 선택형 화면의 필수 확정 버튼을 누르면 터미널 턴 없이 바로 당신을 깨우고, 탐색 클릭만으로는 깨우지 않음; fg-ask 그릴링 중 just-in-time 1회 제안(거절하면 재제안 없음), `fg-showme stop`으로 종료. 프레임은 리포 루트 `DESIGN.md`가 정의하는 Anthropic/Claude 디자인 시스템(크림 캔버스 + 코랄 강조 + serif 디스플레이)으로 렌더되므로, 에이전트가 미는 모든 화면이 그것을 상속한다 |
 | `fg-agenda` | 유틸리티 | 안개 속 작업의 결정 대기열 — 목적지를 함께 정한 뒤 무엇을 결정해야 하는지 캐내 `.forge/agenda.md`에 담고, 길이 밝아질 때까지 한 번에 하나씩 해소한 다음 스스로 삭제; 결정을 찾는 것은 에이전트, **답은 당신**이 하며, 빌드 가능해진 것은 백로그로 떠난다 |
 | `fg-security` | 유틸리티 | 코드베이스 보안 감사(방법론은 cloudflare/security-audit-skill vendoring, MIT) — 공격 유형별 다중 에이전트 다단계 hunting, 산출물은 **리포 밖**(업스트림 `~/security-audit-skill/`)에 남아 커밋 경로가 애초에 없고, 심각도 게이트와 당신의 승인을 통과한 findings가 fix-forward 백로그 plan이 된다 |
+| `fg-debug` | 유틸리티 | 어려운 버그의 대화형 진단 규율(mattpocock/skills의 diagnosing-bugs vendoring, MIT) — 진단 전용; 활성 실패 작업은 fg-run으로 복귀하고, 독립 진단만 fg-quick 또는 승인된 fix plan으로 갈린다. red 명령은 영속할 때만 eval이며, 원본 캡처는 리포 밖에 두고 모든 종료 경로에서 임시 산출물을 정리한다. 무인 주행에선 항상 skip |
 
 스킬별 상세 — 입력·출력·다음 단계, 트리거, 근거 ADR — 은 **[docs/skills.md](./docs/skills.md)** 에 있다. `fg-ask`가 루프의 진입점이며("forge 시작", "새 작업", "계획 다듬자" 등에서 트리거), 유틸리티는 각자 고유 발화로 트리거되는 온디맨드 스킬이다.
 
 ## 전체 흐름
 
-한 스킬이 끝나면 다음 스킬로 가는 길을 고정 4행 **핸드오프 표** — *방금 한 것 · 다음 단계 · 시작하는 법 · 대안* — 로 **알리고 멈춘다**. 가리킬 다음 단계가 실재하는 **13곳**에 적용되며(나머지 여덟은 가리킬 것이 없는 토글·유틸리티라 산문을 유지한다), 그래서 다음 단계가 문단 중간에 묻히지 않고 매번 같은 자리에 있다 — 이것이 고치는 통증은 **길이가 아니라 찾기 어려움**이다 ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). `eco` 요약 표와는 다른 것이다 — 그쪽은 *무엇을 했나*에 답하고, 이 표는 *다음에 무엇을*에 답하며 `eco` on/off 무관하게 렌더된다. **진술형은 변하지 않았다** — 표는 텍스트 출력이고 결코 메뉴가 아니다: "이어갈까요?"라고 묻지 않으며, 다음 단계로 잇는 것은 여전히 `fg-next`의 몫이다 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), 개정 2026-06-15 — fg-run의 과거 4지 메뉴는 변하지 않은 활성 슬롯 상태에서 다시 떠 반복되는 버그로 폐지됐다). 이는 `fg-run`의 단일작업 종료를 포함한 **모든** 핸드오프에 적용된다: 기본은 `fg-learn` 회고, divergence가 낮을 때만 `fg-done`으로 skip+봉인, 높으면 `fg-ask` 재그릴 — 알리고 멈춘다. 루프는 `fg-done`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다. 두 유틸리티가 루프 밖에서 이 연료를 돌본다: `fg-map`은 `fg-ask`가 읽는 코드베이스 지도를 작성하고, `fg-cleanup`은 `fg-ask`가 읽는 ADR 집합을 정비한다.
+한 스킬이 끝나면 다음 스킬로 가는 길을 고정 4행 **핸드오프 표** — *방금 한 것 · 다음 단계 · 시작하는 법 · 대안* — 로 **알리고 멈춘다**. 가리킬 다음 단계가 실재하는 **15곳**에 적용되며(나머지 일곱은 가리킬 것이 없는 토글·유틸리티라 산문을 유지한다), 그래서 다음 단계가 문단 중간에 묻히지 않고 매번 같은 자리에 있다 — 이것이 고치는 통증은 **길이가 아니라 찾기 어려움**이다 ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). `eco` 요약 표와는 다른 것이다 — 그쪽은 *무엇을 했나*에 답하고, 이 표는 *다음에 무엇을*에 답하며 `eco` on/off 무관하게 렌더된다. **진술형은 변하지 않았다** — 표는 텍스트 출력이고 결코 메뉴가 아니다: "이어갈까요?"라고 묻지 않으며, 다음 단계로 잇는 것은 여전히 `fg-next`의 몫이다 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), 개정 2026-06-15 — fg-run의 과거 4지 메뉴는 변하지 않은 활성 슬롯 상태에서 다시 떠 반복되는 버그로 폐지됐다). 이는 `fg-run`의 단일작업 종료를 포함한 **모든** 핸드오프에 적용된다: 기본은 `fg-learn` 회고, divergence가 낮을 때만 `fg-done`으로 skip+봉인, 높으면 `fg-ask` 재그릴 — 알리고 멈춘다. 루프는 `fg-done`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다. 두 유틸리티가 루프 밖에서 이 연료를 돌본다: `fg-map`은 `fg-ask`가 읽는 코드베이스 지도를 작성하고, `fg-cleanup`은 `fg-ask`가 읽는 ADR 집합을 정비한다.
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
@@ -242,3 +243,5 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 랜딩 페이지(`docs/index.html`)는 [Superpowers(Jesse Vincent, obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md)의 **Visual Companion** — 코드를 짜기 전에 목업·레이아웃·색상 옵션을 브라우저 미리보기로 펼쳐 보여주는 디자인 도구 — 로 제작했다.
 
 `fg-security`의 **보안 감사 방법론**은 [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)을 MIT 라이선스로 **vendoring**한 것이다 — 진입 파일과 공격 유형별 플레이북 9종, `report-schema.json`·`validate-findings.cjs`가 `skills/fg-security/`에 있고 라이선스 사본은 `skills/fg-security/LICENSE`다. 개명한 것은 진입 파일 하나뿐이며(`SKILL.md` → `AUDIT.md` — forge의 스킬 자동 탐색 경로와 충돌하지 않도록), 나머지 11개는 업스트림과 **바이트 동일**로 두어 이후 diff가 싸게 유지된다. forge가 더한 것은 루프 통합뿐이다 — 심각도 게이트, 승인 시 fix-forward plan, 그리고 산출물을 리포 밖에 두는 것.
+
+`fg-debug`의 **버그 진단 규율**은 [mattpocock/skills의 diagnosing-bugs](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnosing-bugs)를 MIT 라이선스로 **vendoring**한 것이다 — 진입 파일과 `scripts/hitl-loop.template.sh`가 `skills/fg-debug/`에 있고 라이선스 사본은 `skills/fg-debug/LICENSE`다. 개명한 것은 진입 파일 하나뿐이며(`SKILL.md` → `DIAGNOSE.md` — forge의 스킬 자동 탐색 경로와 충돌하지 않도록), 파일들은 업스트림과 **바이트 동일**로 두어 이후 diff가 싸게 유지된다. forge가 더한 것은 루프 통합뿐이다 — 진단 전용이며 수정 크기보다 상태를 먼저 판정한다. 활성 `verified: failed` 작업은 수정이 trivial이어도 fg-run의 fix-and-re-run 경로로 복귀하고, 독립 진단만 trivial이면 fg-quick, non-trivial이면 사람 승인 fix-forward plan으로 간다. Phase 1 red 명령은 그 자체가 영속할 때만 plan의 eval이며, 아니면 영속 회귀 체크를 추가하거나 기계적 영속화가 불가능한 이유를 기록한다. 비밀 제거가 확인된 fixture와 테스트만 워킹 트리에 남길 수 있고, 원본 캡처는 밖에서 다루며 모든 종료 경로가 임시 계측과 산출물을 정리한다.

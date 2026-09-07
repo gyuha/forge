@@ -27,6 +27,7 @@
 | `fg-showme` | 시각 유틸리티(루프 밖) | 브라우저 시각 컴패니언 — obra/superpowers v6.1.1 Visual Companion vendoring(MIT 귀속, **v6.3.0까지 엔진 동일 확인 — 포팅할 업스트림 변경 없음**). zero-dependency Node 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 브라우저 탭에 실시간 표시하고, 사용자의 클릭·텍스트 입력을 이벤트(JSONL)로 받아 에이전트가 **답으로** 되읽음. 선택형 화면의 **필수 확정 버튼**을 누르면 터미널 턴 없이 바로 에이전트를 깨우며(탐색 클릭은 깨우지 않음), fg-ask 그릴링 중 시각적 질문에서 just-in-time 1회 제안(거절 시 재제안 없음), 이 스킬은 단독 진입점(ADR `260719-224442`·`260730-224259`·`260805-005436`) | 에이전트가 push하는 HTML | 모든 브랜치 최상위 `.forge/showme/<세션>/`(휘발·전역 예외) + 클릭 이벤트(JSONL) | — (`fg-showme stop`으로 종료) |
 | `fg-agenda` | 계획 유틸리티(루프 밖) | 결정 대기열 — **아직 내리지 않은 결정**이 사는 자리. 목적지를 사람과 먼저 정하고 breadth-first 그릴링으로 결정해야 할 것을 캐내 `.forge/agenda.md` 한 파일(목적지·결정된 것·열린 질문·아직 또렷하지 않은 것(fog)·범위 밖)에 담은 뒤, 질문을 하나씩 `fg-ask`의 방법으로 해소하고 열린 질문이 0이면 스스로 삭제한다. **캐내는 것은 에이전트, 답은 전부 사람**(기둥 1) | 느슨한 아이디어(open) 또는 기존 `.forge/agenda.md`(working) | `.forge/agenda.md` + 해소가 낳은 조건부 ADR (빌드 가능해진 결정은 `fg-ask`가 백로그 plan으로) | — (같은 대화에서 계속 다음 질문; 빌드 가능해지면 `fg-ask`) |
 | `fg-security` | 감사 유틸리티(루프 밖) | 코드베이스 보안 감사 — cloudflare 방법론 vendoring; 산출물은 리포 밖; 심각도 게이트 통과분이 fix-forward plan | 코드베이스 전체 + 이전 run의 `findings.json`(복수 실행으로 기존 finding 건너뛰고 빈틈 노림) | `~/security-audit-skill/<repo>/run-N/`(`REPORT.md`·`FINDINGS-DETAIL.md`·`findings.json` — **리포 밖**) + 승인 시 `.forge/backlog/*.md` | `fg-run`(승인된 fix-forward plan 실행) — 봉인 게이트 아님 |
+| `fg-debug` | 진단 유틸리티(루프 밖) | 어려운 버그의 대화형 진단 규율 — diagnosing-bugs vendoring(MIT); red를 낼 수 있는 피드백 루프 구축·재현·최소화·가설 순위화, 진단 전용(수정은 루프의 것) | 버그 리포트 + 프로젝트 워킹 트리 | 활성 실패면 기존 fg-run 복귀; 독립 진단이면 trivial은 fg-quick, non-trivial은 승인된 `.forge/backlog/*.md`; red 명령은 영속할 때만 eval, 원본 캡처는 리포 밖에서 전 종료 cleanup | `fg-run`(활성 실패 복귀 또는 승인된 fix plan 실행) |
 
 ## 핸드오프 표 — 모든 다음 단계 안내의 공통 형태
 
@@ -34,24 +35,24 @@
 
 - **표는 사용자 언어로 렌더된다.** 라벨의 canonical 이름은 영문(`Just did` · `Next step` · `How to start` · `Alternative`)이고 — 스킬 문서가 영문이므로 셀을 가리킬 때 쓰는 이름이다 — 화면에 나갈 때 사용자 언어로 번역된다(한국어 세션이면 위 네 라벨). 경로·`.forge/` 필드·`/명령`만 verbatim이며, **자연어 트리거는 verbatim이 아니라** 스킬 `description`에 등록된 한/영 트리거 중 사용자 언어에 맞는 것을 골라 채운다.
 
-- **적용 14곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 10개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`·`fg-security`).
+- **적용 15곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 11개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`·`fg-security`·`fg-debug`).
 - **제외 7곳** — `fg-config`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-showme`·`fg-help`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
 - **표는 메뉴가 아니다.** 진술형은 불변이다(ADR-0015) — `AskUserQuestion`으로 내지 않고, `대안` 행은 고르라는 질문이 아니며, 알리고 멈춘다. 체이닝은 여전히 `fg-next`의 몫이다.
 - **조건부 다음 단계는 우선순위 규칙으로 채운다.** 한 분기를 행에 못 박고 나머지를 `대안`으로 밀면 표가 스킬이 방금 하지 말라고 한 것을 지시하게 된다(`fg-run`·`fg-learn`의 divergence 규칙이 그 예다).
 - **무인 주행에서는 위임 스킬이 표를 렌더하지 않는다** — `fg-next all`·`fg-loop`에서 주행자가 억제하고 자기 단계(벽·완료)에만 낸다. 위임된 "fg-learn 실행" 안내가 사용자에게 새어 나가면 주행이 정지한다(`DRIVE.md`).
 - **[`eco` 요약 표](#fg-config)와는 다른 것**이다 — 그쪽은 *무엇을 했나*(축은 슬라이스, `eco: true`에서만), 이쪽은 *다음에 무엇을*. 둘이 함께 뜨는 지점에서는 각자 상대가 소유한 행을 뺀다.
 
-단일 정의는 `skills/fg-next/HANDOFF.md` 하나이며 14곳이 이를 **참조**한다(복붙 금지 — `skills/fg-run/FORGE-ROOT.md`·`skills/fg-next/DRIVE.md`와 같은 관례).
+단일 정의는 `skills/fg-next/HANDOFF.md` 하나이며 15곳이 이를 **참조**한다(복붙 금지 — `skills/fg-run/FORGE-ROOT.md`·`skills/fg-next/DRIVE.md`와 같은 관례).
 
 ## Explaining forge — forge가 자기 어휘를 설명하는 방식 (항상)
 
-forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 사람에게 암호다. 그래서 21개 `SKILL.md` 전부가 `**Language**` 규칙 옆에 **항상-on `**Explaining forge**` 규율**을 담는다. `eco` 게이트와 무관하다 — ADR `260824-134246`.
+forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 사람에게 암호다. 그래서 22개 `SKILL.md` 전부가 `**Language**` 규칙 옆에 **항상-on `**Explaining forge**` 규율**을 담는다. `eco` 게이트와 무관하다 — ADR `260824-134246`.
 
 - **규칙 3개** — ① forge 전문용어는 한 메시지 안 첫 등장에서 즉시 주석(몇 단어, 문단 아님) ② 목적을 메커니즘보다 먼저 ③ 결론을 먼저 내고 사용자에게 갖는 의미로 닫기.
 - **eco에 넣지 않은 것이 핵심 결정이다.** `eco` 기본값은 `false`이고, 주석을 가장 필요로 하는 사람 — forge를 방금 설치한 사용자 — 이 바로 eco를 켜 봤을 리 없는 사람이다. eco에 번들하면 규율이 거꾸로 배달된다. ADR-0014가 caveman을 eco에 번들한 것과 **의도적으로 다른** 결정이며, 차이의 근거는 caveman이 토큰 절약(축=비용)이고 이것은 정확한 전달(축=품질)이라는 것이다.
 - **[`ECO.md`의 간결 규칙](#fg-config)과 분업한다** — 간결 규칙은 **형태**(길이·군더더기), 이 규율은 **어휘**를 지배한다. **주석은 군더더기가 아니므로** 간결함이 주석을 지우지 않는다. `eco` off = 장문+주석, on = 간결+주석 — 주석은 두 상태에서 불변이다.
 - **[dreambigou의 eli5](https://github.com/dreambigou/eli5)(MIT)에서 개념만 각색했다** — 코드 vendoring이 아니다(파일 복사 0). 청중 표(나이·학년·관계·직무 24행)는 버렸다: forge 출력을 5살이나 배우자나 디자이너가 읽지 않으므로 남길 청중 축이 없고, 청중 변화는 사람 사이가 아니라 **숙련도 사이**에 있다.
-- **단일정의 문서를 만들지 않고 인라인했다** — 규칙이 3문장 1줄이라 참조 한 줄이 규칙 본문과 길이가 비슷해진다(`HANDOFF.md`·`ECO.md`는 파일을 벌지만 3줄은 못 번다). 대가인 21중 복제 드리프트는 **`fg-doctor` 검사 B17**이 막는다 — **canonical 본문**의 단일 정의(`scripts/explaining-forge.rule.txt`)를 21곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩만 남기고 본문을 삭제·축약·약화·반대로 쓴 경우까지 잡힌다. **포함**(동일성 아님)이라 `fg-ask`의 의도된 상위집합(문장 하나 추가)은 예외 목록 없이 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 forge 리포에 한정된다(사용자 프로젝트의 자기 스킬은 오탐이 되므로 **최상위** 매니페스트 `name`으로 스코프를 좁혔다 — 중첩된 `"author": {"name": "forge"}`는 발동시키지 못한다).
+- **단일정의 문서를 만들지 않고 인라인했다** — 규칙이 3문장 1줄이라 참조 한 줄이 규칙 본문과 길이가 비슷해진다(`HANDOFF.md`·`ECO.md`는 파일을 벌지만 3줄은 못 번다). 대가인 22중 복제 드리프트는 **`fg-doctor` 검사 B17**이 막는다 — **canonical 본문**의 단일 정의(`scripts/explaining-forge.rule.txt`)를 22곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩만 남기고 본문을 삭제·축약·약화·반대로 쓴 경우까지 잡힌다. **포함**(동일성 아님)이라 `fg-ask`의 의도된 상위집합(문장 하나 추가)은 예외 목록 없이 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 forge 리포에 한정된다(사용자 프로젝트의 자기 스킬은 오탐이 되므로 **최상위** 매니페스트 `name`으로 스코프를 좁혔다 — 중첩된 `"author": {"name": "forge"}`는 발동시키지 못한다).
 
 ## 루프 스킬 (4단계)
 
@@ -81,7 +82,7 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](https://github.com/gyuha/forge/blob/main/.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (17개)
+## 루프 밖 유틸리티 (18개)
 
 ### fg-map
 
@@ -183,3 +184,11 @@ Claude Code 전용 UI 유틸리티다. Codex에서는 설정을 수정하지 않
 **forge가 더하는 것은 정확히 세 가지**다. ① **findings가 리포트에서 끝나지 않고 루프에 들어온다** — 감사 산출물 자체는 업스트림 기본값 `~/security-audit-skill/<repo>/run-<N>/`, 즉 **리포 밖**에 남는다. 초기 설계는 최상위 `.forge/security/`였으나 봉인 전 적대적 리뷰가 그 보증을 무너뜨렸다 — *"`.gitignore`의 `.forge/*`가 덮는다"*는 **forge 자기 리포에서만** 참이고, forge는 대상 리포에 `.gitignore`를 쓰지 않으며, ADR이 스스로 밝힌 사용처는 *"forge가 구동하는 사용자의 다른 프로젝트"*(그 규칙을 가질 가능성이 가장 낮은 리포)다. **리포 안은 구조적으로 안전하게 만들 수 없고 리포 밖은 커밋 경로가 존재하지 않는다.** 대가는 정직하게 — 산출물이 클론과 함께 이동하지 않고 팀이 못 읽으며 홈 디렉터리라 잊기 쉽다(그래서 핸드오프가 **실행 경로를 전체로** 명시한다). 곁들여 드러난 함정 둘: ADR-0011의 "전역 예외"는 **브랜치 네임스페이싱**이고 git 추적과 무관하며(기존 예외 둘은 전역이면서 **추적된다**), `!.forge/branch/`는 비-기본 브랜치 루트를 **통째로 추적**한다. ② **심각도 게이트**를 통과한 findings만 사람 승인 후 **fix-forward 백로그 plan**이 된다 — CRITICAL·HIGH는 각각 제안(같은 코드 경로·같은 수정이면 묶어서), MEDIUM은 제안하되 묶기 권고, **LOW·INFO는 리포트에만 남고 plan을 만들지 않는다.** forge가 다른 모든 곳에서 쓰는 승급 바(회고 승급·ADR 3조건·CONTEXT.md 용어)와 같은 모양이고, 실제 감사가 findings 5~20건을 내므로 전부 승급하면 **백로그가 홍수**가 되어 활성 슬롯 1개 규율이 무의미해진다. 생성 plan은 `<!-- generated-by: fg-security -->` 마커와 단조 `task:` 번호를 달고, DoD는 **"그 취약점이 더는 재현되지 않음"**이다 — 업스트림이 MEDIUM+ findings의 데이터 흐름을 `FINDINGS-DETAIL.md`에 남기므로 그 재현 경로가 ADR-0009 검증 게이트를 채운다. ③ **무인 주행(`fg-next all`·`fg-loop`)에서는 회고처럼 항상 skip**된다 — findings의 진위와 수정 가치 판단은 사람 몫이다.
 
 봉인을 막지 않는다(게이트는 `verified:`와 회고뿐). "forge security", "보안 감사", "취약점 찾아줘", "security audit" 같은 발화에서 트리거된다 ([ADR `260820-215004`](https://github.com/gyuha/forge/blob/main/.forge/adr/260820-215004-fg-security-vendored-audit.md)).
+
+### fg-debug
+
+`fg-debug`는 **어려운 버그의 대화형 진단 규율로, 루프 밖**이다 — 방법론은 forge가 쓰지 않았다. [mattpocock/skills의 diagnosing-bugs](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnosing-bugs)를 MIT 귀속과 함께 **vendoring**해 진입 파일(`DIAGNOSE.md`로 개명 — forge는 `skills/<name>/SKILL.md`로 스킬을 자동 탐색하므로 이름 충돌 회피)과 `scripts/hitl-loop.template.sh`를 **바이트 그대로** 두었다(fg-security 선례 — 업스트림 diff가 싸게 유지된다). 규율의 뼈대는 Phase 1–4다: **red를 낼 수 있는 피드백 루프**(가능하면 올바른 seam의 failing test)를 먼저 만들고, 재현하고, 최소화하고, 가설을 순위화한다 — 새 `.forge/` 상태는 없으며, 워킹 트리에 남을 수 있는 것은 비밀 제거가 확인된 fixture와 영속 테스트뿐이다.
+
+**forge가 더하는 것은 경계다.** `fg-debug`는 **진단만 하며 수정 크기보다 호출 상태를 먼저 판정한다** — 활성 `verified: failed` 작업을 진단했다면 수정이 trivial이어도 기존 fg-run의 fix-and-re-run 경로로 복귀한다. 활성 실패가 없는 독립 진단만 trivial이면 **fg-quick**, non-trivial이면 사람 승인 후 `<!-- generated-by: fg-debug -->` 마커를 단 fix-forward plan으로 간다. Phase 1의 **red 명령은 그 자체가 영속 회귀 체크일 때만 eval**이다. 일회성 curl·trace·HITL이면 plan에 영속 체크 slice를 추가하거나 기계적 영속화가 불가능한 이유를 기록한다. 비밀 제거가 확인된 fixture와 테스트만 워킹 트리에 남길 수 있고, 원본 trace·HAR·로그는 밖의 임시 위치에서만 다루며 성공·불확정·fg-quick 이관을 포함한 모든 종료 경로에서 임시 계측과 함께 정리한다. 대화형이라 무인 주행(`fg-next all`·`fg-loop`)에서는 회고처럼 **항상 skip**된다.
+
+봉인을 막지 않는다(게이트는 `verified:`와 회고뿐). "debug this", "디버깅해줘", "버그 잡아줘", "왜 안 되지" 같은 발화에서 트리거된다 ([ADR `260907-140655`](https://github.com/gyuha/forge/blob/main/.forge/adr/260907-140655-fg-debug-vendored-diagnosis.md)).

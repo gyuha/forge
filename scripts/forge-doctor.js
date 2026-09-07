@@ -98,6 +98,22 @@ if (isFile(path.join(root, 'ask.md'))) {
   const age = (Date.now() - fs.statSync(path.join(root, 'ask.md')).mtimeMs) / 86400000;
   if (age > 1) finding('warning', 'A7 stale ask.md', path.join(root, 'ask.md'), 'finish grilling with fg-ask (overwrites it) or discard via fg-drop');
 }
+// A9 stale drive.md — a drive that died without deleting its marker. Harmless
+// (the Stop hook ignores a marker past its 30-min bound) but it means some drive
+// exited without cleaning up, and the next reader deserves to know why nothing is
+// continuing. Read-only: report, never delete (fg-doctor never auto-fixes).
+if (isFile(path.join(root, 'drive.md'))) {
+  let started = '';
+  for (const line of read(path.join(root, 'drive.md')).split(/\r?\n/)) {
+    const m = line.match(/^started:[ \t]*([0-9]*)/);
+    if (m) { started = m[1]; break; }
+  }
+  if (started === '') {
+    finding('warning', 'A9 unparseable drive.md', path.join(root, 'drive.md'), "a drive marker with no valid 'started:' \u2014 delete it (the Stop hook ignores it, so nothing is blocked)");
+  } else if (Math.floor(Date.now() / 1000) - Number(started) > 1800) {
+    finding('warning', 'A9 stale drive.md', path.join(root, 'drive.md'), 'a drive exited without deleting its marker (past the 30-min bound, so it blocks nothing) \u2014 delete it');
+  }
+}
 // A8 orphaned branch root
 const brDir = path.join(repo, '.forge', 'branch');
 if (isDir(brDir)) {
@@ -212,6 +228,57 @@ if (isFile(PJ) && jname(PJ) === 'forge' && isFile(RULE_FILE)) {
   const rule = read(RULE_FILE).replace(/\n+$/, '');
   for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
     if (!read(sf).includes(rule)) finding('warning', 'B17 missing Explaining forge rule', sf, "the canonical **Explaining forge** paragraph is absent or altered — copy it verbatim from scripts/explaining-forge.rule.txt next to this skill's **Language** rule (ADR 260824-134246)");
+  }
+}
+
+// B18 fg-debug contract coherence (ADR 260907-140655) — twin of .sh. This
+// checks independent semantic signals across HANDOFF, CONTEXT, and fg-debug;
+// it deliberately does not make a second canonical paragraph out of the test.
+if (isFile(PJ) && jname(PJ) === 'forge') {
+  const handoff = path.join(repo, 'skills', 'fg-next', 'HANDOFF.md');
+  const context = path.join(repo, '.forge', 'CONTEXT.md');
+  const debugSkill = path.join(repo, 'skills', 'fg-debug', 'SKILL.md');
+  let appliesN = '', wiredN = '';
+  if (isFile(handoff)) {
+    const h = read(handoff);
+    appliesN = (h.match(/^\*\*Applies \((\d+)\)\*\*/m) || [, ''])[1];
+    const section = (h.match(/^\*\*Applies \(\d+\)\*\*[\s\S]*?(?=^\*\*Does NOT apply)/m) || [''])[0];
+    wiredN = String(new Set((section.match(/`fg-[a-z0-9-]+`/g) || [])).size);
+    if (!appliesN || appliesN !== wiredN) finding('warning', 'B18 handoff applies count', `${handoff} (declared=${appliesN || 'missing'} enumerated=${wiredN || '0'})`, 'make the Applies declaration equal the unique backtick-enumerated fg-* skills in that section');
+    const excludedN = (h.match(/^\*\*Does NOT apply \((\d+)\)\*\*/m) || [, ''])[1];
+    const excludedStart = h.search(/^\*\*Does NOT apply \(\d+\)\*\*/m);
+    let excludedSection = excludedStart >= 0 ? h.slice(excludedStart) : '';
+    const nextH2 = excludedSection.search(/\n## /);
+    if (nextH2 >= 0) excludedSection = excludedSection.slice(0, nextH2);
+    const excludedWiredN = String(new Set((excludedSection.match(/`fg-[a-z0-9-]+`/g) || [])).size);
+    if (!excludedN || excludedN !== excludedWiredN) finding('warning', 'B18 handoff excluded count', `${handoff} (declared=${excludedN || 'missing'} enumerated=${excludedWiredN || '0'})`, 'make the Does NOT apply declaration equal the unique backtick-enumerated fg-* skills in that section');
+  }
+  if (isFile(context) && wiredN) {
+    const c = read(context);
+    const marker = '**핸드오프 표 (handoff table)**:';
+    let section = c.includes(marker) ? c.slice(c.indexOf(marker) + marker.length) : '';
+    const nextTerm = section.search(/\n\*\*[^*\n]+\*\*:/);
+    if (nextTerm >= 0) section = section.slice(0, nextTerm);
+    const contextN = (section.match(/적용 지점[^0-9]*(\d+)곳/) || [, ''])[1];
+    if (!contextN || contextN !== wiredN) finding('warning', 'B18 CONTEXT handoff count', `${context} (declared=${contextN || 'missing'} enumerated=${wiredN})`, "sync the handoff-table glossary count with HANDOFF.md's unique Applies enumeration");
+  }
+  if (isFile(debugSkill)) {
+    const debugText = read(debugSkill);
+    const h2Section = (prefix) => {
+      const lines = debugText.split(/\r?\n/);
+      const start = lines.findIndex((line) => line.startsWith(`## ${prefix}`));
+      if (start < 0) return '';
+      const end = lines.findIndex((line, i) => i > start && line.startsWith('## '));
+      return lines.slice(start + 1, end < 0 ? lines.length : end).join(' ').replace(/\s+/g, ' ');
+    };
+    const route = h2Section('Route by invocation state');
+    const artifacts = h2Section('Phase 1 artifacts');
+    const boundary = h2Section('The boundary');
+    if (!(/verified:[ \t]*failed/i.test(route) && /fix-and-re-run/i.test(route))) finding('warning', 'B18 fg-debug active-failure route', debugSkill, "state that an active verified: failed diagnosis returns to fg-run's existing fix-and-re-run path");
+    const classifies = /classif(y|ies|ication)|determin(e|es|ing)\s+whether|decid(e|es|ing)\s+whether|separately/i.test(artifacts);
+    if (!(classifies && /persistent/i.test(artifacts) && /one-off|one off|throwaway|curl|trace|HITL/i.test(artifacts) && /PLAN-FORMAT/i.test(artifacts) && !/fix-forward eval rule by construction/i.test(artifacts))) finding('warning', 'B18 fg-debug persistent eval', debugSkill, 'classify Phase 1 commands as persistent or one-off, defer to PLAN-FORMAT, and do not overclaim automatic eval compliance');
+    if (!(/(all|every)[ -]*(exit|termination|outcome)/i.test(artifacts) && /delete|remove|clean(ed|s|ing|up)?|cleanup/i.test(artifacts) && /capture|trace|HAR|log|instrumentation|harness|artifact/i.test(artifacts))) finding('warning', 'B18 fg-debug cleanup', debugSkill, 'require raw captures, temporary instrumentation, and throwaway harnesses to be removed on every exit path');
+    if (!(/(feedback|reproduction)[ -]*loop.{0,100}(exist(s)?|built|available|working|established)/i.test(boundary) && /(root[ -]*cause|cause).{0,100}(unconfirmed|not confirmed|remains unknown|not established)/i.test(boundary))) finding('warning', 'B18 fg-debug inconclusive route', debugSkill, 'define an inconclusive exit for an existing feedback loop whose root cause remains unconfirmed');
   }
 }
 

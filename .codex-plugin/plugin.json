@@ -1,7 +1,7 @@
 {
   "name": "forge",
   "version": "0.8.5",
-  "description": "Agent-engineering workflow skills for Claude Code and Codex.",
+  "description": "Agent-engineering workflow skills for Claude Code and Codex — twenty-two fg-* skills: the four-stage loop (fg-ask → fg-run → fg-learn → fg-done) plus outside-the-loop utilities, including fg-security (vendored security audit) and fg-debug (vendored diagnosis only: active failures return to fg-run; independent diagnoses route by size, durable eval, and all-exit safe cleanup).",
   "author": {
     "name": "gyuha",
     "email": "nicegyuha@gmail.com",

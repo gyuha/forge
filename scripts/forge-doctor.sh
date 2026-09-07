@@ -253,6 +253,59 @@ if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ] && [ -f "$RULE_FILE" ]; then
   done
 fi
 
+# B18 fg-debug contract coherence (ADR 260907-140655): repo-internal prose spans
+# HANDOFF, CONTEXT, and the fg-debug wrapper. Check independent semantic signals
+# rather than one copied paragraph so wording may evolve without making this a
+# second canonical contract. Like B17, scope this strictly to the forge plugin.
+if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ]; then
+  HANDOFF="$repo/skills/fg-next/HANDOFF.md"
+  CONTEXT="$repo/.forge/CONTEXT.md"
+  DEBUG_SKILL="$repo/skills/fg-debug/SKILL.md"
+  applies_n=""; wired_n=""; excluded_n=""; excluded_wired_n=""
+  if [ -f "$HANDOFF" ]; then
+    applies_n="$(sed -nE 's/^\*\*Applies \(([0-9]+)\)\*\*.*/\1/p' "$HANDOFF" | head -1)"
+    wired_n="$(awk '/^\*\*Applies \([0-9]+\)\*\*/ { on=1; next } /^\*\*Does NOT apply/ { on=0 } on { print }' "$HANDOFF" | grep -oE '`fg-[a-z0-9-]+`' | sort -u | wc -l | tr -d '[:space:]')"
+    if [ -z "$applies_n" ] || [ "$applies_n" != "${wired_n:-0}" ]; then
+      finding warning "B18 handoff applies count" "$HANDOFF (declared=${applies_n:-missing} enumerated=${wired_n:-0})" "make the Applies declaration equal the unique backtick-enumerated fg-* skills in that section"
+    fi
+    excluded_n="$(sed -nE 's/^\*\*Does NOT apply \(([0-9]+)\)\*\*.*/\1/p' "$HANDOFF" | head -1)"
+    excluded_wired_n="$(awk '/^\*\*Does NOT apply \([0-9]+\)\*\*/ { on=1; next } /^## / { if (on) exit } on { print }' "$HANDOFF" | grep -oE '`fg-[a-z0-9-]+`' | sort -u | wc -l | tr -d '[:space:]')"
+    if [ -z "$excluded_n" ] || [ "$excluded_n" != "${excluded_wired_n:-0}" ]; then
+      finding warning "B18 handoff excluded count" "$HANDOFF (declared=${excluded_n:-missing} enumerated=${excluded_wired_n:-0})" "make the Does NOT apply declaration equal the unique backtick-enumerated fg-* skills in that section"
+    fi
+  fi
+  if [ -f "$CONTEXT" ] && [ -n "$wired_n" ]; then
+    context_n="$(awk '/^\*\*핸드오프 표 \(handoff table\)\*\*:/ { on=1; next } /^\*\*[^*]+\*\*:/ { if (on) exit } on { print }' "$CONTEXT" | sed -nE 's/.*적용 지점[^0-9]*([0-9]+)곳.*/\1/p' | head -1)"
+    if [ -z "$context_n" ] || [ "$context_n" != "$wired_n" ]; then
+      finding warning "B18 CONTEXT handoff count" "$CONTEXT (declared=${context_n:-missing} enumerated=$wired_n)" "sync the handoff-table glossary count with HANDOFF.md's unique Applies enumeration"
+    fi
+  fi
+  if [ -f "$DEBUG_SKILL" ]; then
+    debug_route="$(awk 'index($0, "## Route by invocation state") == 1 { on=1; next } /^## / { if (on) exit } on { print }' "$DEBUG_SKILL" | tr '\n' ' ')"
+    debug_artifacts="$(awk 'index($0, "## Phase 1 artifacts") == 1 { on=1; next } /^## / { if (on) exit } on { print }' "$DEBUG_SKILL" | tr '\n' ' ')"
+    debug_boundary="$(awk 'index($0, "## The boundary") == 1 { on=1; next } /^## / { if (on) exit } on { print }' "$DEBUG_SKILL" | tr '\n' ' ')"
+    if ! { printf '%s' "$debug_route" | grep -qiE 'verified:[[:space:]]*failed' && printf '%s' "$debug_route" | grep -qiF 'fix-and-re-run'; }; then
+      finding warning "B18 fg-debug active-failure route" "$DEBUG_SKILL" "state that an active verified: failed diagnosis returns to fg-run's existing fix-and-re-run path"
+    fi
+    if ! { printf '%s' "$debug_artifacts" | grep -qiE 'classif(y|ies|ication)|determin(e|es|ing)[[:space:]]+whether|decid(e|es|ing)[[:space:]]+whether|separately' \
+      && printf '%s' "$debug_artifacts" | grep -qiF 'persistent' \
+      && printf '%s' "$debug_artifacts" | grep -qiE 'one-off|one off|throwaway|curl|trace|HITL' \
+      && printf '%s' "$debug_artifacts" | grep -qiF 'PLAN-FORMAT' \
+      && ! printf '%s' "$debug_artifacts" | grep -qiF 'fix-forward eval rule by construction'; }; then
+      finding warning "B18 fg-debug persistent eval" "$DEBUG_SKILL" "classify Phase 1 commands as persistent or one-off, defer to PLAN-FORMAT, and do not overclaim automatic eval compliance"
+    fi
+    if ! { printf '%s' "$debug_artifacts" | grep -qiE '(all|every)[ -]*(exit|termination|outcome)' \
+      && printf '%s' "$debug_artifacts" | grep -qiE 'delete|remove|clean(ed|s|ing|up)?|cleanup' \
+      && printf '%s' "$debug_artifacts" | grep -qiE 'capture|trace|HAR|log|instrumentation|harness|artifact'; }; then
+      finding warning "B18 fg-debug cleanup" "$DEBUG_SKILL" "require raw captures, temporary instrumentation, and throwaway harnesses to be removed on every exit path"
+    fi
+    if ! { printf '%s' "$debug_boundary" | grep -qiE '(feedback|reproduction)[ -]*loop.{0,100}(exist(s)?|built|available|working|established)' \
+      && printf '%s' "$debug_boundary" | grep -qiE '(root[ -]*cause|cause).{0,100}(unconfirmed|not confirmed|remains unknown|not established)'; }; then
+      finding warning "B18 fg-debug inconclusive route" "$DEBUG_SKILL" "define an inconclusive exit for an existing feedback loop whose root cause remains unconfirmed"
+    fi
+  fi
+fi
+
 # =============================================================================
 # Verdict
 # =============================================================================

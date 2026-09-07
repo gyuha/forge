@@ -41,6 +41,15 @@ run_doc "$t"; assert "A6dup-rc2" 2 "$RC"; assert_grep "A6dup-msg" "$OUT" "A6 dup
 # --- A7 stale ask.md -> warning ----------------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-ask: x -->\n' > "$t/.forge/ask.md"; touch -t 202001010000 "$t/.forge/ask.md"
 run_doc "$t"; assert "A7-rc1" 1 "$RC"; assert_grep "A7-msg" "$OUT" "A7 stale ask.md"; rm -rf "$t"
+# --- A9 stale drive.md (past the 30-min bound) -> warning --------------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf 'started: %s\n' "$(( $(date +%s) - 1860 ))" > "$t/.forge/drive.md"
+run_doc "$t"; assert "A9stale-rc1" 1 "$RC"; assert_grep "A9stale-msg" "$OUT" "A9 stale drive.md"; rm -rf "$t"
+# --- A9 unparseable drive.md (no valid started:) -> warning ------------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf 'started: nonsense\n' > "$t/.forge/drive.md"
+run_doc "$t"; assert "A9unparse-rc1" 1 "$RC"; assert_grep "A9unparse-msg" "$OUT" "A9 unparseable drive.md"; rm -rf "$t"
+# --- A9 live drive.md (inside the bound) -> silent, must not false-fire ------
+t=$(mktmp); mkdir -p "$t/.forge"; printf 'started: %s\n' "$(date +%s)" > "$t/.forge/drive.md"
+run_doc "$t"; assert "A9live-rc0" 0 "$RC"; assert_nogrep "A9live-none" "$OUT" "A9 "; rm -rf "$t"
 # --- A8 orphaned branch root -> warning --------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x/adr"; printf '# t\n' > "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"
 run_doc "$t"; assert "A8-rc1" 1 "$RC"; assert_grep "A8-msg" "$OUT" "A8 orphaned branch root"; rm -rf "$t"
@@ -149,6 +158,49 @@ t=$(mktmp); mkdir -p "$t/.forge" "$t/.claude-plugin" "$t/skills/theirs"
 printf '{"name":"my-plugin","author":{"name":"forge"}}\n' > "$t/.claude-plugin/plugin.json"
 printf 'name: theirs\ndescription: short core\n---\n**Language**: x\n' > "$t/skills/theirs/SKILL.md"
 run_doc "$t"; assert "B17-nested-name-rc0" 0 "$RC"; assert_nogrep "B17-nested-name-msg" "$OUT" "B17 missing"; rm -rf "$t"
+
+# --- B18: fg-debug contract coherence ---------------------------------------
+# This is forge-repo-scoped like B17. The fixture spells the contract as
+# independent semantic signals rather than copying one canonical paragraph, so
+# harmless prose edits do not make the doctor test its own wording.
+seed_b18_base() {
+  mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/fg-next" "$1/skills/fg-debug"
+  printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"
+  printf '# Handoff\n\n**Applies (2)**\n\n| Group | Skills |\n| --- | --- |\n| Loop | `fg-run` |\n| Utility | `fg-debug` |\n\n**Does NOT apply (1)**\n\n| Skills | Why |\n| --- | --- |\n| `fg-help` | Reporter only |\n' > "$1/skills/fg-next/HANDOFF.md"
+  printf '# forge\n\n**핸드오프 표 (handoff table)**:\n적용 지점은 다음 단계가 있는 2곳이다.\n\n**다음 용어**:\n끝.\n' > "$1/.forge/CONTEXT.md"
+}
+write_b18_debug() { # <dir> <active-failure> <eval> <cleanup> <loop-inconclusive>
+  {
+    printf '%s\n' '---' 'name: fg-debug' 'description: short core' '---' '**Language**: x' '' "$RULE" ''
+    printf '%s\n' '## Route by invocation state before diagnosis size' "$2" '## Phase 1 artifacts' "$3" "$4" '## The boundary' "$5"
+  } > "$1/skills/fg-debug/SKILL.md"
+}
+seed_b18_good() {
+  seed_b18_base "$1"
+  write_b18_debug "$1" \
+    'An active slot at `verified: failed` returns the diagnosis to the existing fg-run fix-and-re-run path.' \
+    'Classify whether the Phase 1 command is a persistent regression check; curl, trace, HITL, and throwaway commands are one-off. Follow PLAN-FORMAT.' \
+    'Delete raw captures, temporary instrumentation, and throwaway harnesses on every exit path.' \
+    'Inconclusive with a feedback loop already built and the root cause unconfirmed asks for more instrumentation.'
+}
+seed_b18_handoff_bad() { seed_b18_good "$1"; sed 's/Applies (2)/Applies (3)/' "$1/skills/fg-next/HANDOFF.md" > "$1/H"; mv "$1/H" "$1/skills/fg-next/HANDOFF.md"; }
+seed_b18_handoff_excluded_bad() { seed_b18_good "$1"; sed 's/Does NOT apply (1)/Does NOT apply (2)/' "$1/skills/fg-next/HANDOFF.md" > "$1/H"; mv "$1/H" "$1/skills/fg-next/HANDOFF.md"; }
+seed_b18_context_bad() { seed_b18_good "$1"; sed 's/2곳/3곳/' "$1/.forge/CONTEXT.md" > "$1/C"; mv "$1/C" "$1/.forge/CONTEXT.md"; }
+seed_b18_active_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'A failed task receives a diagnostic report.' 'Classify whether the Phase 1 command is a persistent regression check; curl and trace commands are one-off. Follow PLAN-FORMAT.' 'Remove temporary captures and instrumentation on every exit path.' 'A feedback loop can exist while the root cause is unconfirmed.'; }
+seed_b18_active_decoupled() { seed_b18_base "$1"; write_b18_debug "$1" 'An active failed task receives a diagnostic report.' 'Classify whether the Phase 1 command is a persistent regression check; curl and trace commands are one-off. Follow PLAN-FORMAT. A glossary elsewhere mentions `verified: failed` and fix-and-re-run.' 'Remove temporary captures and instrumentation on every exit path.' 'A feedback loop can exist while the root cause is unconfirmed.'; }
+seed_b18_eval_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: failed`, use fg-run fix-and-re-run.' 'The red command satisfies the fix-forward eval rule by construction. See PLAN-FORMAT.' 'Remove temporary captures and instrumentation on every exit path.' 'A feedback loop can exist while the root cause is unconfirmed.'; }
+seed_b18_cleanup_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: failed`, use fg-run fix-and-re-run.' 'Classify persistent checks separately from one-off curl and trace commands. See PLAN-FORMAT.' 'The later fix may clean temporary files.' 'A feedback loop can exist while the root cause is unconfirmed.'; }
+seed_b18_loop_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: failed`, use fg-run fix-and-re-run.' 'Classify persistent checks separately from one-off curl and trace commands. See PLAN-FORMAT.' 'Remove temporary captures and instrumentation on every exit path.' 'Inconclusive means no feedback loop could be built.'; }
+
+t=$(mktmp); seed_b18_good "$t"; run_doc "$t"; assert "B18-good-rc0" 0 "$RC"; assert_nogrep "B18-good-msg" "$OUT" "B18 "; rm -rf "$t"
+t=$(mktmp); seed_b18_handoff_bad "$t"; run_doc "$t"; assert "B18-handoff-rc1" 1 "$RC"; assert_grep "B18-handoff-msg" "$OUT" "B18 handoff applies count"; rm -rf "$t"
+t=$(mktmp); seed_b18_handoff_excluded_bad "$t"; run_doc "$t"; assert "B18-handoff-excluded-rc1" 1 "$RC"; assert_grep "B18-handoff-excluded-msg" "$OUT" "B18 handoff excluded count"; rm -rf "$t"
+t=$(mktmp); seed_b18_context_bad "$t"; run_doc "$t"; assert "B18-context-rc1" 1 "$RC"; assert_grep "B18-context-msg" "$OUT" "B18 CONTEXT handoff count"; rm -rf "$t"
+t=$(mktmp); seed_b18_active_bad "$t"; run_doc "$t"; assert "B18-active-rc1" 1 "$RC"; assert_grep "B18-active-msg" "$OUT" "B18 fg-debug active-failure route"; rm -rf "$t"
+t=$(mktmp); seed_b18_active_decoupled "$t"; run_doc "$t"; assert "B18-active-decoupled-rc1" 1 "$RC"; assert_grep "B18-active-decoupled-msg" "$OUT" "B18 fg-debug active-failure route"; rm -rf "$t"
+t=$(mktmp); seed_b18_eval_bad "$t"; run_doc "$t"; assert "B18-eval-rc1" 1 "$RC"; assert_grep "B18-eval-msg" "$OUT" "B18 fg-debug persistent eval"; rm -rf "$t"
+t=$(mktmp); seed_b18_cleanup_bad "$t"; run_doc "$t"; assert "B18-cleanup-rc1" 1 "$RC"; assert_grep "B18-cleanup-msg" "$OUT" "B18 fg-debug cleanup"; rm -rf "$t"
+t=$(mktmp); seed_b18_loop_bad "$t"; run_doc "$t"; assert "B18-loop-rc1" 1 "$RC"; assert_grep "B18-loop-msg" "$OUT" "B18 fg-debug inconclusive route"; rm -rf "$t"
 
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
