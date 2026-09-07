@@ -41,6 +41,15 @@ permissions:
   contents: read
 
 jobs:
+  windows-hooks:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Windows hook exit propagation
+        run: node hooks/run-hook.windows.test.js
   gate:
     runs-on: ubuntu-latest
     steps:

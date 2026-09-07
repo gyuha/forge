@@ -13,6 +13,8 @@ Planning happens as grill-with-docs-style conversational grilling. Execution use
 
 The workflow and `.forge/` state contract exist once. Claude Code and Codex use the same `skills/` and deterministic scripts; only interaction, delegation, hooks, and host UI are adapted. See [Using forge with Codex](./docs/en/codex.md) for the support matrix and known limits.
 
+Sealing prepares a complete archive before removing source files, and recovery enforces the same verification and retro gates. Branch integration discovers nested branch names at any depth. Mapping follows the active host's delegation capabilities, and Windows hook dispatch preserves the hook's exit code.
+
 ## Quick start — you mostly only need three
 
 Twenty-two skills look like a lot, but day to day you drive with **three**:

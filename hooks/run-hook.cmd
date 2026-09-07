@@ -31,14 +31,14 @@ if defined CLAUDE_PROJECT_DIR (
 REM Git for Windows bash in the standard locations
 if exist "C:\Program Files\Git\bin\bash.exe" (
     if exist "%SH%" (
-        "C:\Program Files\Git\bin\bash.exe" "%SH%" %2 %3 %4 %5 %6 %7 %8 %9
-        exit /b 0
+        set "BASH_EXE=C:\Program Files\Git\bin\bash.exe"
+        goto run_bash
     )
 )
 if exist "C:\Program Files (x86)\Git\bin\bash.exe" (
     if exist "%SH%" (
-        "C:\Program Files (x86)\Git\bin\bash.exe" "%SH%" %2 %3 %4 %5 %6 %7 %8 %9
-        exit /b 0
+        set "BASH_EXE=C:\Program Files (x86)\Git\bin\bash.exe"
+        goto run_bash
     )
 )
 
@@ -46,8 +46,8 @@ REM bash on PATH (user-installed Git Bash, MSYS2, Cygwin)
 where bash >nul 2>nul
 if %ERRORLEVEL% equ 0 (
     if exist "%SH%" (
-        bash "%SH%" %2 %3 %4 %5 %6 %7 %8 %9
-        exit /b 0
+        set "BASH_EXE=bash"
+        goto run_bash
     )
 )
 
@@ -55,12 +55,19 @@ REM node fallback — forge ships a .js twin of every script (ADR-0022)
 where node >nul 2>nul
 if %ERRORLEVEL% equ 0 (
     if exist "%JS%" (
-        node "%JS%" %2 %3 %4 %5 %6 %7 %8 %9
-        exit /b 0
+        goto run_node
     )
 )
 
 exit /b 0
+REM Keep execution and ERRORLEVEL expansion outside parenthesized blocks:
+REM cmd.exe expands percent variables when it parses the whole block.
+:run_bash
+"%BASH_EXE%" "%SH%" %2 %3 %4 %5 %6 %7 %8 %9
+exit /b %ERRORLEVEL%
+:run_node
+node "%JS%" %2 %3 %4 %5 %6 %7 %8 %9
+exit /b %ERRORLEVEL%
 CMDBLOCK
 
 # --- Unix path ---------------------------------------------------------------

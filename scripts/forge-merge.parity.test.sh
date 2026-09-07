@@ -48,6 +48,10 @@ seed_retired_letterskip() { mkdir -p "$1/.forge/branch/feat-x/adr" "$1/.forge/ad
 seed_inflight(){ s_adr "$1"; printf '<!-- forge-slug: x -->\n' > "$1/.forge/branch/feat-x/plan.md"; }
 seed_ambig()   { s_adr "$1"; mkdir -p "$1/.forge/branch/feat-y/adr"; printf '# t\n' > "$1/.forge/branch/feat-y/adr/260716-15a-bar.md"; }
 seed_empty()   { mkdir -p "$1/.forge"; }
+seed_deep() { mkdir -p "$1/.forge/branch/feature/team/topic/adr"; printf '# t\n' > "$1/.forge/branch/feature/team/topic/adr/260716-14a-deep.md"; }
+seed_deep_ambig() { seed_deep "$1"; s_adr "$1"; }
+check "deep branch auto discovery" seed_deep
+check "deep branch ambiguity" seed_deep_ambig
 
 check "clean move + folder removed"   seed_clean    feat-x
 check "time-ID collision + xref"      seed_collide  feat-x

@@ -5,7 +5,7 @@
 // fallback where bash can't run the .sh (PowerShell-blocked Windows).
 //
 // See forge-done.sh's header for the full contract (gate-first, non-destructive
-// on refuse; exit codes 0/2/3/4/5).
+// on refuse; exit codes 0/2/3/4/5/6).
 'use strict';
 
 const fs = require('fs');
@@ -129,6 +129,7 @@ if (/[/\\]/.test(slug) || slug.includes('..') || slug.startsWith('.')) {
 // --- duplicate / half-sealed check (two-format aware: grandfathered
 //     YYYY-MM-DD-slug, or YYMMDD-HHMMSS[letter]-slug) ------------------------
 const doneDir = path.join(root, 'done');
+let halfDir = '';
 if (isDir(doneDir)) {
   for (const name of fs.readdirSync(doneDir).sort()) {
     const d = path.join(doneDir, name);
@@ -139,15 +140,17 @@ if (isDir(doneDir)) {
     if (rest !== slug) continue;
     const sf = path.join(d, 'STATUS.md');
     if (field(sf, 'status') === 'done') die(`DUP already-sealed slug=${slug} at ${d}/`, 5);
-    closeOutStatus(sf, slug, fullfield(sf, 'retro'), '');
-    die(`SEALED half-sealed-completed ${d}/`, 0);
+    halfDir = d; break;
   }
 }
 
 // --- locate the source bucket ------------------------------------------------
 let MODE, D, P, R, S, V;
 const execPath = path.join(root, 'executed', slug);
-if (isDir(execPath)) {
+if (halfDir) {
+  MODE = 'half'; D = halfDir;
+  P = path.join(D, 'plan.md'); R = path.join(D, 'run.md'); S = path.join(D, 'STATUS.md'); V = path.join(D, 'review.md');
+} else if (isDir(execPath)) {
   MODE = 'executed'; D = execPath;
   P = path.join(D, 'plan.md'); R = path.join(D, 'run.md'); S = path.join(D, 'STATUS.md'); V = path.join(D, 'review.md');
 } else if (isFile(path.join(root, 'plan.md')) && slugof(path.join(root, 'plan.md')) === slug) {
@@ -179,7 +182,22 @@ if (skipGiven) {
 
 // --- SEAL (mutation only past this point) ------------------------------------
 const reviewed = isFile(V) ? relpath(V) : '';   // repo-relative, never a machine path
-closeOutStatus(S, slug, retroOut, reviewed);
+const ioFail = () => die(`SEAL_IO failed slug=${slug} (source retained; inspect archive before retry)`, 6);
+if (MODE === 'half') {
+  let tempDir;
+  try {
+    tempDir = fs.mkdtempSync(path.join(D, '.status.'));
+    const tempStatus = path.join(tempDir, 'STATUS.md');
+    fs.copyFileSync(S, tempStatus);
+    closeOutStatus(tempStatus, slug, retroOut, reviewed);
+    fs.renameSync(tempStatus, S);
+    fs.rmdirSync(tempDir);
+  } catch (_) {
+    if (tempDir) fs.rmSync(tempDir, { recursive: true, force: true });
+    ioFail();
+  }
+  die(`SEALED half-sealed-completed ${D}/`, 0);
+}
 // archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
 // same-second same-slug collision — rare, the dup scan already caught prior seals)
 let DEST = path.join(root, 'done', `${sealedId}-${slug}`);
@@ -189,9 +207,21 @@ if (fs.existsSync(DEST)) {
     if (!fs.existsSync(alt)) { DEST = alt; break; }
   }
 }
-fs.mkdirSync(DEST, { recursive: true });
-const move = (src) => { if (isFile(src)) fs.renameSync(src, path.join(DEST, path.basename(src))); };
-move(P); move(R); move(S); move(V);
-if (MODE === 'executed') fs.rmSync(D, { recursive: true, force: true });
+let stage;
+try {
+  fs.mkdirSync(doneDir, { recursive: true });
+  stage = fs.mkdtempSync(path.join(doneDir, '.seal.'));
+  for (const src of [P, R, S, V]) {
+    if (isFile(src)) fs.copyFileSync(src, path.join(stage, path.basename(src)));
+  }
+  closeOutStatus(path.join(stage, 'STATUS.md'), slug, retroOut, reviewed);
+  fs.renameSync(stage, DEST);
+  stage = undefined;
+  for (const src of [P, R, S, V]) { if (isFile(src)) fs.unlinkSync(src); }
+  if (MODE === 'executed') { try { fs.rmdirSync(D); } catch (_) {} }
+} catch (_) {
+  if (stage) fs.rmSync(stage, { recursive: true, force: true });
+  ioFail();
+}
 
 die(`SEALED slug=${slug} dest=${DEST}`, 0);

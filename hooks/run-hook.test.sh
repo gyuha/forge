@@ -133,5 +133,12 @@ assert      "node-twin-rc0" 0 "$RC"
 assert_grep "node-twin-block" "$OUT" '`node-path`'
 rm -rf "$t"
 
+# Exercise Stop through the wrapper, not only the hook body.
+t=$(mktmp); mkdir -p "$t/.forge"
+printf 'started: 1787039940\nblocked: 0\nsession: wrapper-stop\n' > "$t/.forge/drive.md"
+OUT="$( cd "$t" && printf '{"session_id":"wrapper-stop"}' | bash "$WRAPPER" stop --now 1787040000 2>&1 )"; RC=$?
+assert "wrapper-stop-exit2" 2 "$RC"
+rm -rf "$t"
+
 printf '\nrun-hook wiring: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

@@ -36,7 +36,7 @@ forge already has a permanent doc named `CONTEXT.md`. It is a **domain glossary 
 
 The reason this is a separate utility (not a step inside fg-ask) is context rot: if one session reads the whole codebase to build the map, every byte of that exploration piles up in the session's context. So the work is fanned out to **4 parallel subagents**, one per focus, and **each subagent writes its own documents directly to `.forge/codebase/`**. This session receives only a confirmation (file paths + line counts) back — never the document contents. That is what keeps the orchestrator's context small.
 
-Use the `Agent` tool with `run_in_background: true` to launch all four in one message. Do not read source files or write the documents yourself while the agents are running — that would duplicate their work and re-pollute this context (the exact thing the fan-out avoids).
+Use the active host's execution adapter to launch the four focuses, scheduling them within available concurrency slots. On Claude Code this uses `Agent` with `run_in_background: true`; on Codex use its collaboration tools. Do not duplicate a delegated focus's exploration while it is running. When delegation is unavailable, execute the focuses serially in this session.
 
 ### Before launching: check for an existing map
 
@@ -72,7 +72,7 @@ Flow: precheck (all stamped + ancestor) → changed files (diff ∪ porcelain) �
 
 ### Agent prompts (one per focus)
 
-Launch the four with `Agent`, `run_in_background: true`. Each prompt instructs the agent to explore thoroughly, write its documents directly, and **return only a confirmation** (paths + line counts). Each agent's prompt must include today's date for any date placeholders and the frontmatter-stamp rule below.
+Launch the four through the active host's execution adapter (or perform them serially when delegation is unavailable). Each delegated prompt instructs the agent to explore thoroughly, write its documents directly, and **return only a confirmation** (paths + line counts). Include today's date for date placeholders and the frontmatter-stamp rule below.
 
 - **Agent 1 — tech**: analyze the technology stack and external integrations. Write `.forge/codebase/STACK.md` and `.forge/codebase/INTEGRATIONS.md`.
 - **Agent 2 — arch**: analyze architecture and directory structure. Write `.forge/codebase/ARCHITECTURE.md` and `.forge/codebase/STRUCTURE.md`.
@@ -117,8 +117,8 @@ When the map is written — the fresh, Update, and Refresh paths — close with 
 ## Constraints
 
 - **Not a loop stage.** fg-map writes no `.forge/` state, promotes no plan, and seals nothing. It only produces `.forge/codebase/`. It does not participate in the active-slot / backlog / done contract.
-- **Direct write, confirmation only.** The whole reason fg-map exists is to keep codebase exploration out of the orchestrating session's context. If you ever find yourself reading source files in this session to build the map, you have defeated the purpose — fan it out.
-- **No user-specified path scope, no sequential fallback.** Incremental scope comes from the `last_mapped_commit` stamp, never from a user-supplied path list — there is no `--paths` flag: Update derives its own scope from the diff, and Refresh scopes by document, not by path. forge is Claude Code only, so the `Agent` tool is always available — there is no non-Agent fallback path to maintain.
+- **Direct write, confirmation only when delegated.** Use the active host's execution adapter to delegate the four focuses when parallel execution is available. If tools or concurrency slots are limited, schedule the focuses in available slots; if delegation is unavailable, the primary agent reads and writes the same seven documents serially, as specified by the Host contract above.
+- **No user-specified path scope.** Incremental scope comes from the `last_mapped_commit` stamp, never from a user-supplied path list — there is no `--paths` flag: Update derives its own scope from the diff, and Refresh scopes by document, not by path. Host capabilities determine delegation, not the map's scope or format.
 
 ## Document impact
 

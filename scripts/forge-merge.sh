@@ -66,9 +66,11 @@ is_leaf_root() {
   return 1
 }
 find_leaf_roots() {
-  [ -d "$BRANCHES_DIR" ] || return 0
-  for d in "$BRANCHES_DIR"/*/ "$BRANCHES_DIR"/*/*/; do
-    [ -d "$d" ] || continue; d="${d%/}"; is_leaf_root "$d" && echo "$d"
+  local parent="${1:-$BRANCHES_DIR}" d
+  [ -d "$parent" ] || return 0
+  for d in "$parent"/*; do
+    [ -d "$d" ] && [ ! -L "$d" ] || continue
+    if is_leaf_root "$d"; then echo "$d"; else find_leaf_roots "$d"; fi
   done
 }
 if [ -n "$branch_arg" ]; then

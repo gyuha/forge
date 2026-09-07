@@ -21,7 +21,7 @@ This skill is self-contained and standalone. It depends on no external skills: i
 
 The **mechanical seal** — pre-checks, gate enforcement, STATUS close-out, atomic archive, emptying the source bucket — is done by a **deterministic script**, not by an LLM hand-running a dozen bash steps and reasoning the guards in tokens (that was slow, the same problem ADR-0020 fixed for fg-status). This skill **runs the script and routes on its exit code**; the script never routes. It is the **single seal primitive shared by all three seal paths** — interactive `fg-done`, `fg-done all`, and `fg-next all` (which reaches it by delegating to fg-done) — so all of them get the same fast, atomic seal.
 
-Unlike fg-status's read-only survey script, this one **mutates/moves files**, so it is **gate-first, non-destructive-on-refuse**: it touches nothing until every pre-check and gate passes, then closes out STATUS in place and moves atomically. That safety is why the mechanical part is *better* as a script than as hand-bash (no partial states), and why it is guarded by `scripts/forge-done.test.sh` + `scripts/forge-done.parity.test.sh`.
+Unlike fg-status's read-only survey script, this one **mutates files**, so it is **gate-first, non-destructive-on-refuse**. After the gates pass, it copies the task into a temporary directory under `done/`, closes out the copied STATUS, and publishes the complete archive by rename before removing the known source files. Archive preparation failures leave the original task unchanged. Cleanup failures may leave duplicate source files alongside the complete archive; exit 6 requires inspection, not a success notice. Tests: `scripts/forge-done.test.sh` + `scripts/forge-done.parity.test.sh`.
 
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
 - **Has bash**: `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-done.sh" [args]`
@@ -48,6 +48,7 @@ Dual dispatch (ADR-0022): prefer bash, fall back to node.
 | 3 | verify gate: `verified:` not sealable (pending/failed/missing) | **failed** → fix-and-re-run via `fg-run` (or re-grill `fg-ask`); **pending**, active slot → fg-run verification-only resume; **pending**, parked/legacy → run the cleanup-time UAT here, record `verified:`, re-invoke |
 | 4 | retro gate: retro owed (no retro file, no `--skip-retro`) | run a retro with `fg-learn` first — or, if deliberately skipping, re-invoke with `--skip-retro` |
 | 5 | duplicate: `done/<date>-<slug>/` already sealed | surface it, do not double-seal (confirm a separate cycle before any re-seal) |
+| 6 | `SEAL_IO`: file operation failed | stop; inspect source and archive, correct the filesystem problem, and reconcile any duplicate source files before retrying; never report success or auto-advance |
 
 The script emits language-neutral tokens (`SEALED …` / `GATE_VERIFY …` / `GATE_RETRO …` / `DUP …` / `EMPTY …`) — read the token to route; write the user-facing prose in the user's language.
 
@@ -62,7 +63,7 @@ Sealing is hard to undo. The two guards below are **enforced deterministically b
 
 **No-seal-without-retro guard (exit 4).** For each task, either a retro `.forge/retro/*-<slug>.md` exists, **or** the seal is a deliberate skip (`--skip-retro`, which records `retro: skipped (<reason>)`; a STATUS already reading `retro: skipped` also satisfies it). The script refuses (exit 4) when a retro is owed and no `--skip-retro` was passed → route: "first run a retro with **fg-learn**" (or, if the user/orchestrator is deliberately skipping a low-divergence task, re-invoke with `--skip-retro "<reason>"`). Whether to skip is judgment — an `fg-next all`/`fg-done all`/`fg-loop` drive always skips (ADR-0010/0016/0023); an interactive seal skips only on a low-divergence task the user chose to skip.
 
-**Empty / duplicate / half-sealed (exit 2 / 5 / 0).** The script also handles these deterministically: empty state or an unknown slug → exit 2 (guide to `fg-ask`); a `done/<date>-<slug>/` already at `status: done` → exit 5 (surface, don't double-seal); a half-sealed `done/` dir (files moved, STATUS not flipped) → it completes the flip idempotently and exits 0. You do not pre-scan for these — you run the script and route on the code.
+**Empty / duplicate / half-sealed.** Empty state or an unknown slug returns exit 2; an already sealed task returns exit 5. A half-sealed directory must pass the same verification and retro gates (exit 3/4 on refusal) before STATUS is completed idempotently (exit 0). File-operation failures return exit 6. Run the script and route on its code.
 
 ```
 fg-done (single task)
@@ -80,7 +81,7 @@ run forge-done.sh (bash) | forge-done.js (no bash)
 
 ## Behavior
 
-The script does the mechanical seal in one call (**close out STATUS in place → archive into `.forge/done/<date-slug>/` → empty the source bucket**, in that order so an interruption always leaves a recoverable source bucket). Your job around it:
+The script does the mechanical seal in one call (**copy into staging → close out the copied STATUS → publish the archive → remove known source files**). Half-sealed recovery runs the same verification and retro gates before atomically replacing STATUS. Neither a failed nor a pending task may bypass those gates merely because its files are already under `done/`. Your job around it:
 
 **1) Decide the arguments (judgment), then run the script.** Resolve the target with the rule above (active slot → no `--slug`; parked/half-sealed → `--slug`; active empty with multiple parked tasks → select one first), decide whether the retro is being skipped (`--skip-retro "<reason>"` — see the retro guard), and fill `--docs-updated "<value>"` with the CONTEXT/ADR this loop touched (default `none`). Then invoke the script via dual dispatch (bash, else node). Do **not** hand-move files or hand-edit STATUS — the script owns that.
 
@@ -100,7 +101,7 @@ docs updated: {CONTEXT.md terms / ADR-NNNN / none}   # from --docs-updated
 
 `STATUS.md` is the machine-readable completion marker that travels with the task files — fg-run reads `done/*/STATUS.md` (`status: done`) to summarize finished work. For reference, on the default branch the volatile loop state (including `done/`) is gitignored — only permanent docs are tracked via the whitelist; on a non-default branch the branch root is tracked whole (ADR-0011). The persistent trace cleanup leaves is not `.forge/done/` but the retro and the docs that task updated.
 
-**2) Route on the exit code (judgment).** Exit 0 → continue to the notice below. Non-zero → route per the table / "Before starting" above and stop (no destructive action happened — the script refused before moving anything). **Whichever exit you land on — 0 and every non-zero refusal alike — close with the handoff table**, filled from that exit's routing; see "Wrap-up" below.
+**2) Route on the exit code (judgment).** Exit 0 → continue to the notice below. Non-zero → route per the table above and stop. Gate refusals leave the task untouched; exit 6 may follow archive publication and requires source/archive inspection. **Whichever exit you land on, close with the handoff table**, filled from that exit's routing.
 
 **3) Completion notice.** After a successful seal, summarize at a glance what was finished, which persistent docs were updated (retro, ADR, CONTEXT), and where the archive landed (`.forge/done/<date-slug>/`). Make the wrap-up explicit so the user recognizes one loop is done. If `git status` shows the permanent docs this loop touched (`.forge/retro/`, `.forge/adr/`, `CONTEXT.md` — or the branch root on a non-default branch) still uncommitted, add a one-line reminder to commit them — a reminder only; never run git yourself (the same restraint as fg-merge).
 
@@ -167,7 +168,7 @@ completion notice (per-task summary + set-aside list)
 
 `Just did` is always what actually happened this turn, and it may **never assert what a path can falsify** (HANDOFF.md's rule of that name — "the active state is now empty" is exactly the sentence one set-aside task makes false). Fill it from the **first matching case**:
 
-1. **A refusal (any non-zero exit)** → the script refused at that gate and **nothing was moved**.
+1. **A refusal (any non-zero exit)** → report the actual gate. Exits 2–5 move nothing; exit 6 is an I/O failure and may leave a complete archive plus source residue, so report inspection needed instead.
 2. **Exit 0 with at least one task set aside** (only `all` mode reaches this — a single `verified: failed` seal refuses at exit 3) → how many were sealed and how many set aside, and which. **Do not claim the active state is empty**: a set-aside task is still sitting in it, and the same plan therefore *can* run again — that is the point of routing it to fg-run.
 3. **Exit 0 on the explicit single seal** → that the task was sealed and the active slot is free. The step-3 seal summary (ADR-0032) **already owns** the archive path and the docs-updated line, so this cell does not render them a second time (HANDOFF.md, "Do not give one fact two owners").
 4. **Exit 0, everything else** (batch `all` with nothing set aside — the terse-notice paths, where no summary rendered) → the seal: archived into `.forge/done/<date-slug>/`, STATUS.md marked done, the active state now empty (so the same plan can never run again), plus the one-line summary of the docs this loop updated.
@@ -179,6 +180,7 @@ The other rows are filled per exit, branching where the routing branches:
 - **exit 3** — the verify gate, three sub-cases, so fill from the one you hit: **`failed`** → `Next step` fg-run (unpark + fix-and-re-run), `How to start` `/forge:fg-run`, `Alternative` re-grill with fg-ask; **`pending`, active slot** → fg-run's verification-only resume, same trigger, no `Alternative`; **`pending`, parked/legacy** → the cleanup-time UAT is yours to run first, so the table comes after it — sealable → `Next step` is re-invoking fg-done (`/forge:fg-done`); broken → you recorded `failed`, so render the `failed` case.
 - **exit 4** — the retro gate, and the refusal you will hit most. `Next step`: fg-learn; `How to start`: `/forge:fg-learn`; `Alternative`: on a deliberate low-divergence skip, re-invoking with `--skip-retro "<reason>"`.
 - **exit 5** — already sealed, nothing touched. `Next step`: nothing is owed for this task, so a new task with fg-ask; `Alternative`: a genuinely separate cycle, confirmed before any re-seal.
+- **exit 6** — file operation failed. State that sealing did not finish successfully; inspect the retained source and any published archive before retrying fg-done. Do not claim nothing moved: a cleanup failure can occur after publication. Do not advance to another task.
 
 **State it and stop** — the table is text output, never an `AskUserQuestion`, and `Alternative` *states* that another route exists rather than asking which to take: do not ask "shall I start it?" and do not auto-invoke the skill you named (chaining is `fg-next`'s job — ADR-0015).
 

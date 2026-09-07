@@ -57,6 +57,11 @@ seed_halfsealed() {
   printf '# STATUS — HS\nslug: p-hs\nstatus: executed\nexecuted: 2026-07-02\nverified: yes (t)\nretro: skipped (y)\n' > "$1/.forge/done/2026-07-02-p-hs/STATUS.md"
   printf 'p\n' > "$1/.forge/done/2026-07-02-p-hs/plan.md"
 }
+seed_io_active() { seed_skip "$1"; printf 'blocked\n' > "$1/.forge/done"; }
+seed_io_parked() { seed_executed "$1"; printf 'blocked\n' > "$1/.forge/done"; }
+seed_half_failed() { seed_halfsealed "$1"; sed 's/verified: yes (t)/verified: failed (x)/' "$1/.forge/done/2026-07-02-p-hs/STATUS.md" > "$1/status"; mv "$1/status" "$1/.forge/done/2026-07-02-p-hs/STATUS.md"; }
+seed_half_pending() { seed_halfsealed "$1"; sed 's/verified: yes (t)/verified: pending/' "$1/.forge/done/2026-07-02-p-hs/STATUS.md" > "$1/status"; mv "$1/status" "$1/.forge/done/2026-07-02-p-hs/STATUS.md"; }
+seed_half_retro() { seed_halfsealed "$1"; sed 's/retro: skipped (y)/retro: pending/' "$1/.forge/done/2026-07-02-p-hs/STATUS.md" > "$1/status"; mv "$1/status" "$1/.forge/done/2026-07-02-p-hs/STATUS.md"; }
 seed_dup() {
   seed_active "$1" "p-dup" "yes (t)" "pending"; mkdir -p "$1/.forge/retro"; printf 'r\n' > "$1/.forge/retro/2026-07-01-p-dup.md"
   mkdir -p "$1/.forge/done/2026-07-01-p-dup"; printf 'slug: p-dup\nstatus: done\n' > "$1/.forge/done/2026-07-01-p-dup/STATUS.md"
@@ -75,6 +80,11 @@ check "executed parked seal"           seed_executed  --slug p-ex --completed 20
 check "half-sealed completion"         seed_halfsealed --slug p-hs --completed 2026-07-05 --sealed-id 260705-120000
 check "duplicate already-sealed"       seed_dup       --completed 2026-07-05 --sealed-id 260705-120000
 check "empty state"                    seed_empty     --completed 2026-07-05 --sealed-id 260705-120000
+check "archive failure active" seed_io_active --skip-retro x --sealed-id 260705-120000
+check "archive failure parked" seed_io_parked --slug p-ex --sealed-id 260705-120000
+check "half failed" seed_half_failed --slug p-hs --skip-retro x
+check "half pending" seed_half_pending --slug p-hs
+check "half retro owed" seed_half_retro --slug p-hs
 check "invalid sealed-id (traversal)"  seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "../../x"
 check "invalid sealed-id (slash)"      seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "260705/120000"
 check "slug traversal (forge-slug)"    seed_badslug   --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000

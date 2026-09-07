@@ -26,6 +26,17 @@ run_merge() { local wd="$1"; shift
 }
 seed_adr() { mkdir -p "$1/.forge/branch/$2/adr"; printf '# t\n' > "$1/.forge/branch/$2/adr/$3"; }
 
+# Auto-discovery must follow branch names with any number of slashes.
+t=$(mktmp); seed_adr "$t" feature/team/topic 260716-14a-deep.md
+run_merge "$t"; assert "deep-auto-rc0" 0 "$RC"
+assert_file "deep-auto-moved" "$t/.forge/adr/260716-14a-deep.md"
+assert_nofile "deep-auto-source-gone" "$t/.forge/branch/feature/team/topic"
+rm -rf "$t"
+t=$(mktmp); seed_adr "$t" feature/team/topic 260716-14a-deep.md; seed_adr "$t" other/team/topic 260716-15a-other.md
+run_merge "$t"; assert "deep-ambiguous-rc6" 6 "$RC"
+assert_file "deep-ambiguous-preserved" "$t/.forge/branch/feature/team/topic/adr/260716-14a-deep.md"
+rm -rf "$t"
+
 # --- (a) nothing to integrate -> exit 2 --------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge"; run_merge "$t"; assert "a-empty-rc2" 2 "$RC"; rm -rf "$t"
 # --- (b) named branch absent -> exit 2 ---------------------------------------

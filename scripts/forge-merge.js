@@ -49,12 +49,15 @@ function isLeafRoot(p) {
 function findLeafRoots() {
   const out = [];
   if (!isDir(BRANCHES_DIR)) return out;
-  for (const a of ls(BRANCHES_DIR)) {
-    const pa = path.join(BRANCHES_DIR, a);
-    if (!isDir(pa)) continue;
-    if (isLeafRoot(pa)) out.push(pa);
-    for (const b of ls(pa)) { const pb = path.join(pa, b); if (isDir(pb) && isLeafRoot(pb)) out.push(pb); }
+  function visit(parent) {
+    for (const name of ls(parent)) {
+      if (name.startsWith('.')) continue;
+      const child = path.join(parent, name);
+      if (!isDir(child) || fs.lstatSync(child).isSymbolicLink()) continue;
+      if (isLeafRoot(child)) out.push(child); else visit(child);
+    }
   }
+  visit(BRANCHES_DIR);
   return out;
 }
 let SRC;

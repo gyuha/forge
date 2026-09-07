@@ -49,6 +49,36 @@ seed_active() {
     "$2" "$2" "$3" "$4" > "$1/.forge/STATUS.md"
 }
 
+# Failure regressions: refusal must preserve the source byte-for-byte.
+for bucket in active parked; do
+  t=$(mktmp); seed_active "$t" io "yes (fixture)" "skipped (fixture)"
+  src="$t/.forge"; args=()
+  if [ "$bucket" = parked ]; then
+    mkdir -p "$t/.forge/executed/io"
+    mv "$t/.forge/plan.md" "$t/.forge/run.md" "$t/.forge/STATUS.md" "$t/.forge/executed/io/"
+    src="$t/.forge/executed/io"; args=(--slug io)
+  fi
+  cp "$src/STATUS.md" "$t/before"
+  printf 'blocking file\n' > "$t/.forge/done"
+  run_done "$t" "${args[@]}" --sealed-id "$SID"
+  assert "io-$bucket-rc6" 6 "$RC"
+  assert_file "io-$bucket-plan" "$src/plan.md"
+  assert_file "io-$bucket-run" "$src/run.md"
+  cmp -s "$t/before" "$src/STATUS.md"; assert "io-$bucket-status-unchanged" 0 "$?"
+  rm -rf "$t"
+done
+for verified in failed pending yes; do
+  t=$(mktmp); seed_active "$t" half "$verified" pending
+  mkdir -p "$t/.forge/done/$SID-half"
+  mv "$t/.forge/plan.md" "$t/.forge/run.md" "$t/.forge/STATUS.md" "$t/.forge/done/$SID-half/"
+  cp "$t/.forge/done/$SID-half/STATUS.md" "$t/before"
+  run_done "$t" --slug half
+  expected=3; [ "$verified" = yes ] && expected=4
+  assert "half-$verified-gate" "$expected" "$RC"
+  cmp -s "$t/before" "$t/.forge/done/$SID-half/STATUS.md"; assert "half-$verified-unchanged" 0 "$?"
+  rm -rf "$t"
+done
+
 # --- (a) empty state -> exit 2, nothing changed ------------------------------
 t=$(mktmp); mkdir -p "$t/.forge"
 run_done "$t" --completed 2026-07-05 --sealed-id "$SID"

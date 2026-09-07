@@ -21,7 +21,7 @@
 #
 # Unlike forge-status.sh (read-only), this MUTATES/MOVES files, so it is
 # GATE-FIRST, NON-DESTRUCTIVE-ON-REFUSE: it touches nothing until every pre-check
-# and gate passes, then closes out STATUS in place and moves atomically.
+# and gate passes, then prepares a copy, publishes it, and removes source files.
 #
 # Usage:
 #   forge-done.sh [--slug <slug>] [--skip-retro "<reason>"] \
@@ -45,6 +45,7 @@
 #   3  verify gate: verified: not sealable (pending/failed/missing) — nothing moved
 #   4  retro gate:  retro owed (no retro file and no --skip-retro) — nothing moved
 #   5  duplicate:   done/<date>-<slug>/ already sealed (status: done) — nothing moved
+#   6  file operation failed; inspect source/archive before retrying
 #
 # Dependencies: bash + git + coreutils only.
 
@@ -128,6 +129,7 @@ case "$slug" in
 esac
 
 # --- duplicate / half-sealed check (precise date-prefix match, no glob suffix) -
+half_dir=""
 if [ -d "$root/done" ]; then
   for d in "$root"/done/*/; do
     [ -d "$d" ] || continue
@@ -141,13 +143,15 @@ if [ -d "$root/done" ]; then
       echo "DUP already-sealed slug=$slug at $d"; exit 5
     fi
     # half-sealed (files moved, STATUS not flipped) → complete the flip idempotently
-    close_out_status "$d/STATUS.md" "$slug" "$(fullfield "$d/STATUS.md" retro)" ""
-    echo "SEALED half-sealed-completed $d"; exit 0
+    half_dir="${d%/}"; break
   done
 fi
 
 # --- locate the source bucket ------------------------------------------------
-if [ -d "$root/executed/$slug" ]; then
+if [ -n "$half_dir" ]; then
+  MODE=half; D="$half_dir"
+  P="$D/plan.md"; R="$D/run.md"; S="$D/STATUS.md"; V="$D/review.md"
+elif [ -d "$root/executed/$slug" ]; then
   MODE=executed; D="$root/executed/$slug"
   P="$D/plan.md"; R="$D/run.md"; S="$D/STATUS.md"; V="$D/review.md"
 elif [ -f "$root/plan.md" ] && [ "$(slugof "$root/plan.md")" = "$slug" ]; then
@@ -214,8 +218,15 @@ fi
 # --- SEAL (mutation only past this point) ------------------------------------
 reviewed=""
 [ -f "$V" ] && reviewed="$(relpath "$V")"   # repo-relative, never a machine path
-# 1) close out STATUS in place first (so an interruption leaves it recoverable)
-close_out_status "$S" "$slug" "$retro_out" "$reviewed"
+# Stage copies first: an archive failure must never alter/delete the source.
+io_fail() { echo "SEAL_IO failed slug=$slug (source retained; inspect archive before retry)"; exit 6; }
+if [ "$MODE" = half ]; then
+  tmp_status="$(mktemp "$D/.status.XXXXXX" 2>/dev/null)" || io_fail
+  if ! cp "$S" "$tmp_status" || ! close_out_status "$tmp_status" "$slug" "$retro_out" "$reviewed" || ! mv "$tmp_status" "$S"; then
+    rm -f "$tmp_status"; io_fail
+  fi
+  echo "SEALED half-sealed-completed $D/"; exit 0
+fi
 # 2) archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
 #    same-second same-slug collision — rare, since the dup scan above already caught
 #    an existing seal of this slug)
@@ -225,15 +236,21 @@ if [ -e "$DEST" ]; then
     [ -e "$root/done/${sealed_id}${c}-${slug}" ] || { DEST="$root/done/${sealed_id}${c}-${slug}"; break; }
   done
 fi
-mkdir -p "$DEST"
-mv "$P" "$DEST/" 2>/dev/null || true
-[ -f "$R" ] && mv "$R" "$DEST/"
-mv "$S" "$DEST/" 2>/dev/null || true
-[ -f "$V" ] && mv "$V" "$DEST/"
-# 3) empty the source bucket
-if [ "$MODE" = executed ]; then
-  rm -rf "$D"
+mkdir -p "$root/done" 2>/dev/null || io_fail
+stage="$(mktemp -d "$root/done/.seal.XXXXXX" 2>/dev/null)" || io_fail
+for source in "$P" "$R" "$S" "$V"; do
+  [ -f "$source" ] || continue
+  if ! cp "$source" "$stage/"; then rm -rf "$stage"; io_fail; fi
+done
+if ! close_out_status "$stage/STATUS.md" "$slug" "$retro_out" "$reviewed" || ! mv "$stage" "$DEST"; then
+  rm -rf "$stage"; io_fail
 fi
+# The complete archive now owns a copy. Delete only the known source files.
+for source in "$P" "$R" "$S" "$V"; do
+  [ -f "$source" ] || continue
+  rm "$source" || io_fail
+done
+if [ "$MODE" = executed ]; then rmdir "$D" 2>/dev/null || true; fi
 
 echo "SEALED slug=$slug dest=$DEST"
 exit 0
