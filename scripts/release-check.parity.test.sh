@@ -109,7 +109,7 @@ assert_parity "claude host checked too" "$M" "hosts/claude/capabilities.json"
 # plugin_root) had no row at all. The check is presence-only by design (status
 # wording stays human-reviewed), so these cases pin exactly that much.
 N="$(mkrepo 9.9.9 9.9.9 ./skills/)"; mkdir -p "$N/docs/en"
-allkeys='`structured_choice` `spawn_parallel` `spawn_role` `plugin_root` `session_start` `prevent_stop` `project_agents` `status_display`'
+allkeys='`structured_choice` `spawn_parallel` `spawn_role` `plugin_root` `session_start` `prevent_stop` `project_agents` `status_display` `event_wake`'
 printf '%s\n' "$allkeys" > "$N/docs/codex.md"
 printf '%s\n' "$allkeys" > "$N/docs/en/codex.md"
 assert_parity "docs name every capability key (clean)" "$N" "ok (forge 9.9.9"

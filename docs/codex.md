@@ -50,8 +50,9 @@ forge는 Claude Code와 Codex가 **같은 `skills/`와 `.forge/` 상태**를 사
 | 선택 메뉴 (`structured_choice`) | 미확인 | 번호 텍스트 목록으로 fallback — 어느 호스트에서도 정확하다 |
 | `fg-loop`의 `budget-tokens` 지출 상한 | 미지원 | 계량기가 Claude Code의 트랜스크립트 파일을 읽는다. Codex에서는 `budget-tokens: none`으로 선언하거나 `--transcripts DIR`로 경로를 지정한다(미지정 시 `blocked-health`로 정지 — fail-closed) |
 | `fg-statusline` (`status_display`) | 미지원 | Codex에서는 `$fg-status` 사용 |
+| `fg-showme` 확정-클릭 즉시 반영 (`event_wake`) | 미확인 | 현재 `false` — 확정한 뒤 **터미널에 아무거나 보내야** 재개되며 fg-showme가 세션 시작 시 이를 한 번 밝힌다. 후보 메커니즘은 있다: Codex ≥0.149.0의 `codex queue --thread <session_id> --message`가 idle 세션을 깨운다(릴리스 노트 "wake idle sessions reliably"). 단 Claude의 `Monitor`(에이전트가 파일을 pull)와 달리 **push형**이라 events를 감시해 `codex queue`를 부르는 watcher와 `SessionStart` 훅 페이로드의 `session_id`가 필요하고(훅 자체는 턴을 시작 못 함), fg-showme 안에서의 end-to-end 관측은 Codex 세션에서 해야 한다 — 관측 뒤 `true`로 확정 |
 
-이 표는 산문이 아니라 **선언**이다 — 같은 내용이 `hosts/codex/capabilities.json`의 8개 키에 기계가 읽는 형태로 들어 있고, 둘은 항상 함께 갱신한다. `npm run release:check`가 **8개 키가 모두 이 표에 이름으로 등장하는지**를 강제한다(상태 문구 자체의 타당성은 사람이 검토한다 — 게이트가 하는 일을 넘겨 말하지 않는다). **능력은 그 호스트가 실제로 제공하는 것을 *관측*했을 때만 `true`이며, 미확인은 `false`가 기본값이다** — 모든 능력에는 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있어서, 도는 fallback이 없는 도구를 부르는 것보다 항상 싸기 때문이다. `false`를 `true`로 바꾸는 것은 가정이 아니라 관측이다(`core/HOST.md`).
+이 표는 산문이 아니라 **선언**이다 — 같은 내용이 `hosts/codex/capabilities.json`의 9개 키에 기계가 읽는 형태로 들어 있고, 둘은 항상 함께 갱신한다. `npm run release:check`가 **9개 키가 모두 이 표에 이름으로 등장하는지**를 강제한다(상태 문구 자체의 타당성은 사람이 검토한다 — 게이트가 하는 일을 넘겨 말하지 않는다). **능력은 그 호스트가 실제로 제공하는 것을 *관측*했을 때만 `true`이며, 미확인은 `false`가 기본값이다** — 모든 능력에는 정의된 fallback(직렬 실행·번호 목록·명시적 정지)이 있어서, 도는 fallback이 없는 도구를 부르는 것보다 항상 싸기 때문이다. `false`를 `true`로 바꾸는 것은 가정이 아니라 관측이다(`core/HOST.md`).
 
 ## 호스트를 바꿔 이어서 작업하기
 

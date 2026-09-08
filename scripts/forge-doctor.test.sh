@@ -202,5 +202,31 @@ t=$(mktmp); seed_b18_eval_bad "$t"; run_doc "$t"; assert "B18-eval-rc1" 1 "$RC";
 t=$(mktmp); seed_b18_cleanup_bad "$t"; run_doc "$t"; assert "B18-cleanup-rc1" 1 "$RC"; assert_grep "B18-cleanup-msg" "$OUT" "B18 fg-debug cleanup"; rm -rf "$t"
 t=$(mktmp); seed_b18_loop_bad "$t"; run_doc "$t"; assert "B18-loop-rc1" 1 "$RC"; assert_grep "B18-loop-msg" "$OUT" "B18 fg-debug inconclusive route"; rm -rf "$t"
 
+# --- B19: fg-showme confirm snippet single definition (retro 260805-063357 learning 3 → eval) ---
+# One fenced copy, carrying both the confirm: prefix (wake filter) and the dataset.sent guard.
+# Scoped to the forge repo (plugin.json name=forge); no SKILL.md is seeded so B17 stays silent.
+b19_seed() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/fg-showme"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; printf '# V\n\n### Confirm button\n\n```html\n%s\n```\n' "$2" > "$1/skills/fg-showme/VISUAL.md"; }
+B19_GOOD="<button onclick=\"if (this.dataset.sent === key) return; this.dataset.sent = key; window.brainstorm.send({type:'confirm', choice:'confirm:'+key, value:sel});\">ok</button>"
+t=$(mktmp); b19_seed "$t" "$B19_GOOD"; run_doc "$t"; assert "B19-good-rc0" 0 "$RC"; assert_nogrep "B19-good-none" "$OUT" "B19 "; rm -rf "$t"
+t=$(mktmp); b19_seed "$t" "$B19_GOOD"; printf '\n```html\n%s\n```\n' "$B19_GOOD" >> "$t/skills/fg-showme/VISUAL.md"; run_doc "$t"; assert "B19-dup-rc1" 1 "$RC"; assert_grep "B19-dup-msg" "$OUT" "B19 confirm snippet duplicated"; rm -rf "$t"
+t=$(mktmp); b19_seed "$t" "$(printf '%s' "$B19_GOOD" | sed "s/choice:'confirm:'+key/choice:key/")"; run_doc "$t"; assert "B19-noprefix-rc1" 1 "$RC"; assert_grep "B19-noprefix-msg" "$OUT" "B19 confirm snippet incomplete"; rm -rf "$t"
+t=$(mktmp); b19_seed "$t" "$(printf '%s' "$B19_GOOD" | sed 's/if (this.dataset.sent === key) return; this.dataset.sent = key; //')"; run_doc "$t"; assert "B19-noguard-rc1" 1 "$RC"; assert_grep "B19-noguard-msg" "$OUT" "B19 confirm snippet incomplete"; rm -rf "$t"
+t=$(mktmp); b19_seed "$t" "<button>no confirm</button>"; run_doc "$t"; assert "B19-missing-rc1" 1 "$RC"; assert_grep "B19-missing-msg" "$OUT" "B19 confirm snippet missing"; rm -rf "$t"
+
+# --- B20: capability key <-> **Host contract** paragraph coherence (retro 260908-210216 -> eval) ---
+# Vocabulary comes from a copied real core/HOST.md (never restated). Seeds one skill each way.
+# The seeded SKILL.md carries the canonical Explaining-forge body so B17 stays silent.
+b20_seed() { # $1=dir $2=skill-body-after-rule
+  mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/core" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"
+  cp "$(cd "$(dirname "$SCRIPT")" && pwd)/../core/HOST.md" "$1/core/HOST.md"
+  { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$RULE"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
+t=$(mktmp); b20_seed "$t" '**Host contract**: needs `structured_choice`; falls back to a numbered list.'; run_doc "$t"; assert "B20-good-rc0" 0 "$RC"; assert_nogrep "B20-good-none" "$OUT" "B20 "; rm -rf "$t"
+t=$(mktmp); b20_seed "$t" 'Uses `spawn_parallel` for fan-out.'; run_doc "$t"; assert "B20-missing-rc1" 1 "$RC"; assert_grep "B20-missing-msg" "$OUT" "B20 host contract missing"; rm -rf "$t"
+t=$(mktmp); b20_seed "$t" '**Host contract**: this skill is host-neutral.'; run_doc "$t"; assert "B20-nokey-rc1" 1 "$RC"; assert_grep "B20-nokey-msg" "$OUT" "B20 host contract names no capability"; rm -rf "$t"
+t=$(mktmp); b20_seed "$t" '**Host contract**: this skill is host-neutral.
+
+Elsewhere it uses `structured_choice`.'; run_doc "$t"; assert "B20-key-outside-rc1" 1 "$RC"; assert_grep "B20-key-outside-msg" "$OUT" "B20 host contract names no capability"; rm -rf "$t"
+t=$(mktmp); b20_seed "$t" '**Host adapter**: needs `structured_choice`.'; run_doc "$t"; assert "B20-label-rc1" 1 "$RC"; assert_grep "B20-label-msg" "$OUT" "B20 host contract label"; rm -rf "$t"
+
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

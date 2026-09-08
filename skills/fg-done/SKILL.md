@@ -5,7 +5,7 @@ description: Seals a finished task — confirms the retro, marks STATUS.md done,
 
 # fg-done — ④ Done (tidy-up / re-run guard)
 
-**Host contract**: sealing and `.forge/` state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter for confirmation; keep the deterministic seal scripts as the single implementation.
+**Host contract**: sealing and `.forge/` state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter (`structured_choice`, falling back to a numbered text choice) for confirmation; keep the deterministic seal scripts as the single implementation.
 
 This is the last step of the forge loop — the ④ **done** stage that seals one loop. Its job is to **tidy up** the residue left by one loop (ask·plan → execute → retro → done): confirm the retro, mark the task's STATUS.md as done, archive it, empty the active state, and close the loop. The unit of cleanup is a single **task** — there is no notion of closing an epic or merging several tasks into one seal. (Even the `all` batch mode below seals each task into its own `done/` directory: it bulk-skips retros, it does not bundle tasks.) Because a task *is* one loop, you only need to tidy up that one loop cleanly.
 

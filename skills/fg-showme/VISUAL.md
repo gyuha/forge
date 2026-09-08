@@ -80,7 +80,7 @@ If the URL is unreachable from your browser (common in remote/containerized setu
 
 Use `--url-host` to control what hostname is printed in the returned URL JSON.
 
-**Arm the wake watch (mandatory):** immediately after the server starts, arm a watch on the events file so a confirmed click can wake you without a terminal turn:
+**Arm the wake watch (mandatory when the host's `event_wake` is `true`):** check `../../hosts/<host>/capabilities.json` first — on Claude Code it is `true` (the `Monitor` tool provides it); on Codex it is `false`, so skip to the fallback paragraph below. When `true`, immediately after the server starts, arm a watch on the events file so a confirmed click can wake you without a terminal turn:
 
 ```
 Monitor(command: "tail -n0 -F <state_dir>/events 2>/dev/null | grep --line-buffered -E '\"choice\":\"(confirm|text):'",
@@ -96,7 +96,7 @@ Monitor(command: "tail -n0 -F <state_dir>/events 2>/dev/null | grep --line-buffe
 - **`--line-buffered` is required, not cosmetic.** Without it, `grep`'s own output buffering holds matches until the buffer fills — the watch looks armed but delivers nothing. This is the worst failure shape: it appears to work and silently doesn't.
 - **`persistent: true`, not a `timeout_ms`.** `Monitor`'s timeout caps at 1 hour; the visual server's idle timeout is 4 hours. A timed watch would die first and leave the user clicking into a watch that is no longer there.
 
-**If `Monitor` is unavailable** (tool missing, or arming it errors), fall back to the pre-watch behavior: skip this step, and end your turn with the old instruction — press 확정, then send anything in the terminal (see The Loop, step 2). This is a graceful degradation, the same pattern as `fg-map`/eco/tdd being absent — never a hard dependency.
+**If `event_wake` is `false`** (Codex today), or `Monitor` errors when arming on a `true` host, fall back to the pre-watch behavior: skip this step, and **in the same message that shares the URL, say once** that on this host a confirmed choice does not wake you — press 확정, then send anything in the terminal (see The Loop, step 2). Say it once, at session start; The Loop's per-screen line covers each screen after that. This is a graceful degradation, the same pattern as `fg-map`/eco/tdd being absent — never a hard dependency.
 
 ## The Loop
 
@@ -161,15 +161,9 @@ Write just the content that goes inside the page. The server wraps it in the fra
   </div>
 </div>
 
-<button class="mock-button" onclick="
-  var sel = Array.from(document.querySelectorAll('.option.selected, .card.selected'))
-                 .map(function(e){ return e.dataset.choice; });
-  var key = sel.join(',') || 'none';
-  if (this.dataset.sent === key) return;   // same selection re-sent (double-click) — drop
-  this.dataset.sent = key;
-  window.brainstorm.send({type:'confirm', choice:'confirm:'+key, value:sel});
-  this.textContent='확정됨';
-">이걸로 확정</button>
+<!-- confirm button goes here — paste the ONE canonical snippet from "Confirm button" below.
+     It is deliberately not repeated in this example: two copies drifted once (retro 260805-063357),
+     and fg-doctor B19 now fails on a second copy. -->
 ```
 
 That's it. No `<html>`, no CSS, no `<script>` tags needed. The server provides all of that.

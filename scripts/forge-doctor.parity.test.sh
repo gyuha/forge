@@ -79,6 +79,26 @@ seed_b18_eval_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: f
 seed_b18_cleanup_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: failed`, use fg-run fix-and-re-run.' 'Classify persistent checks separately from one-off curl commands. See PLAN-FORMAT.' 'The later fix may clean temporary files.' 'A feedback loop may exist while the root cause remains unconfirmed.'; }
 seed_b18_loop_bad() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: failed`, use fg-run fix-and-re-run.' 'Classify persistent checks separately from one-off curl commands. See PLAN-FORMAT.' 'Delete raw captures on every exit path.' 'Inconclusive means no feedback loop could be built.'; }
 
+# B19 confirm-snippet fixtures: one fenced copy with both signals is clean; a second copy,
+# a missing confirm: prefix, or no snippet at all must reach the same verdict in both twins.
+B19_GOOD="<button onclick=\"if (this.dataset.sent === key) return; this.dataset.sent = key; window.brainstorm.send({type:'confirm', choice:'confirm:'+key, value:sel});\">ok</button>"
+seed_b19_base() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/fg-showme"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; printf '# V\n\n### Confirm button\n\n```html\n%s\n```\n' "$2" > "$1/skills/fg-showme/VISUAL.md"; }
+seed_b19_good()     { seed_b19_base "$1" "$B19_GOOD"; }
+seed_b19_dup()      { seed_b19_base "$1" "$B19_GOOD"; printf '\n```html\n%s\n```\n' "$B19_GOOD" >> "$1/skills/fg-showme/VISUAL.md"; }
+seed_b19_noprefix() { seed_b19_base "$1" "$(printf '%s' "$B19_GOOD" | sed "s/choice:'confirm:'+key/choice:key/")"; }
+seed_b19_missing()  { seed_b19_base "$1" "<button>no confirm</button>"; }
+
+# B20 coherence fixtures: real core/HOST.md is copied for the vocabulary; the seeded skill carries
+# the canonical Explaining-forge body so only B20 can fire. Both twins must agree on each shape.
+seed_b20_base() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/core" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; cp "$HERE/../core/HOST.md" "$1/core/HOST.md"; { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$B17_RULE"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
+seed_b20_good()    { seed_b20_base "$1" '**Host contract**: needs `structured_choice`; falls back to a numbered list.'; }
+seed_b20_missing() { seed_b20_base "$1" 'Uses `spawn_parallel` for fan-out.'; }
+seed_b20_nokey()   { seed_b20_base "$1" '**Host contract**: this skill is host-neutral.'; }
+seed_b20_outside() { seed_b20_base "$1" '**Host contract**: this skill is host-neutral.
+
+Elsewhere it uses `structured_choice`.'; }
+seed_b20_label()   { seed_b20_base "$1" '**Host adapter**: needs `structured_choice`.'; }
+
 check "clean"                 seed_clean
 check "mixed findings"        seed_mixed
 check "A1 orphan"             seed_orphan
@@ -104,6 +124,15 @@ check "B18 active decoupled"    seed_b18_active_decoupled
 check "B18 persistent eval"     seed_b18_eval_bad
 check "B18 cleanup"             seed_b18_cleanup_bad
 check "B18 loop inconclusive"   seed_b18_loop_bad
+check "B19 confirm good"        seed_b19_good
+check "B19 confirm duplicated"  seed_b19_dup
+check "B19 confirm no prefix"   seed_b19_noprefix
+check "B19 confirm missing"     seed_b19_missing
+check "B20 coherence good"      seed_b20_good
+check "B20 coherence missing"   seed_b20_missing
+check "B20 coherence no key"    seed_b20_nokey
+check "B20 key outside contract" seed_b20_outside
+check "B20 coherence label"     seed_b20_label
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DOCTOR PARITY OK"; exit 0

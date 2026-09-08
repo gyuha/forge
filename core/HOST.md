@@ -56,10 +56,13 @@ the state model or maintain a second Codex-specific copy of a skill.
 | `prevent_stop` | Continue only an explicitly active unattended drive. |
 | `project_agents` | Load host-native project agent definitions. |
 | `status_display` | Install or render host-native persistent status UI. |
+| `event_wake` | Resume the conversation from an external event, with no user turn. |
 
 The table above is the **single vocabulary**: `hosts/<host>/capabilities.json`
-uses exactly these eight keys and nothing else, so a skill can name a capability
-(`spawn_parallel`, `prevent_stop`, …) and look it up mechanically.
+uses exactly these nine keys and nothing else, so a skill can name a capability
+(`spawn_parallel`, `prevent_stop`, …) and look it up mechanically — and a skill
+that names one declares the dependency in a `**Host contract**` paragraph next to
+its `**Language**` rule (fg-doctor B20 keeps the two in step).
 
 **A capability is `true` only when that host has been *observed* to provide it.**
 Unverified defaults to `false`, because every capability has a defined fallback

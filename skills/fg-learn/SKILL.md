@@ -5,7 +5,7 @@ description: After execution, classify learnings and promote them to CONTEXT.md,
 
 # fg-learn — ③ Retro (reflect into docs)
 
-**Host contract**: this skill's state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter for any user choice.
+**Host contract**: this skill's state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter (`structured_choice`, falling back to a numbered text choice) for any user choice.
 
 This is the third turn of the forge loop. It classifies the learnings gained during execution, routes them to the right doc, and surfaces the next inquiry. The reason to run a retro is simple — if you don't write down what you learned during execution right then, the next person (or future you) hits the same wall again. But if you push every learning into permanent docs, the docs get polluted with noise. So the core of this skill is **classification and promotion discipline**.
 

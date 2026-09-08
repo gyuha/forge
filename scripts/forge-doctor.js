@@ -282,5 +282,48 @@ if (isFile(PJ) && jname(PJ) === 'forge') {
   }
 }
 
+// B19 fg-showme confirm snippet — single definition, complete (retro 260805-063357 learning 3
+// promoted to an eval, ADR 260906-171420) — twin of .sh. Exactly one fenced copy of the inline
+// confirm button in VISUAL.md, and that copy must carry both choice:'confirm:' (the wake
+// filter's prefix) and dataset.sent (the re-send guard). warning, scoped to the forge repo.
+const vs = path.join(repo, 'skills', 'fg-showme', 'VISUAL.md');
+if (isFile(PJ) && jname(PJ) === 'forge' && isFile(vs)) {
+  const vt = read(vs);
+  const b19n = (vt.match(/type:'confirm'/g) || []).length;
+  if (b19n === 0) finding('warning', 'B19 confirm snippet missing', vs, "VISUAL.md has no confirm-button snippet — the '### Confirm button' section must carry exactly ONE canonical copy (retro 260805-063357 learning 3)");
+  else if (b19n > 1) finding('warning', 'B19 confirm snippet duplicated', `${vs} (${b19n} copies)`, "keep ONE canonical confirm-button snippet under '### Confirm button' and reference it from examples — two copies drifted once (retro 260805-063357 learning 3)");
+  else {
+    const lines = vt.split('\n');
+    const li = lines.findIndex((l) => l.includes("type:'confirm'"));
+    let o = li; while (o > 0 && !/^```/.test(lines[o])) o--;
+    let c = li + 1; while (c < lines.length && !/^```/.test(lines[c])) c++;
+    const blk = lines.slice(o, c + 1).join('\n');
+    if (!blk.includes("choice:'confirm:'") || !blk.includes('dataset.sent')) finding('warning', 'B19 confirm snippet incomplete', vs, "the canonical confirm snippet must send choice:'confirm:'+key (the wake filter matches only that prefix) and keep the dataset.sent re-send guard (retro 260805-063357 learning 3)");
+  }
+}
+
+// B20 capability key ↔ **Host contract** paragraph coherence (retro 260908-210216 learning 1 →
+// eval, ADR 260906-171420) — twin of .sh. Bidirectional; a variant label is reported as a label
+// problem only; vocabulary derived from core/HOST.md's table. warning, forge repo scope.
+const hostMd = path.join(repo, 'core', 'HOST.md');
+if (isFile(PJ) && jname(PJ) === 'forge' && isFile(hostMd)) {
+  const b20keys = [...read(hostMd).matchAll(/^\| `([a-z_]+)`/gm)].map((m) => m[1]);
+  if (b20keys.length) {
+    const keyRe = new RegExp('`(' + b20keys.join('|') + ')`', 'g');
+    for (const sk of ls(path.join(repo, 'skills'))) {
+      const f = path.join(repo, 'skills', sk, 'SKILL.md'); if (!isFile(f)) continue;
+      const t = read(f);
+      const k = new Set([...t.matchAll(keyRe)].map((m) => m[1])).size;
+      const hLines = t.match(/^\*\*Host contract\*\*.*$/gm) || [];
+      const h = hLines.length;
+      const hk = new Set([...hLines.join('\n').matchAll(keyRe)].map((m) => m[1])).size;
+      const v = (t.match(/^\*\*Host [a-z]+\*\*/gm) || []).find((x) => x !== '**Host contract**');
+      if (v) finding('warning', 'B20 host contract label', `${f} (${v})`, "use the canonical label **Host contract** — a variant label is invisible to skills and checks that look the paragraph up by name");
+      else if (k > 0 && h === 0) finding('warning', 'B20 host contract missing', f, "this skill names a host capability but has no **Host contract** paragraph — add one next to its **Language** rule that names the key(s) it depends on and the fallback when the host lacks them (core/HOST.md)");
+      else if (h > 0 && hk === 0) finding('warning', 'B20 host contract names no capability', f, "this **Host contract** paragraph names no capability key — say which key(s) from core/HOST.md it is about (e.g. `structured_choice`, `status_display`), so the dependency is mechanically discoverable");
+    }
+  }
+}
+
 process.stdout.write(`\n🩺 forge-doctor — ${errN} errors, ${warnN} warnings, ${infoN} info\n`);
 process.exit(errN > 0 ? 2 : warnN > 0 ? 1 : 0);

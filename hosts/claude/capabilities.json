@@ -6,5 +6,6 @@
   "session_start": true,
   "prevent_stop": true,
   "project_agents": true,
-  "status_display": true
+  "status_display": true,
+  "event_wake": true
 }

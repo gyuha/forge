@@ -306,6 +306,60 @@ if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ]; then
   fi
 fi
 
+# B19 fg-showme confirm snippet — single definition, complete (retro 260805-063357
+# learning 3 promoted to an eval, ADR 260906-171420). The confirm button is an inline
+# onclick the agent hand-writes per screen; its `confirm:` prefix is what the wake
+# filter matches and `dataset.sent` is the re-send guard. VISUAL.md once carried the
+# snippet twice and a replace_all fixed only one — so: exactly one fenced copy, and
+# that copy must contain both signals. warning, not error (prose drift), scoped to the
+# forge plugin repo like B17/B18.
+VS="$repo/skills/fg-showme/VISUAL.md"
+if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ] && [ -f "$VS" ]; then
+  b19n="$(grep -oF "type:'confirm'" "$VS" | wc -l | tr -d ' ')"
+  if [ "$b19n" -eq 0 ]; then
+    finding warning "B19 confirm snippet missing" "$VS" "VISUAL.md has no confirm-button snippet — the '### Confirm button' section must carry exactly ONE canonical copy (retro 260805-063357 learning 3)"
+  elif [ "$b19n" -gt 1 ]; then
+    finding warning "B19 confirm snippet duplicated" "$VS ($b19n copies)" "keep ONE canonical confirm-button snippet under '### Confirm button' and reference it from examples — two copies drifted once (retro 260805-063357 learning 3)"
+  else
+    b19l="$(grep -nF "type:'confirm'" "$VS" | head -1 | cut -d: -f1)"
+    b19o="$(head -n "$b19l" "$VS" | grep -n '^```' | tail -1 | cut -d: -f1)"
+    b19c="$(tail -n +"$((b19l + 1))" "$VS" | grep -n '^```' | head -1 | cut -d: -f1)"
+    b19blk="$(sed -n "${b19o:-1},$((b19l + ${b19c:-0}))p" "$VS")"
+    if ! printf '%s' "$b19blk" | grep -qF "choice:'confirm:'" || ! printf '%s' "$b19blk" | grep -qF 'dataset.sent'; then
+      finding warning "B19 confirm snippet incomplete" "$VS" "the canonical confirm snippet must send choice:'confirm:'+key (the wake filter matches only that prefix) and keep the dataset.sent re-send guard (retro 260805-063357 learning 3)"
+    fi
+  fi
+fi
+
+# B20 capability key ↔ **Host contract** paragraph coherence (retro 260908-210216
+# learning 1 → eval, ADR 260906-171420). core/HOST.md says a skill names a capability
+# and looks it up mechanically; the other half of that contract is that the skill
+# DECLARES the dependency in a **Host contract** paragraph. Bidirectional: naming a key
+# without the paragraph, or a paragraph naming no key, is drift. A variant label
+# (**Host adapter**) is reported as a label problem only, since fixing the label fixes
+# the rest. Vocabulary is derived from core/HOST.md's table, never hardcoded. warning,
+# scoped to the forge plugin repo like B17/B18/B19.
+HOSTMD="$repo/core/HOST.md"
+if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ] && [ -f "$HOSTMD" ]; then
+  b20keys="$(grep -oE '^\| `[a-z_]+`' "$HOSTMD" | sed -E 's/^\| `([a-z_]+)`/\1/' | paste -sd'|' -)"
+  if [ -n "$b20keys" ]; then
+    for b20f in "$repo"/skills/*/SKILL.md; do
+      [ -f "$b20f" ] || continue
+      b20k="$(grep -oE "\`($b20keys)\`" "$b20f" | sort -u | wc -l | tr -d ' ')"
+      b20h="$(grep -c '^\*\*Host contract\*\*' "$b20f" || true)"
+      b20hk="$(grep '^\*\*Host contract\*\*' "$b20f" | grep -oE "\`($b20keys)\`" | sort -u | wc -l | tr -d ' ')"
+      b20v="$(grep -oE '^\*\*Host [a-z]+\*\*' "$b20f" | grep -v 'Host contract' | head -1 || true)"
+      if [ -n "$b20v" ]; then
+        finding warning "B20 host contract label" "$b20f ($b20v)" "use the canonical label **Host contract** — a variant label is invisible to skills and checks that look the paragraph up by name"
+      elif [ "$b20k" -gt 0 ] && [ "$b20h" -eq 0 ]; then
+        finding warning "B20 host contract missing" "$b20f" "this skill names a host capability but has no **Host contract** paragraph — add one next to its **Language** rule that names the key(s) it depends on and the fallback when the host lacks them (core/HOST.md)"
+      elif [ "$b20h" -gt 0 ] && [ "$b20hk" -eq 0 ]; then
+        finding warning "B20 host contract names no capability" "$b20f" "this **Host contract** paragraph names no capability key — say which key(s) from core/HOST.md it is about (e.g. \`structured_choice\`, \`status_display\`), so the dependency is mechanically discoverable"
+      fi
+    done
+  fi
+fi
+
 # =============================================================================
 # Verdict
 # =============================================================================
