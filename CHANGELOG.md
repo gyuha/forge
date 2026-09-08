@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.9] - 2026-09-09
+
+### Added
+- 외부 이벤트가 사용자 턴 없이 대화를 재개할 수 있는지를 나타내는 아홉 번째 호스트 capability `event_wake`를 추가한다.
+- `forge-doctor` B19로 fg-showme 확정 버튼 정본의 중복·누락·불완전을 검사하고, B20으로 capability 키와 `Host contract` 문단의 양방향 정합을 검사한다.
+
+### Changed
+- fg-showme가 `event_wake`를 실행 전에 확인하고, 지원하지 않는 호스트에서는 확정 후 터미널 입력이 필요하다고 세션 시작 시 한 번 안내한다.
+- 확정 버튼 예제를 정본 한 곳으로 모으고 README·스킬 문서·Codex 지원표를 호스트별 동작과 맞춘다.
+
+### Fixed
+- B20이 capability 키가 `Host contract` 문단 밖에만 있어도 통과하던 범위 검사를 바로잡는다.
+
 ## [0.8.8] - 2026-09-08
 
 ### Fixed
