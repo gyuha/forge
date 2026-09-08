@@ -115,7 +115,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
-| `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass. Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
+| `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass; a resume preserves unresolved walls until the required decision or evidence arrives. Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
 | `fg-config` | Utility | Unified settings surface for the six `.forge/config.json` keys (`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`) — `simple` auto-seals after verification in the same turn (the verification gate stays inviolable), `eco` and `tdd` keep their former semantics. Replaces the former per-key toggle skills |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |

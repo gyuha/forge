@@ -115,7 +115,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-quick` | 유틸리티 | 사소한 작업용 경량 차선 — 가볍게 그릴링한 뒤 형식 산출물 없이 바로 실행 |
 | `fg-status` | 유틸리티 | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 다음 단계 하나를 출력 |
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
-| `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행. 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
+| `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행하며, 재개해도 필요한 결정·증거가 오기 전에는 미해결 벽을 유지한다. 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
 | `fg-config` | 유틸리티 | `.forge/config.json` 여섯 키(`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`)의 통합 설정 진입점 — `simple`은 검증 후 같은 턴에 자동 봉인(검증 게이트는 불가침), `eco`·`tdd` 의미론은 종전 그대로. 옛 키별 토글 스킬을 대체 |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |

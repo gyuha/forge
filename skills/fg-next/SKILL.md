@@ -78,13 +78,13 @@ Single unambiguous step?
 
 When invoked with the `all` argument (`fg-next all`, or "forge next all" / "다음 전부 진행"), fg-next does **not** stop after one step. It drives the loop forward — **promoting and running backlog tasks in turn until the backlog is empty** — auto-progressing the linear mechanical steps with their recommended answer, and **halting at the conversational walls** to hand back to the human. It is the momentum mode (see `.forge/adr/0010-fg-next-all-momentum-mode.md`); the default `fg-next` (no arg) is unchanged — still one-shot per task, with only the one learn→done exception above (ADR-0026), never a multi-task drive.
 
-**If `.forge/loop.md` exists, all-mode does not drive.** A goal loop is in flight (or halted at a wall), and the state machine's step 0 already routes the next step to resuming fg-loop — which runs its own drive over its own member tasks. Driving all-mode in parallel would double-promote backlog work; so announce in one line that a goal loop owns the drive and delegate to fg-loop (the same announce-then-invoke as the one-shot path), instead of starting the all-mode sweep.
+**If `.forge/loop.md` exists, all-mode does not start its own drive.** Follow fg-status step 0 in both one-shot and all-mode: an unresolved wall without new evidence or a resolving decision calls for the specific missing input, not automatic delegation. When a decision, relevant change, or explicit recheck request is present (or no wall is set), delegate to fg-loop's resume preflight, which owns contract updates and the membership-filtered drive. Do not mutate loop.md here or demand a second approval.
 
 **This is not unattended full-automation.** Pillar #1 holds: all-mode never *conducts* a grilling or a retro conversation autonomously. It automates only the non-conversational decisions and stops the moment a step genuinely needs a human.
 
-### Entry: the `/goal` paste is the primary path (it doubles as the confirmation)
+### Entry: disclose the drive set once
 
-Before driving, snapshot the **entire current drive set**, not just new backlog work (and, when `driveCommit` is on, the working-tree state that decides whether this drive commits per task — [DRIVE.md](./DRIVE.md) Part 3): show the active slot and `executed/` tasks first (including each `verified:` state and that sealable tasks will have their retro auto-skipped and be sealed), then **freeze** the backlog order (priority `high → medium → low`, no marker = `medium`, ties by part/slug — same sort as fg-run's menu). A failed/unverifiable active or parked task is shown as the wall where the drive will halt, not as a seal target. This one list is the user's informed view of every task the invocation may mutate; omitting already-executed work would auto-waive its retro without disclosure. Then present the **paste-ready `/goal` line as the primary path to unattended operation** (built from fg-next all's stop-allowed set below — see "Unattended to completion"), and make the two ways forward explicit: **paste that `/goal` line to run unattended, or reply "go" (or just proceed) to drive step-at-a-time**. Either one is the single upfront go-ahead that preserves the re-run-prevention discipline (same one-gate pattern as fg-run "Run all") — the deliberate `/goal` paste (or the "go") *is* the confirmation, so there is no separate double gate. After that, drive without per-step confirmation.
+Before driving, snapshot the **entire current drive set**, not just new backlog work (and, when `driveCommit` is on, the working-tree state that decides whether this drive commits per task — [DRIVE.md](./DRIVE.md) Part 3): show the active slot and `executed/` tasks first (including each `verified:` state and that sealable tasks will have their retro auto-skipped and be sealed), then **freeze** the backlog order (priority `high → medium → low`, no marker = `medium`, ties by part/slug — same sort as fg-run's menu). A failed/unverifiable active or parked task is shown as the wall where the drive will halt, not as a seal target. This one list is the user's informed view of every task the invocation may mutate; omitting already-executed work would auto-waive its retro without disclosure. The invocation authorizes this disclosed drive; ask only if the snapshot exposes a genuine unresolved scope or safety decision. Continue without another generic go-ahead. Select the continuation mechanism and any `/goal` fallback under DRIVE.md Part 2; do not repeat that fallback after it has already been explained or while blocked.
 
 **Write the drive marker at entry when `prevent_stop` is `true` — this is what makes the drive continue without `/goal` (ADR-0028 amended 2026-08-22).** The discriminator is the host capability: with `prevent_stop` `false` **or the host unknown**, do **not** write the marker and do not imply continuous execution — the drive is turn-bounded ([DRIVE.md](./DRIVE.md) Part 2, which owns this mechanism). Otherwise, right after the go-ahead, write `<forge-root>/drive.md`:
 
@@ -131,7 +131,7 @@ Stop the drive and report at any of these — everything else auto-progresses:
 fg-next all
    │
    ▼
-Freeze backlog order, show it once, get ONE go-ahead
+Check loop ownership first; if this lane owns the drive, disclose its ordered set once (invocation authorizes it)
    │
    ▼
 ┌─▶ Derive next step (fg-status state machine)
@@ -144,7 +144,7 @@ Freeze backlog order, show it once, get ONE go-ahead
 
 ### Unattended to completion — pairing with `/goal`
 
-Crossing a genuine turn boundary (a background workflow running async, a script approval, or the model yielding despite the within-turn discipline above) needs the harness `/goal`. The **mechanism** — a session-scoped Stop hook; the **"a skill cannot set `/goal` itself"** constraint; the **phrasing rule**; and the **honest no-`/goal` fallback** (without it, one cycle then the turn ends — expected, re-issue `fg-next all` to resume) — all live in [DRIVE.md](./DRIVE.md) Part 2, shared with fg-loop. Read it; the `/goal` pairing is the operating premise of an unattended `all` drive, not an optional aside.
+Cross-turn continuation, host capability checks, the conditional `/goal` fallback, and turn-bounded behavior are defined in [DRIVE.md](./DRIVE.md) Part 2. Read it and use the stop-allowed set below only when presenting that fallback; `/goal` never resolves a human-needed wall.
 
 **fg-next all's stop-allowed set** (fill DRIVE.md's phrasing rule with *these* walls — not fg-loop's): (1) **empty state** — backlog + active slot + `executed/` all empty (done); or (2) a **human-needed wall** — `verified: failed`, an unverifiable UAT (can't reach a sealable value), a genuine fork (**this includes a refused per-task commit — reported as `fork (commit rejected — <reason>)`**, DRIVE.md Part 3), or a workflow script approval. Everything else (run · verify-pass · auto-skip retro · seal · promote next) keeps going. Recommended paste-ready shape (render in the user's language):
 

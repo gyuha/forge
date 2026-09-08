@@ -108,6 +108,8 @@ repo/
 - **STATUS.md는 이중 장부가 아니라 동반 마커다.** 상태의 원천은 파일 위치이고, STATUS.md는 plan/run과 함께 활성 슬롯 → `executed/` → `done/`을 따라 이동한다. plan 첫 줄의 `<!-- forge-slug: ... -->` 주석이 회고·봉인의 짝 맞춤 식별자다(파일이 이동해도 영속).
 - **은퇴된 ADR(`adr/retired/`)은 그릴링 연료에서 빠진다** — `fg-ask`는 `retired/`를 정답소스로 읽지 않으므로, `fg-cleanup`이 옮긴 결정은 디스크에 남되 활성 결정 집합에서 제외된다 ([ADR-0012](https://github.com/gyuha/forge/blob/main/.forge/adr/0012-fg-cleanup-renamed-to-fg-done-cleanup-retires-adrs.md)·ADR-0011 개정).
 
+`fg-loop` 재호출은 차단 해제 승인이 아니다. 저장된 `wall`은 해결 결정이나 관련 증거가 확인될 때까지 유지한다. 변화가 없는 차단에서는 같은 검사를 반복하지 않고 필요한 결정·증거를 안내한다. 이미 받은 승인은 계약에 반영한 뒤 같은 턴에서 이어가며, `fg-status`와 `fg-next`도 미해결 차단을 단순 재개 명령으로 안내하지 않는다. 명시적인 재검사 요청은 허용 범위 확대나 검증 면제를 뜻하지 않는다.
+
 ## 전체 흐름 상세도
 
 루프와 문서(`.forge/`)의 산출·소비 관계를 한눈에 본 다이어그램. 텍스트 흐름도는 [README](https://github.com/gyuha/forge/blob/main/README.ko.md#전체-흐름)에 있다. **루프 4단계의 재귀 흐름**과 거기 물린 `.forge/` 상태 파일, 그리고 그 흐름에 직접 관여하는 루프 밖 유틸리티(fg-map·fg-cleanup·fg-loop·fg-adversarial-review·fg-drop)만 표시한다. 설정 스킬(fg-config), 상태를 직접 쓰지 않는 리포터·오케스트레이터(fg-status·fg-next·fg-doctor), 그리고 재귀 루프 밖의 일회성 유틸리티(fg-quick·fg-merge·fg-statusline)는 이 흐름에 들지 않아 생략했다.
