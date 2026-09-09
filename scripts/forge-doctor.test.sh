@@ -50,6 +50,26 @@ run_doc "$t"; assert "A9unparse-rc1" 1 "$RC"; assert_grep "A9unparse-msg" "$OUT"
 # --- A9 live drive.md (inside the bound) -> silent, must not false-fire ------
 t=$(mktmp); mkdir -p "$t/.forge"; printf 'started: %s\n' "$(date +%s)" > "$t/.forge/drive.md"
 run_doc "$t"; assert "A9live-rc0" 0 "$RC"; assert_nogrep "A9live-none" "$OUT" "A9 "; rm -rf "$t"
+# --- A10 orphan running.md (no plan.md) -> error -----------------------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(date +%s)" > "$t/.forge/running.md"
+run_doc "$t"; assert "A10orphan-rc2" 2 "$RC"; assert_grep "A10orphan-msg" "$OUT" "A10 orphan running.md"; rm -rf "$t"
+# --- A10 leftover running.md (run.md present) -> warning ---------------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"; printf '# run\n' > "$t/.forge/run.md"
+printf '# S\nslug: s\nstatus: executed\nverified: pending\nretro: pending\n' > "$t/.forge/STATUS.md"
+printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(date +%s)" > "$t/.forge/running.md"
+run_doc "$t"; assert "A10leftover-rc1" 1 "$RC"; assert_grep "A10leftover-msg" "$OUT" "A10 leftover running.md"; rm -rf "$t"
+# --- A10 unparseable running.md (no valid started:) -> warning ---------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"
+printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: nonsense\nsession: x\n' > "$t/.forge/running.md"
+run_doc "$t"; assert "A10unparse-rc1" 1 "$RC"; assert_grep "A10unparse-msg" "$OUT" "A10 unparseable running.md"; rm -rf "$t"
+# --- A10 stale running.md (started > 1h ago) -> warning ----------------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"
+printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(( $(date +%s) - 3660 ))" > "$t/.forge/running.md"
+run_doc "$t"; assert "A10stale-rc1" 1 "$RC"; assert_grep "A10stale-msg" "$OUT" "A10 stale running.md"; rm -rf "$t"
+# --- A10 live running.md (fresh, plan.md, no run.md) -> silent ---------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"
+printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(date +%s)" > "$t/.forge/running.md"
+run_doc "$t"; assert "A10live-rc0" 0 "$RC"; assert_nogrep "A10live-none" "$OUT" "A10 "; rm -rf "$t"
 # --- A8 orphaned branch root -> warning --------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge/branch/feat-x/adr"; printf '# t\n' > "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"
 run_doc "$t"; assert "A8-rc1" 1 "$RC"; assert_grep "A8-msg" "$OUT" "A8 orphaned branch root"; rm -rf "$t"

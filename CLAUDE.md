@@ -36,7 +36,7 @@ npm run docs:build
 
 **이 환경의 셸 함정 — 두 세션에 걸쳐 8번 밟았다.** 전부 "명령이 조용히 틀린 답을 낸다"는 같은 부류이고, 특히 **부정 체크(`→ 0`)와 만나면 fail-open이라 통과처럼 보인다**(0.6.11의 runnable-DoD 규칙이 이걸 다룬다). 기본 셸은 **zsh**이고 `grep`은 실은 **ugrep**이다:
 
-- **글롭 패턴은 반드시 인용한다** — `--include='*.md'`. 인용하지 않으면 zsh가 먼저 확장해 `no matches found`로 **명령 전체가 실패**한다(이번 세션 3회, 그중 2회가 `0건`을 내 확인처럼 보였다).
+- **글롭 패턴은 반드시 인용한다** — `--include='*.md'`. 인용하지 않으면 zsh가 먼저 확장해 `no matches found`로 **명령 전체가 실패**한다(이번 세션 3회, 그중 2회가 `0건`을 내 확인처럼 보였다). **`2>/dev/null`로도 못 잡는다** — 셸 자신이 명령을 버리므로 리다이렉션이 붙을 명령이 없다. 비어 있을 수 있는 경로(`.forge/executed/*/STATUS.md` 류)는 `find … -exec grep … {} +`나 `setopt nullglob`으로 순회한다(task 145 세션에서 2회 재발).
 - **`grep -c`는 미매치 시 exit 1이다** — `$(grep -c … || echo 0)`을 쓰면 `0\n0`이 나와 표가 어긋난다. 개수만 필요하면 `grep -o … | wc -l`을 쓰거나 exit code를 무시하지 말 것.
 - **`cmd > f 2>/dev/null`은 셸 리다이렉션 오류를 못 잡는다** — `2>/dev/null`은 `cmd`에 붙지 `>`에 붙지 않으므로, 쓰기 권한이 없으면 셸 자신의 에러가 stderr로 샌다. 필요하면 `{ cmd > f; } 2>/dev/null`로 그룹을 감싼다(훅처럼 stderr가 **의미를 갖는** 곳에서는 계약 위반이 된다).
 - **인용하지 않은 변수는 단어 분할되지 않는다** — `for f in $FILES`가 문자열 전체를 한 단어로 돌려 루프가 0회 돈다. 여러 파일 순회는 목록을 `for`에 직접 쓴다.
@@ -83,6 +83,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 | `.forge/ask.md` (fg-ask 그릴링 시작 시 쓰는 표시용 마커, 백로그 적재/fg-quick 이탈 시 삭제) | fg-ask | fg-statusline(표시 전용 — 다른 스킬은 게이트로 읽지 않음) |
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `.forge/plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준), fg-learn |
+| `.forge/running.md` (실행 중 마커 — fg-run이 실행 위임 직후 작성(`forge-running` slug·`workflow:` id·`started:` epoch·`session:`), `run.md`를 쓴 직후 삭제. 백그라운드 실행 중 "plan만 있음"과 구별해 재진입 이중 실행을 막는다 — ADR `260909-150614`) | fg-run | fg-run(재진입 4a — 회수·대기·확인, 재실행 아님)·fg-status/fg-next(상태 머신 1b "실행 중 — 기다린다")·세션 시작 훅(이전 세션의 실행 중 한 줄)·fg-doctor(A10)·fg-drop(활성 슬롯과 함께 제거) |
 | `.forge/run.md` | fg-run | fg-learn |
 | `.forge/review.md` (적대적 리뷰 findings — 휘발, 활성 슬롯 동반, 선택적·비-게이트) | fg-adversarial-review | fg-learn(retro 승급 입력)·fg-done(봉인 시 done/ 아카이브) |
 | `.forge/STATUS.md` (활성 슬롯, `status: executed`, `verified: pending`) | fg-run(run.md 기록 직후 작성, 핸드오프 UAT로 `verified:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-done(검증→회고 게이트 후 `status: done` 마감) |

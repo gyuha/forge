@@ -114,6 +114,28 @@ if (isFile(path.join(root, 'drive.md'))) {
     finding('warning', 'A9 stale drive.md', path.join(root, 'drive.md'), 'a drive exited without deleting its marker (past the 30-min bound, so it blocks nothing) \u2014 delete it');
   }
 }
+// A10 running.md — fg-run's in-flight marker (written when a background workflow
+// launches, deleted right after run.md is written). Orphan (no plan) is an error;
+// leftover (run.md present), unparseable or >1h are warnings. Read-only: report only.
+if (isFile(path.join(root, 'running.md'))) {
+  const rf = path.join(root, 'running.md');
+  if (!isFile(path.join(root, 'plan.md'))) {
+    finding('error', 'A10 orphan running.md', rf, 'an execution marker with no active plan \u2014 delete the marker (fg-drop or rm)');
+  } else if (isFile(path.join(root, 'run.md'))) {
+    finding('warning', 'A10 leftover running.md', rf, 'the run already finished (run.md present) but the marker was not deleted \u2014 delete it');
+  } else {
+    let started = '';
+    for (const line of read(rf).split(/\r?\n/)) {
+      const m = line.match(/^started:[ \t]*([0-9]*)/);
+      if (m) { started = m[1]; break; }
+    }
+    if (started === '') {
+      finding('warning', 'A10 unparseable running.md', rf, "an execution marker with no valid 'started:' \u2014 delete it and re-enter fg-run");
+    } else if (Math.floor(Date.now() / 1000) - Number(started) > 3600) {
+      finding('warning', 'A10 stale running.md', rf, 'an execution marker older than 1h \u2014 re-enter fg-run, which collects the result or confirms before re-running');
+    }
+  }
+}
 // A8 orphaned branch root
 const brDir = path.join(repo, '.forge', 'branch');
 if (isDir(brDir)) {

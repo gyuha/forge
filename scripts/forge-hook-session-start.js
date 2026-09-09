@@ -80,6 +80,10 @@ function slugof(planFile) {
   const m = read(planFile).match(/forge-slug:[ \t]*([^ ]*)[ \t]*-->/);
   return m ? m[1] : '';
 }
+function runningof(markerFile) { // slug from `<!-- forge-running: <slug> -->`
+  const m = read(markerFile).match(/forge-running:[ \t]*([^ ]*)[ \t]*-->/);
+  return m ? m[1] : '';
+}
 // See the .sh twin: a digit run longer than TASK_DIGITS_MAX is not a task
 // number, so treat it as absent (slug-only render). Bounds the value at its
 // source; sanitize() bounds it again at the sink.
@@ -112,6 +116,19 @@ if (fs.existsSync(path.join(root, 'run.md'))) {
     items.push(mkItem(taskof(planFile), slug, 'active slot',
                       field(statusFile, 'verified'), field(statusFile, 'retro')));
   }
+}
+
+// In-flight marker (ADR 260909-150614) — see the .sh twin: marker present with
+// NO run.md = a previous session's execution is (or was) in flight; marker WITH
+// run.md is a stale leftover for fg-doctor (A10), so the hook says nothing.
+let inflightLine = '';
+if (fs.existsSync(path.join(root, 'running.md')) && !fs.existsSync(path.join(root, 'run.md'))) {
+  const planFile = path.join(root, 'plan.md');
+  const islug = slugof(planFile) || runningof(path.join(root, 'running.md')) || '(unknown)';
+  const itsk = taskof(planFile);
+  const iprefix = itsk ? `task ${sanitize(itsk)} ` : '';
+  inflightLine = `Execution in flight from a previous session: ${iprefix}\`${sanitize(islug)}\` ${EM_DASH} `
+               + 'fg-run collects or confirms before re-running; do not rebuild blindly.';
 }
 
 // Parked tasks awaiting retro. Counted, NOT listed as unsealed-tail items — the
@@ -150,7 +167,7 @@ if (fs.existsSync(loopFile)) {
 
 // --- Silence when there is nothing owed --------------------------------------
 // Firing condition unchanged from ADR 260727-201031 — only park's rendering moved.
-if (items.length === 0 && !loopLine && parkedTotal === 0) process.exit(0);
+if (items.length === 0 && !inflightLine && !loopLine && parkedTotal === 0) process.exit(0);
 
 // --- Backlog count (context only — never a reason to speak) ------------------
 let queued = 0;
@@ -164,6 +181,7 @@ if (items.length > 0) {
   out.push('Unsealed tail (ran, not sealed):');
   for (const it of items) out.push(it);
 }
+if (inflightLine) out.push(inflightLine);
 if (loopLine) out.push(loopLine);
 if (parkedTotal > 0) {
   out.push(parkedFailed > 0

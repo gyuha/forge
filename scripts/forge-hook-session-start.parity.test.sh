@@ -183,6 +183,17 @@ printf 'run\n' > "$N4/.forge/run.md"
 seed_status "$N4/.forge/STATUS.md" absurd executed "yes (t)" pending
 assert_parity "absurd task number — dropped identically" "$N4" "\`absurd\`"
 
+# --- O: in-flight marker (running.md, no run.md) -> identical line -----------
+O="$(mktemp -d)"; mkdir -p "$O/.forge"
+seed_plan "$O/.forge/plan.md" inflight-task 145
+printf '<!-- forge-running: inflight-task -->\nworkflow: wf-1\nstarted: 1789000000\nsession: s1\n' > "$O/.forge/running.md"
+assert_parity "in-flight marker without run.md: identical line" "$O" "Execution in flight from a previous session: task 145"
+
+# --- O2: marker without plan.md -> marker slug, identical -------------------
+O2="$(mktemp -d)"; mkdir -p "$O2/.forge"
+printf '<!-- forge-running: 한글-실행 -->\nworkflow: agents\nstarted: 1789000000\nsession: s1\n' > "$O2/.forge/running.md"
+assert_parity "in-flight marker, no plan.md, Hangul slug: sh==js" "$O2" "한글-실행"
+
 echo ""
 if [ "$fails" -eq 0 ]; then echo "PARITY OK (all cases identical)"; exit 0
 else echo "PARITY FAILED ($fails case(s))"; exit 1; fi

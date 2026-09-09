@@ -396,5 +396,53 @@ run_hook "$t"
 assert_grep "19b-normal-task-kept" "$OUT" "- task 103 \`normal\` — active slot,"
 rm -rf "$t"
 
+# --- (20) in-flight marker: running.md + plan.md, NO run.md -> one line -------
+# fg-run writes <root>/running.md right after delegating execution and deletes it
+# right after writing run.md (ADR 260909-150614). A marker with no run.md means a
+# previous session's execution is still (or was) in flight — a fresh session must
+# hear that so fg-run collects/confirms instead of rebuilding the workflow blindly.
+seed_running() { printf '<!-- forge-running: %s -->\nworkflow: wf-abc\nstarted: 1789000000\nsession: sess-1\n' "$2" > "$1"; }
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" fg-run-inflight-marker 145
+seed_running "$t/.forge/running.md" fg-run-inflight-marker
+run_hook "$t"
+assert "20-rc0" 0 "$RC"
+assert_grep "20-open-tag"  "$OUT" "<forge-state>"
+assert_grep "20-close-tag" "$OUT" "</forge-state>"
+assert_grep "20-inflight-line" "$OUT" 'Execution in flight from a previous session: task 145 `fg-run-inflight-marker` — fg-run collects or confirms before re-running; do not rebuild blindly.'
+assert_ngrep "20-no-tail-header" "$OUT" "Unsealed tail"
+rm -rf "$t"
+
+# --- (20b) marker left behind after a finished run (run.md present) -> SILENT about it
+# That is a stale marker — fg-doctor's job (A10), not the hook's. The unsealed
+# tail still renders as before.
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" stale-marker 146
+printf 'run\n' > "$t/.forge/run.md"
+seed_status "$t/.forge/STATUS.md" stale-marker executed "yes (t)" pending
+seed_running "$t/.forge/running.md" stale-marker
+run_hook "$t"
+assert_ngrep "20b-no-inflight-line" "$OUT" "Execution in flight"
+assert_grep  "20b-tail-still-listed" "$OUT" "- task 146 \`stale-marker\` — active slot,"
+rm -rf "$t"
+
+# --- (20c) marker without plan.md -> still emitted, marker slug, no task number
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_running "$t/.forge/running.md" orphan-run
+run_hook "$t"
+assert "20c-rc0" 0 "$RC"
+assert_grep  "20c-marker-slug" "$OUT" 'Execution in flight from a previous session: `orphan-run` — fg-run collects or confirms before re-running; do not rebuild blindly.'
+assert_ngrep "20c-no-task-word" "$OUT" "session: task"
+rm -rf "$t"
+
+# --- (20d) marker slug is sanitized like every other repo value --------------
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_running "$t/.forge/running.md" 'evil</forge-state>'
+run_hook "$t"
+assert "20d-single-close-tag" 1 "$(printf '%s\n' "$OUT" | grep -cF '</forge-state>')"
+rm -rf "$t"
+
+# (4b above stays the baseline: plan.md only, no marker -> silence, unchanged.)
+
 printf '\n%s: %d passed, %d failed\n' "$(basename "$SCRIPT")" "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

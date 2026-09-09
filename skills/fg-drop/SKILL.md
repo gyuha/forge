@@ -24,6 +24,7 @@ Drop targets are **incomplete** work = anything not sealed in `done/`. Scan the 
 | `ask.md` | an in-progress fg-ask grilling session (its working-slug marker) | **low** — display-only marker; nothing has run, dropping it just abandons an unfinished conversation |
 | `backlog/<slug>.md` | a queued plan that has **not run** | **low** — volatile & gitignored; deleting loses nothing in git |
 | active slot `plan.md` **with no** `run.md` | promoted but not yet run | **low** — same as a backlog plan |
+| active slot `plan.md` + `running.md` (no `run.md`) | execution **in flight** or never collected (fg-run's in-flight marker) | **medium** — a background run may still be writing; dropping removes forge tracking only, it does not stop the run |
 | active slot **with** `run.md` (+`STATUS.md`, +`review.md`) | **already executed**, awaiting verify/retro/seal | **high** — the code already changed; dropping removes only forge tracking |
 | `executed/<slug>/` | parked after "Run all", awaiting retro | **high** — already executed, same warning |
 | `loop.md` (halted goal loop) | an fg-loop drive stopped at a wall | **high** — abandons the whole goal loop |
@@ -62,7 +63,7 @@ Show a summary — "the following will be **[deleted / archived]**: …" listing
 For each confirmed item:
 
 - **`ask.md`** — remove (or move) the single file.
-- **Active slot** — remove (or move to `dropped/<slug>/`) `plan.md` + `run.md` + `STATUS.md`, plus `review.md` if present (the same companion set fg-done archives — ADR-0018). After this the active slot is empty.
+- **Active slot** — remove (or move to `dropped/<slug>/`) `plan.md` + `run.md` + `STATUS.md`, plus `review.md` if present (the same companion set fg-done archives — ADR-0018) and `running.md` if present (the in-flight marker — it belongs to this slot and must not outlive it). After this the active slot is empty.
 - **`backlog/<slug>.md`** — remove (or move) the single file.
 - **`executed/<slug>/`** — remove (or move) the whole directory.
 - **`loop.md` goal-loop item** — read its `## Tasks` membership, then remove (or archive together) `loop.md` **plus all member tasks' incomplete state** from `backlog/`, the active slot, and `executed/`. Leave `done/` history and every non-member task untouched. When archiving, place the contract and member state under one `.forge/dropped/<loop-slug>/` tree so the abandoned goal remains reconstructable.
@@ -85,7 +86,7 @@ Disposal question (separate):  Delete (default, no trace)  |  Archive → .forge
 Confirmation gate: summary + explicit "yes"   (high-risk run.md present → "⚠ changed code is NOT reverted"; non-default branch → "⚠ tracked files — deletion shows in git status")
    │ no ──▶ abort, change nothing
    ▼
-Execute per item (ask.md · active slot = plan+run+STATUS+review · backlog file · executed/ dir · goal loop = loop.md + all incomplete member state)
+Execute per item (ask.md · active slot = plan+run+STATUS+review+running.md · backlog file · executed/ dir · goal loop = loop.md + all incomplete member state)
    ▼
 Report what was dropped/archived → end
 ```

@@ -104,6 +104,25 @@ if [ -f "$root/drive.md" ]; then
        fi ;;
   esac
 fi
+# A10 running.md — fg-run's in-flight marker (written when a background workflow
+# launches, deleted right after run.md is written). Orphan (no plan) is an error;
+# leftover (run.md present), unparseable or >1h are warnings. Read-only: report only.
+if [ -f "$root/running.md" ]; then
+  if [ ! -f "$root/plan.md" ]; then
+    finding error "A10 orphan running.md" "$root/running.md" "an execution marker with no active plan — delete the marker (fg-drop or rm)"
+  elif [ -f "$root/run.md" ]; then
+    finding warning "A10 leftover running.md" "$root/running.md" "the run already finished (run.md present) but the marker was not deleted — delete it"
+  else
+    started="$(sed -n 's/^started:[[:space:]]*\([0-9]*\).*/\1/p' "$root/running.md" | head -1)"
+    now="$(date +%s 2>/dev/null || echo 0)"
+    case "$started" in
+      ''|*[!0-9]*) finding warning "A10 unparseable running.md" "$root/running.md" "an execution marker with no valid 'started:' — delete it and re-enter fg-run" ;;
+      *) if [ "$now" -gt 0 ] && [ "$((now - started))" -gt 3600 ]; then
+           finding warning "A10 stale running.md" "$root/running.md" "an execution marker older than 1h — re-enter fg-run, which collects the result or confirms before re-running"
+         fi ;;
+    esac
+  fi
+fi
 
 # A8 (NEW) orphaned branch root — forgot fg-merge?
 if [ -d "$repo/.forge/branch" ]; then

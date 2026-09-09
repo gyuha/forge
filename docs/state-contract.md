@@ -22,6 +22,7 @@ repo/
     ├── plan.md                # 활성 슬롯: 지금 도는 한 바퀴의 정답 기준 (fg-run가 백로그에서 승격)
     ├── run.md                 # ② fg-run 산출 = 계획 vs 실제
     ├── review.md              # (선택) fg-adversarial-review findings — 휘발·활성 슬롯 동반·비-게이트; fg-learn 승급 입력, 봉인 시 done/ 아카이브 (ADR-0018)
+    ├── running.md             # 실행 중 마커(fg-run): 실행 위임 직후 작성(forge-running slug·workflow id·started epoch·session), run.md를 쓴 직후 삭제 — 백그라운드 실행 중 "plan만 있음"과 구별해 재진입 이중 실행을 막는다 (ADR 260909-150614)
     ├── STATUS.md              # 활성 슬롯: fg-run가 실행 완료 시 작성 (status: executed, verified: pending, retro: pending) — verified는 yes/skipped/n/a(봉인 가능) 또는 failed(차단), retro는 이후 경로 또는 "skipped"가 됨
     ├── loop.md                # goal 계약(fg-loop): 정지 체크·replan 라운드/상한·## Tasks 멤버십 — goal 충족 시 fg-loop가 삭제 (ADR-0016)
     ├── drive.md               # 무인 주행 마커(fg-next all·fg-loop): started(epoch)·blocked·session — forge의 Stop 훅이 이것이 살아 있는 동안 턴 종료를 막는다. 모든 벽·종료에서 주행이 삭제 (ADR-0028)
@@ -97,6 +98,7 @@ repo/
 | `ask.md` (그릴링 시작 시 쓰는 표시용 마커, 백로그 적재/fg-quick 이탈 시 삭제) | fg-ask | fg-statusline(표시 전용 — 다른 스킬은 게이트로 읽지 않음) |
 | `backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준)·fg-learn |
+| `running.md` (실행 중 마커 — 실행 위임 직후 작성, `run.md` 직후 삭제) | fg-run | fg-run(재진입 — 회수·대기·확인, 재실행 아님)·fg-status/fg-next(상태 머신 1b "실행 중 — 기다린다")·세션 시작 훅(이전 세션의 실행 중 한 줄)·fg-doctor(A10 고아·낡은 마커)·fg-drop(활성 슬롯과 함께 제거) |
 | `run.md` | fg-run | fg-learn · fg-done(봉인 요약 재료) |
 | `review.md` (선택·비-게이트) | fg-adversarial-review | fg-learn(retro 승급 입력)·fg-done(봉인 시 `done/` 아카이브) |
 | `STATUS.md` (동반 마커) | fg-run(`status: executed`·`verified:`·`retro:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-done(`status: done` 마감) |

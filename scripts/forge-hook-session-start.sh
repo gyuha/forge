@@ -113,6 +113,10 @@ slugof() { # $1=plan file
   [ -f "$1" ] || return 0
   sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'
 }
+runningof() { # $1=running.md — slug from the first-line `<!-- forge-running: <slug> -->`
+  [ -f "$1" ] || return 0
+  sed -n 's/.*forge-running:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'
+}
 # A task number is a monotonic small int (max 3 digits in this repo as of task
 # 103). A digit run longer than TASK_DIGITS_MAX is not a task number, so treat
 # it as absent — `mk_item` then renders slug-only, an already-covered path. This
@@ -159,6 +163,24 @@ if [ -f "$root/run.md" ]; then
   fi
 fi
 
+# In-flight marker (ADR 260909-150614): fg-run writes running.md right after
+# delegating execution and deletes it right after writing run.md. Marker present
+# with NO run.md = a previous session's execution is (or was) in flight — say so,
+# or the next fg-run rebuilds the workflow blindly. Marker WITH run.md is a stale
+# leftover: fg-doctor's job (A10), so the hook stays silent about it. The
+# "plan.md only -> silent" rule above is unchanged when no marker exists.
+inflight_line=""
+if [ -f "$root/running.md" ] && [ ! -f "$root/run.md" ]; then
+  islug="$(slugof "$root/plan.md")"
+  [ -n "$islug" ] || islug="$(runningof "$root/running.md")"
+  [ -n "$islug" ] || islug="(unknown)"
+  itsk="$(taskof "$root/plan.md")"
+  iprefix=""
+  [ -n "$itsk" ] && iprefix="task $(sanitize "$itsk") "
+  inflight_line="$(printf 'Execution in flight from a previous session: %s`%s` — fg-run collects or confirms before re-running; do not rebuild blindly.' \
+    "$iprefix" "$(sanitize "$islug")")"
+fi
+
 # Parked tasks awaiting retro. Counted, NOT listed as unsealed-tail items: the
 # glossary defines park as a deliberate wait, not a tail (see the header). The
 # `failed` tally is kept separate because such a task cannot be retro'd or sealed
@@ -192,7 +214,7 @@ fi
 # The firing condition is unchanged from ADR 260727-201031 (unsealed active slot,
 # parked executed/, or loop.md) — only the rendering of park moved.
 n_items=${#items[@]}
-if [ "$n_items" -eq 0 ] && [ -z "$loop_line" ] && [ "$parked_total" -eq 0 ]; then
+if [ "$n_items" -eq 0 ] && [ -z "$inflight_line" ] && [ -z "$loop_line" ] && [ "$parked_total" -eq 0 ]; then
   exit 0
 fi
 
@@ -210,6 +232,7 @@ if [ "$n_items" -gt 0 ]; then
     printf '%s\n' "$it"
   done
 fi
+[ -n "$inflight_line" ] && printf '%s\n' "$inflight_line"
 [ -n "$loop_line" ] && printf '%s\n' "$loop_line"
 if [ "$parked_total" -gt 0 ]; then
   if [ "$parked_failed" -gt 0 ]; then
