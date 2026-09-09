@@ -95,17 +95,19 @@ fi
 # exited without cleaning up, and the next reader deserves to know why nothing is
 # continuing. Read-only: report, never delete (fg-doctor never auto-fixes).
 if [ -f "$root/drive.md" ]; then
-  started="$(sed -n 's/^started:[[:space:]]*\([0-9]*\).*/\1/p' "$root/drive.md" | head -1)"
+  started="$(sed -n 's/^started:[[:space:]]*//p' "$root/drive.md" | head -1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
   now="$(date +%s 2>/dev/null || echo 0)"
   case "$started" in
     ''|*[!0-9]*) finding warning "A9 unparseable drive.md" "$root/drive.md" "a drive marker with no valid 'started:' — delete it (the Stop hook ignores it, so nothing is blocked)" ;;
-    *) if [ "$now" -gt 0 ] && [ "$((now - started))" -gt 1800 ]; then
+    ???????????*) finding warning "A9 unparseable drive.md" "$root/drive.md" "a drive marker with no valid 'started:' — delete it (the Stop hook ignores it, so nothing is blocked)" ;;
+    *) started_num=$((10#$started))
+       if [ "$now" -gt 0 ] && [ "$((now - started_num))" -gt 1800 ]; then
          finding warning "A9 stale drive.md" "$root/drive.md" "a drive exited without deleting its marker (past the 30-min bound, so it blocks nothing) — delete it"
        fi ;;
   esac
 fi
-# A10 running.md — fg-run's in-flight marker (written when a background workflow
-# launches, deleted right after run.md is written). Orphan (no plan) is an error;
+# A10 running.md — fg-run's in-flight marker (written at the launch boundary,
+# immediately before launch; deleted right after run.md). Orphan (no plan) is an error;
 # leftover (run.md present), unparseable or >1h are warnings. Read-only: report only.
 if [ -f "$root/running.md" ]; then
   if [ ! -f "$root/plan.md" ]; then
@@ -113,11 +115,13 @@ if [ -f "$root/running.md" ]; then
   elif [ -f "$root/run.md" ]; then
     finding warning "A10 leftover running.md" "$root/running.md" "the run already finished (run.md present) but the marker was not deleted — delete it"
   else
-    started="$(sed -n 's/^started:[[:space:]]*\([0-9]*\).*/\1/p' "$root/running.md" | head -1)"
+    started="$(sed -n 's/^started:[[:space:]]*//p' "$root/running.md" | head -1 | tr -d '\r' | sed 's/[[:space:]]*$//')"
     now="$(date +%s 2>/dev/null || echo 0)"
     case "$started" in
       ''|*[!0-9]*) finding warning "A10 unparseable running.md" "$root/running.md" "an execution marker with no valid 'started:' — delete it and re-enter fg-run" ;;
-      *) if [ "$now" -gt 0 ] && [ "$((now - started))" -gt 3600 ]; then
+      ???????????*) finding warning "A10 unparseable running.md" "$root/running.md" "an execution marker with no valid 'started:' — delete it and re-enter fg-run" ;;
+      *) started_num=$((10#$started))
+         if [ "$now" -gt 0 ] && [ "$((now - started_num))" -gt 3600 ]; then
            finding warning "A10 stale running.md" "$root/running.md" "an execution marker older than 1h — re-enter fg-run, which collects the result or confirms before re-running"
          fi ;;
     esac

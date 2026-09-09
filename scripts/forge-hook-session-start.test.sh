@@ -33,10 +33,10 @@ assert()      { if [ "$2" = "$3" ]; then pass=$((pass+1)); else fail=$((fail+1))
 assert_grep() { if printf '%s' "$2" | grep -qF -- "$3"; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (missing: %s)\n       actual: [%s]\n' "$1" "$3" "$2"; fi; }
 assert_ngrep() { if printf '%s' "$2" | grep -qF -- "$3"; then fail=$((fail+1)); printf '  FAIL %s (should NOT contain: %s)\n       actual: [%s]\n' "$1" "$3" "$2"; else pass=$((pass+1)); fi; }
 
-run_hook() { local wd="$1"; shift
+run_hook() { local wd="$1" payload="${2:-}"
   case "$SCRIPT" in
-    *.js) OUT="$( cd "$wd" && node "$SCRIPT" "$@" 2>/dev/null )"; RC=$? ;;
-    *)    OUT="$( cd "$wd" && bash "$SCRIPT" "$@" 2>/dev/null )"; RC=$? ;;
+    *.js) OUT="$( cd "$wd" && printf '%s' "$payload" | node "$SCRIPT" 2>/dev/null )"; RC=$? ;;
+    *)    OUT="$( cd "$wd" && printf '%s' "$payload" | bash "$SCRIPT" 2>/dev/null )"; RC=$? ;;
   esac
 }
 
@@ -405,12 +405,40 @@ seed_running() { printf '<!-- forge-running: %s -->\nworkflow: wf-abc\nstarted: 
 t=$(mktmp); mkdir -p "$t/.forge"
 seed_plan "$t/.forge/plan.md" fg-run-inflight-marker 145
 seed_running "$t/.forge/running.md" fg-run-inflight-marker
-run_hook "$t"
+run_hook "$t" '{"session_id":"sess-1"}'
 assert "20-rc0" 0 "$RC"
 assert_grep "20-open-tag"  "$OUT" "<forge-state>"
 assert_grep "20-close-tag" "$OUT" "</forge-state>"
-assert_grep "20-inflight-line" "$OUT" 'Execution in flight from a previous session: task 145 `fg-run-inflight-marker` — fg-run collects or confirms before re-running; do not rebuild blindly.'
+assert_grep "20-inflight-line" "$OUT" 'Execution in flight in this session: task 145 `fg-run-inflight-marker` — wait for its completion.'
 assert_ngrep "20-no-tail-header" "$OUT" "Unsealed tail"
+rm -rf "$t"
+
+# --- (20a) a different SessionStart session cannot own the execution --------
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" fg-run-inflight-marker 145
+seed_running "$t/.forge/running.md" fg-run-inflight-marker
+run_hook "$t" '{"session_id":"sess-2"}'
+assert_grep "20a-other-session-line" "$OUT" 'Execution in flight from another session: task 145 `fg-run-inflight-marker` — fg-run collects or confirms before re-running.'
+rm -rf "$t"
+
+# --- (20aa) malformed JSON cannot prove ownership in either implementation ---
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" fg-run-inflight-marker 145
+seed_running "$t/.forge/running.md" fg-run-inflight-marker
+run_hook "$t" 'garbage "session_id":"sess-1"'
+assert_grep "20aa-malformed-other" "$OUT" 'Execution in flight from another session:'
+run_hook "$t" '{"session_id":"sess-1" trailing}'
+assert_grep "20aa-broken-object-other" "$OUT" 'Execution in flight from another session:'
+rm -rf "$t"
+
+# --- (20ab) JSON string escapes decode; duplicate-key policy is last-wins -----
+t=$(mktmp); mkdir -p "$t/.forge"
+seed_plan "$t/.forge/plan.md" fg-run-inflight-marker 145
+seed_running "$t/.forge/running.md" fg-run-inflight-marker
+run_hook "$t" '{"session_id":"sess-\u0031"}'
+assert_grep "20ab-escaped-same" "$OUT" 'Execution in flight in this session:'
+run_hook "$t" '{"session_id":"other","session_id":"sess-1"}'
+assert_grep "20ab-duplicate-last-wins" "$OUT" 'Execution in flight in this session:'
 rm -rf "$t"
 
 # --- (20b) marker left behind after a finished run (run.md present) -> SILENT about it
@@ -421,7 +449,7 @@ seed_plan "$t/.forge/plan.md" stale-marker 146
 printf 'run\n' > "$t/.forge/run.md"
 seed_status "$t/.forge/STATUS.md" stale-marker executed "yes (t)" pending
 seed_running "$t/.forge/running.md" stale-marker
-run_hook "$t"
+run_hook "$t" '{"session_id":"sess-2"}'
 assert_ngrep "20b-no-inflight-line" "$OUT" "Execution in flight"
 assert_grep  "20b-tail-still-listed" "$OUT" "- task 146 \`stale-marker\` — active slot,"
 rm -rf "$t"
@@ -431,7 +459,7 @@ t=$(mktmp); mkdir -p "$t/.forge"
 seed_running "$t/.forge/running.md" orphan-run
 run_hook "$t"
 assert "20c-rc0" 0 "$RC"
-assert_grep  "20c-marker-slug" "$OUT" 'Execution in flight from a previous session: `orphan-run` — fg-run collects or confirms before re-running; do not rebuild blindly.'
+assert_grep  "20c-marker-slug" "$OUT" 'Execution in flight from another session: `orphan-run` — fg-run collects or confirms before re-running.'
 assert_ngrep "20c-no-task-word" "$OUT" "session: task"
 rm -rf "$t"
 

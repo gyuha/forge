@@ -26,3 +26,11 @@ fg-run은 워크플로우(Dynamic Workflow·백그라운드 서브에이전트)�
 - 이중 실행 경로가 닫힌다: 재진입은 회수·대기·확인 세 갈래 중 하나이고 "조용히 다시 세우기"는 없다.
 - 상태 계약에 파일 하나가 늘고(`docs/state-contract.md`·CLAUDE.md 표), fg-doctor 검사 하나(A10)와 훅 출력 한 줄이 늘어난다. 스크립트 트윈 4개(hook·doctor sh/js)에 픽스처가 붙는다.
 - 마커가 남는 경우(세션 사망)는 fg-doctor A10과 세션 시작 훅이 잡고, fg-run 재진입이 확인을 거쳐 정리한다 — 어느 경로도 마커를 근거로 자동 재실행하지 않는다.
+
+## 개정 2026-09-09 — 소비자 공백과 재진입 판정을 닫는다
+
+task 145 적대적 리뷰에서 봉인과 무인 주행이 마커를 소비하지 않고, 재진입의 "살아 있음" 판정과 취소 후 흔적도 연산 가능하지 않다는 공백이 확인됐다. 마커는 이제 첫 launch **직전** `workflow: pending`으로 먼저 쓰고, 호스트가 반환하는 재개 가능 handle을 launch마다 즉시 기록한다. Claude Code는 워크플로우 Task ID(`w…`, Run ID `wf_…`가 아님)를 기록해 `TaskOutput`/`TaskStop`으로 수집·취소한다. Codex spawn은 완료 전에 agent ID와 canonical task name을 반환하므로, 각 handle을 누적 기록하고 agent list + mailbox/final-status wait로 모두 수집하며 취소는 살아 있는 agent를 interrupt한다. 구체 도구명은 각 호스트 어댑터만 소유하고 공유 스킬은 handle·blocking collect·cancellation만 명명한다.
+
+재진입은 마커 slug 불일치 고아를 먼저 제거한 뒤, 어댑터 수집 결과를 `running → completed → unknown/uncollectable/error` 순서로 판정한다. 마지막 경우는 `workflow: pending`, 같은 세션의 handle 부재·수집 오류, 다른 세션 가능성을 모두 포함한다. `started:` 나이와 "실행이 다른 곳에서 아직 돌고 있을 수 있음"을 보여 주고, 3600초 미만이면 재실행보다 대기·fg-status를 기본 권고한다. 3600초는 무인 drive의 1800초 정체 창 두 번에 해당하는 보수적 관찰 창이며 자동 삭제 기준이 아니라 warning·사람 확인 기준일 뿐이다. `fg-next all`과 `fg-loop`는 이 확인을 대신할 수 없는 사람 필요 벽으로 `drive.md`를 지우고 멈춘다. 사람이 rebuild를 명시적으로 승인하면 마커를 지우고 정상 시작으로 가며, 실제 취소·중단만 아래 failed 흔적을 남긴다.
+
+소비자는 기존 fg-run·fg-status·세션 훅·fg-doctor·fg-drop에 fg-done/봉인 스크립트와 두 무인 주행 차선을 추가한다. 봉인은 활성 슬롯을 비울 때 마커를 삭제하되 아카이브하지 않는다. fg-drop은 어댑터의 cancellation operation을 사용하고, goal-loop의 활성 멤버에도 상태 제거 전에 같은 live-check/cancel을 적용한다. plan이 없는 고아 마커도 백그라운드 코드 변경 가능성이 남으므로 high risk다. 취소·중단은 예외적으로 마커만 지우지 않고, 중단 슬라이스와 관측된 부작용을 `run.md`에, `verified: failed (aborted — <사유>)`를 STATUS에 남긴 뒤 마커를 지워 failed 복구 경로로 보낸다. 이로써 봉인 뒤 고아 마커가 다음 task를 가로막는 경로와, 중단 흔적을 지워 정상 시작처럼 재실행하는 경로를 함께 닫는다.

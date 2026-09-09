@@ -45,7 +45,7 @@
 #   3  verify gate: verified: not sealable (pending/failed/missing) — nothing moved
 #   4  retro gate:  retro owed (no retro file and no --skip-retro) — nothing moved
 #   5  duplicate:   done/<date>-<slug>/ already sealed (status: done) — nothing moved
-#   6  file operation failed; inspect source/archive before retrying
+#   6  marker conflict or file operation failed; inspect source/archive before retrying
 #
 # Dependencies: bash + git + coreutils only.
 
@@ -95,6 +95,7 @@ relpath() { # absolute path under the repo -> repo-relative; anything else uncha
 field() { [ -f "$1" ] || return 0; sed -n "s/^[[:space:]]*-\{0,1\}[[:space:]]*$2:[[:space:]]*\([^ ]*\).*/\1/p" "$1" | head -1 | tr -d '\r'; }
 fullfield() { [ -f "$1" ] || return 0; sed -n "s/^[[:space:]]*-\{0,1\}[[:space:]]*$2:[[:space:]]*//p" "$1" | head -1 | tr -d '\r'; }
 slugof() { sed -n 's/.*forge-slug:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'; }
+runningof() { sed -n 's/.*forge-running:[[:space:]]*\([^ ]*\)[[:space:]]*-->.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r'; }
 
 # write a closed-out STATUS.md (status: done) to $1, preserving title/slug/executed
 # /verified from the source, and setting completed/retro/docs (+reviewed if $6).
@@ -161,6 +162,23 @@ else
   echo "EMPTY slug-not-found slug=$slug"; exit 2
 fi
 
+# An active seal may clean up only its own regular-file in-flight marker. Check
+# this before every gate/mutation: a mismatched marker may belong to a live run
+# in another session, and a directory/special file must not turn a completed
+# archive into a late, host-dependent failure.
+marker="$root/running.md"
+marker_present=0
+if [ "$MODE" = active ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
+  marker_present=1
+  if [ ! -f "$marker" ] || [ -L "$marker" ]; then
+    echo "SEAL_IO marker-conflict slug=$slug (running.md is not a regular file; source retained)"; exit 6
+  fi
+  marker_slug="$(runningof "$marker")"
+  if [ -z "$marker_slug" ] || [ "$marker_slug" != "$slug" ]; then
+    echo "SEAL_IO marker-conflict slug=$slug marker-slug=${marker_slug:-<missing>} (source retained)"; exit 6
+  fi
+fi
+
 # Normalize a STATUS field token before deciding on it: lowercase, and keep only
 # the leading [a-z/] run. `Yes`, `N/A`, `yes(ok)` (no space before the reason) all
 # then read as the canonical `yes`/`n/a`. Without this the surfaces disagree —
@@ -219,13 +237,37 @@ fi
 reviewed=""
 [ -f "$V" ] && reviewed="$(relpath "$V")"   # repo-relative, never a machine path
 # Stage copies first: an archive failure must never alter/delete the source.
-io_fail() { echo "SEAL_IO failed slug=$slug (source retained; inspect archive before retry)"; exit 6; }
+marker_claim=""
+restore_marker() {
+  [ -n "$marker_claim" ] && { [ -e "$marker_claim" ] || [ -L "$marker_claim" ]; } || return 0
+  if [ ! -e "$marker" ] && [ ! -L "$marker" ]; then mv "$marker_claim" "$marker" 2>/dev/null || true; fi
+}
+io_fail() { restore_marker; echo "SEAL_IO failed slug=$slug (inspect source/archive before retry)"; exit 6; }
 if [ "$MODE" = half ]; then
   tmp_status="$(mktemp "$D/.status.XXXXXX" 2>/dev/null)" || io_fail
   if ! cp "$S" "$tmp_status" || ! close_out_status "$tmp_status" "$slug" "$retro_out" "$reviewed" || ! mv "$tmp_status" "$S"; then
     rm -f "$tmp_status"; io_fail
   fi
   echo "SEALED half-sealed-completed $D/"; exit 0
+fi
+# Atomically claim the checked marker while the active source still occupies the
+# slot. Re-check after rename to close replacement races between preflight and
+# claim; restore it on every refusal/failure path.
+if [ "$MODE" = active ] && [ "$marker_present" -eq 1 ]; then
+  # Deterministic regression hook: tests alone replace the preflighted marker
+  # immediately before claim. Unset/default production behavior is unchanged.
+  if [ "${_FORGE_DONE_TEST_REPLACE_MARKER_WITH_DIRECTORY:-}" = 1 ]; then
+    rm "$marker" 2>/dev/null || io_fail
+    mkdir "$marker" 2>/dev/null || io_fail
+  fi
+  marker_claim="$root/.running.seal.$$"
+  { [ ! -e "$marker_claim" ] && [ ! -L "$marker_claim" ]; } || io_fail
+  mv "$marker" "$marker_claim" 2>/dev/null || io_fail
+  claimed_slug="$(runningof "$marker_claim")"
+  if [ "$claimed_slug" != "$slug" ]; then
+    restore_marker
+    echo "SEAL_IO marker-conflict slug=$slug marker-slug=${claimed_slug:-<missing>} (source retained)"; exit 6
+  fi
 fi
 # 2) archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
 #    same-second same-slug collision — rare, since the dup scan above already caught
@@ -251,6 +293,7 @@ for source in "$P" "$R" "$S" "$V"; do
   rm "$source" || io_fail
 done
 if [ "$MODE" = executed ]; then rmdir "$D" 2>/dev/null || true; fi
+[ -z "$marker_claim" ] || { rm "$marker_claim" 2>/dev/null || io_fail; marker_claim=""; }
 
 echo "SEALED slug=$slug dest=$DEST"
 exit 0

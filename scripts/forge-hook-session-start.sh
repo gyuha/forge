@@ -91,6 +91,26 @@ root="$(bash "$SCRIPT_DIR/resolve-forge-root.sh" 2>/dev/null)"
 [ -n "$root" ] || root=".forge"
 [ -d "$root" ] || exit 0
 
+# SessionStart payload on stdin. Never read from a tty; missing or malformed
+# input simply means this process cannot prove ownership of an in-flight marker.
+payload=""
+[ -t 0 ] || payload="$(cat 2>/dev/null || true)"
+session_id=""
+# JSON.parse gives both twins the same malformed/escape/duplicate-key policy.
+# Restrict the decoded id to the host's opaque ASCII-id alphabet so shell
+# variables can never erase a NUL/control escape and accidentally prove ownership.
+if command -v node >/dev/null 2>&1; then
+  session_id="$(printf '%s' "$payload" | node -e '
+    const fs = require("fs");
+    try {
+      const p = JSON.parse(fs.readFileSync(0, "utf8"));
+      if (p && typeof p.session_id === "string" && /^[A-Za-z0-9._:-]+$/.test(p.session_id)) {
+        process.stdout.write(p.session_id);
+      }
+    } catch (_) {}
+  ' 2>/dev/null || true)"
+fi
+
 # Repo-relative label for messages (the resolver returns an absolute path inside
 # a git repo; an absolute path in the injected block would be noise).
 top="$(git rev-parse --show-toplevel 2>/dev/null || true)"
@@ -177,8 +197,14 @@ if [ -f "$root/running.md" ] && [ ! -f "$root/run.md" ]; then
   itsk="$(taskof "$root/plan.md")"
   iprefix=""
   [ -n "$itsk" ] && iprefix="task $(sanitize "$itsk") "
-  inflight_line="$(printf 'Execution in flight from a previous session: %s`%s` — fg-run collects or confirms before re-running; do not rebuild blindly.' \
-    "$iprefix" "$(sanitize "$islug")")"
+  marker_session="$(field "$root/running.md" session)"
+  if [ -n "$session_id" ] && [ "$session_id" = "$marker_session" ]; then
+    inflight_line="$(printf 'Execution in flight in this session: %s`%s` — wait for its completion.' \
+      "$iprefix" "$(sanitize "$islug")")"
+  else
+    inflight_line="$(printf 'Execution in flight from another session: %s`%s` — fg-run collects or confirms before re-running.' \
+      "$iprefix" "$(sanitize "$islug")")"
+  fi
 fi
 
 # Parked tasks awaiting retro. Counted, NOT listed as unsealed-tail items: the

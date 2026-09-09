@@ -47,9 +47,13 @@ seed_halfexec() { mkdir -p "$1/.forge"; printf '<!-- forge-slug: s -->\n# t\n' >
 seed_a9_stale()       { mkdir -p "$1/.forge"; printf 'started: %s\n' "$(( $(date +%s) - 1860 ))" > "$1/.forge/drive.md"; }  # A9 past the 30-min bound
 seed_a9_unparseable() { mkdir -p "$1/.forge"; printf 'started: nonsense\n' > "$1/.forge/drive.md"; }  # A9 no valid started:
 seed_a9_live()        { mkdir -p "$1/.forge"; printf 'started: %s\n' "$(date +%s)" > "$1/.forge/drive.md"; }  # A9 must stay silent on a live drive
-seed_a10_orphan()   { mkdir -p "$1/.forge"; printf '<!-- forge-running: s -->\nstarted: %s\n' "$(date +%s)" > "$1/.forge/running.md"; }  # A10 marker without plan.md
+seed_a9_leading_zero() { mkdir -p "$1/.forge"; printf 'started: 08\n' > "$1/.forge/drive.md"; }
+seed_a9_huge() { mkdir -p "$1/.forge"; printf 'started: 9999999999999999999\n' > "$1/.forge/drive.md"; }
+seed_a10_orphan()   { mkdir -p "$1/.forge"; printf 'run\n' > "$1/.forge/run.md"; printf '<!-- forge-running: s -->\nstarted: %s\n' "$(date +%s)" > "$1/.forge/running.md"; }  # A10 marker+run without plan.md stays orphan, not leftover
 seed_a10_leftover() { mkdir -p "$1/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$1/.forge/plan.md"; printf '# run\n' > "$1/.forge/run.md"; s_status "$1/.forge/STATUS.md" s executed pending pending; printf '<!-- forge-running: s -->\nstarted: %s\n' "$(date +%s)" > "$1/.forge/running.md"; }  # A10 run.md present, marker not deleted
 seed_a10_stale()    { mkdir -p "$1/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$1/.forge/plan.md"; printf '<!-- forge-running: s -->\nstarted: %s\n' "$(( $(date +%s) - 3660 ))" > "$1/.forge/running.md"; }  # A10 past the 1h bound
+seed_a10_leading_zero() { mkdir -p "$1/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$1/.forge/plan.md"; printf '<!-- forge-running: s -->\nstarted: 08\n' > "$1/.forge/running.md"; }
+seed_a10_huge() { mkdir -p "$1/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$1/.forge/plan.md"; printf '<!-- forge-running: s -->\nstarted: 9999999999999999999\n' > "$1/.forge/running.md"; }
 seed_b17_missing() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; printf 'name: foo\ndescription: short core\n---\n**Language**: x\n' > "$1/skills/foo/SKILL.md"; }  # B17 rule missing
 seed_b17_scoped_out() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/theirs"; printf '{"name":"someone-elses-plugin"}\n' > "$1/.claude-plugin/plugin.json"; printf 'name: theirs\ndescription: short core\n---\n**Language**: x\n' > "$1/skills/theirs/SKILL.md"; }  # B17 scope guard
 # The three fixtures below are the shapes that actually DIVERGED before the hardening: bash
@@ -113,9 +117,13 @@ check "B14 active<->retired dup" seed_retired_dup
 check "A9 stale drive.md"       seed_a9_stale
 check "A9 unparseable drive.md" seed_a9_unparseable
 check "A9 live drive.md"        seed_a9_live
+check "A9 started leading zero" seed_a9_leading_zero
+check "A9 started out of range" seed_a9_huge
 check "A10 orphan running.md"   seed_a10_orphan
 check "A10 leftover running.md" seed_a10_leftover
 check "A10 stale running.md"    seed_a10_stale
+check "A10 started leading zero" seed_a10_leading_zero
+check "A10 started out of range" seed_a10_huge
 check "B17 rule missing"       seed_b17_missing
 check "B17 scope guard"        seed_b17_scoped_out
 check "B17 multiline name"     seed_b17_multiline_name

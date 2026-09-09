@@ -17,10 +17,10 @@ fails=0
 
 norm() { sed -e 's/[[:space:]]*$//'; }
 
-assert_parity() { # $1=desc  $2=workdir  $3=must-contain (optional; empty = expect silence)
-  local desc="$1" wd="$2" must="${3:-}" out_sh out_js rc_sh rc_js
-  out_sh="$(cd "$wd" && bash "$SH" 2>/dev/null | norm)"; rc_sh=$?
-  out_js="$(cd "$wd" && node "$JS" 2>/dev/null | norm)"; rc_js=$?
+assert_parity() { # $1=desc  $2=workdir  $3=must-contain (optional; empty = expect silence) $4=stdin JSON
+  local desc="$1" wd="$2" must="${3:-}" payload="${4:-}" out_sh out_js rc_sh rc_js
+  out_sh="$(cd "$wd" && printf '%s' "$payload" | bash "$SH" 2>/dev/null | norm)"; rc_sh=$?
+  out_js="$(cd "$wd" && printf '%s' "$payload" | node "$JS" 2>/dev/null | norm)"; rc_js=$?
   if [ "$out_sh" != "$out_js" ]; then
     echo "FAIL - $desc (sh≠js)"
     diff <(printf '%s\n' "$out_sh") <(printf '%s\n' "$out_js") || true
@@ -187,12 +187,26 @@ assert_parity "absurd task number — dropped identically" "$N4" "\`absurd\`"
 O="$(mktemp -d)"; mkdir -p "$O/.forge"
 seed_plan "$O/.forge/plan.md" inflight-task 145
 printf '<!-- forge-running: inflight-task -->\nworkflow: wf-1\nstarted: 1789000000\nsession: s1\n' > "$O/.forge/running.md"
-assert_parity "in-flight marker without run.md: identical line" "$O" "Execution in flight from a previous session: task 145"
+assert_parity "in-flight marker, same session: identical line" "$O" "Execution in flight in this session: task 145" '{"session_id":"s1"}'
+assert_parity "in-flight marker, other session: identical line" "$O" "Execution in flight from another session: task 145" '{"session_id":"s2"}'
+assert_parity "in-flight marker, malformed JSON: ownership unproven" "$O" "Execution in flight from another session: task 145" 'garbage "session_id":"s1"'
+assert_parity "in-flight marker, escaped session id: decoded" "$O" "Execution in flight in this session: task 145" '{"session_id":"s\u0031"}'
+assert_parity "in-flight marker, duplicate session key: last wins" "$O" "Execution in flight in this session: task 145" '{"session_id":"other","session_id":"s1"}'
+assert_parity "in-flight marker, control escape: ownership unproven" "$O" "Execution in flight from another session: task 145" '{"session_id":"s\u00001"}'
 
 # --- O2: marker without plan.md -> marker slug, identical -------------------
 O2="$(mktemp -d)"; mkdir -p "$O2/.forge"
 printf '<!-- forge-running: 한글-실행 -->\nworkflow: agents\nstarted: 1789000000\nsession: s1\n' > "$O2/.forge/running.md"
 assert_parity "in-flight marker, no plan.md, Hangul slug: sh==js" "$O2" "한글-실행"
+
+# --- O3: newline in marker slug cannot cross the first line -----------------
+O3="$(mktemp -d)"; mkdir -p "$O3/.forge"
+printf '<!-- forge-running: first\nsecond -->\nworkflow: agents\nstarted: 1789000000\nsession: s1\n' > "$O3/.forge/running.md"
+assert_parity "in-flight marker newline slug: bounded fallback" "$O3" "(unknown)"
+
+# --- O4: a directory named running.md is not an in-flight marker ------------
+O4="$(mktemp -d)"; mkdir -p "$O4/.forge/running.md"
+assert_parity "running.md directory: silent" "$O4" ""
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "PARITY OK (all cases identical)"; exit 0

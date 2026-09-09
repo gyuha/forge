@@ -99,7 +99,7 @@ forge ships a **`Stop` hook** (`hooks/hooks.json` → `scripts/forge-hook-stop.s
 
 **Deleting the marker is how you say "I may stop now" — the hook never judges walls.** Delete `<forge-root>/drive.md` at **every** exit from the drive, without exception:
 
-- all four halt conditions below (`verified: failed` · unverifiable UAT · a genuine fork · empty state),
+- all five halt conditions below (`verified: failed` · unverifiable UAT · a genuine fork · empty state · an uncollectable in-flight marker),
 - the normal terminal state (the backlog drained — this is halt condition 4),
 - and **before yielding for anything a human must physically do**, above all a **workflow script approval**: the approval is not a Stop event, but if the model does end the turn while waiting, a live marker would block it and the drive would spin against a gate only the human can open.
 
@@ -124,6 +124,7 @@ Stop the drive and report at any of these — everything else auto-progresses:
 2. **UAT can't reach a sealable value** — verify is attempted **aggressively** (run whatever tests/grep/build the agent can and record `yes (<evidence>)` or `n/a`), but if it can't reach a sealable value (`pending`), halt rather than seal unverified.
 3. **A genuine fork** — e.g. `failed` → fix-and-re-run *or* re-grill. Don't auto-pick a consequential branch → halt.
 4. **Empty state** — active slot + backlog + `executed/` all empty. There's no step to continue; a new task needs human-supplied content (fg-ask grilling) → halt (this is the normal terminal state — "all done").
+5. **Unknown or uncollectable in-flight marker (fg-run 4a case 3)** — `running.md` belongs to the active task, but blocking-collect cannot identify or collect one or more recorded handles; this includes `workflow: pending`, an unavailable same-session handle, a collection error, and work that may still be running in another session. An orchestrator cannot answer fg-run's required confirmation on the human's behalf: delete `drive.md`, then stop at this human-needed wall.
 
 **A retro is never a halt in all-mode** — it is *always* auto-skipped (recorded as `retro: skipped`, see the drive loop), regardless of divergence. The "always skip retro / halt only at high-divergence" policy was tried and removed: forge-meta work is almost all high-divergence, so halting on it stalled the drive on nearly every task and erased the value of "keep going" — learnings are preserved in the archived run.md and promoted later by a human fg-learn (ADR-0010, amended 2026-06-08). The default one-shot `fg-next` is unchanged — when its single next step is a retro, it opens fg-learn for the human to conduct conversationally; only `all` mode auto-skips.
 
@@ -137,7 +138,7 @@ Check loop ownership first; if this lane owns the drive, disclose its ordered se
 ┌─▶ Derive next step (fg-status state machine)
 │      │
 │      ├── linear mechanical (run · n/a/auto-yes verify · retro skip [always] · done · promote next) ──▶ auto-progress ─┐
-│      └── halt condition (failed · unverifiable · genuine fork · empty) ──▶ STOP, report, await human
+│      └── halt condition (failed · unverifiable · genuine fork · empty · unknown/uncollectable running.md) ──▶ DELETE drive.md ──▶ STOP, report, await human
 │                                                                                                                          │
 └──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```

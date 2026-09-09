@@ -24,11 +24,13 @@ seed_active() {
 # check <desc> <seed-fn> <args...>   (seed-fn takes the target dir)
 check() {
   local desc="$1" seedfn="$2"; shift 2
-  local A B rc_sh rc_js
+  local A B rc_sh rc_js replace_marker
   A=$(mktmp); B=$(mktmp)
   "$seedfn" "$A"; "$seedfn" "$B"
-  ( cd "$A" && bash "$SH" "$@" ) >/dev/null 2>&1; rc_sh=$?
-  ( cd "$B" && node "$JS" "$@" ) >/dev/null 2>&1; rc_js=$?
+  replace_marker=0
+  [ -f "$A/.replace-before-claim" ] && replace_marker=1
+  ( cd "$A" && _FORGE_DONE_TEST_REPLACE_MARKER_WITH_DIRECTORY="$replace_marker" bash "$SH" "$@" ) >/dev/null 2>&1; rc_sh=$?
+  ( cd "$B" && _FORGE_DONE_TEST_REPLACE_MARKER_WITH_DIRECTORY="$replace_marker" node "$JS" "$@" ) >/dev/null 2>&1; rc_js=$?
   if [ "$rc_sh" != "$rc_js" ]; then
     echo "FAIL - $desc  rc sh=$rc_sh js=$rc_js"; fails=$((fails+1)); rm -rf "$A" "$B"; return
   fi
@@ -88,6 +90,28 @@ check "half retro owed" seed_half_retro --slug p-hs
 check "invalid sealed-id (traversal)"  seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "../../x"
 check "invalid sealed-id (slash)"      seed_skip      --skip-retro "x" --completed 2026-07-05 --sealed-id "260705/120000"
 check "slug traversal (forge-slug)"    seed_badslug   --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
+
+seed_running() { seed_skip "$1"; printf '<!-- forge-running: p-skip -->\nworkflow: pending\nsession: abc\nstarted: 1234\n' > "$1/.forge/running.md"; }
+check "running.md deleted on seal"    seed_running   --skip-retro "auto" --completed 2026-07-05 --sealed-id 260705-120000
+
+seed_parked_with_running() {
+  seed_executed "$1"
+  printf '<!-- forge-slug: active-other -->\n# Active\n' > "$1/.forge/plan.md"
+  printf 'workflow: w-active\nsession: abc\nstarted: 1234\n' > "$1/.forge/running.md"
+}
+check "parked seal preserves active running.md" seed_parked_with_running --slug p-ex --completed 2026-07-05 --sealed-id 260705-120000
+
+seed_mismatched_running() { seed_skip "$1"; printf '<!-- forge-running: live-other -->\nworkflow: w-live\n' > "$1/.forge/running.md"; }
+check "active seal refuses mismatched running.md" seed_mismatched_running --skip-retro auto --completed 2026-07-05 --sealed-id 260705-120000
+
+seed_running_directory() { seed_skip "$1"; mkdir "$1/.forge/running.md"; }
+check "active seal refuses running.md directory" seed_running_directory --skip-retro auto --completed 2026-07-05 --sealed-id 260705-120000
+
+seed_claim_then_io_fail() { seed_running "$1"; printf 'blocking file\n' > "$1/.forge/done"; }
+check "active seal restores marker after archive failure" seed_claim_then_io_fail --skip-retro auto --completed 2026-07-05 --sealed-id 260705-120000
+
+seed_replace_before_claim() { seed_running "$1"; : > "$1/.replace-before-claim"; }
+check "active seal restores non-file replacement after claim" seed_replace_before_claim --skip-retro auto --completed 2026-07-05 --sealed-id 260705-120000
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DONE PARITY OK"; exit 0

@@ -105,17 +105,17 @@ if (isFile(path.join(root, 'ask.md'))) {
 if (isFile(path.join(root, 'drive.md'))) {
   let started = '';
   for (const line of read(path.join(root, 'drive.md')).split(/\r?\n/)) {
-    const m = line.match(/^started:[ \t]*([0-9]*)/);
-    if (m) { started = m[1]; break; }
+    const m = line.match(/^started:[ \t]*(.*)$/);
+    if (m) { started = m[1].replace(/[ \t]+$/, ''); break; }
   }
-  if (started === '') {
+  if (!/^\d{1,10}$/.test(started)) {
     finding('warning', 'A9 unparseable drive.md', path.join(root, 'drive.md'), "a drive marker with no valid 'started:' \u2014 delete it (the Stop hook ignores it, so nothing is blocked)");
   } else if (Math.floor(Date.now() / 1000) - Number(started) > 1800) {
     finding('warning', 'A9 stale drive.md', path.join(root, 'drive.md'), 'a drive exited without deleting its marker (past the 30-min bound, so it blocks nothing) \u2014 delete it');
   }
 }
-// A10 running.md — fg-run's in-flight marker (written when a background workflow
-// launches, deleted right after run.md is written). Orphan (no plan) is an error;
+// A10 running.md — fg-run's in-flight marker (written at the launch boundary,
+// immediately before launch; deleted right after run.md). Orphan (no plan) is an error;
 // leftover (run.md present), unparseable or >1h are warnings. Read-only: report only.
 if (isFile(path.join(root, 'running.md'))) {
   const rf = path.join(root, 'running.md');
@@ -126,10 +126,10 @@ if (isFile(path.join(root, 'running.md'))) {
   } else {
     let started = '';
     for (const line of read(rf).split(/\r?\n/)) {
-      const m = line.match(/^started:[ \t]*([0-9]*)/);
-      if (m) { started = m[1]; break; }
+      const m = line.match(/^started:[ \t]*(.*)$/);
+      if (m) { started = m[1].replace(/[ \t]+$/, ''); break; }
     }
-    if (started === '') {
+    if (!/^\d{1,10}$/.test(started)) {
       finding('warning', 'A10 unparseable running.md', rf, "an execution marker with no valid 'started:' \u2014 delete it and re-enter fg-run");
     } else if (Math.floor(Date.now() / 1000) - Number(started) > 3600) {
       finding('warning', 'A10 stale running.md', rf, 'an execution marker older than 1h \u2014 re-enter fg-run, which collects the result or confirms before re-running');

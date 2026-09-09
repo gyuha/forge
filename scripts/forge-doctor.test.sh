@@ -50,9 +50,12 @@ run_doc "$t"; assert "A9unparse-rc1" 1 "$RC"; assert_grep "A9unparse-msg" "$OUT"
 # --- A9 live drive.md (inside the bound) -> silent, must not false-fire ------
 t=$(mktmp); mkdir -p "$t/.forge"; printf 'started: %s\n' "$(date +%s)" > "$t/.forge/drive.md"
 run_doc "$t"; assert "A9live-rc0" 0 "$RC"; assert_nogrep "A9live-none" "$OUT" "A9 "; rm -rf "$t"
-# --- A10 orphan running.md (no plan.md) -> error -----------------------------
-t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(date +%s)" > "$t/.forge/running.md"
-run_doc "$t"; assert "A10orphan-rc2" 2 "$RC"; assert_grep "A10orphan-msg" "$OUT" "A10 orphan running.md"; rm -rf "$t"
+# --- A9 out-of-range decimal -> unparseable, never shell-wraps ---------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf 'started: 9999999999999999999\n' > "$t/.forge/drive.md"
+run_doc "$t"; assert "A9huge-rc1" 1 "$RC"; assert_grep "A9huge-msg" "$OUT" "A9 unparseable drive.md"; assert_nogrep "A9huge-not-stale" "$OUT" "A9 stale drive.md"; rm -rf "$t"
+# --- A10 orphan outranks leftover when run.md exists but plan.md does not ----
+t=$(mktmp); mkdir -p "$t/.forge"; printf 'run\n' > "$t/.forge/run.md"; printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(date +%s)" > "$t/.forge/running.md"
+run_doc "$t"; assert "A10orphan-rc2" 2 "$RC"; assert_grep "A10orphan-msg" "$OUT" "A10 orphan running.md"; assert_nogrep "A10orphan-not-leftover" "$OUT" "A10 leftover running.md"; rm -rf "$t"
 # --- A10 leftover running.md (run.md present) -> warning ---------------------
 t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"; printf '# run\n' > "$t/.forge/run.md"
 printf '# S\nslug: s\nstatus: executed\nverified: pending\nretro: pending\n' > "$t/.forge/STATUS.md"
@@ -66,6 +69,10 @@ run_doc "$t"; assert "A10unparse-rc1" 1 "$RC"; assert_grep "A10unparse-msg" "$OU
 t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"
 printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(( $(date +%s) - 3660 ))" > "$t/.forge/running.md"
 run_doc "$t"; assert "A10stale-rc1" 1 "$RC"; assert_grep "A10stale-msg" "$OUT" "A10 stale running.md"; rm -rf "$t"
+# --- A10 out-of-range decimal -> unparseable, never shell-wraps --------------
+t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n' > "$t/.forge/plan.md"
+printf '<!-- forge-running: s -->\nstarted: 9999999999999999999\n' > "$t/.forge/running.md"
+run_doc "$t"; assert "A10huge-rc1" 1 "$RC"; assert_grep "A10huge-msg" "$OUT" "A10 unparseable running.md"; assert_nogrep "A10huge-not-stale" "$OUT" "A10 stale running.md"; rm -rf "$t"
 # --- A10 live running.md (fresh, plan.md, no run.md) -> silent ---------------
 t=$(mktmp); mkdir -p "$t/.forge"; printf '<!-- forge-slug: s -->\n# t\n' > "$t/.forge/plan.md"
 printf '<!-- forge-running: s -->\nworkflow: agents\nstarted: %s\nsession: x\n' "$(date +%s)" > "$t/.forge/running.md"

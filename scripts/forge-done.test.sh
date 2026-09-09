@@ -28,6 +28,7 @@ mktmp() { mktemp -d "${TMPDIR:-/tmp}/fgdone.XXXXXX"; }
 
 assert() { if [ "$2" = "$3" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s\n    exp:[%s]\n    act:[%s]\n' "$1" "$2" "$3"; fi; }
 assert_file() { if [ -e "$2" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (missing: %s)\n' "$1" "$2"; fi; }
+assert_dir() { if [ -d "$2" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (missing directory: %s)\n' "$1" "$2"; fi; }
 assert_nofile() { if [ ! -e "$2" ]; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (should NOT exist: %s)\n' "$1" "$2"; fi; }
 assert_grep() { if grep -qF "$3" "$2" 2>/dev/null; then pass=$((pass+1)); else fail=$((fail+1)); printf '  FAIL %s (%s not in %s)\n' "$1" "$3" "$2"; fi; }
 
@@ -323,6 +324,80 @@ t=$(mktmp); seed_active "$t" "legacy-task" "yes (ok)" "pending"
 mkdir -p "$t/.forge/retro"; : > "$t/.forge/retro/2026-06-11-legacy-task.md"
 run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
 assert "n5-legacy-id-rc0" 0 "$RC"
+rm -rf "$t"
+
+# --- (r1) running.md present in active slot -> deleted after seal, NOT in done/ --
+t=$(mktmp); seed_active "$t" "task-r1" "yes (ok)" "pending"
+printf '<!-- forge-running: task-r1 -->\nworkflow: pending\nsession: abc\nstarted: 1234\n' > "$t/.forge/running.md"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "$SID"
+assert "r1-rc0" 0 "$RC"
+assert_nofile "r1-running-gone-from-root" "$t/.forge/running.md"
+assert_nofile "r1-running-not-in-done" "$t/.forge/done/$SID-task-r1/running.md"
+rm -rf "$t"
+
+# --- (r2) no running.md present -> clean seal still works (rm -f no-op) ---------
+t=$(mktmp); seed_active "$t" "task-r2" "yes (ok)" "pending"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "$SID"
+assert "r2-rc0" 0 "$RC"
+assert_nofile "r2-running-absent" "$t/.forge/running.md"
+assert_file "r2-done-exists" "$t/.forge/done/$SID-task-r2/STATUS.md"
+rm -rf "$t"
+
+# --- (r3) parked seal must preserve a different active task's running marker ---
+t=$(mktmp); mkdir -p "$t/.forge/executed/task-r3"
+printf '<!-- forge-slug: active-r3 -->\n# Active\n' > "$t/.forge/plan.md"
+printf 'workflow: w-active\nsession: abc\nstarted: 1234\n' > "$t/.forge/running.md"
+printf '<!-- forge-slug: task-r3 -->\n# Parked\n' > "$t/.forge/executed/task-r3/plan.md"
+printf '# Run\n' > "$t/.forge/executed/task-r3/run.md"
+printf '# STATUS — task-r3\nslug: task-r3\nstatus: executed\nexecuted: 2026-07-01\nverified: yes (ok)\nretro: skipped (batch)\n' > "$t/.forge/executed/task-r3/STATUS.md"
+run_done "$t" --slug task-r3 --completed 2026-07-05 --sealed-id "$SID"
+assert "r3-rc0" 0 "$RC"
+assert_file "r3-running-preserved" "$t/.forge/running.md"
+assert_grep "r3-running-still-active" "$t/.forge/running.md" "workflow: w-active"
+rm -rf "$t"
+
+# --- (r4) mismatched active marker -> refuse without touching either task -----
+t=$(mktmp); seed_active "$t" "task-r4" "yes (ok)" "pending"
+printf '<!-- forge-running: live-other -->\nworkflow: w-live\nsession: other\nstarted: 1234\n' > "$t/.forge/running.md"
+cp "$t/.forge/plan.md" "$t/plan.before"; cp "$t/.forge/running.md" "$t/running.before"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "$SID"
+assert "r4-rc6" 6 "$RC"
+cmp -s "$t/plan.before" "$t/.forge/plan.md"; assert "r4-plan-preserved" 0 "$?"
+cmp -s "$t/running.before" "$t/.forge/running.md"; assert "r4-marker-preserved" 0 "$?"
+assert_nofile "r4-no-archive" "$t/.forge/done/$SID-task-r4"
+rm -rf "$t"
+
+# --- (r5) non-file active marker -> refuse before publishing an archive -------
+t=$(mktmp); seed_active "$t" "task-r5" "yes (ok)" "pending"
+mkdir "$t/.forge/running.md"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "$SID"
+assert "r5-rc6" 6 "$RC"
+assert_file "r5-plan-preserved" "$t/.forge/plan.md"
+assert_file "r5-marker-dir-preserved" "$t/.forge/running.md"
+assert_nofile "r5-no-archive" "$t/.forge/done/$SID-task-r5"
+rm -rf "$t"
+
+# --- (r6) a post-claim archive failure restores the matching marker -----------
+t=$(mktmp); seed_active "$t" "task-r6" "yes (ok)" "pending"
+printf '<!-- forge-running: task-r6 -->\nworkflow: pending\nsession: abc\nstarted: 1234\n' > "$t/.forge/running.md"
+cp "$t/.forge/running.md" "$t/running.before"
+printf 'blocking file\n' > "$t/.forge/done"
+run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "$SID"
+assert "r6-rc6" 6 "$RC"
+cmp -s "$t/running.before" "$t/.forge/running.md"; assert "r6-marker-restored" 0 "$?"
+assert_file "r6-plan-preserved" "$t/.forge/plan.md"
+rm -rf "$t"
+
+# --- (r7) marker replaced after preflight -> claimed node restored unchanged -
+t=$(mktmp); seed_active "$t" "task-r7" "yes (ok)" "pending"
+printf '<!-- forge-running: task-r7 -->\nworkflow: pending\n' > "$t/.forge/running.md"
+_FORGE_DONE_TEST_REPLACE_MARKER_WITH_DIRECTORY=1 run_done "$t" --skip-retro "x" --completed 2026-07-05 --sealed-id "$SID"
+assert "r7-rc6" 6 "$RC"
+assert_dir "r7-replacement-restored" "$t/.forge/running.md"
+assert_file "r7-plan-preserved" "$t/.forge/plan.md"
+assert_nofile "r7-no-archive" "$t/.forge/done/$SID-task-r7"
+claim_count="$(find "$t/.forge" -maxdepth 1 -name '.running.seal.*' | wc -l | tr -d ' ')"
+assert "r7-no-hidden-claim" 0 "$claim_count"
 rm -rf "$t"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

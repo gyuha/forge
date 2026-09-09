@@ -5,7 +5,7 @@
 // fallback where bash can't run the .sh (PowerShell-blocked Windows).
 //
 // See forge-done.sh's header for the full contract (gate-first, non-destructive
-// on refuse; exit codes 0/2/3/4/5/6).
+// on refuse; exit codes 0/2/3/4/5/6, where 6 also covers marker conflicts).
 'use strict';
 
 const fs = require('fs');
@@ -76,9 +76,15 @@ function fullfield(file, name) {
   return m ? m[1].replace(/\r/g, '') : '';
 }
 function slugof(file) {
-  const m = read(file).match(/forge-slug:[ \t]*(\S*)[ \t]*-->/);
+  const m = read(file).match(/forge-slug:[ \t]*([^ \n\r]*)[ \t]*-->/);
   return m ? m[1].replace(/\r/g, '') : '';
 }
+function runningof(file) {
+  const m = read(file).match(/forge-running:[ \t]*([^ \n\r]*)[ \t]*-->/);
+  return m ? m[1] : '';
+}
+function lexists(p) { try { fs.lstatSync(p); return true; } catch (_) { return false; } }
+function isRegularFile(p) { try { return fs.lstatSync(p).isFile(); } catch (_) { return false; } }
 
 // write a closed-out STATUS.md (status: done), preserving title/slug/executed/verified
 function closeOutStatus(sf, slug, retroOut, reviewed) {
@@ -160,6 +166,17 @@ if (halfDir) {
   die(`EMPTY slug-not-found slug=${slug}`, 2);
 }
 
+// An active seal may clean up only its own regular-file marker. Reject a
+// mismatch or special file before gates and before any filesystem mutation.
+const marker = path.join(root, 'running.md');
+let markerPresent = false;
+if (MODE === 'active' && lexists(marker)) {
+  markerPresent = true;
+  if (!isRegularFile(marker)) die(`SEAL_IO marker-conflict slug=${slug} (running.md is not a regular file; source retained)`, 6);
+  const markerSlug = runningof(marker);
+  if (!markerSlug || markerSlug !== slug) die(`SEAL_IO marker-conflict slug=${slug} marker-slug=${markerSlug || '<missing>'} (source retained)`, 6);
+}
+
 // Normalize a STATUS field token before deciding on it — see the .sh twin.
 const norm = (v) => (String(v || '').toLowerCase().match(/^[a-z/]*/) || [''])[0];
 
@@ -182,7 +199,12 @@ if (skipGiven) {
 
 // --- SEAL (mutation only past this point) ------------------------------------
 const reviewed = isFile(V) ? relpath(V) : '';   // repo-relative, never a machine path
-const ioFail = () => die(`SEAL_IO failed slug=${slug} (source retained; inspect archive before retry)`, 6);
+let markerClaim = '';
+function restoreMarker() {
+  if (!markerClaim || !lexists(markerClaim) || lexists(marker)) return;
+  try { fs.renameSync(markerClaim, marker); } catch (_) {}
+}
+const ioFail = () => { restoreMarker(); die(`SEAL_IO failed slug=${slug} (inspect source/archive before retry)`, 6); };
 if (MODE === 'half') {
   let tempDir;
   try {
@@ -197,6 +219,23 @@ if (MODE === 'half') {
     ioFail();
   }
   die(`SEALED half-sealed-completed ${D}/`, 0);
+}
+// Claim while the source still occupies the active slot, then re-check identity
+// to close a replacement race between preflight and the atomic rename.
+if (MODE === 'active' && markerPresent) {
+  // Deterministic regression hook: tests alone replace the preflighted marker
+  // immediately before claim. Unset/default production behavior is unchanged.
+  if (process.env._FORGE_DONE_TEST_REPLACE_MARKER_WITH_DIRECTORY === '1') {
+    try { fs.unlinkSync(marker); fs.mkdirSync(marker); } catch (_) { ioFail(); }
+  }
+  markerClaim = path.join(root, `.running.seal.${process.pid}`);
+  if (lexists(markerClaim)) ioFail();
+  try { fs.renameSync(marker, markerClaim); } catch (_) { ioFail(); }
+  const claimedSlug = runningof(markerClaim);
+  if (claimedSlug !== slug) {
+    restoreMarker();
+    die(`SEAL_IO marker-conflict slug=${slug} marker-slug=${claimedSlug || '<missing>'} (source retained)`, 6);
+  }
 }
 // archive into done/<sealed-id>-<slug>/ (YYMMDD-HHMMSS; serial letter only on a
 // same-second same-slug collision — rare, the dup scan already caught prior seals)
@@ -219,6 +258,7 @@ try {
   stage = undefined;
   for (const src of [P, R, S, V]) { if (isFile(src)) fs.unlinkSync(src); }
   if (MODE === 'executed') { try { fs.rmdirSync(D); } catch (_) {} }
+  if (markerClaim) { fs.unlinkSync(markerClaim); markerClaim = ''; }
 } catch (_) {
   if (stage) fs.rmSync(stage, { recursive: true, force: true });
   ioFail();

@@ -11,6 +11,8 @@ Note the contrast with its neighbors: **fg-done** *completes* a task and seals i
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — the item list, risk labels, the disposal question, the confirmation summary, and the closing line — in the user's language (detect it from the user's own messages), never mirroring this file's English.**
 
+**Host contract**: before inspecting or cancelling work created through the host's `spawn_parallel` capability, read [../../core/HOST.md](../../core/HOST.md), [../../core/EXECUTION.md](../../core/EXECUTION.md), and the matching `../../hosts/<host>/execution.md`. The matching adapter owns the concrete liveness and cancellation operations and the shape of its recorded handle or handles. If the host is unknown or the handles cannot be collected, treat the workflow as potentially live and warn before disposal; never invent a host-specific tool call.
+
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading, deleting, or archiving any state (ADR-0011). The two global exemptions (`.forge/config.json`, `.forge/codebase/`) are never drop targets.
@@ -23,8 +25,9 @@ Drop targets are **incomplete** work = anything not sealed in `done/`. Scan the 
 | --- | --- | --- |
 | `ask.md` | an in-progress fg-ask grilling session (its working-slug marker) | **low** — display-only marker; nothing has run, dropping it just abandons an unfinished conversation |
 | `backlog/<slug>.md` | a queued plan that has **not run** | **low** — volatile & gitignored; deleting loses nothing in git |
-| active slot `plan.md` **with no** `run.md` | promoted but not yet run | **low** — same as a backlog plan |
-| active slot `plan.md` + `running.md` (no `run.md`) | execution **in flight** or never collected (fg-run's in-flight marker) | **medium** — a background run may still be writing; dropping removes forge tracking only, it does not stop the run |
+| active slot `plan.md` **with no** `run.md` and no `running.md` | promoted but not yet run | **low** — same as a backlog plan |
+| active slot `plan.md` + `running.md` (no `run.md`) | execution **in flight** or never collected (fg-run's in-flight marker) | **high** — code may already have changed and a background run may still be writing; dropping forge tracking does not itself stop the run |
+| orphan `running.md` only (no `plan.md`) | an in-flight marker with no active task to collect | **high** — an uncollected workflow may still finish and change code even though its task state is already missing |
 | active slot **with** `run.md` (+`STATUS.md`, +`review.md`) | **already executed**, awaiting verify/retro/seal | **high** — the code already changed; dropping removes only forge tracking |
 | `executed/<slug>/` | parked after "Run all", awaiting retro | **high** — already executed, same warning |
 | `loop.md` (halted goal loop) | an fg-loop drive stopped at a wall | **high** — abandons the whole goal loop |
@@ -43,7 +46,7 @@ Gather all droppable candidates (above). If there are **none**, say so in one li
 - **2–4 items** → an `AskUserQuestion` **multi-select** checkbox dialog, one option per item. Label each `[<risk>] #<task> <title>` (use the plan's `task:` number when present); include the risk in the label so it is visible per item.
 - **5 or more items** → print a **numbered text list** (each line: number, `[<risk>]`, slug/title, bucket), then ask the user to type which to drop — e.g. `2,4,5` or `all`. This sidesteps the 4-option cap.
 
-For **high-risk** items (anything with a `run.md`, or the goal loop), make the risk unmistakable in the listing — they are already-run work or a whole loop.
+For **high-risk** items (anything with a `run.md`, any `running.md`, or the goal loop), make the risk unmistakable in the listing — code has changed or may already be changing, or the item is a whole loop.
 
 ### 2. Choose disposal — a separate follow-up question
 
@@ -56,17 +59,19 @@ One choice applies to **all** selected items (batch-level).
 
 ### 3. Final confirmation gate (guards the irreversible delete)
 
-Show a summary — "the following will be **[deleted / archived]**: …" listing each selected item — and require an **explicit confirmation** ("yes") before acting. If any selected item is **high-risk (has a `run.md`)**, add a one-line warning to the summary: **"⚠ already-changed code is NOT reverted — fg-drop removes forge tracking only."** Only on explicit confirmation proceed; otherwise abort and change nothing.
+Show a summary — "the following will be **[deleted / archived]**: …" listing each selected item — and require an **explicit confirmation** ("yes") before acting. If any selected item is **high-risk (has a `run.md`, has any `running.md`, or is a goal loop)**, add a one-line warning to the summary: **"⚠ changed or still-changing code is NOT reverted — fg-drop removes forge tracking only."** Only on explicit confirmation proceed; otherwise abort and change nothing.
 
 ### 4. Execute
 
 For each confirmed item:
 
 - **`ask.md`** — remove (or move) the single file.
+- **Active slot with `running.md`** — first use the matching host adapter to determine whether the workflow is alive in this session. If it is, invoke the adapter's cancellation operation for every still-live recorded handle before removing or moving the slot. If it is not alive here or cannot be identified, warn that removing the marker does not stop a workflow running elsewhere and its eventual output may become orphaned; then continue only under the confirmed disposal choice. Never merely delete a known-live workflow's marker.
 - **Active slot** — remove (or move to `dropped/<slug>/`) `plan.md` + `run.md` + `STATUS.md`, plus `review.md` if present (the same companion set fg-done archives — ADR-0018) and `running.md` if present (the in-flight marker — it belongs to this slot and must not outlive it). After this the active slot is empty.
+- **Orphan `running.md`** — remove (or move to `dropped/<slug>/`) the marker after the same live-workflow check and warning above; derive `<slug>` from the marker, falling back to `orphan-running` when it is absent or invalid.
 - **`backlog/<slug>.md`** — remove (or move) the single file.
 - **`executed/<slug>/`** — remove (or move) the whole directory.
-- **`loop.md` goal-loop item** — read its `## Tasks` membership, then remove (or archive together) `loop.md` **plus all member tasks' incomplete state** from `backlog/`, the active slot, and `executed/`. Leave `done/` history and every non-member task untouched. When archiving, place the contract and member state under one `.forge/dropped/<loop-slug>/` tree so the abandoned goal remains reconstructable.
+- **`loop.md` goal-loop item** — read its `## Tasks` membership. If its active member has `running.md`, apply the active-slot liveness check and adapter cancellation above **before** removing any loop state. Then remove (or archive together) `loop.md` **plus all member tasks' incomplete state** from `backlog/`, the active slot, and `executed/`. Leave `done/` history and every non-member task untouched. When archiving, place the contract and member state under one `.forge/dropped/<loop-slug>/` tree so the abandoned goal remains reconstructable.
 
 **Disposal semantics.** Hard delete is a plain removal. On the **default branch** these are volatile, gitignored files, so nothing is lost in git (the permanent fuel from grilling — CONTEXT.md, ADRs — already landed and is untouched). On a **non-default branch** the forge root `.forge/branch/<branch>/` is git-tracked whole (ADR-0011), so deleting a tracked file there shows up as an **unstaged deletion in `git status`** — recoverable via `git restore` until committed. fg-drop still does not run git (see Constraints); on a branch the removal is simply a tracked-file change the user then commits or restores. Archive moves the files under `.forge/dropped/<slug>/`: it is gitignored on the default branch, but under a non-default branch root it is **tracked with the rest of the branch root** and is later preserved by fg-merge. `dropped/` has no automatic reaper; it is cleaned manually.
 
@@ -76,17 +81,17 @@ fg-drop (outside the loop)
    ▼
 Resolve forge root (ADR-0011)
    ▼
-Scan buckets: ask.md · backlog · active slot · executed/ · loop.md   (exclude done/, quick/, loop members while loop.md present)
+Scan buckets: ask.md · backlog · active slot · orphan running.md · executed/ · loop.md   (exclude done/, quick/, loop members while loop.md present)
    │ none ──▶ "no incomplete work to drop" → stop
    ▼
 Present items with risk level:  1 → Drop this item | Cancel · 2–4 → checkbox multi-select · 5+ → numbered text list ("2,4,5" / "all")
    ▼
 Disposal question (separate):  Delete (default, no trace)  |  Archive → .forge/dropped/<slug>/
    ▼
-Confirmation gate: summary + explicit "yes"   (high-risk run.md present → "⚠ changed code is NOT reverted"; non-default branch → "⚠ tracked files — deletion shows in git status")
+Confirmation gate: summary + explicit "yes"   (high-risk run.md/running.md/loop → "⚠ changed or still-changing code is NOT reverted"; non-default branch → "⚠ tracked files — deletion shows in git status")
    │ no ──▶ abort, change nothing
    ▼
-Execute per item (ask.md · active slot = plan+run+STATUS+review+running.md · backlog file · executed/ dir · goal loop = loop.md + all incomplete member state)
+Execute per item (ask.md · active slot = adapter cancel if live locally, then plan+run+STATUS+review+running.md · orphan running.md · backlog file · executed/ dir · goal loop = cancel a live active member first, then loop.md + all incomplete member state)
    ▼
 Report what was dropped/archived → end
 ```
@@ -100,6 +105,6 @@ Report what was dropped/archived → end
 
 ## Document impact
 
-- **Removes** (default) or **moves to `.forge/dropped/<slug>/`** (archive) the selected incomplete state: `ask.md`, a `backlog/<slug>.md`, the active slot (`plan.md`/`run.md`/`STATUS.md`/`review.md`), an `executed/<slug>/` directory, or a whole goal loop (`loop.md` + all member tasks' incomplete backlog/active/executed state).
+- **Removes** (default) or **moves to `.forge/dropped/<slug>/`** (archive) the selected incomplete state: `ask.md`, a `backlog/<slug>.md`, the active slot (`plan.md`/`run.md`/`STATUS.md`/`review.md`/`running.md`), an orphan `running.md`, an `executed/<slug>/` directory, or a whole goal loop (`loop.md` + all member tasks' incomplete backlog/active/executed state).
 - Creates `.forge/dropped/` lazily only when archive is chosen. It is gitignored on the default branch; under a non-default branch's fully tracked root it is tracked and later preserved by fg-merge. `fg-doctor` tolerates it (does not flag its contents as orphans) and `fg-status` ignores it (abandoned work, not progress) — ADR-0021.
 - Touches no permanent docs (CONTEXT.md, ADRs, retros) and no `done/` history.

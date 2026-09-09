@@ -36,6 +36,22 @@ const B = (s) => Buffer.from(s, 'utf8').toString('latin1');
 const EM_DASH = B('—');
 const ELLIPSIS = B('…');
 
+// SessionStart payload. Missing or malformed input means ownership of an
+// in-flight marker cannot be proven, so it is reported as another session's.
+let sessionId = '';
+if (!process.stdin.isTTY) {
+  let raw = '';
+  try { raw = fs.readFileSync(0, 'utf8'); } catch (_) { raw = ''; }
+  try {
+    const payload = JSON.parse(raw);
+    // Keep the decoded id in the opaque ASCII-id alphabet shared with the bash
+    // twin; control escapes cannot survive a shell variable without ambiguity.
+    if (payload && typeof payload.session_id === 'string' && /^[A-Za-z0-9._:-]+$/.test(payload.session_id)) {
+      sessionId = payload.session_id;
+    }
+  } catch (_) { sessionId = ''; }
+}
+
 // The single chokepoint every repo-controlled value passes — see the .sh header
 // for the full rationale (tag-delimiter injection, control chars splitting an
 // item across lines, one pathological value inflating the injected context).
@@ -67,6 +83,7 @@ try {
 const disp = sanitize(top && root.startsWith(`${top}/`) ? root.slice(top.length + 1) : root);
 
 function isDir(p) { try { return fs.statSync(p).isDirectory(); } catch (_) { return false; } }
+function isFile(p) { try { return fs.statSync(p).isFile(); } catch (_) { return false; } }
 function read(p) { try { return fs.readFileSync(p, 'utf8').replace(/\r/g, ''); } catch (_) { return ''; } }
 
 // Full value after the colon — accepts both `field:` and `- field:` (dash-list
@@ -77,11 +94,11 @@ function field(file, name) {
   return m ? m[1].replace(/[ \t]+$/, '') : '';
 }
 function slugof(planFile) {
-  const m = read(planFile).match(/forge-slug:[ \t]*([^ ]*)[ \t]*-->/);
+  const m = read(planFile).match(/forge-slug:[ \t]*([^ \n\r]*)[ \t]*-->/);
   return m ? m[1] : '';
 }
 function runningof(markerFile) { // slug from `<!-- forge-running: <slug> -->`
-  const m = read(markerFile).match(/forge-running:[ \t]*([^ ]*)[ \t]*-->/);
+  const m = read(markerFile).match(/forge-running:[ \t]*([^ \n\r]*)[ \t]*-->/);
   return m ? m[1] : '';
 }
 // See the .sh twin: a digit run longer than TASK_DIGITS_MAX is not a task
@@ -122,13 +139,16 @@ if (fs.existsSync(path.join(root, 'run.md'))) {
 // NO run.md = a previous session's execution is (or was) in flight; marker WITH
 // run.md is a stale leftover for fg-doctor (A10), so the hook says nothing.
 let inflightLine = '';
-if (fs.existsSync(path.join(root, 'running.md')) && !fs.existsSync(path.join(root, 'run.md'))) {
+if (isFile(path.join(root, 'running.md')) && !isFile(path.join(root, 'run.md'))) {
   const planFile = path.join(root, 'plan.md');
   const islug = slugof(planFile) || runningof(path.join(root, 'running.md')) || '(unknown)';
   const itsk = taskof(planFile);
   const iprefix = itsk ? `task ${sanitize(itsk)} ` : '';
-  inflightLine = `Execution in flight from a previous session: ${iprefix}\`${sanitize(islug)}\` ${EM_DASH} `
-               + 'fg-run collects or confirms before re-running; do not rebuild blindly.';
+  const markerSession = field(path.join(root, 'running.md'), 'session');
+  inflightLine = sessionId && sessionId === markerSession
+    ? `Execution in flight in this session: ${iprefix}\`${sanitize(islug)}\` ${EM_DASH} wait for its completion.`
+    : `Execution in flight from another session: ${iprefix}\`${sanitize(islug)}\` ${EM_DASH} `
+      + 'fg-run collects or confirms before re-running.';
 }
 
 // Parked tasks awaiting retro. Counted, NOT listed as unsealed-tail items — the

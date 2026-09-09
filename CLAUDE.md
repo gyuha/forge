@@ -83,7 +83,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 | `.forge/ask.md` (fg-ask 그릴링 시작 시 쓰는 표시용 마커, 백로그 적재/fg-quick 이탈 시 삭제) | fg-ask | fg-statusline(표시 전용 — 다른 스킬은 게이트로 읽지 않음) |
 | `.forge/backlog/<slug>.md` | fg-ask | fg-run(선택 메뉴·승격) |
 | `.forge/plan.md` (활성 슬롯) | fg-run(백로그에서 승격) | fg-run(정답 기준), fg-learn |
-| `.forge/running.md` (실행 중 마커 — fg-run이 실행 위임 직후 작성(`forge-running` slug·`workflow:` id·`started:` epoch·`session:`), `run.md`를 쓴 직후 삭제. 백그라운드 실행 중 "plan만 있음"과 구별해 재진입 이중 실행을 막는다 — ADR `260909-150614`) | fg-run | fg-run(재진입 4a — 회수·대기·확인, 재실행 아님)·fg-status/fg-next(상태 머신 1b "실행 중 — 기다린다")·세션 시작 훅(이전 세션의 실행 중 한 줄)·fg-doctor(A10)·fg-drop(활성 슬롯과 함께 제거) |
+| `.forge/running.md` (실행 중 마커 — fg-run이 launch 직전 `workflow: pending`으로 작성(`forge-running` slug·`started:` epoch·`session:`), launch가 회수 가능한 호스트 실행 핸들을 주면 즉시 기록(Claude는 workflow Task ID), `run.md`를 쓴 직후 삭제. launch 경계에 도달한 "plan만 있음"과 구별해 재진입 이중 실행을 막는다 — ADR `260909-150614`) | fg-run | fg-run(재진입 4a — 회수·대기·확인, 재실행 아님)·fg-status/fg-next(상태 머신 1b "실행 중 — 기다린다")·fg-ask/fg-learn/fg-done(실행 중 슬롯을 수정·회고·봉인하지 않고 fg-run으로 라우팅; 봉인은 슬롯을 비울 때 마커 삭제)·fg-next all/fg-loop(회수 불가 실행은 사람 필요 벽)·세션 시작 훅(같은/다른 세션 안내)·fg-doctor(A10)·fg-drop(취소 또는 경고 후 활성 슬롯과 함께 제거) |
 | `.forge/run.md` | fg-run | fg-learn |
 | `.forge/review.md` (적대적 리뷰 findings — 휘발, 활성 슬롯 동반, 선택적·비-게이트) | fg-adversarial-review | fg-learn(retro 승급 입력)·fg-done(봉인 시 done/ 아카이브) |
 | `.forge/STATUS.md` (활성 슬롯, `status: executed`, `verified: pending`) | fg-run(run.md 기록 직후 작성, 핸드오프 UAT로 `verified:` 기록) | fg-run(상태 요약·검증 재진입)·fg-learn(검증 통과 시 회고)·fg-done(검증→회고 게이트 후 `status: done` 마감) |
