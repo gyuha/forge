@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0] - 2026-09-10
+
+### Added
+- **opencode를 세 번째 호스트로 지원한다.** `hosts/opencode/{interaction,execution,capabilities}.md|json` 어댑터를 신설하고, `core/HOST.md`의 어댑터 선택 규칙이 opencode를 명시적 호스트 메타데이터로만 식별하도록 확장한다(환경변수 부재로 추론하지 않는다 — 미상 호스트가 조용히 명명 호스트로 승격되는 것을 막는다).
+- opencode 사용 가이드 `docs/opencode.md`(한글)·`docs/en/opencode.md`(영문)를 추가하고, 9개 capability의 지원 범위 표를 `capabilities.json`과 짝지어 선언한다.
+- `npm run release:check`가 호스트 목록을 하드코딩하지 않고 `hosts/` 아래 실재하는 모든 어댑터의 완비 여부를 검사한다 — `hosts/opencode/`도 자동으로 검사 대상이다.
+
+### Changed
+- opencode 어댑터의 9개 capability는 전부 `false`다. opencode가 그 일들을 못 한다는 주장이 아니라 계약의 "관측된 것만 `true`" 규칙을 문자 그대로 적용한 결과이며, 모든 `false`에는 정의된 fallback이 있다 — 병렬 위임은 직렬 실행, 선택 메뉴는 번호 텍스트 목록, `fg-next all`·`fg-loop`는 turn-bounded로 동작한다.
+
+### Fixed
+- **opencode 설치 안내의 오도 문장을 6곳에서 바로잡는다.** 기존 문서는 "이미 `.claude/skills/`에 설치된 forge는 그대로 로드된다"고 적었으나, `/plugin install`로 설치한 forge는 `~/.claude/plugins/cache/<마켓플레이스>/<플러그인>/<버전>/skills/`라는 플러그인 캐시에 들어가고 opencode는 그 경로를 스캔하지 않는다 — 다른 스킬은 보이는데 forge만 보이지 않는 원인이었다. 참이지만 거의 성립하지 않는 조건이었다.
+- 정확한 절반(전용 매니페스트 불필요)은 유지하고, 나머지를 플러그인 캐시 현실 + 링크 절차(`git clone` + `ln -s ~/.config/opencode/skills/`)로 교체한다. 버전 고정된 캐시 경로를 링크하면 업그레이드 후에도 링크가 끊기지 않고 **조용히 옛 버전을 가리킨다**는 경고를 함께 적는다.
+
 ## [0.8.10] - 2026-09-09
 
 ### Added
