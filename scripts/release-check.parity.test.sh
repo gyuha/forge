@@ -16,7 +16,7 @@ fails=0
 mkrepo() { # $1=version-claude $2=version-codex $3=skills-field
   local d; d="$(mktemp -d)"
   mkdir -p "$d/scripts" "$d/.claude-plugin" "$d/.codex-plugin" "$d/hooks" \
-           "$d/hosts/claude" "$d/hosts/codex"
+           "$d/hosts/claude" "$d/hosts/codex" "$d/hosts/opencode"
   cp "$HERE/release-check.sh" "$HERE/release-check.js" "$d/scripts/"
   printf '{"name":"forge","version":"%s"}\n' "$1" > "$d/.claude-plugin/plugin.json"
   printf '{"metadata":{"version":"%s"},"plugins":[{"version":"%s"}]}\n' "$1" "$1" \
@@ -28,7 +28,7 @@ mkrepo() { # $1=version-claude $2=version-codex $3=skills-field
   # fixture's 8 keys can never drift from the canonical table the scripts parse.
   mkdir -p "$d/core"; cp "$HERE/../core/HOST.md" "$d/core/HOST.md"
   local caps; caps="$(caps_json "$d/core/HOST.md")"
-  for h in claude codex; do
+  for h in claude codex opencode; do
     printf 'x\n' > "$d/hosts/$h/interaction.md"
     printf 'x\n' > "$d/hosts/$h/execution.md"
     printf '%s\n' "$caps" > "$d/hosts/$h/capabilities.json"
@@ -40,8 +40,10 @@ mkrepo() { # $1=version-claude $2=version-codex $3=skills-field
   for k in $(grep -oE '^\| `[a-z_]+`' "$d/core/HOST.md" | sed -E 's/^\| `([a-z_]+)`/\1/'); do
     keyrow="${keyrow:+$keyrow }\`$k\`"
   done
-  printf '%s\n' "$keyrow" > "$d/docs/codex.md"
-  printf '%s\n' "$keyrow" > "$d/docs/en/codex.md"
+  for h in codex opencode; do
+    printf '%s\n' "$keyrow" > "$d/docs/$h.md"
+    printf '%s\n' "$keyrow" > "$d/docs/en/$h.md"
+  done
   printf '%s' "$d"
 }
 
@@ -124,6 +126,24 @@ assert_parity "en docs checked too" "$P" "docs/en/codex.md does not name capabil
 
 Q="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$Q/docs/en/codex.md"
 assert_parity "support-table doc missing" "$Q" "docs/en/codex.md is missing"
+
+# --- the host list is DERIVED from hosts/, not hardcoded ----------------------
+# Before this, both twins looped over a literal ['claude','codex'], so a third
+# host could be added with a half-built adapter and the gate stayed green. These
+# cases pin that a host present only in hosts/ is checked like any other.
+R="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$R/hosts/opencode/execution.md"
+assert_parity "third host adapter missing" "$R" "missing host adapter: hosts/opencode/execution.md"
+S="$(mkrepo 9.9.9 9.9.9 ./skills/)"; printf '{"structured_choice":true,"nope":true}\n' > "$S/hosts/opencode/capabilities.json"
+assert_parity "third host capabilities checked" "$S" "hosts/opencode/capabilities.json"
+T="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm "$T/docs/opencode.md"
+assert_parity "third host support-table doc required" "$T" "docs/opencode.md is missing"
+# A brand-new host directory with NO adapter files at all: three errors, and the
+# docs pair is demanded too — nothing about it is special-cased.
+U="$(mkrepo 9.9.9 9.9.9 ./skills/)"; mkdir -p "$U/hosts/newhost"
+assert_parity "unknown new host is checked" "$U" "missing host adapter: hosts/newhost/interaction.md"
+# hosts/ empty is a violation, not a silent pass.
+V="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm -rf "$V/hosts"; mkdir -p "$V/hosts"
+assert_parity "no host adapters at all" "$V" "no host adapters found under hosts/"
 
 rm -f /tmp/rc.sh.err /tmp/rc.js.err
 [ "$fails" -eq 0 ] && { echo "RELEASE-CHECK PARITY OK"; exit 0; }

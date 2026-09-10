@@ -2,7 +2,7 @@
 
 ![forge](./docs/icon-sm.png)
 
-> 에이전트 엔지니어링을 위한 Claude Code·Codex 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
+> 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
 > 두 호스트가 함께 쓰는 22개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
 
 [English](./README.md)
@@ -11,7 +11,7 @@
 
 계획은 grill-with-docs식 대화형 그릴링으로 수행한다. 실행은 활성 호스트 어댑터—Claude Code Dynamic Workflow 또는 Codex collaboration/subagent—를 사용하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그 · eval — 기계 확인 가능한 학습을 프로젝트 자신의 테스트 스위트로 승급)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
 
-워크플로우와 `.forge/` 상태 계약은 한 벌뿐이다. Claude Code와 Codex가 같은 `skills/`와 결정론 스크립트를 사용하고, 질문·위임·훅·호스트 UI만 어댑터로 나뉜다. 지원 범위와 제한은 [Codex 사용 가이드](./docs/codex.md)에 정리돼 있다.
+워크플로우와 `.forge/` 상태 계약은 한 벌뿐이다. Claude Code·Codex·opencode가 같은 `skills/`와 결정론 스크립트를 사용하고, 질문·위임·훅·호스트 UI만 어댑터로 나뉜다. 지원 범위와 제한은 [Codex 사용 가이드](./docs/codex.md)와 [opencode 사용 가이드](./docs/opencode.md)에 각각 정리돼 있다.
 
 봉인은 완성된 아카이브를 만든 뒤 원본 파일을 정리하며, 복구 시에도 동일한 검증·회고 게이트를 적용합니다. 브랜치 통합은 깊이에 관계없이 중첩 브랜치를 탐색합니다. 지도 생성은 활성 호스트의 위임 능력을 따르고, Windows 훅 실행은 하위 훅의 종료 코드를 보존합니다.
 
@@ -28,7 +28,7 @@ fg-ask   →   fg-run   →   fg-next
 - **`fg-run`** — 활성 호스트의 실행 어댑터로 계획을 실행합니다.
 - **`fg-next`** — *다음 한 단계*를 알아서 해줍니다(검증 → 회고 또는 봉인). 또 부르면 계속 진행.
 
-Claude Code에서는 `/forge:fg-*`, Codex에서는 `$fg-*`로 호출한다. 자연어 트리거는 양쪽에서 동일하다.
+Claude Code에서는 `/forge:fg-*`, Codex에서는 `$fg-*`, opencode에서는 스킬 이름으로 호출한다. 자연어 트리거는 세 호스트에서 동일하다.
 
 **더 짧게** — 한 번 계획하고, 끝까지 알아서 굴리기:
 
@@ -176,7 +176,13 @@ Forge는 `.codex-plugin/plugin.json`을 포함한다. Codex의 플러그인/마�
 
 현재 Codex는 핵심 루프, 상태 유틸리티, 직렬 fallback, 제한된 병렬 subagent, SessionStart 알림을 지원한다. `fg-next all`/`fg-loop` 무인 연속 실행과 Codex 네이티브 `fg-agents`는 제한적이므로 감독 실행을 권장한다. 자세한 내용은 [Codex 가이드](./docs/codex.md)를 참조한다.
 
-설치 후 `fg-ask`(Claude Code는 `/forge:fg-ask`, Codex는 `$fg-ask`) 또는 "forge로 시작" 같은 발화로 루프를 시작한다.
+### opencode
+
+opencode는 forge 전용 패키징이 필요 없다. `SKILL.md`를 `.opencode/skills/`·`.claude/skills/`·`.agents/skills/`(프로젝트 — git worktree까지 거슬러 탐색)와 `~/.config/opencode/`·`~/.claude/`·`~/.agents/`에서 찾으므로, 이미 `.claude/skills/`에 설치된 forge는 그대로 로드된다. 스킬은 이름으로 호출한다(`fg-ask`, `fg-run`, `fg-next` …).
+
+`hosts/opencode/capabilities.json`의 9개 능력은 현재 전부 `false`인데, 이는 opencode가 그 일들을 못 한다는 주장이 아니라 계약의 "관측된 것만 `true`" 규칙을 문자 그대로 적용한 결과다 — 핵심 루프와 상태 유틸리티는 동작하고, 병렬 위임·역할 지정 위임·SessionStart 알림·statusline·무인 주행은 fallback으로 간다(`fg-next all`/`fg-loop`는 turn-bounded — 한 턴이 허용하는 만큼 주행하고 재트리거로 재개). 자세한 내용은 [opencode 가이드](./docs/opencode.md)를 참조한다.
+
+설치 후 `fg-ask`(Claude Code는 `/forge:fg-ask`, Codex는 `$fg-ask`, opencode는 `fg-ask`) 또는 "forge로 시작" 같은 발화로 루프를 시작한다.
 
 ## 공유 상태와 디렉터리
 
@@ -209,7 +215,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 | 프로젝트 전용 도메인 에이전트를 필요할 때만 생성 | ✓ (그릴링 기반, 자격 갖춘 역할만) | — | △ (25개 이상 고정 내장 전문가 스킬) | — |
 | 비용 절감 내장 규율(서브에이전트 모델 캡+단순성 규율) | ✓ (eco 모드) | — | △ (모델 벤치마킹 도구, 결이 다름) | — |
 | 보안 감사 전용 스킬 | ✓ (`fg-security` — cloudflare 방법론 vendoring; 산출물은 리포 밖) | — | ✓ (`/cso`) | — |
-| 대상 플랫폼 폭 | Claude Code + Codex | 10+ 런타임 | 10개 에이전트 | 9개 이상 에이전트 |
+| 대상 플랫폼 폭 | Claude Code + Codex + opencode | 10+ 런타임 | 10개 에이전트 | 9개 이상 에이전트 |
 
 범례: ✓ 명시적으로 지원 · △ 비슷한 것은 있으나 형태·엄격도가 다름 · — 공개 문서에서 확인 안 됨(없다고 단정하지 않음)
 
@@ -221,7 +227,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 - 봉인이 진짜 끝을 의미한다 — 봉인된 작업은 같은 작업이 다시 실행되는 걸 구조적으로 막는다.
 - 런타임 인프라가 필요 없다 — DB나 서버 없이 활성 호스트의 플러그인 Marketplace에서 설치한다.
 - 고정된 전문가 세트를 들이미는 대신, 이 프로젝트에 실제로 반복되는 역할이 무엇인지 그릴링으로 찾아 그만큼만 에이전트 카드를 만든다.
-- 정직한 트레이드오프: forge는 Claude Code와 Codex를 지원하지만 일부 호스트 전용 기능은 비대칭이다(`fg-statusline`과 현재 `fg-agents` 출력은 Claude 중심, Codex 무인 연속 실행은 제한적). 공통 상태와 워크플로우 규칙은 복제하지 않고 동일하게 유지한다.
+- 정직한 트레이드오프: forge는 Claude Code·Codex·opencode를 지원하지만 일부 호스트 전용 기능은 비대칭이다(`fg-statusline`과 현재 `fg-agents` 출력은 Claude 중심, Codex 무인 연속 실행은 제한적, opencode는 모든 능력이 아직 미관측이라 전면 fallback). 공통 상태와 워크플로우 규칙은 복제하지 않고 동일하게 유지한다.
 
 ### forge가 하지 않는 것
 

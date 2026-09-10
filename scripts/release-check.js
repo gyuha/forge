@@ -21,7 +21,15 @@ const errors = [];
 if (new Set(versions).size !== 1) errors.push(`manifest version drift: ${versions.join(' / ')}`);
 if (codex.skills !== './skills/') errors.push('Codex manifest must point to ./skills/');
 if (!fs.existsSync(path.join(repo, 'hooks', 'hooks.json'))) errors.push('missing default Codex hook file: hooks/hooks.json');
-for (const host of ['claude', 'codex']) {
+// Host list, derived from hosts/ in sorted order — never hardcoded. A hardcoded
+// list is silently blind to a newly added host, so the gate would pass while the
+// new adapter was half-built (exactly what happened when hosts/opencode/ was added).
+const hostsDir = path.join(repo, 'hosts');
+const hosts = fs.existsSync(hostsDir)
+  ? fs.readdirSync(hostsDir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name).sort()
+  : [];
+if (!hosts.length) errors.push('no host adapters found under hosts/');
+for (const host of hosts) {
   for (const file of ['interaction.md', 'execution.md', 'capabilities.json']) {
     if (!fs.existsSync(path.join(repo, 'hosts', host, file))) errors.push(`missing host adapter: hosts/${host}/${file}`);
   }
@@ -37,7 +45,7 @@ const canonical = fs.existsSync(hostDoc)
 if (!canonical.length) {
   errors.push('cannot derive the capability vocabulary from core/HOST.md');
 } else {
-  for (const host of ['claude', 'codex']) {
+  for (const host of hosts) {
     const cap = path.join(repo, 'hosts', host, 'capabilities.json');
     if (!fs.existsSync(cap)) continue; // already reported above
     let obj = null;
@@ -59,15 +67,20 @@ if (!canonical.length) {
   // capabilities.json. Enforce the part a machine can settle: every capability
   // key is NAMED in that table. The status wording itself stays human-reviewed —
   // this gate does not claim more than it checks.
-  for (const doc of ['docs/codex.md', 'docs/en/codex.md']) {
-    const f = path.join(repo, doc);
-    if (!fs.existsSync(f)) {
-      errors.push(`${doc} is missing (the Codex capability table has no home)`);
-      continue;
+  // `claude` is excluded because the pages document DEVIATIONS from the Claude
+  // Code baseline; there is no docs/claude.md to compare a host against itself.
+  for (const host of hosts) {
+    if (host === 'claude') continue;
+    for (const doc of [`docs/${host}.md`, `docs/en/${host}.md`]) {
+      const f = path.join(repo, doc);
+      if (!fs.existsSync(f)) {
+        errors.push(`${doc} is missing (the ${host} capability table has no home)`);
+        continue;
+      }
+      const text = fs.readFileSync(f, 'utf8');
+      const undocumented = canonical.filter((k) => !text.includes(`\`${k}\``));
+      if (undocumented.length) errors.push(`${doc} does not name capability keys: ${undocumented.join(', ')}`);
     }
-    const text = fs.readFileSync(f, 'utf8');
-    const undocumented = canonical.filter((k) => !text.includes(`\`${k}\``));
-    if (undocumented.length) errors.push(`${doc} does not name capability keys: ${undocumented.join(', ')}`);
   }
 }
 
@@ -75,4 +88,4 @@ if (errors.length) {
   for (const error of errors) process.stderr.write(`release:check: ${error}\n`);
   process.exit(1);
 }
-process.stdout.write(`release:check: ok (forge ${versions[0]}, shared skills + Claude/Codex adapters)\n`);
+process.stdout.write(`release:check: ok (forge ${versions[0]}, shared skills + ${hosts.join('/')} adapters)\n`);

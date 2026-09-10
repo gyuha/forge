@@ -9,7 +9,8 @@ delegates, loads project agents, continues a drive, and displays status.
 1. Explicit host metadata wins.
 2. `PLUGIN_ROOT` identifies Codex.
 3. `CLAUDE_PLUGIN_ROOT` without Codex metadata identifies Claude Code.
-4. If the host cannot be identified, use the sequential fallback: plain-text
+4. Explicit host metadata is the **only** signal that identifies opencode.
+5. If the host cannot be identified, use the sequential fallback: plain-text
    questions, no role-specific delegation, and no host UI mutation.
 
 Codex may also provide `CLAUDE_PLUGIN_ROOT` for compatibility, so its presence
@@ -18,6 +19,16 @@ is a generic name another tool may export, so its presence alone is not proof of
 Codex either. When both signals are weak, prefer explicit host metadata; when
 nothing is conclusive, take the sequential fallback rather than guessing — every
 fallback path below is defined and safe.
+
+opencode exports no environment variable that Forge can rely on being present in
+every session, so rule 4 above deliberately gives it no environment signal — do
+not infer opencode from the *absence* of the other two variables, which is the
+sequential fallback's own condition and would silently upgrade an unknown host
+into a named one. opencode also needs no Forge-specific packaging: it discovers
+`SKILL.md` under `.opencode/skills/`, `.claude/skills/` and `.agents/skills/`,
+so an install that already lives in `.claude/skills/` is loaded unchanged. Its
+adapter currently declares every capability `false`, which is the observation
+rule below applied literally, not a claim that opencode cannot do these things.
 
 When a shell command needs the installed plugin root, normalize it locally:
 
@@ -72,5 +83,6 @@ to `true` is an observation, not an assumption — and `docs/codex.md`'s support
 table must be updated in the same change, since the two are the same claim in
 two forms.
 
-Read the matching adapter in `../hosts/claude/` or `../hosts/codex/` (relative to this file) before using a
-host-specific capability.
+Read the matching adapter in `../hosts/claude/`, `../hosts/codex/` or
+`../hosts/opencode/` (relative to this file) before using a host-specific
+capability.

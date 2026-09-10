@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # release:check — pre-release gate (bash primary; node twin: release-check.js, ADR-0022).
 # Verifies the 4 manifest versions are in sync, the Codex manifest points at the
-# shared skills tree, the default hook file exists, and both host adapters are complete.
+# shared skills tree, the default hook file exists, and every host adapter under
+# hosts/ is complete. The host list is DERIVED from that directory, never
+# hardcoded: a hardcoded list is silently blind to a newly added host, so the
+# gate would pass while the new adapter was half-built (exactly what happened
+# when hosts/opencode/ was added).
 # Exit 0 = ok, 1 = at least one violation (errors on stderr, one per line).
 set -u
 
@@ -24,7 +28,20 @@ pv="$(jver "$PJ" | head -1)"; m1="$(jver "$MP" | head -1)"; m2="$(jver "$MP" | s
   errors+=("manifest version drift: $pv / $m1 / $m2 / $cv")
 [ "$(jstr "$CJ" skills)" = "./skills/" ] || errors+=("Codex manifest must point to ./skills/")
 [ -f "$repo/hooks/hooks.json" ] || errors+=("missing default Codex hook file: hooks/hooks.json")
-for host in claude codex; do
+# Host list, derived from hosts/ in sorted order (see header).
+hosts=""
+if [ -d "$repo/hosts" ]; then
+  for d in "$repo"/hosts/*/; do
+    [ -d "$d" ] || continue
+    h="${d%/}"; hosts="${hosts}${h##*/}
+"
+  done
+  hosts="$(printf '%s' "$hosts" | sort)"
+fi
+if [ -z "$hosts" ]; then
+  errors+=("no host adapters found under hosts/")
+fi
+for host in $hosts; do
   for file in interaction.md execution.md capabilities.json; do
     [ -f "$repo/hosts/$host/$file" ] || errors+=("missing host adapter: hosts/$host/$file")
   done
@@ -39,7 +56,7 @@ canonical=$(grep -oE '^\| `[a-z_]+`' "$repo/core/HOST.md" 2>/dev/null | sed -E '
 if [ -z "$canonical" ]; then
   errors+=("cannot derive the capability vocabulary from core/HOST.md")
 else
-  for host in claude codex; do
+  for host in $hosts; do
     cap="$repo/hosts/$host/capabilities.json"
     [ -f "$cap" ] || continue   # already reported above
     compact=$(tr -d ' \t\n\r' < "$cap")
@@ -59,20 +76,26 @@ else
     [ -n "$unknown" ] && errors+=("hosts/$host/capabilities.json unknown keys: $unknown")
   done
 
-  # docs/codex.md claims to be "the same declaration in two forms" as the Codex
-  # capabilities.json. Enforce the part a machine can settle: every capability
-  # key is NAMED in that table. The status wording itself stays human-reviewed —
-  # this gate does not claim more than it checks.
-  for doc in docs/codex.md docs/en/codex.md; do
-    if [ ! -f "$repo/$doc" ]; then
-      errors+=("$doc is missing (the Codex capability table has no home)")
-      continue
-    fi
-    undocumented=""
-    for k in $canonical; do
-      grep -qF "\`$k\`" "$repo/$doc" || undocumented="${undocumented:+$undocumented, }$k"
+  # docs/<host>.md claims to be "the same declaration in two forms" as that
+  # host's capabilities.json. Enforce the part a machine can settle: every
+  # capability key is NAMED in that table. The status wording itself stays
+  # human-reviewed — this gate does not claim more than it checks.
+  #
+  # `claude` is excluded because the pages document DEVIATIONS from the Claude
+  # Code baseline; there is no docs/claude.md to compare a host against itself.
+  for host in $hosts; do
+    [ "$host" = claude ] && continue
+    for doc in "docs/$host.md" "docs/en/$host.md"; do
+      if [ ! -f "$repo/$doc" ]; then
+        errors+=("$doc is missing (the $host capability table has no home)")
+        continue
+      fi
+      undocumented=""
+      for k in $canonical; do
+        grep -qF "\`$k\`" "$repo/$doc" || undocumented="${undocumented:+$undocumented, }$k"
+      done
+      [ -n "$undocumented" ] && errors+=("$doc does not name capability keys: $undocumented")
     done
-    [ -n "$undocumented" ] && errors+=("$doc does not name capability keys: $undocumented")
   done
 fi
 
@@ -80,4 +103,4 @@ if [ ${#errors[@]} -gt 0 ]; then
   for e in "${errors[@]}"; do printf 'release:check: %s\n' "$e" >&2; done
   exit 1
 fi
-printf 'release:check: ok (forge %s, shared skills + Claude/Codex adapters)\n' "$pv"
+printf 'release:check: ok (forge %s, shared skills + %s adapters)\n' "$pv" "$(printf '%s' "$hosts" | tr '\n' '/' | sed 's|/$||')"

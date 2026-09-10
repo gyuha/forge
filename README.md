@@ -2,7 +2,7 @@
 
 ![forge](./docs/icon-sm.png)
 
-> An agent-engineering workflow plugin for Claude Code and Codex — one task through a single cycle of **ask·plan → execute → retro → done**.
+> An agent-engineering workflow plugin for Claude Code, Codex, and opencode — one task through a single cycle of **ask·plan → execute → retro → done**.
 > A loop-style workflow plugin built from twenty-two shared `fg-` skills — four that form the loop, plus eighteen utilities outside it.
 
 [한국어](./README.ko.md)
@@ -11,7 +11,7 @@ The full docs below are also published as a docs site — sidebar navigation, se
 
 Planning happens as grill-with-docs-style conversational grilling. Execution uses the active host adapter—a Claude Code Dynamic Workflow or Codex collaboration/subagents—then the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log · evals — machine-checkable learnings promoted into the project's own test suite), and the done step seals the task so the same task never runs twice.
 
-The workflow and `.forge/` state contract exist once. Claude Code and Codex use the same `skills/` and deterministic scripts; only interaction, delegation, hooks, and host UI are adapted. See [Using forge with Codex](./docs/en/codex.md) for the support matrix and known limits.
+The workflow and `.forge/` state contract exist once. Claude Code, Codex, and opencode use the same `skills/` and deterministic scripts; only interaction, delegation, hooks, and host UI are adapted. See [Using forge with Codex](./docs/en/codex.md) and [Using forge with opencode](./docs/en/opencode.md) for each support matrix and its known limits.
 
 Sealing prepares a complete archive before removing source files, and recovery enforces the same verification and retro gates. Branch integration discovers nested branch names at any depth. Mapping follows the active host's delegation capabilities, and Windows hook dispatch preserves the hook's exit code.
 
@@ -28,7 +28,7 @@ fg-ask   →   fg-run   →   fg-next
 - **`fg-run`** — runs the plan through the active host's execution adapter.
 - **`fg-next`** — does the *one next step* for you (verify → retro or seal). Run it again to keep moving.
 
-Use `/forge:fg-*` in Claude Code and `$fg-*` in Codex; natural-language triggers work on both.
+Use `/forge:fg-*` in Claude Code, `$fg-*` in Codex, and the skill name in opencode; natural-language triggers work on all three.
 
 **Even shorter** — plan once, then let it drive itself to completion:
 
@@ -177,7 +177,13 @@ Forge ships `.codex-plugin/plugin.json`; install the repository as a local Codex
 
 Codex currently supports the core loop, state utilities, serial fallback, parallel bounded subagents, and SessionStart notices. `fg-next all`/`fg-loop` unattended continuation and Codex-native `fg-agents` are limited; use them under supervision. Full details: [Codex guide](./docs/en/codex.md).
 
-After installing, start with `fg-ask` (`/forge:fg-ask` on Claude Code, `$fg-ask` on Codex), or an utterance like "start with forge".
+### opencode
+
+opencode needs no forge-specific packaging: it discovers `SKILL.md` under `.opencode/skills/`, `.claude/skills/`, and `.agents/skills/` (project, walking up to the git worktree) as well as their `~/.config/opencode/`, `~/.claude/`, and `~/.agents/` counterparts — so a forge install that already lives in `.claude/skills/` is loaded as-is. Invoke skills by name (`fg-ask`, `fg-run`, `fg-next`, …).
+
+Every capability in `hosts/opencode/capabilities.json` is currently `false`, which is the contract's observation rule applied literally rather than a claim that opencode cannot do these things: the core loop and state utilities work, while parallel delegation, role dispatch, SessionStart notices, the statusline, and unattended driving fall back (`fg-next all`/`fg-loop` are turn-bounded — they run as far as one turn allows and resume on re-trigger). Full details: [opencode guide](./docs/en/opencode.md).
+
+After installing, start with `fg-ask` (`/forge:fg-ask` on Claude Code, `$fg-ask` on Codex, `fg-ask` on opencode), or an utterance like "start with forge".
 
 ## Shared state and directories
 
@@ -210,7 +216,7 @@ How git and branches are operated with forge — the git-abstinence model, the c
 | Generates project-specific domain agents on demand | ✓ (interview-driven, only roles that earn their place) | — | △ (25+ fixed built-in specialist skills) | — |
 | Built-in cost-discipline mode (subagent model cap + simplicity discipline) | ✓ (eco mode) | — | △ (model benchmarking tool, different angle) | — |
 | A dedicated security-audit skill | ✓ (`fg-security` — vendored cloudflare methodology; artefacts kept outside the repo) | — | ✓ (`/cso`) | — |
-| Target platform breadth | Claude Code + Codex | 10+ runtimes | 10 agents | 9+ agents |
+| Target platform breadth | Claude Code + Codex + opencode | 10+ runtimes | 10 agents | 9+ agents |
 
 Legend: ✓ explicitly supported · △ something similar exists but differs in form/rigor · — not found in public docs (not claimed absent)
 
@@ -222,7 +228,7 @@ Legend: ✓ explicitly supported · △ something similar exists but differs in 
 - Sealing means the loop really ends — a sealed task is structurally blocked from ever re-running.
 - Zero runtime infrastructure — no DB or server; install through the active host's plugin Marketplace.
 - Instead of a fixed roster of specialists, forge interviews the project to find which roles actually recur, and generates agent cards only for those.
-- Honest trade-off: forge supports Claude Code and Codex, while some host-native extras remain asymmetric (`fg-statusline` and current `fg-agents` output are Claude-oriented; Codex unattended continuation is limited). The shared state and workflow rules stay identical instead of being duplicated.
+- Honest trade-off: forge supports Claude Code, Codex, and opencode, while some host-native extras remain asymmetric (`fg-statusline` and current `fg-agents` output are Claude-oriented; Codex unattended continuation is limited, and every opencode capability is still unobserved so it falls back throughout). The shared state and workflow rules stay identical instead of being duplicated.
 
 ### What forge doesn't do
 
