@@ -179,7 +179,7 @@ Codex currently supports the core loop, state utilities, serial fallback, parall
 
 ### opencode
 
-opencode needs no forge-specific packaging: it discovers `SKILL.md` under `.opencode/skills/`, `.claude/skills/`, and `.agents/skills/` (project, walking up to the git worktree) as well as their `~/.config/opencode/`, `~/.claude/`, and `~/.agents/` counterparts — so a forge install that already lives in `.claude/skills/` is loaded as-is. Invoke skills by name (`fg-ask`, `fg-run`, `fg-next`, …).
+opencode needs no forge-specific manifest — skills load by `SKILL.md` discovery alone. But **a forge installed with `/plugin install` lands in the `~/.claude/plugins/cache/…` plugin cache, which opencode does not scan, so you have to link it once into a discovery path such as `~/.config/opencode/skills/`** — if your other skills appear in opencode but forge does not, this is why. It is two lines (`git clone` + `ln -s`); the procedure and its caveats (linking the version-pinned cache path silently leaves you on an old version) are in the guide below. Invoke skills by name (`fg-ask`, `fg-run`, `fg-next`, …).
 
 Every capability in `hosts/opencode/capabilities.json` is currently `false`, which is the contract's observation rule applied literally rather than a claim that opencode cannot do these things: the core loop and state utilities work, while parallel delegation, role dispatch, SessionStart notices, the statusline, and unattended driving fall back (`fg-next all`/`fg-loop` are turn-bounded — they run as far as one turn allows and resume on re-trigger). Full details: [opencode guide](./docs/en/opencode.md).
 

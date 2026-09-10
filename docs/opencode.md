@@ -4,7 +4,31 @@ forge는 Claude Code·Codex·opencode가 **같은 `skills/`와 `.forge/` 상태*
 
 ## 설치와 호출
 
-opencode는 forge 전용 패키징이 필요 없다. opencode는 `SKILL.md`를 `.opencode/skills/`·`.claude/skills/`·`.agents/skills/`(프로젝트 — git worktree까지 거슬러 올라가며 탐색)와 `~/.config/opencode/skills/`·`~/.claude/skills/`·`~/.agents/skills/`(전역)에서 찾는다. 따라서 **이미 `.claude/skills/`에 설치된 forge는 그대로 로드된다** — 별도 매니페스트도, 복사도 필요 없다.
+opencode는 forge 전용 매니페스트가 필요 없다 — `.claude-plugin`·`.codex-plugin`에 대응하는 세 번째 매니페스트가 없고, 스킬은 `SKILL.md` 탐색만으로 로드된다. 다만 **forge가 그 탐색 경로에 놓여 있어야 한다.** opencode가 스캔하는 곳은 `.opencode/skills/`·`.claude/skills/`·`.agents/skills/`(프로젝트 — git worktree까지 거슬러 올라가며 탐색)와 `~/.config/opencode/skills/`·`~/.claude/skills/`·`~/.agents/skills/`(전역)뿐이다.
+
+**`/plugin install`로 설치한 forge는 이 목록에 없다.** 플러그인은 `~/.claude/plugins/cache/<마켓플레이스>/<플러그인>/<버전>/skills/`라는 플러그인 캐시로 들어가고, 그 경로는 Claude Code의 플러그인 로더만 안다. opencode에서 다른 스킬은 보이는데 forge만 보이지 않는다면 이것이 원인이며, 링크를 한 번 걸면 해결된다.
+
+### 링크 걸기
+
+```bash
+git clone https://github.com/gyuha/forge.git ~/.forge
+mkdir -p ~/.config/opencode/skills
+ln -s ~/.forge/skills/* ~/.config/opencode/skills/
+```
+
+확인한 뒤 **opencode를 재시작한다** — 스킬은 세션 시작 시 로드되므로 이미 열려 있는 세션에는 반영되지 않는다.
+
+```bash
+ls ~/.config/opencode/skills/ | wc -l   # forge 스킬 개수만큼 나오면 정상
+```
+
+갱신은 `git pull` 하나로 끝난다 — 링크가 clone을 직접 가리키기 때문이다.
+
+주의 세 가지:
+
+- **플러그인 캐시를 직접 링크하지 말 것.** 캐시 경로에는 버전이 박혀 있고(`.../forge/0.8.3/`) 옛 버전 디렉터리가 지워지지 않으므로, 버전을 올려도 링크는 끊기지 않고 **조용히 옛 forge를 가리킨 채** 남는다.
+- **`~/.claude/skills/`는 권하지 않는다** — Claude Code가 플러그인 사본과 이 사본을 중복으로 발견할 수 있다. 특정 리포에서만 쓰려면 전역 대신 그 리포의 `.opencode/skills/`에 링크한다.
+- **clone은 Claude Code 플러그인과 독립이다** — 두 호스트가 서로 다른 forge 버전을 볼 수 있으므로, 맞추려면 clone은 `git pull`, 플러그인은 `/plugin marketplace update`로 각각 갱신한다.
 
 호출은 스킬 이름을 부르는 방식이다. 자연어 트리거는 세 호스트가 동일하다.
 

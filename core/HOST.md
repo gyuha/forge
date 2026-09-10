@@ -24,9 +24,12 @@ opencode exports no environment variable that Forge can rely on being present in
 every session, so rule 4 above deliberately gives it no environment signal — do
 not infer opencode from the *absence* of the other two variables, which is the
 sequential fallback's own condition and would silently upgrade an unknown host
-into a named one. opencode also needs no Forge-specific packaging: it discovers
-`SKILL.md` under `.opencode/skills/`, `.claude/skills/` and `.agents/skills/`,
-so an install that already lives in `.claude/skills/` is loaded unchanged. Its
+into a named one. opencode also needs no Forge-specific manifest: it discovers
+`SKILL.md` under `.opencode/skills/`, `.claude/skills/` and `.agents/skills/`.
+Discovery is not installation, though — a `/plugin install` puts Forge in the
+`~/.claude/plugins/cache/` plugin cache, which is not a discovery path, so such
+an install must be linked into one before opencode sees it (docs/opencode.md
+carries the procedure). Its
 adapter currently declares every capability `false`, which is the observation
 rule below applied literally, not a claim that opencode cannot do these things.
 

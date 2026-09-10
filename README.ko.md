@@ -178,7 +178,7 @@ Forge는 `.codex-plugin/plugin.json`을 포함한다. Codex의 플러그인/마�
 
 ### opencode
 
-opencode는 forge 전용 패키징이 필요 없다. `SKILL.md`를 `.opencode/skills/`·`.claude/skills/`·`.agents/skills/`(프로젝트 — git worktree까지 거슬러 탐색)와 `~/.config/opencode/`·`~/.claude/`·`~/.agents/`에서 찾으므로, 이미 `.claude/skills/`에 설치된 forge는 그대로 로드된다. 스킬은 이름으로 호출한다(`fg-ask`, `fg-run`, `fg-next` …).
+opencode는 forge 전용 매니페스트가 필요 없다 — 스킬은 `SKILL.md` 탐색만으로 로드된다. 다만 **`/plugin install`로 설치한 forge는 `~/.claude/plugins/cache/…` 플러그인 캐시에 들어가고 opencode는 그 경로를 스캔하지 않으므로, `~/.config/opencode/skills/` 같은 탐색 경로에 링크를 한 번 걸어야 한다** — 다른 스킬은 보이는데 forge만 안 보인다면 이것이 원인이다. `git clone` + `ln -s` 두 줄이며, 절차와 주의점(버전 고정된 캐시 경로를 링크하면 조용히 옛 버전을 가리킨다)은 아래 가이드에 있다. 스킬은 이름으로 호출한다(`fg-ask`, `fg-run`, `fg-next` …).
 
 `hosts/opencode/capabilities.json`의 9개 능력은 현재 전부 `false`인데, 이는 opencode가 그 일들을 못 한다는 주장이 아니라 계약의 "관측된 것만 `true`" 규칙을 문자 그대로 적용한 결과다 — 핵심 루프와 상태 유틸리티는 동작하고, 병렬 위임·역할 지정 위임·SessionStart 알림·statusline·무인 주행은 fallback으로 간다(`fg-next all`/`fg-loop`는 turn-bounded — 한 턴이 허용하는 만큼 주행하고 재트리거로 재개). 자세한 내용은 [opencode 가이드](./docs/opencode.md)를 참조한다.
 

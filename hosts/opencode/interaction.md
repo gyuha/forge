@@ -25,10 +25,12 @@ Flipping one is an observation, not an assumption, and it travels with a
 
 ## Skill loading
 
-Forge needs no opencode-specific packaging: opencode discovers `SKILL.md` under
+Forge needs no opencode-specific manifest: opencode discovers `SKILL.md` under
 `.opencode/skills/`, `.claude/skills/` and `.agents/skills/` (project, walking up
 to the git worktree) plus the matching `~/.config/opencode/`, `~/.claude/` and
-`~/.agents/` locations. A Forge install that already lives in `.claude/skills/`
-is therefore loaded as-is. Because `plugin_root` is `false`, skills must resolve
+`~/.agents/` locations. None of those is where `/plugin install` puts Forge — it
+lands in the `~/.claude/plugins/cache/` plugin cache — so a plugin install must
+be linked into a discovery path first (docs/opencode.md carries the procedure).
+Because `plugin_root` is `false`, skills must resolve
 companion files by a path relative to their own directory rather than a plugin
 root variable.

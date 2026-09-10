@@ -4,7 +4,31 @@ forge is structured so Claude Code, Codex, and opencode consume the **same `skil
 
 ## Install and invoke
 
-opencode needs no forge-specific packaging. It discovers `SKILL.md` under `.opencode/skills/`, `.claude/skills/`, and `.agents/skills/` (project — walking up to the git worktree), plus `~/.config/opencode/skills/`, `~/.claude/skills/`, and `~/.agents/skills/` (global). So **a forge install that already lives in `.claude/skills/` is loaded as-is** — no separate manifest, no copying.
+opencode needs no forge-specific manifest — there is no third manifest matching `.claude-plugin`/`.codex-plugin`, and skills load by `SKILL.md` discovery alone. But **forge has to sit on one of those discovery paths.** opencode scans only `.opencode/skills/`, `.claude/skills/`, and `.agents/skills/` (project — walking up to the git worktree), plus `~/.config/opencode/skills/`, `~/.claude/skills/`, and `~/.agents/skills/` (global).
+
+**A forge installed with `/plugin install` is not on that list.** Plugins land in a plugin cache at `~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/skills/`, and only Claude Code's plugin loader knows that path. If your other skills show up in opencode but forge does not, this is why — one symlink fixes it.
+
+### Linking it
+
+```bash
+git clone https://github.com/gyuha/forge.git ~/.forge
+mkdir -p ~/.config/opencode/skills
+ln -s ~/.forge/skills/* ~/.config/opencode/skills/
+```
+
+Check it, then **restart opencode** — skills load at session start, so an already-open session will not pick them up.
+
+```bash
+ls ~/.config/opencode/skills/ | wc -l   # should match forge's skill count
+```
+
+Updating is a single `git pull`, because the links point straight at the clone.
+
+Three cautions:
+
+- **Do not link the plugin cache directly.** The cache path pins a version (`.../forge/0.8.3/`) and old version directories are not removed, so after an upgrade the link does not break — it silently keeps pointing at the old forge.
+- **`~/.claude/skills/` is not recommended** — Claude Code may discover both the plugin copy and this one. To scope forge to a single repo, link into that repo's `.opencode/skills/` instead of the global path.
+- **The clone is independent of the Claude Code plugin** — the two hosts can see different forge versions, so keep them in step by `git pull`-ing the clone and running `/plugin marketplace update` for the plugin.
 
 Invocation is by skill name. Natural-language triggers are shared across all three hosts.
 
