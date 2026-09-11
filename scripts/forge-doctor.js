@@ -346,6 +346,29 @@ if (isFile(PJ) && jname(PJ) === 'forge' && isFile(hostMd)) {
     }
   }
 }
+// B21 self-referential section pointer (retro 260911-160340; CONTEXT.md "도달 가능성") — twin
+// of .sh. A `§N` citation inside section N points at the reader's own section; after a
+// conditional split that is almost always a pointer left behind by moved content — the quieter
+// second layer of reachability loss, invisible to every size/total/link/frontmatter check
+// because the target section still exists. PARTIAL GUARD BY CONSTRUCTION: a cross-section
+// citation whose target no longer holds the rule is semantic and stays with CLAUDE.md's
+// two-step checklist. warning, forge repo scope.
+if (isFile(PJ) && jname(PJ) === 'forge') {
+  for (const sk of ls(path.join(repo, 'skills'))) {
+    const f = path.join(repo, 'skills', sk, 'SKILL.md'); if (!isFile(f)) continue;
+    const lines = read(f).split('\n');
+    let cur = null; const hits = [];
+    for (let i = 0; i < lines.length; i++) {
+      const h = lines[i].match(/^## (\d+)\./);
+      if (h) { cur = h[1]; continue; }
+      if (cur === null) continue;
+      for (const m of lines[i].matchAll(/§(\d+)/g)) if (m[1] === cur) { hits.push(i + 1); break; }
+    }
+    if (hits.length) finding('warning', 'B21 self-referential section pointer', `${f} (lines ${hits.join(',')})`, "a `\u00a7N` citation inside section N points at the reader's own section — after a split this is content that moved: repoint it at the section that now holds the rule, or name the rule locally (retro 260911-160340)");
+  }
+}
+
+
 
 process.stdout.write(`\n🩺 forge-doctor — ${errN} errors, ${warnN} warnings, ${infoN} info\n`);
 process.exit(errN > 0 ? 2 : warnN > 0 ? 1 : 0);

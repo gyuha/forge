@@ -383,6 +383,47 @@ if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ] && [ -f "$HOSTMD" ]; then
   fi
 fi
 
+# B21 self-referential section pointer (retro 260911-160340; CONTEXT.md "도달 가능성"): a
+# `§N` citation that sits INSIDE section N points at the section the reader is already in,
+# which after a conditional split is almost always a pointer left behind by moved content —
+# the second, quieter layer of reachability loss (the target section still EXISTS, so every
+# size/total/link/frontmatter check passes while the cited rule is gone). Three cycles in a
+# row shipped this class; prose discipline alone caught none of them, so this is the cheap
+# mechanical half. PARTIAL GUARD BY CONSTRUCTION: it cannot see a cross-section citation
+# whose target no longer holds the rule (judging that is semantic) — the two-step checklist
+# in CLAUDE.md owns that half. Implemented with grep + shell arithmetic rather than awk:
+# BSD awk (macOS default) has no 3-argument match(), so an awk version silently reported
+# zero hits on a repo that had one — the check must not be the thing that fails quietly.
+# warning, scoped to the forge plugin repo like B17-B20.
+if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ]; then
+  for b21f in "$repo"/skills/*/SKILL.md; do
+    [ -f "$b21f" ] || continue
+    b21secs="$(grep -n '^## [0-9][0-9]*\.' "$b21f" | sed 's/:## \([0-9][0-9]*\)\..*/ \1/')"
+    [ -n "$b21secs" ] || continue
+    b21hits=""
+    while IFS=: read -r b21ln b21rest; do
+      b21cur=""
+      while read -r b21sl b21sn; do
+        [ -z "$b21sl" ] && continue
+        [ "$b21sl" -le "$b21ln" ] && b21cur="$b21sn"
+      done <<EOF_SECS
+$b21secs
+EOF_SECS
+      [ -n "$b21cur" ] || continue
+      case "$b21rest" in
+        *"§$b21cur"*)
+          # exclude §NN where the digit continues (e.g. cur=1 must not match §12)
+          printf '%s' "$b21rest" | grep -q "§$b21cur[0-9]" && continue
+          b21hits="${b21hits:+$b21hits,}$b21ln" ;;
+      esac
+    done <<EOF_LINES
+$(grep -n '§[0-9]' "$b21f")
+EOF_LINES
+    [ -n "$b21hits" ] && finding warning "B21 self-referential section pointer" "$b21f (lines $b21hits)" "a \`§N\` citation inside section N points at the reader's own section — after a split this is content that moved: repoint it at the section that now holds the rule, or name the rule locally (retro 260911-160340)"
+  done
+fi
+
+
 # =============================================================================
 # Verdict
 # =============================================================================

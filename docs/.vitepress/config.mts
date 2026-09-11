@@ -5,6 +5,8 @@ import { withMermaid } from 'vitepress-plugin-mermaid'
 // (docs/index.html) is served at /forge/ — the deploy workflow assembles both
 // into one Pages artifact. See .forge/adr/260815-094725-vitepress-docs-site.md.
 const BASE = '/forge/docs/'
+const SITE_URL = `https://gyuha.com${BASE}`
+const SOCIAL_IMAGE_URL = `${SITE_URL}og-image.png`
 
 // The landing lives outside `base`, so it cannot be a root-relative nav link
 // (VitePress would prefix it with base and point back inside the docs site).
@@ -78,13 +80,41 @@ export default withMermaid(
     title: 'forge',
     base: BASE,
     lastUpdated: true,
+    sitemap: { hostname: SITE_URL },
 
     // Assets under docs/public/ are emitted to the site root, so both entries
     // below resolve inside `base` and stay valid in dev and preview too.
     head: [
       // `head` is written out verbatim — VitePress does not prepend `base` here.
       ['link', { rel: 'icon', href: `${BASE}icon.png` }],
+      ['meta', { name: 'theme-color', content: '#000000' }],
+      ['meta', { property: 'og:type', content: 'website' }],
+      ['meta', { property: 'og:site_name', content: 'forge docs' }],
+      ['meta', { property: 'og:image', content: SOCIAL_IMAGE_URL }],
+      ['meta', { property: 'og:image:width', content: '1200' }],
+      ['meta', { property: 'og:image:height', content: '630' }],
+      ['meta', { property: 'og:image:alt', content: 'forge — Agent engineering. One task, one cycle.' }],
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      ['meta', { name: 'twitter:image', content: SOCIAL_IMAGE_URL }],
     ],
+
+    transformHead({ page, title, description, pageData }) {
+      if (pageData.isNotFound) return
+
+      const path = page
+        .replace(/(^|\/)index\.md$/, '$1')
+        .replace(/\.md$/, '.html')
+      const url = new URL(path, SITE_URL).href
+
+      return [
+        ['link', { rel: 'canonical', href: url }],
+        ['meta', { property: 'og:title', content: title }],
+        ['meta', { property: 'og:description', content: description }],
+        ['meta', { property: 'og:url', content: url }],
+        ['meta', { name: 'twitter:title', content: title }],
+        ['meta', { name: 'twitter:description', content: description }],
+      ]
+    },
 
     locales: {
       root: {

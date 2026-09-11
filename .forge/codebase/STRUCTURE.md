@@ -1,125 +1,241 @@
 ---
-last_mapped_commit: b7c1a15fcad1b38674f455ddd34540a523efb704
-mapped: 2026-09-08
+last_mapped_commit: 6146cae539151b65850e1e2609bdf8f7e78a1e47
+mapped: 2026-09-11
 ---
 
 # STRUCTURE — forge
 
-## 디렉터리 배치
+## 최상위 배치
 
-```
-/ (리포 루트 = 플러그인 루트 = 마켓플레이스 — Claude Code + Codex 양쪽 호스트)
-├── .claude-plugin/
-│   ├── plugin.json              # Claude Code 매니페스트 (version 0.8.6)
-│   └── marketplace.json         # 마켓플레이스 등록 (plugins[0].source: "./", 버전 2곳 더)
-├── .codex-plugin/
-│   └── plugin.json              # Codex 매니페스트 (버전 4번째 지점) — "skills": "./skills/" 로 공유 트리 직접 참조
-│                                #   + interface 블록(displayName·category·capabilities·defaultPrompt 3개·brandColor)
-├── core/                        # 호스트-중립 계약 3파일 (ADR 260903-080713)
-│   ├── HOST.md                  # 어댑터 선택 + 플러그인 루트 정규화("두 메커니즘") + 8-capability 어휘 표 (73줄)
-│   ├── EXECUTION.md             # 위임 계약 (9줄)
-│   └── INTERACTION.md           # 질문 계약 (6줄)
-├── hosts/                       # 호스트별 어댑터 — 각 3파일, 다섯 가지만 소유
-│   ├── claude/                  # interaction.md · execution.md · capabilities.json (8개 전부 true)
-│   └── codex/                   # interaction.md · execution.md · capabilities.json (spawn_parallel·plugin_root·session_start만 true)
-├── skills/                      # 22개 스킬 — skills/<dir>/SKILL.md 자동 탐색 (두 호스트가 이 트리 하나를 공유, 사본 0)
-│   ├── fg-ask/                  # SKILL.md + CONTEXT-FORMAT.md + ADR-FORMAT.md (grill-with-docs 자기완결 3파일, 영문 verbatim)
-│   ├── fg-run/                  # SKILL.md + PLAN-FORMAT.md(81줄 — 형식·분할·DoD (a)~(e)·fix-forward eval 규칙) + RUN-ALL.md(21줄) + FORGE-ROOT.md(62줄, 루트 해석 단일 정의)
-│   ├── fg-learn/                # SKILL.md + RETRO-FORMAT.md (48줄) — 승급 목적지 4종(CONTEXT·ADR·eval·retro)
-│   ├── fg-done/                 # SKILL.md (196줄 — 봉인은 scripts/forge-done.* 위임)
-│   ├── fg-next/                 # SKILL.md + HANDOFF.md(165줄, 핸드오프 표 단일 정의 — "Where it applies" 15/7) + DRIVE.md(90줄 — 무인 주행 3부: 턴내 계속·Stop 훅(prevent_stop 조건부)·태스크당 커밋)
-│   ├── fg-loop/                 # SKILL.md (266줄 — 최대; waiting·stalled-waiting·blocked-health·budget-exhausted 포함)
-│   ├── fg-config/               # SKILL.md(72줄) + ECO.md(186줄) — 통합 설정 스킬(config.json 여섯 키). 삭제된 fg-eco/fg-tdd를 대체하고 fg-eco/ECO.md를 100% rename으로 흡수 (ADR 260905-212045)
-│   ├── fg-showme/               # SKILL.md + VISUAL.md + LICENSE + scripts/ (server.cjs·helper.js·frame-template.html·start/stop-server.sh — superpowers vendoring)
-│   ├── fg-security/             # SKILL.md(forge glue 98줄) + LICENSE + vendored 12파일 — 진입 파일이 AUDIT.md(SKILL.md 아님!)
-│   │                            #   ATTACK-CLASSES/HUNTING/RECONNAISSANCE/WEB-PROTOCOL-AND-AUTH/CLIENT-SIDE/
-│   │                            #   AI-AND-LLM/MEMORY-SAFETY-AND-BINARY/VALIDATION-AND-REPORTING .md
-│   │                            #   + report-schema.json + validate-findings.cjs (cloudflare, MIT — byte-for-byte 유지)
-│   ├── fg-debug/                # SKILL.md(forge glue 112줄) + LICENSE(MIT, Matt Pocock) + vendored 2파일 — 진입 파일이 DIAGNOSE.md(138줄, SKILL.md 아님! fg-security와 같은 이유)
-│   │                            #   + scripts/hitl-loop.template.sh (44줄 — 사람 개입 재현 루프 템플릿, mattpocock/skills 원형 유지)
-│   └── fg-{status,quick,map,merge,cleanup,doctor,drop,statusline,agenda,agents,adversarial-review,help}/  # 각 SKILL.md 단일 파일
-├── scripts/                     # 결정론 스크립트 트윈 + 테스트 + 데이터 1 (44파일)
-│   ├── forge-{status,done,merge,doctor,hook-session-start,hook-stop,loop-spend,statusline,statusline-full}.{sh,js}
-│   │                                        # forge-doctor.{sh,js}(313/286줄) 검사 = A1–A9(상태 계약) + B8–B18(문서·매니페스트·산문 계약)
-│   ├── release-check.{sh,js}                # 릴리스 게이트(83/78줄) — 버전 4곳 + Codex skills 경로 + hooks.json + 어댑터 6파일
-│   │                                        #   + capability 어휘 정합(core/HOST.md 표에서 도출) + docs/{en/,}codex.md 키 언급
-│   ├── resolve-forge-root.{sh,js}
-│   ├── forge-statusline-wrapper.sh          # 방법 1(append) 래퍼 — bash 전용(트윈 없음)
-│   ├── explaining-forge.rule.txt            # 항상-on 설명 규율 canonical 본문 — forge-doctor B17이 읽음
-│   └── *.test.sh / *.parity.test.sh         # 동작 테스트 / sh↔js 출력 동일성 테스트
-├── hooks/
-│   ├── hooks.json               # 훅 2개 정의 (자동 탐색): SessionStart + Stop
-│   │                            #   명령은 ${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}} — 스킬 본문과 일부러 반대 순서(core/HOST.md "두 메커니즘")
-│   ├── run-hook.cmd             # bash→node polyglot 디스패처 (런타임/미지 이름이면 exit 0)
-│   └── run-hook.test.sh         # 22+ 케이스 — 위 우선순위 역전을 되돌리면 무는 decoy 회귀 테스트 포함
-├── docs/                        # 사용자 문서 — 랜딩(정적) + VitePress 사이트
-│   ├── index.html               # 랜딩 `/forge/` — 한 파일 KO/EN(data-l span, ADR-0027), VitePress 밖
-│   ├── .vitepress/config.mts    # base '/forge/docs/', locales root(ko)+en, mermaid 플러그인 (사이드바에 config-modes 추가)
-│   ├── index.md · skills.md · state-contract.md · forge-vs-loop-engineering.md · git-workflow.md · team-workflow.md · agenda.md · codex.md · config-modes.md   # ko(root locale) — 9개
-│   ├── en/                      # 위 9개의 영문 짝 (같은 파일명, 절 구조 1:1) — config-modes.md 신규
-│   ├── public/icon.png          # 사이트 루트로 방출되는 자산
-│   └── examples/                # github-actions-forge-check.yml
-├── .github/workflows/
-│   ├── docs.yml                 # 랜딩 + VitePress 빌드를 한 Pages 아티팩트로 배포 (docs/**·package*.json에만 발동)
-│   └── release-check.yml        # 릴리스 게이트 (신규) — 매니페스트·core/·hosts/·hooks/·docs/codex.md 경로에 발동, bash→node→parity 3스텝, npm ci 없음
-├── package.json · package-lock.json  # "forge-docs" — 문서 사이트 도구 + 유일한 wire된 forge 스크립트 `release:check`("type" 필드 금지)
-├── .forge/                      # 상태 + 영속 문서 (아래 절)
-├── .claude/agents/              # 도메인 에이전트 카드 3장 (skill-author, script-twin-engineer, manifest-doc-syncer)
-├── DESIGN.md                    # Claude 제품 디자인 시스템 토큰(색·타입·컴포넌트, 589줄) — fg-showme 화면 리테마의 참조원, 플러그인 계약 아님
-├── AGENTS.md                    # 5줄 포인터 — `CLAUDE.md`를 권위 있는 지시서로 읽으라 지시하고 충돌 시 `CLAUDE.md` 우선. 내용 복제 0
-├── CLAUDE.md · README.md · README.ko.md · CHANGELOG.md
-└── .gitignore                   # .forge/* 제외 + 영속 문서 화이트리스트 + node_modules/·docs/.vitepress/{dist,cache}/ + graphify-out/·.planning/·.omx
+```text
+forge/
+├── .claude-plugin/       Claude Code 플러그인·마켓플레이스 매니페스트
+├── .codex-plugin/        Codex 플러그인 매니페스트
+├── .claude/              프로젝트 에이전트 카드와 로컬 Claude 설정
+├── .forge/               forge 상태, 결정 기록, 회고, 코드베이스 지도
+├── .github/workflows/    문서 배포 및 릴리스 검사 CI
+├── core/                 호스트 중립 계약
+├── hosts/                호스트별 interaction/execution/capability 어댑터
+├── skills/               공유 fg-* 스킬 트리
+├── scripts/              결정론 Bash/Node 구현과 테스트
+├── hooks/                플러그인 훅 선언 및 런타임 디스패처
+├── docs/                 랜딩 페이지와 VitePress 문서 사이트
+├── AGENTS.md              CLAUDE.md를 저장소 지침으로 지정
+├── CLAUDE.md              저장소 개발·검증·릴리스 지침
+├── DESIGN.md              설계 설명
+├── README.md              영어 프로젝트 안내
+├── README.ko.md           한국어 프로젝트 안내
+├── CHANGELOG.md           릴리스 변경 기록
+├── package.json           문서 사이트와 릴리스 검사 명령
+└── package-lock.json      문서 도구 의존성 잠금
 ```
 
-## `.forge/` 내부 (해석된 forge 루트 기준 — `skills/fg-run/FORGE-ROOT.md`)
+## 플러그인 메타데이터
 
-**git 추적(영속, 화이트리스트)**: `CONTEXT.md`, `adr/`(활성 57건 + `retired/` — 현재 은퇴 1건: `0025-claude-code-only-defer-codex-port.md`, Codex 호스트 지원 ADR `260903-080713`이 supersede), `retro/`(80건), `codebase/`(fg-map 7문서 — 본 문서 포함), `config.json`(실물은 여전히 `{"eco": false}` — **인식되는 키는 여섯**이고 미기재는 기본값: `simple`·`eco`·`tdd`(boolean, 기본 `false`) · `driveCommit`(엄격 boolean, 기본 `false`) · `driveCommitMessage`(문자열, 선택 — 치환자는 `{title}`·`{slug}`·`{task}`뿐) · `defaultBranch`(문자열, 기본 `main`). 계약의 단일 정의는 `skills/fg-config/SKILL.md`의 키 표), `branch/`(비기본 브랜치 루트 통째).
+`.claude-plugin/`에는 두 JSON 파일이 있다.
 
-**gitignored(휘발)**: `backlog/`(fg-ask 산출 plan), `plan.md`/`run.md`/`STATUS.md`(활성 슬롯), `executed/`(실행-미회고 park), `done/`(봉인 아카이브 — 현재 151건), `quick/LOG.md`, `dropped/`, `agenda.md`, `loop.md`, `review.md`, `ask.md`, `drive.md`(무인 주행 마커 — Stop 훅이 읽고 주행이 지움), `showme/`(fg-showme 세션 — **최상위 전역 예외**이고 루트 `.gitignore`가 아니라 `start-server.sh`가 써 주는 자체-ignore `.forge/showme/.gitignore`(`*` 한 줄)로 제외되며, 마지막 세션 종료 시 디렉터리 자체가 사라진다). **`fg-debug`는 여기에 아무것도 추가하지 않는다** — 진단용 `.forge/debug/`를 만들지 않는 것이 그 스킬의 결정 3이고, 원시 캡처는 워킹 트리 밖 OS 임시 위치에서만 다룬다.
+- `.claude-plugin/plugin.json` — Claude Code 플러그인 이름, 버전, 설명, 저자, 저장소 정보
+- `.claude-plugin/marketplace.json` — 리포지터리 루트를 `source: "./"`로 등록하는 마켓플레이스 항목과 별도 metadata 버전
 
-## 명명 규칙
+`.codex-plugin/plugin.json`은 Codex용 이름·버전·설명과 `skills` 경로, 표시용 `interface` 정보를 포함한다. 릴리스 시 동기화되는 버전 위치는 이 파일 1곳, `.claude-plugin/plugin.json` 1곳, `.claude-plugin/marketplace.json` 2곳이다.
 
-- **스킬**: 디렉터리·frontmatter `name` 모두 `fg-<verb|noun>`. 식별자는 frontmatter `name`.
-- **vendored 자산**: 원형 유지가 원칙이되 **진입 파일만 개명**한다. 이제 사례가 **둘**이고 하나의 관례가 됐다 — `skills/fg-security/AUDIT.md`(cloudflare/security-audit-skill)와 `skills/fg-debug/DIAGNOSE.md`(mattpocock/skills `diagnosing-bugs`)가 업스트림에서 각각 `SKILL.md`였다. `skills/*/SKILL.md` 자동 탐색이 vendored 본문을 중첩 스킬로 잡는 것을 막기 위한 것이고, forge 자신의 glue만 그 디렉터리의 `SKILL.md`를 차지한다. 나머지 파일(`LICENSE`·플레이북·`scripts/`)은 diff를 싸게 유지하려 손대지 않는다 — 두 스킬 본문이 명시적으로 편집을 금지한다. vendored `scripts/`는 자동 탐색 대상이 아니므로 확장자가 자유롭다(`fg-showme/scripts/`는 `.cjs`/`.js`, `fg-debug/scripts/hitl-loop.template.sh`는 bash 템플릿).
-- **스크립트**: `forge-<기능>.sh` + `.js` 트윈, 테스트는 `<이름>.test.sh`·패리티는 `<이름>.parity.test.sh`. shebang `#!/usr/bin/env bash`, `bash script.sh`로 호출, `.gitattributes`가 `*.sh` LF 강제.
-- **ADR ID**: 시간기반 `YYMMDD-HHMMSS`(같은-초 충돌 시 소문자 글자 접미). 구식 `NNNN`(0001–0032)·`YYMMDD-HH글자`(예: `260716-13a`)는 grandfather 공존 — `.forge/adr/` 실물 확인됨. 은퇴는 `adr/retired/`로 이동(번호 불변).
-- **회고**: `.forge/retro/YYMMDD-HHMMSS-slug.md`(신식) — 구식 `YYYY-MM-DD-slug.md` 공존.
-- **봉인 폴더**: `.forge/done/<날짜-slug>/`(신식 `260810-084200-slug`, 구식 `2026-06-04-slug` 공존), 각각 `STATUS.md` + plan/run 동반.
-- **plan slug**: plan 첫 줄 `<!-- forge-slug: ... -->` 주석이 회고·봉인 짝 맞춤 키. 분할 작업은 `-1of3` 접미(ADR-0004).
-- **언어**: SKILL.md·`*-FORMAT.md`·공유 규율 문서는 영문, 화면 출력·산출 문서는 사용자 언어. 스킬 문서 내 흐름도는 Mermaid 금지·텍스트 흐름도(영문).
-- **버전 동기 4곳**(3곳에서 늘었다): `.claude-plugin/plugin.json` `version` + `.claude-plugin/marketplace.json` `metadata.version`·`plugins[0].version` + **`.codex-plugin/plugin.json` `version`**. 현재 전부 `0.8.6`. 기계 검증은 `scripts/release-check.{sh,js}`(`npm run release:check` + `release-check.yml` CI)와 `forge-doctor` B8.
-- **호스트 capability 키**: `hosts/<host>/capabilities.json`은 `core/HOST.md` 표의 **8개 키만** 사용(`structured_choice`·`spawn_parallel`·`spawn_role`·`plugin_root`·`session_start`·`prevent_stop`·`project_agents`·`status_display`). 파일 형태는 **boolean 값만 갖는 flat object**로 고정(중첩·문자열 금지 — `release-check`가 정규식으로 이 형태를 검사한다). 값은 관측 기반이며 미검증은 `false`. 어댑터 파일명은 소문자 고정(`interaction.md`·`execution.md`·`capabilities.json`) — `release-check`가 6파일 존재 + 키 집합 일치(missing/unknown) + `docs/{en/,}codex.md`가 8개 키를 이름으로 언급하는지를 검사한다. **키 목록은 어디에도 하드코딩되지 않고 `core/HOST.md` 표에서 도출**된다.
-- **플러그인 루트 참조 — 두 형태가 일부러 다르다**: **스킬 본문**은 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}`(61곳, 텍스트 치환 메커니즘), **`hooks/hooks.json`**은 `${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}`(2곳, 셸 env 확장 메커니즘), **셸 스크립트**는 `core/HOST.md`가 지시하는 `FORGE_PLUGIN_ROOT="${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT:-}}"`. 어느 쪽도 bare `${CLAUDE_PLUGIN_ROOT}`로 남기지 않으며, **한쪽을 다른 쪽에 맞춰 "고치지" 말 것**(`core/HOST.md`의 "두 메커니즘" 문단이 근거이고 `hooks/run-hook.test.sh`의 decoy 테스트가 역전을 잡는다). 스킬 간 참조는 가능하면 디렉터리 상대경로(`../fg-run/FORGE-ROOT.md`), `core/`·`hosts/` 참조는 `../../core/HOST.md` 상대 링크.
-- **호출 접두**: Claude Code `/forge:fg-*` / Codex `$fg-*` — 사용자 안내 문구에는 둘 다 적는다.
-- **이중언어 쌍(3계열)**: `README.md`↔`README.ko.md` / `docs/<name>.md`↔`docs/en/<name>.md`(**9쌍** — `config-modes.md` 추가, 파일명 동일·절 구조 1:1 유지가 규약) / `docs/index.html` 안의 `data-l="ko"`↔`data-l="en"` span — 어느 쪽이든 한쪽 수정 시 반드시 짝 갱신. 쌍 누락 확인은 `for f in docs/*.md; do [ -f "docs/en/$(basename "$f")" ] || echo missing; done`(현재 출력 없음 = 정상). 사이드바 등록도 두 locale 모두에 넣어야 한다(`docs/.vitepress/config.mts`의 ko 가이드 절 ~33행, en ~61행).
-- **개수를 말하는 문장은 기계가 지킨다**: `HANDOFF.md`의 `**Applies (N)**`/`**Does NOT apply (N)**` 선언과 `.forge/CONTEXT.md` 글로서리의 「적용 지점 N곳」은 `forge-doctor` **B18**이 백틱 열거 개수와 대조한다(현재 15/7). 개수를 바꿀 땐 세 곳을 함께 고칠 것.
+## 공유 계약과 호스트 어댑터
 
-## 핵심 위치 빠른 찾기
+`core/`는 세 파일만 둔다.
 
-| 찾는 것 | 위치 |
-| --- | --- |
-| 루프 정의·상태 계약 원문 | `CLAUDE.md`, `docs/state-contract.md` |
-| 호스트 어댑터 선택·capability 어휘 | `core/HOST.md` (위임 계약 `core/EXECUTION.md` · 질문 계약 `core/INTERACTION.md`) |
-| 특정 호스트가 무엇을 지원하나 | `hosts/claude/capabilities.json` · `hosts/codex/capabilities.json` (사람용 표는 `docs/codex.md`·`docs/en/codex.md`) |
-| Codex 매니페스트·표현 계층 | `.codex-plugin/plugin.json` (`skills: "./skills/"` + `interface` 블록) |
-| 릴리스 게이트(버전 4곳·어댑터 완전성·capability 어휘) | `scripts/release-check.{sh,js}` · `npm run release:check` · `.github/workflows/release-check.yml` |
-| forge 루트 해석 규칙 | `skills/fg-run/FORGE-ROOT.md` |
-| 핸드오프 표 형태·적용 명단(15/7) | `skills/fg-next/HANDOFF.md` (명단은 `## Where it applies`) |
-| 무인 주행 규율 | `skills/fg-next/DRIVE.md` |
-| plan/회고/CONTEXT/ADR 형식 | `skills/fg-run/PLAN-FORMAT.md` · `skills/fg-learn/RETRO-FORMAT.md` · `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md` |
-| fix-forward eval 규칙(영속 회귀 체크) | `skills/fg-run/PLAN-FORMAT.md` `## Fix-forward eval rule` (소비자: fg-adversarial-review·fg-security·fg-debug·fg-loop 생성 plan) |
-| 설정 키 여섯의 계약 | `skills/fg-config/SKILL.md` (`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`) |
-| 자동 봉인(`simple`) 동작 지점 | `skills/fg-run/SKILL.md:166` |
-| 버그 진단 절차 원문 | `skills/fg-debug/DIAGNOSE.md` (vendored, 편집 금지) — forge glue는 `skills/fg-debug/SKILL.md` |
-| 산문 계약 정합 검사 | `scripts/forge-doctor.sh:256–309` (B18 — HANDOFF/CONTEXT 개수 + fg-debug 계약 4신호) |
-| 봉인 기계 | `scripts/forge-done.sh`/`.js` |
-| 스크립트 규약 근거 | `.forge/adr/0022-...` · `0031-...` |
-| fg-loop waiting/벽 정의 | `skills/fg-loop/SKILL.md` (`evidence: external` 선언 46행, 원장 `waiting ×N` 66행, `wall:` 값 목록 41행) |
-| 문서 사이트 새 페이지(설정 모드) | `docs/config-modes.md` · `docs/en/config-modes.md` (사이드바는 `docs/.vitepress/config.mts` 두 locale) |
-| 세션 시작 훅 | `hooks/hooks.json` → `hooks/run-hook.cmd` → `scripts/forge-hook-session-start.{sh,js}` |
-| 무인 주행 Stop 훅 | `hooks/hooks.json` → `hooks/run-hook.cmd` → `scripts/forge-hook-stop.{sh,js}` (마커 `<forge-root>/drive.md`, exit 2 = 정지 차단) |
-| 토큰 지출 판정 | `scripts/forge-loop-spend.{sh,js}` (exit 3 초과 / 4 사전예측 / 5 측정불가) |
-| 항상-on 설명 규율 원본 | `scripts/explaining-forge.rule.txt` (사본 검사는 `forge-doctor` B17) |
-| 보안 감사 절차 원문 | `skills/fg-security/AUDIT.md` (vendored, 편집 금지) — forge glue는 `skills/fg-security/SKILL.md` |
-| 문서 사이트 빌드·배포 | `docs/.vitepress/config.mts` · `package.json`(`npm run docs:build`) · `.github/workflows/docs.yml` |
-| 배포 절차 | `CLAUDE.md` "배포 규칙" (CHANGELOG→README/docs→버전 4곳→JSON 검증·`npm run release:check`→commit/push) |
+- `core/HOST.md` — 호스트 선택, 플러그인 경로, 9개 capability 키
+- `core/EXECUTION.md` — 슬라이스 의존성과 위임 책임 경계
+- `core/INTERACTION.md` — 한 번에 한 질문과 선택 UI 폴백
+
+`hosts/`의 각 호스트 디렉터리는 같은 세 파일 형태를 사용한다.
+
+```text
+hosts/
+├── claude/
+│   ├── capabilities.json
+│   ├── execution.md
+│   └── interaction.md
+├── codex/
+│   ├── capabilities.json
+│   ├── execution.md
+│   └── interaction.md
+└── opencode/
+    ├── capabilities.json
+    ├── execution.md
+    └── interaction.md
+```
+
+`capabilities.json`은 `core/HOST.md`가 선언한 동일한 9개 키만 사용한다. `execution.md`는 호스트 도구로 실행을 시작·수집·취소하는 방법을, `interaction.md`는 선택 질문을 표시하는 방법을 담는다.
+
+## 스킬 트리
+
+직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 22개다.
+
+```text
+skills/
+├── fg-ask/                 계획 질의; ADR/CONTEXT 형식 포함
+├── fg-run/                 실행; 계획 형식·루트·복구·배치 계약 포함
+├── fg-learn/               회고; 회고 형식 포함
+├── fg-done/                완료 봉인
+├── fg-next/                다음 단계 실행; 핸드오프·자동 주행 계약 포함
+├── fg-loop/                목표 주행; 신규 질의와 재개 시나리오 fixture 포함
+├── fg-map/                 `.forge/codebase/` 지도 생성
+├── fg-status/              현재 상태 보고
+├── fg-doctor/              상태·문서 무결성 검사
+├── fg-config/              전역 설정; eco 규율 포함
+├── fg-quick/               경량 작업 경로
+├── fg-merge/               브랜치 상태 통합
+├── fg-cleanup/             ADR 은퇴
+├── fg-drop/                미완료 상태 제거·보관
+├── fg-agenda/              의사결정 대기 파일 관리
+├── fg-agents/              프로젝트 에이전트 카드 생성
+├── fg-statusline/          상태 표시 설치
+├── fg-adversarial-review/  실행 결과 다각도 검토
+├── fg-debug/               진단 절차와 vendored 자료
+├── fg-security/            보안 감사 절차와 스키마
+├── fg-showme/              로컬 시각 동반 서버
+└── fg-help/                스킬 사용법 보고
+```
+
+보조 파일은 소비 스킬과 같은 디렉터리에 둔다. 주요 예는 다음과 같다.
+
+- `skills/fg-ask/ADR-FORMAT.md`, `skills/fg-ask/CONTEXT-FORMAT.md`
+- `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-run/RECOVERY.md`, `skills/fg-run/RUN-ALL.md`
+- `skills/fg-next/HANDOFF.md`, `skills/fg-next/DRIVE.md`, `skills/fg-next/ALL-MODE.md`
+- `skills/fg-loop/INQUIRY.md`(신규 목표 계약 확정 전용 — `loop.md`가 없을 때만 읽음), `skills/fg-loop/tests/resume-scenarios.md`
+- `skills/fg-learn/RETRO-FORMAT.md`
+- `skills/fg-config/ECO.md`
+- `skills/fg-debug/DIAGNOSE.md`, `skills/fg-debug/scripts/hitl-loop.template.sh`
+- `skills/fg-security/AUDIT.md`, `skills/fg-security/ATTACK-CLASSES.md`, `skills/fg-security/report-schema.json`, `skills/fg-security/validate-findings.cjs`
+- `skills/fg-showme/VISUAL.md`, `skills/fg-showme/scripts/`
+
+스킬 디렉터리는 kebab-case `fg-<name>`을 사용한다. 실행 식별자는 각 `SKILL.md` 첫 YAML 블록의 `name` 값이다.
+
+## 결정론 스크립트와 테스트
+
+`scripts/`의 기능 구현은 대체로 다음 네 파일 집합을 사용한다.
+
+```text
+forge-<feature>.sh
+forge-<feature>.js
+forge-<feature>.test.sh
+forge-<feature>.parity.test.sh
+```
+
+Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
+
+- `scripts/forge-doctor.*`
+- `scripts/forge-done.*`
+- `scripts/forge-hook-session-start.*`
+- `scripts/forge-hook-stop.*`
+- `scripts/forge-loop-spend.*`
+- `scripts/forge-merge.*`
+- `scripts/forge-status.*`
+- `scripts/forge-statusline.*`
+- `scripts/forge-statusline-full.*`
+- `scripts/release-check.*`
+- `scripts/resolve-forge-root.*`
+
+추가 Bash 보조는 `scripts/forge-statusline-wrapper.sh`이며 자체 검사 `scripts/forge-statusline-wrapper.test.sh`가 있다. 모든 스킬의 설명 규칙을 검사하는 기준 텍스트는 `scripts/explaining-forge.rule.txt`다.
+
+파일명 접미사는 역할을 구분한다.
+
+- `.sh` — Bash 기본 구현
+- `.js` — Node 대체 구현; CommonJS 사용
+- `.test.sh` — fixture 기반 동작 검사
+- `.parity.test.sh` — Bash와 Node 결과 비교
+
+## 훅
+
+`hooks/hooks.json`은 `SessionStart`와 `Stop`을 선언하고 둘 다 `hooks/run-hook.cmd`를 호출한다. `hooks/run-hook.cmd`는 이벤트 이름에 따라 `scripts/forge-hook-<event>.sh` 또는 `.js`를 실행한다.
+
+훅 전용 검사는 다음 위치에 있다.
+
+- `hooks/run-hook.test.sh`
+- `hooks/run-hook.windows.test.js`
+- `scripts/forge-hook-session-start.test.sh`
+- `scripts/forge-hook-session-start.parity.test.sh`
+- `scripts/forge-hook-stop.test.sh`
+- `scripts/forge-hook-stop.parity.test.sh`
+
+## `.forge/` 상태 배치
+
+기본 브랜치의 최상위 `.forge/`는 다음 경로를 사용한다.
+
+```text
+.forge/
+├── config.json             전역 설정
+├── codebase/               7개 구현 지도 문서
+├── CONTEXT.md              영속 문서
+├── adr/                    활성 결정 기록
+│   └── retired/            은퇴한 결정 기록
+├── retro/                  회고 기록
+├── backlog/                실행 전 계획
+├── plan.md                 활성 계획
+├── running.md              위임 시작 후 결과 수집 전 표식
+├── run.md                  실행 결과
+├── STATUS.md               활성 작업 상태
+├── executed/<slug>/        실행 후 회고 대기 작업
+├── done/<timestamp-slug>/  완료된 plan/run/STATUS 묶음
+├── dropped/                보관 방식으로 버린 상태
+├── quick/LOG.md            경량 작업 기록
+├── agenda.md               열린 의사결정 작업 파일
+├── ask.md                  중단된 질의 초안
+├── loop.md                 목표 주행 계약
+├── drive.md                Stop 훅용 일시 표식
+├── review.md               선택적 적대 검토 결과
+├── branch/<branch>/        비기본 브랜치의 forge 루트
+└── showme/<session>/       시각 동반 세션 파일
+```
+
+이 중 `.forge/config.json`과 `.forge/codebase/`는 모든 브랜치가 공유한다. `.forge/showme/`는 시각 기능의 전역 휘발 저장소다. 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
+
+계획 파일은 첫 줄에 `<!-- forge-slug: <slug> -->` 표식을 사용하고 `<!-- task: N -->`, `<!-- priority: high|medium|low -->`, 필요 시 `<!-- part: N/M -->` 같은 HTML 주석 메타데이터를 둔다. 완료 디렉터리는 `YYMMDD-HHMMSS-<slug>` 형태이며 같은 초·slug 충돌 때 문자 접미사가 붙는다. 신규 ADR은 `YYMMDD-HHMMSS` 기반 ID를 사용하고 같은 초 충돌 때 문자 접미사를 붙는다. 기존의 4자리 ADR 파일도 `.forge/adr/`에 함께 남아 있다.
+
+## 프로젝트 에이전트 카드
+
+`.claude/agents/`에는 저장소 작업을 위한 카드가 있다.
+
+- `.claude/agents/manifest-doc-syncer.md`
+- `.claude/agents/script-twin-engineer.md`
+- `.claude/agents/skill-author.md`
+
+`.claude/skills/issue-triage/SKILL.md`는 저장소 로컬 스킬이다. `.claude/settings.local.json`은 로컬 Claude 설정이며 플러그인 배포 매니페스트와 분리된다.
+
+## 문서 사이트
+
+문서 소스는 `docs/`에 있다.
+
+- `docs/index.html` — 수기 작성 이중언어 랜딩 페이지
+- `docs/*.md` — 한국어 VitePress 페이지
+- `docs/en/*.md` — 영어 VitePress 페이지
+- `docs/.vitepress/config.mts` — 사이트 base, locale, nav, sidebar, Mermaid 설정과 sitemap·소셜 메타(`transformHead`) 구성
+- `docs/public/icon.png`, `docs/public/og-image.png` — VitePress public 자산(사이트 루트로 방출)
+- `docs/examples/github-actions-forge-check.yml` — 복사 가능한 CI 예시
+- `docs/icon.png`, `docs/icon-sm.png`, `docs/footer-forge-bg.png`, `docs/workflow.png` — 랜딩·문서 이미지
+
+`docs/.vitepress/dist/`와 `docs/.vitepress/cache/`는 빌드 산출물이며 `.gitignore`가 제외한다. 루트 `node_modules/`도 추적하지 않는다.
+
+## 자동화와 검증 진입점
+
+- `.github/workflows/docs.yml` — `docs/**`, `package.json`, `package-lock.json` 변경 시 VitePress를 빌드하고 Pages artifact를 조립
+- `.github/workflows/release-check.yml` — 매니페스트, `core/`, `hosts/`, `hooks/`, 릴리스 검사 파일, 호스트 문서 변경 시 릴리스 계약 검사
+- `package.json`의 `docs:dev`, `docs:build`, `docs:preview` — 문서 사이트 로컬 명령
+- `package.json`의 `release:check` — `node scripts/release-check.js` 실행
+
+저장소 루트에는 플러그인 Markdown/JSON을 변환하는 빌드 디렉터리나 애플리케이션 소스 디렉터리가 없다. `package.json`은 `docs/` 사이트 도구만 관리한다.
+
+## 추적 제외 디렉터리
+
+`.gitignore`는 다음 로컬 산출물을 제외한다.
+
+- `node_modules/`
+- `docs/.vitepress/dist/`
+- `docs/.vitepress/cache/`
+- `graphify-out/`
+- `.claude/worktrees/`
+- `.planning/` 중 `.planning/codebase/`를 제외한 경로
+- `.omx`
+- `.DS_Store`
+
+기본 브랜치 `.forge/`의 휘발 상태도 기본적으로 제외하며, 영속 경로만 whitelist로 다시 추적한다. `.forge/branch/`는 전체가 추적 대상이다.

@@ -1,232 +1,95 @@
 ---
-last_mapped_commit: b7c1a15fcad1b38674f455ddd34540a523efb704
-mapped: 2026-09-08
+last_mapped_commit: 6146cae539151b65850e1e2609bdf8f7e78a1e47
+mapped: 2026-09-11
 ---
 
-# CONCERNS — 기술 부담·결함·취약 지점
+# CONCERNS — 기술부채·취약 영역
 
-이 문서는 **구현 사실**만 담는다. 용어 정의는 `.forge/CONTEXT.md` 소관이다.
+## 높은 변경 위험 영역
 
-**읽는 법**
-- `[확정]` — 이 매핑 세션에서 실제로 재현·실측·grep으로 확인한 것.
-- `[확정/이월]` — 과거 매핑이 재현·실측으로 확정했고, 이번 세션에 해당 파일이 **한 줄도 변하지 않았음을 확인**해 근거가 그대로 유효한 것.
-- `[의심]` — 코드를 읽어 추론했으나 재현하지 않은 것.
-- severity: **critical**(사용자 머신에 실제 피해 가능) / **major**(상태 손상·조용한 실패·체감 성능) / **minor**(정합·유지보수).
-- **번호 공간이 둘이다(혼동 주의).** 이 문서의 `B1`~`B17`은 *결함 항목* 번호이고, 본문에 인용되는 `A1`·`A5`·`A8`·`A9`·`B8`·`B9`·`B13`·`B15`·`B16`·`B17`·`B18`은 `scripts/forge-doctor.{sh,js}`의 *검사 이름*이다. 두 공간이 이미 여러 지점에서 겹치므로(이 문서의 B13/B16/B17과 doctor의 동명 검사는 전부 무관) doctor 검사를 가리킬 때는 항상 "fg-doctor의 B17"처럼 적는다. 이번 구간에 doctor 쪽에 `A1 active-slot incomplete`(A1의 거울 분기)와 `B18`(fg-debug 계약 정합, 하위 검사 7개)이 신설되어 겹침이 더 늘었다.
+### Markdown이 실행 계약이다
 
-forge는 공개 배포되어 남의 머신에 설치되고, **세션 시작마다 실행되는 셸/노드 코드**를 배포한다. 그래서 훅·스크립트 경로의 결함은 문서 결함과 급이 다르다. 반대로 이 리포에서 "코드"의 절반은 산문이므로, **문서 드리프트가 곧 동작 드리프트**인 경로가 따로 존재한다. 지난 구간에 위험 표면이 한 등급 올라갔고(`Stop` 훅 = **턴 종료를 거부하는 코드** — B11), 그 다음 구간에 호스트 축이 늘었다(B14).
+- 제품 동작의 대부분이 코드가 아니라 `skills/*/SKILL.md`의 자연어 지시로 구현된다. 문법 오류 없이도 상충·누락·도달 불가능한 절이 생길 수 있으며, 일반 컴파일러나 타입 검사기가 이를 검출하지 않는다.
+- `skills/fg-loop/SKILL.md`(54 KB)와 `skills/fg-loop/INQUIRY.md`(11 KB)는 신규 실행과 재개 실행의 조건부 규칙을 나눠 가진다. 조건부 분할로 내용이나 포인터가 필요한 경로에서 읽히지 않는 결함이 이 디렉터리에서 2026-09-11까지 네 사이클 연속 발생했고, 근거는 `.forge/retro/260911-105936-restore-fg-loop-resume-preflight.md`, `.forge/retro/260911-144856-recut-fg-loop-split-boundary.md`, `.forge/retro/260911-160340-fix-fg-loop-reference-integrity.md`에 있다. 이 결함은 절·파일·링크가 여전히 존재하므로 크기·총량·링크·frontmatter 검사를 모두 통과한다.
+- 위 결함의 절반은 기계화됐다. `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`의 신규 검사 **B21**이 `## N.` 절 안에 있는 `§N` 자기참조를 warning으로 보고하고, `scripts/forge-doctor.test.sh`에 정상·자기참조·`§NN` 접두 3개 케이스가 있다. 두 구현의 주석은 이것이 **설계상 부분 가드**라고 명시한다 — 대상 절이 더는 그 규칙을 담고 있지 않은 교차 절 참조는 의미 판정이라 검출되지 않으며, 그 절반은 `CLAUDE.md`의 두 단계 체크리스트(양방향 상호참조 열거 + 내용 실재 확인)가 담당한다.
+- B21의 적용 범위는 `skills/*/SKILL.md`이고 절 인식은 `^## N.` 형식에 의존한다. `INQUIRY.md`·`ALL-MODE.md`·`RECOVERY.md` 같은 동반 파일과 번호 없는 헤딩 구조의 문서는 대상이 아니다. 현재 저장소에서 `scripts/forge-doctor.sh`는 0 errors / 0 warnings로 종료한다.
+- `skills/fg-ask/SKILL.md`는 upstream 원문과 파일 하단의 Forge integration 절이 별도로 움직인다. 형식 계약도 `skills/fg-ask/CONTEXT-FORMAT.md`와 `skills/fg-ask/ADR-FORMAT.md`로 분리돼 있어 동시 검토가 필요하다.
+- 공통 핸드오프 형식은 `skills/fg-next/HANDOFF.md`에 있지만 이를 참조하는 스킬이 다수다. 공통 설명 규칙은 `scripts/explaining-forge.rule.txt`와 22개 `skills/*/SKILL.md`에 함께 존재한다.
+- `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`가 일부 산문 정합을 검사하지만 키워드·절 경계·개수 기반 검사다(B17 canonical 문단 포함, B20 capability 키 언급, B21 자기참조 포인터). 자연어 규칙 전체의 의미적 동등성은 검사하지 않는다.
+- B21의 Bash 구현은 `grep`과 셸 산술로 작성돼 있다. 주석에 기록된 이유는 macOS 기본 `awk`에 3인자 `match()`가 없어 awk 판이 결함이 있는 저장소에서도 0건을 보고했다는 것이다. 같은 종류의 플랫폼 차이는 다른 Bash 검사에도 잠재한다.
 
-**이번 구간은 이 문서 이력상 처음으로 게이트가 실제로 늘어난 구간이다** — 신설된 릴리스 게이트 CI(`.github/workflows/release-check.yml`)와 doctor 검사 2종(`A1 active-slot incomplete`·`B18`)이 여기 major로 적어 둔 것 중 **B13 전체 · B7의 두 축 · B14 ①을 닫았고**, 이어 A9의 Node 트윈과 양쪽 픽스처가 추가돼 **B10도 닫혔다**. 훅의 `PLUGIN_ROOT` hijack은 *실행되는* 회귀 테스트까지 붙어 막혔다. doctor는 `0 errors / 0 warnings / exit 0`이다.
+### 상태가 파일 묶음으로 분산된다
 
-**그러나 총량이 줄지는 않았다 — 위험의 *성격*이 옮겨갔다.** 신설 3건(B15·B16·B17) 중 둘은 **이번 구간의 수정 자신이 만든 표면**이다: ① 훅에서 막은 공격이 스킬 본문 17곳(파괴적 `forge-done.sh`·`forge-merge.sh` 포함)에 그대로 살아 있고 이번 세션에 실증됐다(B15) ② 새 doctor 검사 B18의 절반이 **계약이 지켜지는지가 아니라 계약을 서술하는 낱말이 있는지**를 재는 정규식이라, "게이트가 있다"는 인상과 실제 보증 사이에 새 틈이 생겼다(B16). 셋째는 eval 승급이 규칙을 만들면서 문서가 스스로 인정한 집행 공백이다(B17). 요약하면 **이 리포의 지배적 실패 모드가 "검사가 없다"에서 "검사가 대리 지표를 잰다"로 이동했고**, 그 이동은 PLAN-FORMAT 규칙 (e)·회고 세 건이 독립적으로 같은 결론에 도달한 것과 일치한다.
+- 작업 상태는 단일 데이터베이스나 트랜잭션 로그가 아니라 `.forge/plan.md`, `.forge/run.md`, `.forge/STATUS.md`, `.forge/running.md`, `.forge/loop.md`, `.forge/executed/`, `.forge/done/`에 분산된다.
+- 기계적 변경 중 위험도가 높은 봉인과 병합은 `scripts/forge-done.*`, `scripts/forge-merge.*`가 임시 디렉터리·롤백 경로를 사용한다. 반면 스킬이 직접 작성하는 plan, run, retro, ADR에는 저장소 전체를 감싸는 공통 트랜잭션 계층이 없다.
+- 실행 중복 방지는 활성 작업의 `.forge/running.md`, 무인 drive 연속성은 `.forge/drive.md`에 의존한다. 오래되거나 파싱할 수 없는 marker는 `scripts/forge-doctor.*`와 훅이 별도 규칙으로 판정한다.
+- `scripts/`, `hooks/`, `skills/fg-showme/scripts/`의 실행 코드에는 범용 `flock` 또는 lockfile 구현이 없다. 여러 세션이 같은 브랜치의 Forge 상태를 동시에 편집하면 파일 단위 marker가 다루지 않는 쓰기 경합은 직렬화되지 않는다.
+- 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 저장되지만 `.forge/config.json`과 `.forge/codebase/`는 모든 브랜치가 공유한다. 병렬 브랜치에서 설정이나 지도를 갱신하면 동일 파일을 수정한다.
 
-**이 세션의 기준선**(`b7c1a15`, v0.8.6): `bash scripts/forge-doctor.sh`·`node scripts/forge-doctor.js` 둘 다 → **0 errors, 0 warnings, 0 info, exit 0**. 활성 슬롯·backlog·executed 전부 비어 있고 `loop.md` 없음, `.forge/branch/` 빈 디렉터리. 봉인 **151**건, 활성 ADR **57**건, `retired/` **1건**(C6), retro **80**건, 스킬 **22**개. 이번 증분에서 직접 재실행한 doctor behavior는 **84/84**, parity는 **25개 픽스처 전부 일치**했다. 직전 78단언에서 늘어난 6개는 A9의 낡음·미파싱·정상 세 분기를 shell/Node 양쪽에 고정한다.
+## 자동 검증의 공백
 
-`524c6a3..b7c1a15`에 들어온 것: **릴리스 게이트 CI**(`.github/workflows/release-check.yml`)·**capability 어휘 파싱**(`release-check.{sh,js}`가 `core/HOST.md` 표에서 8키를 도출)·**fg-config 통합**(`fg-eco`/`fg-tdd` → 여섯 키 단일 진입점 + 신설 `simple` 자동봉인, ADR `260905-212045`)·**eval 승급**(fg-learn 네 번째 목적지 + PLAN-FORMAT fix-forward eval 규칙, ADR `260906-171420`)·**fg-debug 벤더링**(mattpocock/skills `diagnosing-bugs` MIT — `DIAGNOSE.md`·`LICENSE`·`scripts/hitl-loop.template.sh`, ADR `260907-140655`)·**doctor 검사 2종 신설 + A9 트윈 복구**·**훅 경로 우선순위 역전 + 실행형 회귀 테스트**·docs 신규 쌍 1건(`config-modes`, 8쌍→9쌍)·`docs/index.html`의 22개 표기 복구·루트 `AGENTS.md` 포인터 추적이다. 마지막 릴리스 커밋 `b7c1a15`에서 매니페스트 네 버전 값이 `0.8.6`으로 동기됐다. `hooks/run-hook.cmd`·`scripts/forge-{merge,hook-stop,loop-spend}.*`·`resolve-forge-root.*`·`skills/fg-showme/`는 이번 구간 **무변경**.
+- 중앙 테스트 러너가 없다. 동작·패리티 검사는 `scripts/*.test.sh`, `hooks/run-hook.test.sh`, `hooks/run-hook.windows.test.js`를 개별 실행해야 한다.
+- 11개 Bash/Node 트윈 중 `scripts/forge-status.*`, `scripts/resolve-forge-root.*`, `scripts/release-check.*`는 전용 behavior 테스트가 없고 parity 테스트만 있다. parity는 두 구현이 같은 결과를 내는지는 보지만 둘이 같은 방식으로 틀린 경우를 독립적으로 배제하지 못한다.
+- `.github/workflows/release-check.yml`은 전체 스크립트 테스트를 실행하지 않는다. Bash·Node `release-check`와 `scripts/release-check.parity.test.sh`, Windows 훅 래퍼만 실행한다.
+- `.github/workflows/release-check.yml`의 path filter에는 일반 `skills/**`와 대부분의 `scripts/**`가 없다. 다수의 런타임 Markdown 또는 상태 스크립트 변경은 이 CI를 시작하지 않는다.
+- `.github/workflows/` 어디에도 `forge-doctor` 호출이 없다. B17·B20·B21 같은 산문 정합 검사는 사람이 수동 실행할 때만 동작하고, `skills/**` 편집은 `.github/workflows/release-check.yml`의 path filter에도 없어 CI가 아예 시작되지 않는다.
+- `.github/workflows/docs.yml`은 `main` push와 수동 실행만 선언하고 pull request 이벤트는 선언하지 않는다. 문서 빌드 오류는 PR 단계에서 자동으로 차단되지 않는다.
+- 플러그인 본체에는 빌드·패키징 검사가 없으며 설치 실측이 최종 확인 경로다. 이 제한은 `CLAUDE.md`에 명시돼 있다.
+- `skills/fg-map/SKILL.md`의 비밀 패턴 검사는 지도 작성 후 에이전트가 수동 실행하는 절차다. `.github/workflows/`에는 `.forge/codebase/*.md`를 대상으로 하는 자동 secret scan이 없다.
 
-**이번 구간에 해소된 주요 항목**(코드 항목은 격리 픽스처로 재현 확인):
+## Bash와 Node 트윈 유지보수
 
-- **B13 (반쯤 실행된 활성 슬롯을 doctor가 못 봄) → 닫혔다.** `scripts/forge-doctor.sh:43-48`(`.js` 동형)에 A1의 거울 분기 `A1 active-slot incomplete`가 추가됐다 — `plan.md` && `run.md` && `!STATUS.md`면 warning. 재현(`/tmp`에 plan+run만): **두 트윈 모두 `0 errors, 1 warnings`**로 일치하고, `forge-doctor.test.sh`(+20줄)·`parity.test.sh`(+4줄)에 픽스처가 함께 들어갔다 — B13이 처방으로 요구한 "두 트윈 + parity 픽스처를 함께"를 정확히 지켰다.
-- **B10 (A9이 bash에만 있어 doctor exit가 갈림) → 닫혔다.** `scripts/forge-doctor.js:101-116`에 shell과 동형인 세 분기가 추가됐고, `scripts/forge-doctor.test.sh:44-52`와 `scripts/forge-doctor.parity.test.sh:47-49,90-92`가 낡음·미파싱·정상 `drive.md`를 각각 고정한다. behavior **84/84**, parity **25/25**로 재실행 확인했다.
-- **B7의 두 축(길이 위반 배포 + 블록 스칼라 fail-open) → 둘 다 닫혔다.** ① 전수 재측정에서 **22개 전부 `DESC_MAX=600` 이하**다(최대 `fg-doctor` 591=98% · `fg-showme` 589 · `fg-config` 576 · `fg-help` **555**(↓768, 128%→92%) · `fg-security` 551 · 신규 `fg-debug` 510). 두 릴리스 연속 배포됐던 위반이 사라졌고 그래서 doctor가 처음으로 exit 0이다. ② 리더가 줄 단위 `sed`에서 awk 기반 `descof()`로 교체돼(`forge-doctor.sh:203-220`) `>`/`|`/`>-`/`|2-` 블록 스칼라를 접어 세고 CR을 벗긴다. 재현(`description: >-` + 700자): **두 트윈 모두 `700 chars > 600`을 잡는다** — 종전에는 `>-` 두 글자로 읽혀 조용히 통과했다.
-- **B14 ① (`capabilities.json`을 아무도 파싱하지 않음) → 닫혔고, 방식이 특히 좋다.** `release-check.sh:33-82`(`.js` 동형)이 canonical 8키를 **`core/HOST.md`의 표에서 grep으로 도출**한다(스크립트에 키를 하드코딩하면 그 자체가 막으려던 드리프트가 되므로). 호스트별로 ⓐ flat boolean 객체 형태 ⓑ missing 키 ⓒ unknown 키를 판정하고, 덧붙여 **`docs/codex.md`·`docs/en/codex.md`가 8키 전부를 이름으로 담고 있는지**까지 본다(C29가 지적한 "한 주장이 세 곳" 중 *이름* 축을 기계화 — 상태 문구는 여전히 사람 몫이고 스크립트 주석이 그 사정거리를 스스로 밝힌다). 재현: `hosts/codex/capabilities.json`을 `{"spawn_parallel": true}`로 줄이면 **두 트윈 모두 exit 1 + 누락 7키 열거**, `not json`이면 **`must be a flat object of boolean values`** — 종전에는 둘 다 `ok` exit 0이었다.
-- **C3의 절반(자동화 0건) → 릴리스 표면에 한해 닫혔다.** 상세는 C3 항목 참조(사정거리가 좁아 항목 자체는 살아 있다).
-- **훅의 `PLUGIN_ROOT` hijack → 막혔고, *실행되는* 테스트가 지킨다.** `hooks/hooks.json` 두 항목의 `command`가 `"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}"`로 **역전**됐고(호스트 자기 변수 우선), `hooks/run-hook.test.sh`가 그 문자열을 **JSON에서 뽑아 `/bin/sh -c`로 실제 실행**해 ⓐ 래퍼로 해석되는지 ⓑ 적대적 `PLUGIN_ROOT=decoy`가 있어도 여전히 진짜 래퍼가 도는지를 단언한다(4단언). 종전 단언은 "그 리터럴이 파일에 있는가"뿐이었고 스스로 *"can fail when someone edits it, never when it is wrong"*이라 적혀 있다. **단 이 수정은 훅 경로만이다 — 스킬 본문 17곳은 그대로이고 그쪽에서는 hijack이 실증된다(B15, 신설).**
-- **회고 없이 봉인되는 fail-open → 닫혔다.** `forge-done.sh:174-197`(`.js` 동형): 종전 `*-<slug>.md` 글롭이 *접미사만* 일치하는 남의 회고와 매칭돼 회고 없는 작업이 봉인될 수 있었다. 이제 접두 전체가 회고 타임스탬프(`YYMMDD-HHMMSS[a-z]` 또는 grandfather ID)임을 요구한다. **되돌리기 어려운 액션에 닿은 조용한 fail-open**이었고, 같은 리뷰가 낸 리포팅 표면 결함 6건과 함께 `forge-done.test.sh` 5건·`forge-status.parity.test.sh` 9건의 **eval**로 영속화됐다(fg-learn 네 번째 목적지의 첫 실사용 — 회고 `260906-211315`).
-- **봉인 스크립트가 STATUS에 절대 머신 경로를 적던 것 → 새 봉인부터 리포 상대경로다**(`forge-done.sh:86` `relpath()`, `:216`). 과거분 38건은 남아 있다(C31).
-- **`fg-help`의 Glob이 0개 매치였던 것 → 닫혔다.** `skills/fg-help/SKILL.md:22`가 이제 `**/SKILL.md` + `path`=자기 부모 디렉터리를 지시하고, **동작하지 않는 두 패턴(`${...}` 리터럴 · `../` 접두)을 왜 안 되는지와 함께 명시**한다. 이 결함은 "수정이 아무것도 고치지 못했는데 DoD가 전부 초록이었던" 사례이고, 그 교훈은 PLAN-FORMAT 규칙 **(e)**로 승급됐다(C28).
+- 상태 기계 11개가 Bash와 CommonJS 두 구현으로 유지된다. 목록은 `scripts/forge-*.sh`, `scripts/forge-*.js`, `scripts/resolve-forge-root.*`, `scripts/release-check.*`에 걸쳐 있다.
+- 출력, stderr 순서, 종료 코드, 파일 변이를 맞춰야 하므로 한쪽 수정은 대응 트윈과 `scripts/*.parity.test.sh`를 함께 변경해야 한다.
+- Bash 구현은 `awk`, `sed`, `grep`, `find`, coreutils와 macOS/Linux 간 차이를 직접 흡수한다. Node 구현은 같은 계약을 별도 파서와 파일 API로 재현한다.
+- 루트 `package.json`에 `type: "module"`을 추가하면 `scripts/*.js`의 `require` 기반 CommonJS 실행이 깨진다. VitePress 설정은 `docs/.vitepress/config.mts` 확장자로만 ESM 경계를 유지한다.
+- `hooks/run-hook.cmd`는 Windows batch와 Unix heredoc shell을 한 파일에 결합하고 Git Bash 우선·Node 폴백을 구현한다. quoting, 경로 공백, 종료 코드 전달이 한 파일의 두 파서에 동시에 유효해야 한다.
 
----
+## 훅과 세션 생명주기
 
-## A. 방어선이 생긴 항목 (재조사 불필요 — 단, 지우면 결함이 되돌아온다) `[확정/이월]`
+- `hooks/hooks.json`은 `SessionStart`와 `Stop`을 모두 `async: false`로 실행한다. 훅이 느리거나 멈추면 세션 시작 또는 턴 종료 경로가 함께 지연된다.
+- `hooks/run-hook.cmd`는 Bash가 있으면 Node보다 Bash를 우선한다. `scripts/forge-hook-session-start.sh`는 활성 상태와 `.forge/executed/` 항목을 순회하며 여러 외부 텍스트 유틸리티를 호출하므로 대기 작업 수에 따라 비용이 증가한다.
+- `scripts/forge-hook-stop.*`는 활성 무인 drive에서 종료 코드 2로 호스트의 정지를 거부한다. 30분과 50회 제한, session id 일치, 쓰기 성공 조건을 두며 파싱 실패나 I/O 실패에서는 정지를 허용한다.
+- stale `.forge/drive.md`와 `.forge/running.md`는 자동 삭제 대상이 아니라 진단·재진입 판단 대상인 경우가 있다. 사용자는 `scripts/forge-doctor.*` 또는 관련 스킬의 복구 분기를 거쳐야 한다.
+- 플러그인 훅과 `.claude/agents/*.md`는 세션 시작 시 로드된다. 설치·생성·수정 직후의 열린 세션에는 새 동작이 반영되지 않는다.
 
-훅 인젝션 계열 결함 6건은 `.forge/done/260730-234125-…-hook-hardening-fix/` → `.forge/done/260731-153236-hook-task-field-unbounded-fix/` 두 차례로 봉인됐고, 지난 매핑이 실제 공격 입력(닫는 태그 주입·100자리 task)으로 재확인했다. 이번 구간에 `scripts/forge-hook-session-start.*`는 **무변경**이고 상한 상수 2개를 코드로 재확인했다(`SAN_MAX=200` `.sh:48` · `TASK_DIGITS_MAX=9`). **여기에 방어선이 하나 늘었다** — `hooks/hooks.json`의 경로 우선순위 역전 + `run-hook.test.sh`의 실행형 decoy 테스트로 `PLUGIN_ROOT` hijack이 훅 경로에서 막혔다(위 "해소된 것" 참조). 아래 방어선 다섯 개는 코드로 재확인했다.
+## 호스트 간 기능 차이
 
-- **인젝션 차단** — 단일 초크포인트 `sanitize()`(`scripts/forge-hook-session-start.sh:74-87` / `.js:46-51` — 이번 세션 재확인): 제어문자·CR/LF·태그 구분자 `<`/`>` 제거, 바이트 절단(멀티바이트 경계 보정). `NO EXEMPTIONS` 주석이 불변식(`.sh:139`·`.js:94`).
-- **소스단 상한** — `SAN_MAX=200`(`.sh:48`/`.js:27`) + `TASK_DIGITS_MAX=9`(`.sh:120`/`.js:86`).
-- **트렁케이션 차단** — `.js`가 `process.stdout.write` 뒤 `process.exit()`를 부르지 않는다.
-- **park 개념 분리** — park은 별도 개수 줄, 헤더는 `Unsealed tail (ran, not sealed):`.
-- **지시 문단 범위 한정** — "fg-ask's STEP 0 auto-close is the one approved exception" 문구 + 순서 계약 테스트.
+- `hosts/claude/capabilities.json`은 9개 capability를 모두 지원으로 선언하지만 `hosts/codex/capabilities.json`은 3개만, `hosts/opencode/capabilities.json`은 0개를 지원으로 선언한다.
+- Codex와 opencode에서는 `prevent_stop: false`라 `fg-next all`과 `fg-loop`가 한 턴 안에서 가능한 만큼만 진행하고 재호출로 이어간다. 관련 제한은 `docs/codex.md`, `docs/opencode.md`에 있다.
+- Codex와 opencode에서는 `event_wake: false`라 `fg-showme`에서 선택을 확정한 뒤에도 터미널 입력이 하나 필요하다. 호스트 분기는 `skills/fg-showme/SKILL.md`에 있다.
+- `fg-agents`의 산출물은 `.claude/agents/<role>.md`다. `hosts/codex/capabilities.json`과 `hosts/opencode/capabilities.json`은 `project_agents`와 `spawn_role`을 `false`로 선언한다.
+- `scripts/forge-loop-spend.*`의 기본 계측 대상은 Claude Code transcript 형식이다. Codex와 opencode에서 별도 transcript 경로를 제공하지 않으면 token budget 기능이 `blocked-health`로 멈춘다는 제한이 `docs/codex.md`와 `docs/opencode.md`에 있다.
+- `fg-next all`에는 `fg-loop`의 `loop.md`에 해당하는 예산 필드가 없어 token ceiling이 적용되지 않는다. 이 범위 제한은 `skills/fg-loop/SKILL.md`에 후속 작업으로 명시돼 있다.
+- opencode는 안정적인 plugin-root 환경 신호가 없어 명시적 호스트 메타데이터가 없으면 `core/HOST.md`의 unknown-host 직렬 폴백으로 내려간다.
 
-**잔여 위험(구조적)**: 방어는 값이 블록을 **탈출**하지 못하게 막을 뿐, 값 안의 명령문 자체는 그대로 컨텍스트에 주입된다. 데이터로 묶는 마지막 한 겹은 산문 경고(모델의 순종)다.
+## 로컬 브라우저 서버의 보안 경계
 
-**새 훅에는 이 방어선이 필요 없다** — `Stop` 훅(`scripts/forge-hook-stop.{sh,js}`)은 컨텍스트에 값을 **주입하지 않는다**. stderr로 내보내는 것은 고정 문구 + 숫자 2개 + 마커 경로뿐이다(`forge-hook-stop.sh:99-100`). 대신 이 훅의 위험은 전혀 다른 축이다(B11).
+- `skills/fg-showme/scripts/start-server.sh`의 기본 bind 주소는 `127.0.0.1`이지만 `--host 0.0.0.0`을 허용한다. 비루프백 바인딩을 선택하면 네트워크 노출 범위가 커진다.
+- `skills/fg-showme/scripts/server.cjs`는 URL query의 session key를 cookie와 sessionStorage로 전달한다. 완전한 keyed URL이 브라우저 기록, 화면 공유, 로그에 노출되면 해당 세션에 접근할 수 있다.
+- 서버는 query/cookie key의 상수시간 비교, WebSocket Origin 검사, 실제 경로 기반 content sandbox, WebSocket frame 10 MiB 상한을 구현한다.
+- 세션 키를 포함하는 `server-info`, 로그, token 파일은 `.forge/showme/<session>/`에 저장된다. `skills/fg-showme/scripts/start-server.sh`가 디렉터리 권한을 제한하고 내부 `.gitignore`를 만들며, `skills/fg-showme/scripts/stop-server.sh`가 종료 시 삭제한다.
+- 비정상 종료 후 남은 세션은 다음 시작 시 sweep된다. 정상 운영에서도 240분 idle timeout까지 프로세스와 세션 파일이 남을 수 있다.
 
----
+## 문서 사이트와 공유 미리보기
 
-## B. 미결 — critical·major
+- Open Graph·Twitter Card 메타는 워킹 트리에서 추가됐다. `docs/index.html`이 `og:type`부터 `og:image:alt`까지 선언하고 `docs/.vitepress/config.mts`가 공통 `og:*`·`twitter:card`와 locale별 `og:title`/`og:description`을 넣는다. 두 선언은 별도 파일에 중복되므로 사이트 제목·설명 변경 시 함께 수정해야 한다.
+- 미리보기 이미지는 절대 URL `https://gyuha.com/forge/docs/og-image.png`로 하드코딩돼 있고 실제 파일 `docs/public/og-image.png`는 아직 git에 추가되지 않은 상태다. 파일이 커밋·배포되지 않으면 메타는 유효하지만 이미지 요청은 404가 되고, 절대 URL이라 `npm run docs:build`의 dead-link 검사 대상도 아니다.
+- `npm run docs:build`의 dead-link 검사는 내부 상대 링크를 다루지만 외부 `https://` 링크의 실재를 검증하지 않는다. 외부 GitHub ADR 링크는 별도 확인이 필요하다고 `CLAUDE.md`가 명시한다.
+- HTML 이미지 404는 브라우저 console error만 확인해서는 잡히지 않는다. `.github/workflows/docs.yml`은 조립 결과의 일부 핵심 파일만 `test -f`로 확인하고 페이지 내 모든 asset request를 실행해 검사하지 않는다.
+- 한국어·영어 문서는 `docs/*.md`와 `docs/en/*.md`에 쌍으로 존재하고, 랜딩은 한 `docs/index.html` 안의 `data-l="ko"`·`data-l="en"` 텍스트를 함께 유지한다. 번역 구조 동기화는 주로 작성 규칙과 리뷰에 의존한다.
 
-### B1. `forge-done.sh`가 봉인 실패를 은닉하고 `SEALED`를 출력한다 (+ 트윈이 정반대로 죽는다) — **major** `[확정 / 이번 세션 재현]`
-- 위치: `scripts/forge-done.sh:228-232` — `mkdir -p "$DEST"` · `mv … 2>/dev/null || true`의 결과를 아무도 확인하지 않는다(줄 번호가 184→228로 밀렸을 뿐 코드는 동일). 트윈은 `scripts/forge-done.js:193`의 `fs.renameSync`가 예외를 던져 **문서화된 exit code 계약(2/3/4/5/64)에 없는 형태로** 죽는다(이번 세션 스택트레이스 확인).
-- **이번 세션 재현**(격리 `/tmp` 리포에 정상 활성 슬롯 + 짝 회고를 두고 `done/`을 `chmod 500`): `.sh`는 stderr에 `mkdir: Permission denied` · `mv: No such file or directory`를 흘리고도 **`SEALED slug=b1 dest=…` + exit 0**을 출력했고, 활성 슬롯의 STATUS는 `status: done`으로 덮어써진 채 plan·run·STATUS 전부 제자리에 남았다. 같은 입력에서 `.js`는 uncaught throw로 죽는다 = **parity 사각지대**(파일시스템 실패 픽스처가 두 스위트 어디에도 없다).
-- **세 방어선이 전부 이 손상을 못 본다**(이번 세션 실측): 손상된 픽스처에서 `forge-doctor.sh`·`.js` 모두 **0 errors, 0 warnings, 0 info**다 — 이번 구간에 신설된 `A1 active-slot incomplete`도 이 상태를 놓친다(그 검사는 STATUS *부재*를 요구하는데 여기서는 STATUS가 `status: done`으로 **존재**한다). SessionStart 훅은 `status != done` 조건이라 침묵하고, fg-done 스킬은 exit code만 보고 "봉인 완료"를 보고한다.
-- 처방 후보: A그룹에 "활성 슬롯의 STATUS가 `status: done`이면 error"를 넣는 것 — B13의 처방과 정확히 짝이 되는 나머지 절반이고, 이번 구간에 B13만 들어갔다.
-- 전제는 파일시스템 실패라 드물지만, 결과는 "봉인됐다고 믿는 미봉인 작업" — 재실행 방지 메커니즘의 정반대.
+## 접근성·표현
 
-### B2. `.forge/branch/` 스캔이 2단 깊이라 3세그먼트 브랜치가 통째로 안 보인다 — **major** `[확정 / 이번 세션 코드 재확인]`
-- 위치: `scripts/forge-merge.sh:70`(`"$BRANCHES_DIR"/*/ "$BRANCHES_DIR"/*/*/` — 이번 세션 재확인, 파일 무변경), `scripts/forge-merge.js:49-58`(깊이 2 고정), `scripts/forge-doctor.sh:110`(같은 글롭, A8 블록 — 줄만 104→110으로 밀렸다).
-- 결과: `release/2026/hotfix`류 3+ 세그먼트 브랜치의 ADR·retro·done·backlog는 `fg-merge`가 `EMPTY nothing-to-integrate`로 넘기고, fg-doctor A8 경고도 안 뜬 채 기본 브랜치 트리에 **경고 없이 영구 잔존** — 조용한 데이터 유실. A8은 warning이라 CI 게이트(exit 2 기준)도 통과한다. 3세그먼트 픽스처가 스위트에 없어 회귀로 안 잡힌다.
+- `skills/fg-showme/scripts/frame-template.html`은 라이트 테마의 6개 색상 조합이 WCAG AA 또는 비텍스트 3:1 기준에 미달한다고 주석으로 명시하고 현재 디자인 선택으로 수용한다.
+- Mermaid 노드의 다크 모드 대비는 Markdown 작성자가 `style`의 전경색까지 지정해야 한다. 이 검사는 `npm run docs:build`가 자동 판정하지 않으며 `CLAUDE.md`가 시각 확인을 요구한다.
+- `scripts/forge-status.sh`와 상태줄 구현은 터미널 폭, ANSI 색상, UTF-8 바이트 폭을 직접 처리한다. 패리티 테스트가 일부 한글 경로를 포함하지만 실제 터미널 렌더러별 폭 차이는 남는다.
 
-### B3. `async: false` + bash 훅의 O(n) 서브프로세스가 세션 시작을 초 단위로 막는다 — **major** `[확정/이월 + hooks.json 재확인]`
-- 위치: `hooks/hooks.json`의 SessionStart 항목 `"async": false`(재확인 — 이번 구간에 `command` 문자열만 바뀌었고 `async`는 그대로) + `scripts/forge-hook-session-start.sh:106-111`(`field()` 호출마다 4프로세스) + park **전량 순회**.
-- 지난 매핑 실측(macOS, 성능 관련 코드는 이후 무변경): `executed/` 300개에서 `.sh` **0.839s** vs `.js` 0.052s. bash가 우선 경로(`hooks/run-hook.cmd`)인데 하필 bash만 선형 증가.
-- `Stop` 훅도 `async: false`다(재확인). 본체는 O(1)이지만(마커 한 파일), **모든 턴 종료마다** 프로세스 2개(`run-hook.cmd` → `forge-hook-stop.sh`)가 뜬다 — 주행하지 않는 세션에도. 실측은 안 했다 `[의심]`.
-- 두 훅의 `command`는 여전히 POSIX 파라미터 확장을 요구한다 — 이번 구간에 우선순위만 역전돼 `"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/run-hook.cmd"`가 됐다. 성능 축은 아니지만 같은 줄의 문제이므로 B14 ②에서 다룬다.
+## 외부 소스와 배포 드리프트
 
-### B4. 스크립트 백킹 컨벤션(ADR-0031/0022)이 자기 리포에서 **3건** 위반 — behavior 테스트 없음 (+ parity 테스트 1건은 비-hermetic) — **major** `[확정 / 이번 세션 재전수]`
-- ADR-0031/0022는 트윈 + parity + behavior 테스트 + 계약 동기 4종을 필수로 못 박는다. 11개 트윈 쌍 전수 재확인: **위반 3건 그대로다** — `forge-status`·`resolve-forge-root`·`release-check`가 parity만 있고 behavior 테스트가 없다(`forge-status.test.sh`·`resolve-forge-root.test.sh`·`release-check.test.sh` 셋 다 부재). 앞의 둘은 의존의 뿌리다 — `forge-status.sh`는 fg-status/fg-next 상태 머신의 조사(ADR-0020), `resolve-forge-root.sh`는 **모든 루프 스킬의 경로 해석**(ADR-0011)이자 `forge-hook-stop.sh:65`가 매 턴 종료마다 호출하는 것이다. **`release-check`의 공백이 이번 구간에 더 뾰족해졌다** — 그 스크립트가 이제 실제 CI 게이트이고(release-check.yml) capability 어휘 파싱까지 하는데, "게이트가 통과시켜야 할 것을 통과시키는가"는 여전히 어디서도 안 재진다(재는 것은 두 트윈이 *똑같이* 행동하는가 + parity 케이스가 우연히 덮는 범위뿐).
-- **추가로: `release-check.parity.test.sh`는 hermetic하지 않다** `[확정 / 코드 확인]` — `:59-62`가 고정 경로 `/tmp/rc.sh.err`·`/tmp/rc.js.err`에 stderr를 받고 `:128`에서 지운다(`mktemp` 미사용 — 다른 10개 parity 스위트에는 고정 `/tmp` 경로가 0건이다). 병렬 실행·다중 사용자·잔존 파일에서 결과가 오염될 수 있다. 회고 `260904-175155`가 "기존 결함"으로 명시 기록했고 3회 연속 통과라 재현되지 않았다 — 즉 **게이트를 지키는 테스트 자신이 이 리포에서 가장 덜 위생적인 테스트**다.
-- 감지 수단 없음: `forge-doctor.sh`의 B15는 트윈 **파일 존재**만 검사한다(`.sh`↔`.js` 짝만 확인).
-- **"parity만 있으면 두 트윈이 똑같이 틀린 경우가 green"** — 지난 구간의 실물(`capabilities.json`을 두 트윈이 똑같이 안 읽던 것)은 닫혔다. 반대 형태였던 B10도 세 구간 뒤 A9 픽스처가 추가돼 닫혔다. 다만 둘 다 사람이 우연히 빈 픽스처를 찾아 고친 사례이고, parity 스위트가 검사 목록 전체를 덮는지는 여전히 검사받지 않는다.
-
-### B5. fg-map 증분 Update의 "상속된 거짓 보존" — 가드는 산문뿐, 자동 게이트 0건 — **major** `[확정 / 이번 세션 doctor 재확인]`
-- ADR `260801-020258`이 Update를 "재탐색 금지 + 제자리 편집" 하드 계약으로 정의하고 스크립트화를 명시 기각 → 트윈·테스트 없음. 가드는 `skills/fg-map/SKILL.md`의 산문 mandatory 단계뿐.
-- 구조적 대가: 베이스라인을 정답으로 삼으므로 **이미 들어 있던 틀린 사실은 검사받지 않고 살아남는다** — 두 리포에서 독립 실측(증분 5회가 통과시킨 오류 3건). 30% 축소 가드는 *유실*은 잡아도 *보존된 거짓*은 못 잡는다(라인 수 불변).
-- **자동 게이트 0건**: `scripts/forge-doctor.{sh,js}`에 `codebase` 문자열이 **0건**이다(이번 세션 grep 재확인 — doctor가 검사를 4개 늘린 구간에도 여기는 안 왔다). 지도가 통째로 삭제돼도 doctor는 0 findings. 지도는 fg-ask 그릴링의 연료이므로 조용한 드리프트 = 계획 품질 저하.
-- **이 결함이 지금 미해결 의제로 살아 있고, 이번 구간에 한 걸음도 안 움직였다** — `.forge/agenda.md`(2026-08-05 개시)의 목적지가 정확히 "fg-map이 내는 지도를 신뢰할 수 있게 만든다"이고, 그 문서가 인용하는 상속된 거짓 3건 중 하나가 이 문서의 C15다. 이번 세션 실측: 결정 **10**건 / 열린 질문 **6**건 / fog **3**건 / 범위 밖 **4**건, **33일째** — **네 수치가 지난 구간과 완전히 동일하다**. 즉 frontier가 좁혀지지 않은 게 아니라 아예 손대지 않았다(C24 — 이 의제는 어떤 결정론 표면에도 안 보이므로 방치가 조용하다).
-
-### B6. 브라우저 답변 채널(fg-showme)의 신뢰성이 전부 산문 수명 의무 위에 서 있다 — **major** `[확정/이월 — skills/fg-showme/ 이번 구간 무변경 확인]`
-- `Monitor`는 `persistent: true`로 걸며 스스로 만료되지 않는다 — 서버를 멈추는 **모든** 경로가 `TaskStop`을 함께 불러야 하고(`skills/fg-showme/VISUAL.md:360` — 줄만 357→360으로 밀렸고 문장 동일), 빠뜨리면 죽은 세션의 events 파일을 tail한다. 실제 실행 중 재장전 누락이 두 번 발동(회고 `260805-063357`).
-- 서버 4시간 유휴 종료는 인증된 요청만 활동으로 세므로 "클릭만 기다리는" 상태가 방치 구간이 된다 — 실측 5시간 11분 뒤 자기 종료(`server.cjs:506-509,596`). 완화는 "화면 밀기 전 서버 생존 확인" 산문 한 줄(`VISUAL.md:104`)뿐.
-- 텍스트 전송 버튼(`VISUAL.md:297-301`)에 확정 버튼의 `dataset.sent` 중복 전송 가드가 **여전히 없다**(이번 세션 재확인 — 확정 버튼 쪽 두 곳 `:168`·`:216`에는 있고, 798ms 더블클릭 중복은 확정 쪽에서 실측된 것이다).
-- 위험의 성격은 중단이 아니라 **침묵** — 사용자가 누르고 기다리는데 아무 일도 안 일어나는 것.
-- **이 스킬의 *다른* 축(git 유출)은 지난 구간에 구조적으로 닫혔다**(자체-ignore + 종료 시 삭제 + 죽은 세션 sweep). 여기 남은 세 줄은 전부 답변 채널의 신뢰성 축이고, 그 수정은 이 축을 건드리지 않았다. **이번 구간에는 `skills/fg-showme/`가 한 줄도 바뀌지 않았다**(`git diff --name-status` 확인) — 즉 위 세 줄의 근거가 그대로 유효하다.
-
-### B7. 스킬 `description`이 카탈로그 설명과 자동 호출 트리거를 겸한다 — 길이 축은 닫혔고, **의미 축은 여전히 무검사**다 — **major(축소)** `[확정 / 이번 세션 전수 재측정 + 코드 확인]`
-- **이번 구간에 두 축이 닫혔다**(상세는 위 "해소된 것"): ① 22개 전부 `DESC_MAX=600` 이하(최대 591=98%)로 두 릴리스 연속 배포됐던 위반이 사라졌고, ② 리더가 awk `descof()`로 교체돼 YAML 블록 스칼라 fail-open이 막혔다. 남은 여유는 얇다 — **`fg-doctor` 591 · `fg-showme` 589 · `fg-config` 576이 상한의 96~98%**라 한 문장만 늘려도 경고가 돌아온다. 그리고 이 세 스킬은 계속 자라는 쪽이다(fg-config는 여섯 키를, fg-doctor는 검사 목록을 담는다).
-- **남은 결함은 "길이만 본다"는 것이다.** fg-doctor의 B16은 코드포인트만 세고, description ↔ 본문의 의미 일치나 자동 호출 정확도의 회귀 테스트는 없다. 문구 드리프트가 곧 동작 드리프트가 된 실사례(fg-showme "표시 전용" 잔존)와 이름 오발동으로 실행 중 개명한 사례(fg-chart→fg-agenda)가 기록돼 있고, **이번 구간에 같은 부류가 하나 더 살아 있는 것이 확인됐다** — `skills/fg-merge/SKILL.md:3`의 `description`이 `the **git-free** integration`이라 주장하는데 그 스크립트는 읽기 전용 git을 3번 부른다(C15). description은 fg-help가 그대로 출력하는 사용자 대면 텍스트이므로 이 거짓은 화면까지 간다.
-- `skills/fg-done/SKILL.md:3`은 여전히 `(Note: 'forge cleanup' routes to fg-cleanup, not here.)`로 트리거 충돌을 산문으로 막는다.
-- 신설된 `release-check`도 description을 안 본다(그쪽이 보는 것은 매니페스트 version 4곳·skills 경로·hooks.json·호스트 어댑터 9파일·capability 8키뿐).
-
-### B8. 테스트가 프로덕션 호출 형태를 재현하지 않으면 통과가 아무것도 보장하지 않는다 — **major(구조적)** `[확정/이월 + 이번 세션 exec bit 재전수]`
-- 근거: `.forge/done/260727-233237-…/run.md` — 22개 단언 전부 통과 상태에서 훅이 전혀 발화하지 않았다(`hooks/run-hook.cmd` exec bit 부재; 테스트는 `bash "$WRAPPER"`로 불러 통과). exec bit 단언 테스트는 리포 전체 1건(`hooks/run-hook.test.sh:43`).
-- **exec bit는 여전히 제각각이다**(이번 세션 `ls -l` 전수, 지난 구간과 동일 분포): 755 = `run-hook.cmd`·`forge-done.{sh,js}`·`forge-hook-stop.*`·`forge-loop-spend.*`·`forge-status.sh`·`forge-statusline{,-full}.{sh,js}`·`forge-statusline-wrapper.sh`·`resolve-forge-root.sh`·`release-check.{sh,js}` / 644 = `forge-doctor.{sh,js}`·`forge-hook-session-start.*`·`forge-merge.*`·`forge-status.js`·`resolve-forge-root.js`. 같은 트윈 쌍 안에서도 갈린다(`forge-status.sh` 755 vs `.js` 644). 직접 실행으로 배선을 바꾸는 순간 지켜주는 장치가 없다.
-- **이번 구간에 이 결함이 처음으로 *고쳐진 사례*가 나왔다(대조·같은 뿌리)** — `hooks/run-hook.test.sh`의 종전 단언은 hooks.json에 그 경로 리터럴이 있는지만 봤고, 파일 자신이 *"can fail when someone edits it, never when it is wrong"*이라 적었다. 이제 그 문자열을 JSON에서 뽑아 `/bin/sh -c`로 **실행**해 래퍼로 해석되는지와 decoy 면역을 단언한다. 즉 처방은 알려져 있고 한 곳에 적용됐다 — 나머지 표면(특히 exec bit·`.js` 트윈의 직접 실행)에는 아직 안 왔다.
-- 부수: 새로 들어온 `skills/fg-debug/scripts/hitl-loop.template.sh`는 755다. **복사해서 편집하는 템플릿**이라 실행 가능해도 무해하고(이번 세션 실기동 확인 — `printf '\ny\nboom\n' |` 파이프로 `ERRORED=y` `ERROR_MSG=boom` 정상 출력, exit 0), 자기 자신이 사용자 입력을 `read`로만 받고 `eval` 계열을 쓰지 않는다.
-
-### B9. fg-loop `waiting`/`blocked-health`의 안전장치가 전부 산문 계약이다 — **major** `[확정/이월 — 이번 구간 fg-loop 편집 5줄을 읽어 계약 축 무변경 확인]`
-- `evidence: external`로 선언된 체크는 통과 전까지 무조건 `waiting`으로 분류돼 **자동 수리 대상에서 빠진다** — "빨간 CI"와 "미완 CI"를 구분 못 하는 것이 문서화된 대가이고, 영구 대기를 막는 유일한 장치는 `stalled-waiting`(`×2` 증거 불변) 상한이다(ADR-0016 개정 2026-08-09). 상한 감지·증거 비교 모두 에이전트 판단 산문이며 스크립트 게이트가 없다.
-- `blocked-health`는 "체크 명령의 실행파일 도출 점검 + **보수적 사후 승격**"인데 승격 판단이 best-effort 자기분류다 — `safety` 벽과 같은 부류의, 산문으로만 지켜지는 계약.
-- **stale `wall:` 오보고 경로는 산문 3겹으로만 막혀 있다** — `waiting` 신설로 "재개 시 이전 벽 원인 미해제"라는 기존의 무해한 암묵 규칙이 실제 오보고 경로가 됐고(적대 리뷰 high), 수정은 `wall: none` 전이 규칙 산문(`skills/fg-loop/SKILL.md`)과 fg-status의 서술 지침이다. 기계 검증 없음. 회고 `260810-084115`가 "상태 enum에 새 값을 더할 때 기존 값들의 해제 시점을 함께 감사하라"를 학습으로 남겼다.
-- **`budget-exhausted`만은 예외적으로 결정론이다** — `scripts/forge-loop-spend.{sh,js}`가 exit code 0/3/4/5로 판정한다(behavior 38 + parity 전건 통과, 이번 세션 재실측). 아홉 벽 중 스크립트가 지키는 유일한 벽이며, 나머지 여덟은 여전히 산문이다. 그 결정론에는 별도의 대가가 붙고, **이번 구간에 그 대가가 "Claude Code 전용"으로 명시됐다**(C22).
-- **이번 구간의 fg-loop 변경 5줄은 이 축을 건드리지 않았다**(전량 확인): 호스트 결합 문단 추가(C22) · `capabilities.json` 참조 경로를 스킬 상대경로로 교정 · 생성된 fix-forward plan이 PLAN-FORMAT의 eval 규칙을 따르도록 배선(B17). 아홉 벽의 판정 방식은 그대로 산문이다.
-- UAT 한계(회고의 3회+ 반복 패턴): forge-meta 지시문 작업의 검증은 "grep 가능한 문서 구조"까지이고, 진짜 효과는 실제 goal loop 주행 전까지 미검증이다.
-
-### B10. fg-doctor A9의 shell/Node 판정 불일치 — **해소됨** `[확정 / behavior·parity 재실행]`
-- `scripts/forge-doctor.js:101-116`이 `scripts/forge-doctor.sh:93-105`의 낡음·미파싱·정상 세 분기를 그대로 구현한다.
-- `scripts/forge-doctor.test.sh:44-52`는 세 분기의 기대 exit와 메시지를, `scripts/forge-doctor.parity.test.sh:47-49,90-92`는 같은 입력에서 두 트윈의 stdout·exit 일치를 검사한다. 실측은 behavior **84 passed, 0 failed**, parity **25개 픽스처 전부 일치**다.
-- 번호는 과거 결함 추적을 위해 남긴다. 잔여 교훈은 B4에 있다 — parity는 픽스처가 있는 표면만 비교하며, 전체 검사 목록의 커버리지는 스스로 증명하지 않는다.
-
-### B11. forge가 이제 **턴 종료를 거부하는 코드**를 배포한다 — 하네스 루프 보호가 없고, 해제는 산문 의무다 — **major** `[확정 / 이번 세션 코드·테스트 재현]`
-- 위치: `hooks/hooks.json`의 `Stop` 항목(매처 없음 = 전체, `"shell": "bash"`, `"async": false`) → `hooks/run-hook.cmd stop` → `scripts/forge-hook-stop.{sh,js}`. 조건이 모두 참일 때 **`exit 2`로 턴 종료를 막는다**(`forge-hook-stop.sh:101`).
-- **스스로 밝히는 위험**(`forge-hook-stop.sh:10-16`): "the harness provides NO loop protection for Stop hooks (there is no `stop_hook_active`-style input field), so the two bounds below are the ONLY runaway guard." 상한은 `MAX_AGE=1800`(30분)·`MAX_BLOCKED=50`(`:40-42`) 둘뿐.
-- **설계는 정직하고 방어적이다**(재현 확인): 마커 부재·세션 불일치·`started`/`blocked` 미파싱·시계 없음·tty stdin·root 미해석·카운터 쓰기 실패 — **모든 실패·모호 경로가 exit 0(정지 허용)**. behavior 10 케이스 + parity 16 케이스 전부 통과(실측). 읽기 전용 dir(`chmod 555`)에서 stderr 누출까지 테스트가 덮는다(`forge-hook-stop.test.sh:113`).
-- **그래서 진짜 잔여 위험은 코드가 아니라 계약이다.** 훅은 벽을 판정하지 않는다 — **마커 삭제가 "멈춰도 된다"의 유일한 표현**이고, 삭제 지점 전량 열거는 `skills/fg-next/SKILL.md:98` 이하와 `skills/fg-loop` §2의 **산문**에 산다. 주행이 마커를 지우지 못하고 죽으면(예외·컨텍스트 소진·사용자 중단) 같은 세션은 최대 30분 또는 50회 동안 정지 요청이 막힌다. `fg-doctor`의 A9은 이 잔여를 두 트윈에서 **warning**으로 보고하지만 자동 삭제하지 않는다(B10 해소).
-- **`hooks/run-hook.cmd`의 배치 절반은 exit 2를 삼킨다** `[확정 / 코드 확인 — 파일 두 구간 연속 무변경]` — 네 디스패치 분기 전부 `… exit /b 0`(`:35`·`:41`·`:50`·`:59`, 여기에 `:18`·`:63`)로 본체 exit code를 버린다. SessionStart에는 무해했지만(exit code가 의미 없음) **Stop에서는 그것이 메커니즘 전체**다. 지금은 `"shell": "bash"` 때문에 배치 경로가 실질적으로 안 쓰이므로(C9) 잠복 상태이나, Windows 커버리지를 고치려고 `shell`을 떼는 순간 Stop 훅이 조용히 무력화된다(에러 없이 항상 "멈춰도 됨"). 겹친 두 번째 하자도 그대로다 — hooks.json의 `command`가 `${VAR:-default}`(POSIX 파라미터 확장)를 요구하고 cmd.exe는 그것을 확장할 수 없다(B14 ②). **이번 구간에 hooks.json의 그 표현이 편집됐지만 바뀐 것은 우선순위 순서뿐**(`${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}` → `${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}`)이라 cmd.exe 축은 손대지 않았다.
-- **참고**: 마커 조건부라 **주행하지 않는 세션은 완전 무영향**임은 코드로 확인된다(`:68` 마커 부재 → exit 0). 이건 잘 지켜진 부분이다.
-
-### B12. 회고 유예의 "나중에 승급한다"가 **git에 없는 로컬 아카이브**에 걸려 있다 — **major** `[확정 / 이번 세션 전수 실측]`
-- 실측(이번 세션 재전수): 봉인 **151**건 중 `retro: skipped` **71건(47%)**, 그중 짝이 되는 `.forge/retro/<타임스탬프>-<slug>.md`가 있는 것 **0건**(python 전수, 접두 타임스탬프 정확 매칭). 배치 승급 모드는 **한 번 돌았을 뿐이다** — 4건이 `retro: … (batch promotion 2026-08-25)`를 담고 그 뒤로 추가 승급이 없다. 즉 "약속된 수신처"는 작동하지만 처리량이 유입을 못 따라간다 — 봉인이 8건 늘고 skip이 3건 늘어 비율은 47%로 제자리다.
-- 유예의 전제는 "학습은 아카이브된 `run.md`에 남고 나중에 승급한다"인데, **그 아카이브는 기본 브랜치에서 git에 없다** — `.gitignore:5`의 `.forge/*`가 `.forge/done/`을 제외하고, `git ls-files .forge/done/` = **0**. 클론에는 71건분의 `run.md`가 존재하지 않는다.
-- 자동 연료 경로도 이것을 읽지 않는다: `skills/fg-ask/SKILL.md`·`skills/fg-run/SKILL.md`는 `.forge/retro/`만 읽는다. `done/*/run.md`를 읽는 곳은 **명시 호출 전용**인 `skills/fg-learn/SKILL.md`의 배치 승급 모드 하나뿐이며, 오케스트레이터는 절대 자동 진입하지 않는다고 같은 문서가 못 박는다.
-- 결론: 71건의 학습은 **이 머신의 gitignored 디렉터리에만** 있고, 사람이 명시적으로 배치 승급을 부르기 전까지 어떤 그릴링·실행도 그것을 연료로 쓰지 않는다. ADR-0002가 상정한 "저-divergence 한정 skip"과 달리 `fg-next all`/`fg-loop`의 무조건 skip이 정책적으로 이 잔고를 만든다.
-- **이번 구간에 이 잔고에 두 번째 소비자가 생겼다 — 그리고 그게 압력을 올린다.** eval 승급(ADR `260906-171420`)이 fg-learn의 네 번째 목적지를 만들면서 "기계 확인 가능한 학습은 프로젝트 테스트 스위트로 승급"이 규범이 됐다. 회고를 skip한 71건은 **그 승급 기회를 함께 건너뛴 것**이므로, 잔고의 성격이 "언젠가 문서로 쓸 것"에서 "쓰이지 않은 회귀 체크 71건분"으로 무거워졌다. 실제로 회고 한 건(`260906-211315`)이 eval 14건을 낳았다 — 표본 1이지만 단위 수확량이 작지 않다.
-- 같은 표본의 `verified:`는 `yes` **129** / `n/a` **22**, 차단 값(`pending`/`failed`) **0** — 봉인된 것 중에는 미검증이 하나도 없다. 검증 게이트(ADR-0009)는 실측으로 강하게 지켜지고 있다(대조). **단 이것은 "봉인된 것"만의 통계다** — 봉인 *전* 단계의 반쯤 실행된 슬롯은 이번 구간에 doctor가 보게 됐지만(B13 해소), `status: done`으로 덮어써진 미봉인 손상은 여전히 아무도 못 본다(B1).
-
-### B13. `fg-doctor`가 반쯤 실행된 활성 슬롯을 못 봄 — **해소됨** `[확정 / 이번 세션 재현으로 확인]`
-- 이번 구간에 닫혔다(상세·재현은 위 "해소된 것"). 번호 보존용으로 남긴다. B13의 "두 트윈 + parity 픽스처를 함께" 선례를 A9에도 적용해 B10까지 닫혔고, 남은 절반은 B1(`status: done`으로 덮어써진 미봉인 손상)이다.
-
-### B14. Codex 호스트 어댑터 층 — **①은 닫혔고 ②③④가 남았다** — **major(축소)** `[확정 / 이번 세션 픽스처 재현]`
-`core/` 3파일 + `hosts/{claude,codex}/{interaction,execution}.md` + `capabilities.json` 2개가 11개 스킬 문서에서 참조된다. 네 갈래 중 하나가 이번 구간에 닫혔다.
-
-- **① `capabilities.json`을 아무도 파싱하지 않는다 → 해소됨** `[확정 / 재현]`. `release-check.{sh,js}`가 canonical 8키를 `core/HOST.md` 표에서 도출해 flat-boolean 형태·missing 키·unknown 키를 판정하고, `docs/{,en/}codex.md`가 8키를 이름으로 담는지까지 본다. 재현으로 확인(위 "해소된 것" 참조). **그리고 CI가 이 게이트를 `hosts/**`·`core/**` 경로 변경에 자동 실행한다.** 남은 잔여 두 줄: ⓐ `forge-doctor.{sh,js}`에는 여전히 `capabilities`·`hosts/` 문자열이 0건이라 **doctor 단독으로는 이 표면이 안 보인다**(게이트가 release-check에만 산다 — 로컬에서 doctor만 돌리는 사람은 무정보) ⓑ 8키의 **값이 참인지**는 원리적으로 기계 검증 대상이 아니다(관측 부채 — 아래 참조).
-- **② `hooks/hooks.json`이 실행 시점 POSIX 파라미터 확장을 요구한다** `[확정 코드 / cmd.exe 결과는 의심 — 미해결]`. 두 항목의 `command`가 이번 구간에 `"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/run-hook.cmd"`로 **우선순위만 역전**됐다. hijack 축은 이것으로 닫혔고 이제 실행형 테스트가 지킨다(4단언). **그러나 cmd.exe 축은 그대로다** — `hooks/run-hook.cmd:4`가 스스로 *"On Windows: cmd.exe runs this batch portion"*이라 적는데 cmd.exe는 `${VAR:-default}`를 확장할 수 없다. `"shell": "bash"`가 cmd.exe 경로를 **항상** 배제하는지는 여전히 검증되지 않았고(`[의심]`) 검증 수단도 리포에 없다. 새 테스트는 `/bin/sh -c`로 돌므로 이 위험에 대해 무정보다. B11 마지막 불릿(배치 경로가 exit 2를 삼킨다)과 같은 파일에 겹친 두 번째 하자.
-- **③ 스킬 본문의 `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}` 치환 자체가 불필요할 수 있다** `[의심 — 미관측 사실 1개에 걸려 있음]`. `core/HOST.md`가 스스로 "Codex도 호환성을 위해 `CLAUDE_PLUGIN_ROOT`를 제공할 수 있다"고 적는다. 제공한다면 치환을 되돌리는 것이 단순하고 ②의 절반과 **B15가 통째로** 사라진다. 걸린 사실은 하나 — **Codex가 `CLAUDE_PLUGIN_ROOT`를 export하는가**(ADR `260903-080713` Consequences의 미결). 현재 분포 실측(이번 세션, 소스 트리 `skills/` 기준): 리터럴 **60회 / 22파일**, 그중 실행 스크립트를 가리키는 것이 **17개 고유 경로 / 18회 / 7파일**이다(B15가 그 부분집합). `hooks/`는 위 역전으로 형태가 달라졌다. **`core/HOST.md`는 이제 이 비대칭을 결정으로 명문화한다** — 훅은 env 확장이라 역전이 안전하고 스킬 본문은 텍스트 치환이라 역전하면 미확장 표현이 남으므로 *"Do not 'fix' one to match the other"*로 닫는다. 즉 ③은 "왜 이렇게 생겼나"가 문서화된 상태이고, 남은 미결은 되돌릴 수 있는지뿐이다.
-- **④ 호스트 판별이 일반적인 환경변수 이름에 기댄다** `[확정 / 문서 확인 — 불변]`. `core/HOST.md` 규칙 2는 `PLUGIN_ROOT`가 Codex를 식별한다고 하지만 `PLUGIN_ROOT`는 다른 도구도 export할 수 있는 이름이며, 문서 자신이 거울 경우(`CLAUDE_PLUGIN_ROOT`)를 경고한다. 신호가 양방향으로 약하고, 결론은 "둘 다 약하면 명시 메타데이터를 우선하고 아무것도 확정적이지 않으면 직렬 fallback"이다 — **fallback이 전부 정의돼 있다는 점이 이 항목을 critical로 만들지 않는 유일한 이유**다. 문서는 *어댑터 선택*(PLUGIN_ROOT=Codex 신호)과 *경로 해석*(CLAUDE_PLUGIN_ROOT 우선)을 별개 질문으로 명시 분리했는데, **두 규칙이 같은 변수에 반대 무게를 주므로 읽는 순서에 따라 오해할 수 있다** — 회고 `260904-175155` 학습 ②가 이 구분을 확정하는 데 서브에이전트 2개의 바이너리 디스어셈블이 필요했다고 기록한다.
-
-**부수 — Codex 어댑터의 구체성이 호스트 경계에서 끝난다** `[확정]`: `hosts/codex/execution.md`는 "Codex collaboration/subagent tools"를, `interaction.md`는 "the user-input facility exposed by the current Codex mode"를 가리킨다. 도구 **이름이 없다** — 대조적으로 `hosts/claude/`는 `agent()`·`agentType`·`AskUserQuestion`(최대 4옵션)을 명시한다. 어댑터를 따르는 에이전트가 Codex에서 무엇을 부를지는 기계적으로 도출되지 않고, 이것이 ①의 `capabilities.json` 값 5개가 `false`인 이유와 같은 뿌리다(관측이 없다).
-
-**보수적 기본값은 옳은 선택이다(대조)**: `hosts/codex/capabilities.json`은 `structured_choice`·`spawn_role`·`prevent_stop`·`project_agents`·`status_display`를 `false`로 둔다(이번 세션 재확인 — `spawn_parallel`·`plugin_root`·`session_start`만 `true`, Claude는 8키 전부 `true`). 이전 판은 `prevent_stop`·`spawn_role`을 `true`로 주장하면서 문서 표에는 "제한적"이라 적었는데, **`prevent_stop`이 거짓 `true`이면 무인 주행이 없는 턴-종료 가드를 있다고 믿는다** — 그 조합이 실제 위험이었다. 지금은 "미관측 = `false`"가 `core/HOST.md`에 규범으로 못 박혀 있고 모든 능력에 정의된 fallback이 있다. 대가는 Codex 지원이 필요 이상으로 degrade된 상태로 남는 것이며, 이는 결함이 아니라 **관측 부채**다.
-
-### B15. 스킬 본문의 `${PLUGIN_ROOT:-…}`가 **파괴적 스크립트 실행을 환경변수로 납치당한다** — 훅에서는 막았는데 여기는 안 막았다 — **major** `[확정 / 이번 세션 실증]`
-- **재현**(이번 세션): 호스트가 스킬 본문의 `${CLAUDE_PLUGIN_ROOT}` 토큰만 텍스트 치환하므로 남는 문자열은 `${PLUGIN_ROOT:-/Users/gyuha/workspace/forge}/scripts/forge-done.sh`다. 이 상태에서 `PLUGIN_ROOT=/tmp/hijack/decoy bash -c "…"`를 돌리면 **decoy 스크립트가 실행된다**(`HIJACKED: --help` 출력 확인). 즉 적대적·무관한 `PLUGIN_ROOT` 하나로 forge가 부르는 모든 스크립트를 임의 코드로 대체할 수 있다.
-- **표면 실측**(`skills/**/*.md`): 실행 스크립트를 가리키는 이 형태가 **17개 고유 경로 / 18회 / 7파일**이다 — `skills/fg-done/SKILL.md:27-28`(**`forge-done.sh`/`.js` = 봉인·`mv`·아카이브**) · `skills/fg-merge/SKILL.md:45-46`(**`forge-merge.sh`/`.js` = 브랜치 폴더 `rm -rf` 포함**) · `skills/fg-run/FORGE-ROOT.md:50-51`(`resolve-forge-root.*` — 모든 루프 스킬이 경로 해석에 부른다) · `skills/fg-doctor/SKILL.md:23-24` · `skills/fg-status/SKILL.md:23-24` · `skills/fg-loop/SKILL.md:117` · `skills/fg-statusline/SKILL.md:111-114`(설치 시 사용자 `settings.json`에 커맨드를 써 넣는 경로).
-- **훅 경로는 이번 구간에 정확히 이 공격을 막았다**(우선순위 역전 + 실행형 decoy 테스트) — 즉 **위험의 존재도, 처방도, 테스트 방법도 이미 리포 안에 있다.** 안 옮겨진 이유는 `core/HOST.md`가 밝히는 대로 스킬 본문에서 역전하면 미확장 표현이 남기 때문이고, 회고 `260904-175155`가 이를 **"기록만 (범위 밖)"**으로 명시 보류했다("올바른 해법은 뒤집기가 아니라 중첩을 없애고 맨 토큰을 쓰는 것 — 60곳 전수를 건드리는 결정이므로 fg-ask 그릴링 사안").
-- **위협 모델은 정직하게 적어 둔다**: 공격자가 사용자 세션의 환경변수를 이미 심을 수 있어야 한다(`.envrc`/direnv·devcontainer·셸 프로파일·다른 플러그인). 원격 공격이 아니므로 critical은 아니다. 그러나 ⓐ `PLUGIN_ROOT`는 `core/HOST.md` 자신이 "다른 도구도 export하는 일반적 이름"이라 적은 것이므로 **악의 없는 충돌만으로도 오작동이 나고** ⓑ 걸리는 스크립트에 `mv`·`rm -rf`가 있으며 ⓒ 같은 리포가 훅 쪽에서는 이것을 방어 가치가 있는 위험으로 판정했다 — 그 세 이유로 major다.
-- 감지 수단 없음: `forge-doctor.{sh,js}`·`release-check.{sh,js}`·21개 스위트 어디에도 스킬 본문의 경로 표현을 보는 검사가 없다.
-
-### B16. 문서 계약 검사가 **문구를 재고 동작을 재지 않는다** — doctor의 `B18`이 그 실물이며 새 결함 부류다 — **major(축소)** `[확정 / 코드·픽스처 확인]`
-- 이번 구간에 doctor에 `B18 fg-debug contract coherence` **하위 검사 7개**(`scripts/forge-doctor.sh:256-305` / `scripts/forge-doctor.js:234-281`, 두 트윈 모두 7개 확인)가 들어왔다. **수량 대조 3개는 정당하다** — `skills/fg-next/HANDOFF.md`의 `**Applies (15)**`·`**Does NOT apply (7)**` 선언값을 그 절 안의 고유 `` `fg-*` `` 열거 수와 대조하고, `.forge/CONTEXT.md`의 글로서리 수치와도 대조한다(**수량 대조는 기계가 결판낼 수 있는 것**이고 실제로 `fourteen` 잔여·`(7)` vs 6개 열거를 잡았다).
-- **나머지 4개는 성격이 다르다.** `skills/fg-debug/SKILL.md`의 세 절을 뽑아 정규식 키워드 조합으로 판정한다 — 예: `B18 fg-debug persistent eval`은 분류 동사 && `persistent` && `one-off|throwaway|curl|trace|HITL` && `PLAN-FORMAT` && 금지 문구 부재의 5중 조건이다. 즉 **계약이 지켜지는지가 아니라 계약을 서술하는 낱말이 그 절에 있는지**를 검사한다. 두 방향으로 틀릴 수 있다: ⓐ 문구를 정당하게 다시 써도(동의어·문장 재배치) 경고가 뜬다 — 정규식 목록이 사실상 허용 어휘표가 된다 ⓑ 반대 의미의 문장으로도 통과할 수 있다(예: "we do **not** classify persistent vs one-off … PLAN-FORMAT"). 다만 회고 `.forge/retro/260907-202729-fg-debug-contract-hardening.md`가 잡은 **서로 다른 절의 독립 키워드를 조합하는 오탐**은 절 단위 추출과 `seed_b18_active_decoupled` 픽스처로 닫혔다. 이것은 의미 오탐을 한 단계 줄인 완화이고, 산문을 동작의 대리 지표로 삼는 형태 자체는 남는다.
-- **비용은 즉시 계량된다**: 스킬 하나의 계약을 지키기 위해 두 트윈에 **104줄**이 들어갔고 그 안에 파일 경로 3개(`HANDOFF.md`·`.forge/CONTEXT.md`·`skills/fg-debug/SKILL.md`)와 절 헤딩 4개(`## Route by invocation state` 등)가 하드코딩됐다. 절 헤딩 개명에 대해서는 **fail-closed다**(추출이 빈 문자열이면 긍정 조건이 거짓이 되어 경고가 뜬다) — 이 방향은 옳게 잡혀 있다. 대신 대가가 유지보수로 온다: fg-debug의 절 구조를 정리하면 doctor가 붉어지므로 **스킬 문서의 헤딩이 사실상 동결된다.**
-- **다만 상위 게이트가 fail-open이다**: B18은 `B17`과 같은 `jname(PJ) === 'forge'` 조건 아래 있고, `jname`은 여전히 **줄 단위** 리더다(`.sh:247` / `.js:209`). 즉 C20이 재현한 다행 매니페스트 형태에서는 **B17 하나가 아니라 B18의 하위 검사 7개까지 함께 조용히 꺼진다** — 이번 구간에 fail-open 하나가 8개 검사를 덮는 우산으로 자랐다. B7의 블록 스칼라 리더는 awk로 굳혔는데 `jname`은 안 굳혔다(같은 파일·같은 부류).
-- **부수: doctor가 이제 `.forge/CONTEXT.md`의 한국어 문자열에 의존한다** — `.js:232`가 리터럴 `'**핸드오프 표 (handoff table)**:'`와 정규식 `/적용 지점[^0-9]*(\d+)곳/`를 쓴다. 영문으로 작성되는 스크립트가 **사용자 프로젝트 언어의 산문 형태**에 결합된 첫 사례다. forge 리포에만 발동하므로(`jname` 조건) 남의 리포를 깨뜨리지는 않지만, 글로서리를 영문으로 쓰기로 하면 검사가 조용히 꺼진다.
-
-### B17. fix-forward plan이 **회귀 체크 슬라이스를 아예 빠뜨린 경우**를 잡는 기계가 없다 — 문서가 스스로 인정한 공백 — **major** `[확정 / 코드·문서 확인]`
-- 이번 구간에 eval 승급(ADR `260906-171420`)이 `skills/fg-run/PLAN-FORMAT.md:46-53`에 **fix-forward eval 규칙**을 신설했다: 새로 작성되는 fix-forward plan(`generated-by: fg-adversarial-review|fg-security|fg-debug|fg-loop`)은 원래 실패가 기계 확인 가능하면 **영속 회귀 체크 슬라이스 + red→green DoD**를 담아야 하고, 불가면 DoD 절에 사유 한 줄을 적어야 한다.
-- **그 문서가 사정거리를 정직하게 밝힌다**(`:52`): *"nothing mechanically catches a fix-forward plan that omits the slice in the first place — the gate reads the DoD that is there, not the one that should have been. That gap is accepted for now (a candidate fg-doctor check)."* ADR-0009 검증 게이트는 **적혀 있는** DoD만 강제한다.
-- 즉 규칙의 집행은 두 겹 모두 사람·에이전트 판단이다 — ⓐ 슬라이스를 넣을지 ⓑ 못 넣는 사유를 적을지. **면제가 "한 줄 사유"라는 형태로 설계된 이유가 바로 이것**이다(부재는 감지 불가, 문장은 감사 가능). 그러나 사유 줄 자체의 존재도 검사되지 않는다.
-- 배경 학습이 이 항목을 major로 만든다 — 회고 `260906-211315` 학습 ②: *"'기존 게이트가 강제한다'류의 주장은 무엇을 강제하지 못하는지 함께 적는다."* 그 학습이 나온 계기가 이 규칙의 **초판이 사정거리를 잘못 주장해 critical finding이 된 것**이었고(fg-loop 제자리 수리를 "이미 plan 편집이 허용된 경로"로 오인 → 같은 계약에 "보존하라"와 "추가하라"를 동시 명령), 같은 날 ADR이 개정됐다. 규칙은 이제 정확하지만 집행은 여전히 0이다.
-- 후보 검사는 값싸다: `backlog/`·활성 슬롯·`executed/`·`done/`의 plan에서 `<!-- generated-by: -->` 마커를 가진 것을 골라 `## Work slices`에 회귀 체크 슬라이스나 DoD 절의 면제 사유 줄이 있는지 보는 것. **doctor에 넣을 때 A9의 교훈(두 트윈 + parity)을 함께 지켜야 한다.**
-
----
-
-## C. 미결 — minor
-
-- **C1. `CLAUDE.md`의 첫 단락이 산출물을 "전부 Markdown과 JSON"이라고 단언한다** `[확정 / 이번 세션 재확인 — 불변]` — 산출물 문장은 그대로다(`CLAUDE.md:7`). 트리는 `scripts/`의 sh/js 트윈 11쌍 + 테스트 21개, exec bit 붙은 `hooks/run-hook.cmd`, `skills/fg-security/validate-findings.cjs`, `skills/fg-showme/scripts/` 5파일, **이번 구간에 더해진 `skills/fg-debug/scripts/hitl-loop.template.sh`**를 배포한다. 리포 최상위 안내문이 "남의 머신에서 자동 실행되는 코드"라는 위험 표면을 서술에서 지운 상태이고, 이제 그 코드가 두 호스트에서 돈다(같은 CLAUDE.md의 뒷부분은 스크립트를 상세 서술하므로 첫 단락만 낡았다).
-- **C1b. `CLAUDE.md`가 fg-doctor를 CI에 못 넣는 이유로 대는 사실이 이제 거짓이다** `[확정 / 이번 세션 실측]` — `CLAUDE.md:11`이 *"`fg-doctor`는 CI에 배선하지 않았다 — 현재 B16 warning 1건으로 exit 1이라 즉시 붉어진다"*고 적는데, 이번 세션 실측은 **두 트윈 모두 0 errors / 0 warnings / exit 0**이다(그 B16 경고는 커밋 `7d5623c`가 없앴다). 즉 문서가 대는 유일한 차단 사유가 사라졌는데 지시문은 그대로다 — C15·C26과 같은 "코드는 앞서 가고 산문이 낡는" 부류이지만, 이쪽은 **낡은 산문이 이미 가능해진 개선을 계속 막는** 형태라 방향이 더 나쁘다. `release-check.yml`이 이미 있으므로 doctor 스텝을 얹는 것은 몇 줄이다.
-- **C2. 상태 추출 로직이 여러 파일에 서로 다른 의미로 복제돼 있다** `[확정/이월 + 신규 2파일]` — `field()`는 `forge-{done,status,doctor,hook-session-start}.{sh,js}` 8파일 + `forge-merge.{sh,js}`의 `slugof`/`taskof`, 여기에 이번 구간 `forge-hook-stop.sh:70`의 자체 `field()`가 더해져 **11번째 복제**가 됐다(`.js` 트윈까지 12). 의미가 의도적으로 다르다(doctor/status/done은 콜론 뒤 첫 토큰만, session-start 훅은 전체 값, stop 훅은 다시 첫 토큰만). 공유 모듈이 없어 "중복 제거" 리팩터가 훅 출력 의미를 조용히 바꿀 수 있다.
-- **C3. CI가 처음으로 실질 게이트를 갖췄지만 **사정거리가 릴리스 표면뿐**이고, 테스트 21종·doctor는 여전히 어디서도 안 돈다** `[확정 / 이번 세션 워크플로 정독]` — `.github/workflows/`가 둘이 됐다: `docs.yml`(VitePress → Pages, 트리거 `docs/**`·`package*.json`)과 신설 `release-check.yml`(bash 트윈 → node 트윈 → parity 3스텝, `npm ci` 없이 zero-dependency). 후자는 트리거 경로 선택까지 정확하다 — `.claude-plugin/**`·`.codex-plugin/**`·`core/**`·`hosts/**`·`hooks/**`·`scripts/release-check.*`·`docs/{,en/}codex.md`, push+PR 양쪽. 워크플로 자신이 헤더 주석에 *"A gate that looks wired but cannot fire is worse than no gate"*라 적으며 `docs.yml`에 넣지 않은 이유를 남긴다. **B7·B14 ①이 이것으로 닫혔다.**
-  - **남은 공백이 정확히 어디인지가 이 항목의 핵심이다**: 트리거 경로에 **`skills/**`도 `scripts/forge-*`도 없다.** 즉 `scripts/forge-doctor.sh`나 22개 `SKILL.md`를 고치는 커밋은 **어떤 워크플로도 발동시키지 않는다** — 이 리포에서 가장 자주 바뀌는 두 트리가 CI 사각지대다. `package.json`에는 `release:check`·`docs:*` 4개만 있고 **테스트 스위트를 부르는 npm 스크립트가 아예 없어서**(`test` 없음) 21종을 CI에서 부를 진입점 자체가 없다.
-  - 아이러니도 그대로다: 리포는 `docs/examples/github-actions-forge-check.yml`로 **fg-doctor CI 게이트 예제를 배포하면서 자기 자신에는 적용하지 않는다** — 그 차단 사유로 대는 문장은 이제 사실이 아니다(C1b). B10의 parity 위반은 0.8.6에서 닫혔지만 세 구간 동안 배포된 뒤 수동 발견으로 고쳐졌다는 점이 이 자동화 공백의 실제 비용이다.
-- **C4. 실제 `verified:` 값의 42%가 훅 주입 시 잘린다** `[확정 / 이번 세션 전수 재계산]` — `.forge/done/*/STATUS.md` **151**건 중 `verified:` 값 **63건(42%)이 200바이트 초과** → `SAN_MAX=200`에서 절단(상한 상수 무변경 확인). 40%→42%→43%→42%로 정체 — 서술 습관이고, 유입이 줄지 않는다. 사유 뒷부분이 세션 시작 컨텍스트에 도달하지 않는다.
-- **C5. 모드 토글이 git 추적 파일을 더럽힌다** `[확정 — 구조적, 현재 미발현]` — `.gitignore:10`이 `!.forge/config.json`을 화이트리스트하므로 `fg-config eco true`가 곧 리포 diff다. 지금은 깨끗하다 — 결함은 사라지지 않았고 토글이 꺼져 있을 뿐. **이번 구간에 표면이 넓어졌다**: `fg-config`가 여섯 키(`simple`·`eco`·`tdd`·`driveCommit`·`driveCommitMessage`·`defaultBranch`)의 단일 진입점이 되면서 git 추적 파일을 더럽힐 수 있는 토글이 둘에서 여섯으로 늘었고, 그중 `simple`은 **켜면 회고를 무조건 skip하고 같은 턴에 봉인한다** — B12 잔고를 키우는 방향이며 그 대가 3건은 ADR `260905-212045`가 개정으로 열거한다(적대적 리뷰 불가·오판정 봉인 불가역·재고 관문 상실).
-- **C6. 활성 ADR 57건, `retired/` 1건 — fg-cleanup은 여전히 한 번도 돌지 않았다** `[확정 / 이번 세션 실측]` — 54→57로 늘었고(이번 구간 신규 3: `260905-212045` simple 모드 · `260906-171420` eval 승급 · `260907-140655` fg-debug), `retired/`는 **1건에서 늘지 않았다** — `.forge/adr/retired/0025-claude-code-only-defer-codex-port.md`("forge는 Claude Code 전용 — Codex 포팅 보류")가 ADR `260903-080713`으로 supersede되며 이동했다. 요점은 방향이다: 이 은퇴는 **fg-cleanup(ADR-0012)의 후보 제시→승인 흐름이 아니라 Codex 작업의 부수 산출로** 손으로 이뤄졌다. 즉 은퇴 경로는 이제 둘이고(스킬 / 작업 중 수동), fg-cleanup 자신은 **여전히 한 번도 돌지 않았다**. 신규 ADR이 선행 ADR의 판단을 뒤집고도 은퇴 없이 상호 참조로 공존하는 관행은 나머지 57건에서 계속되고, **이번 구간에 그 관행의 새 변주가 나왔다** — ADR `260905-212045`·`260906-171420` 둘 다 **같은 날 자기 자신을 개정**해 전제 오류·미발견 귀결을 덧붙였다(적대적 리뷰가 각각 critical 1건을 냈다). 즉 은퇴는 안 늘고 개정만 늘어, 활성 결정 집합의 각 항목이 두꺼워지는 방향이다.
-- **C7. 회고 skip 비율** — B12로 승격됐다(47%에 더해 "승급 연료가 git에 없다"는 사실이 확인되면서 minor를 벗어났다). 이 항목은 번호 보존용으로 남긴다.
-- **C8. `compact` 매처가 무인 주행 중간에 발화한다** `[확정 / hooks.json 재확인]` — SessionStart 매처는 여전히 `startup|resume|clear|compact`. `fg-next all`/`fg-loop` 주행 중 컨텍스트 압축이 일어나면 "사용자에게 물어라"가 주입된다. **이번 구간에 위험이 커졌다** — 이제 그 주행은 `Stop` 훅으로 턴을 이어가므로(B11) compact와 훅 차단이 같은 주행 안에서 맞부딪힐 수 있다. 매처 축소/in-flight 분기/침묵 스위치 중 미결.
-- **C9. Windows 커버리지 과대 서술 — `Stop` 훅으로 대가가 올라갔다** `[확정 / 이번 세션 재확인]` — `hooks/hooks.json`의 두 항목 모두 `"shell": "bash"`이므로 bash 없는 Windows에서는 훅이 비활성(비차단)이다. `hooks/run-hook.cmd`의 배치 절반은 하네스 경로에서 사실상 죽은 코드이고, 그 죽은 코드가 Stop의 exit 2를 삼킨다(B11 마지막 불릿). 즉 Windows 사용자는 SessionStart 알림뿐 아니라 **무인 주행 연속성도 못 받는다**.
-- **C10. 세션 중 편집한 `SKILL.md`·훅은 그 세션에 반영되지 않는다** `[확정/이월 — 직전 잔여는 재시작으로 해소]` — 플러그인 스킬 본문·훅·`.claude/agents/` 카드 모두 세션 시작 1회 로드(ADR-0024 실측). 직전 구간의 신설 `fg-config`·`fg-debug`, 폐지된 `fg-eco`/`fg-tdd` 트리거 흡수는 0.8.6 설치 후 현재 세션의 스킬 카탈로그에 반영됐다. 그러나 구조적 공백은 그대로다: 스킬을 고치는 작업의 "재시작 후 실 동작 검증"은 원리적으로 다음 세션의 일이고, 이를 추적하는 상태 파일은 없다. 실행형 테스트(`/bin/sh -c`)는 훅 명령 로직을 덮지만 하네스가 실제로 문자열을 넘기는 방식은 재시작 후에만 관측된다. **`Stop` 훅이 이 부류의 최악 사례다** — 설치·갱신한 세션에서는 아예 안 걸리고, 실제 차단 동작은 다음 세션에서 처음 발현된다.
-- **C11. `debt` 용어 잔여 1건** `[확정 / 재확인]` — `hooks/run-hook.test.sh:79` 주석(테스트가 25단언으로 늘어 줄이 55→79로 밀렸을 뿐 문구 동일). `scripts/forge-merge.test.sh:131`의 `_Avoid_: debt`는 CONTEXT 병합 픽스처의 의도된 문자열이라 잔여가 아니다.
-- **C12. 세 매니페스트의 description이 서로 갈라져 있고 격차가 커졌다 — 게이트는 version만 본다** `[확정 / 이번 세션 재측정]` — `plugin.json` **12,564자** vs `marketplace.json` `plugins[0]` **11,301자**(문자열 동일성 `false`, 격차 **1,263** — 지난 구간 1,147에서 벌어졌다). 22개 스킬 이름은 양쪽 모두 있으나 어느 검사도 두 값을 비교하지 않는다(fg-doctor의 B8·`release-check` 모두 `version`만 본다 — 이번 구간에 게이트가 강해졌는데 이 축은 안 왔다). `.codex-plugin/plugin.json`의 `description`은 **377자**인 세 번째 사본이고, **"twenty-two fg-* skills"라는 하드코딩된 개수**를 담는다. 이번에는 `docs/index.html`의 같은 형태 드리프트가 사람 편집으로 해소됐지만(C13), 개수 자동 대조는 여전히 없다. `interface.longDescription`·`defaultPrompt`(총 9개 `interface` 키)가 **네 번째 사람이 읽는 사본**이다. **어느 것이 정본인지 어디에도 적혀 있지 않다.**
-- **C13. `docs/index.html`의 "21개 스킬" 드리프트 — 해소됨, 재발 방지는 없음** `[확정 / 파일 확인]` — `docs/index.html:128,214,605-606`의 KO/EN hero·제목·meta가 모두 **22 / twenty-two**로 갱신됐다. 앞서 KO/EN 짝이 유지된 채 함께 틀렸던 형태였고, 이번 수정도 사람이 네 표면을 함께 고친 것이다. `scripts/forge-doctor.{sh,js}`에는 여전히 `index.html` 개수 검사가 없고 `release-check.yml` 트리거도 이 파일을 포함하지 않아, 스킬 수가 다시 바뀌면 같은 드리프트를 자동 감지하지 못한다.
-- **C14. 출력 *형태* 규율에는 기계 게이트가 없다 — 이번 구간에 *수량* 축만 게이트를 얻었다** `[확정 / 이번 세션 확인]` — 핸드오프 표(ADR `260805-231104`)의 적용 지점은 **15곳**으로 늘었고(`fg-debug` 추가 — `HANDOFF.md:96` `**Applies (15)**`, 미적용 `:103` `**Does NOT apply (7)**`, CLAUDE.md·`.forge/CONTEXT.md`도 15/7로 동기), doctor의 B18이 **선언값 ↔ 실제 열거 수 ↔ 글로서리 수치**를 서로 대조한다(이번 구간에 `fourteen` 잔여와 `(7)` vs 6개 열거를 실제로 잡았다). **그러나 표 *렌더*에는 여전히 기계 게이트가 없다**(에이전트 판단 산문) — 즉 "몇 곳에 적용되는가"는 이제 기계가 세는데 "그 15곳이 실제로 표를 내는가"는 아무도 안 본다. ADR-0032·`260730-230321`·`260805-231104` 세 번 연속 같은 한계다. 그 구현 자체가 새 결함 부류를 실증했다 — 영문 규율 문서에 지시("사용자 언어로 렌더")와 모순되는 한글 예시가 실려 다수 스킬로 퍼졌고 리뷰 6렌즈도 통과했다(결함이 현재 세션 언어와 우연히 일치하면 구조적으로 불가시 — 이중언어 자산 공통 사각지대). "반대 언어 세션에서 어떻게 보이는가"를 검사하는 장치는 여전히 없다.
-- **C15. `skills/fg-merge/SKILL.md:21`의 "never runs git"이 거짓이다 — 세 구간 연속 미수정, 사본은 셋** `[확정 / 이번 세션 재확인]` — 문장·줄 번호 모두 동일(`:21` "The deterministic `forge-merge.sh`/`.js` that does the integration **never runs git**"). `scripts/forge-merge.sh`는 읽기 전용 git 호출 3개(`:57` `rev-parse --show-toplevel`·`:325` `rev-parse ORIG_HEAD`·`:328` `diff --name-only`)를 경고 스캔에 쓰고, `.js` 트윈도 동형이다(`:33`·`:305`). 같은 파일의 frontmatter `description`(`:3`)이 "the **git-free** integration"이라 다시 주장하고(fg-help가 사용자에게 그대로 출력한다 — B7), `:119`의 텍스트 흐름도도 "git-free integration"이라 적어 **사본이 셋**이다. 정확한 표현은 mutation-free이고 스크립트 자신의 헤더 주석은 맞게 적혀 있다(`forge-merge.sh:41` "+ git only for the warn-only …") — 산문만 드리프트. 이 문장이 CI 게이트 주장의 근거로 쓰이므로 사소하지 않다. **`.forge/agenda.md`가 이 건을 fg-map 지도 신뢰성 문제의 대표 사례로 인용하고 있으면서도 원본 산문은 그대로다** — 진단이 수정으로 이어지지 않은 33일.
-- **C16. eco의 ECO.md 전문 주입이 코드를 쓰지 않는 서브에이전트에도 걸린다** `[확정/이월]` — `skills/fg-run/SKILL.md`의 "all workflow/execution subagents" 지시 때문에 채점·선언만 하는 비-코딩 에이전트에도 코드 단순성 규율 전문이 주입된 실사례(회고 `260801-234547`). 처방(코드 슬라이스 한정 또는 ECO.md 분할)은 ADR-0014 문언 수정이 걸려 미결.
-- **C17. `.forge/` 장부가 외부 트리 스캐너에 코드로 흡수된다** `[확정/이월 — 표면이 계속 자란다]` — graphify 실측 41.5%가 `.forge/` 유래(그 뒤로 봉인 151건·retro 80건·ADR 57건으로 더 늘었고, `.forge/codebase/` 7문서만 196KB다). `.graphifyignore`로 그 한 도구만 해소됐고, 인덱서·RAG·검색 도구 일반에 대한 표준 제외 신호는 없다. **문서 사이트가 들어오며 표면이 늘었다** — `node_modules/`·`docs/.vitepress/{dist,cache}/`가 `.gitignore:23-25`에 추가됐으나 이 역시 git 한정 신호다.
-- **C18. 그릴링이 plan에 적는 ADR 파일명을 검증하지 않는다** `[확정/이월 — 실사례 2건]` — 회고 `260810-084115` divergence ④: plan의 ADR 링크 2건이 실제 파일명과 불일치(기억으로 적고 `ls` 확인 안 함). plan은 실행의 정답 기준이므로 깨진 참조가 실행 중 잘못된 문서 탐색을 유발할 수 있다. 같은 회고가 "적기 전 `ls`로 실명 확인"을 학습으로 남겼을 뿐 게이트는 없다.
-- **C19. 정본 규칙 텍스트가 23개 파일에 복제돼 있고, 게이트는 CI에서 안 도는 warning 하나다** `[확정 / 이번 세션 전수 재확인]` — ADR `260824-134246`의 **Explaining forge** 문단은 `scripts/explaining-forge.rule.txt` 1벌 + `skills/*/SKILL.md` **22개** 전부에 verbatim 인라인돼 있다(전수 `grep -qF` 결과 **22/22 보유, 누락 0** — 이번 구간에 스킬이 3개 교체됐는데도 신규 `fg-config`·`fg-debug`가 빠짐없이 담았다). fg-doctor의 B17이 "정본 파일과의 containment"로 드리프트를 잡도록 잘 설계돼 있으나(마커가 아니라 본문을 비교, 초과분 허용), **그 검사를 부르는 자동화가 여전히 없고**(C3 — `skills/**`는 CI 트리거 경로 밖) 상위 `jname` 게이트가 fail-open이다(C20·B16). 규칙 문구를 한 글자 고치면 **23파일 동시 수정**이 필요하다.
-- **C20. fg-doctor의 B17이 다행 매니페스트에서 조용히 통과한다(fail-open)** `[확정 / 이번 세션 재현]` — 검사는 `jname`(`scripts/forge-doctor.sh`의 B17 블록)이 뽑은 최상위 `name`이 `forge`일 때만 발동하는데, `jname`은 **줄 단위**(`"name"[[:space:]]*:[[:space:]]*"…"`)라 값이 다음 줄에 있으면 빈 문자열을 낸다. 재현: `"name":\n    "forge"` 형태의 `plugin.json`을 둔 픽스처에서 규칙 없는 `SKILL.md`를 놓아도 **두 트윈 모두 B17 findings 0건**, 같은 값을 한 줄로 되돌리면 **두 트윈 모두 1건**. parity는 유지되지만 방향이 fail-open이다. 부수 가정 하나 더 — `jname`은 문서 순서상 **첫 `name`**이 최상위라고 가정한다(현재 `plugin.json:2`가 그렇다). 둘 다 코드 주석에 명시돼 있으나(의도된 잔여) 검사가 조용히 꺼지는 형태라 눈에 안 띈다. 원 기록: `.forge/done/260824-152043-fg-doctor-b17-hardening/`. **이번 구간에 이 fail-open이 덮는 범위가 1개 검사에서 8개로 늘었다** — 신설된 B18이 같은 `jname(PJ) === 'forge'` 조건 아래 하위 검사 7개를 걸었기 때문이다(B16). 같은 파일에서 B16의 블록 스칼라 리더는 awk로 굳혔는데 `jname`은 줄 단위 그대로다.
-- **C21. 문서 사이트의 이중언어 동기 부담이 10쌍이고, 기계 게이트는 0이다** `[확정 / 이번 세션 실측]` — `docs/*.md` **9개**와 `docs/en/*.md` **9개**가 번역 쌍이고(`agenda` `codex` `config-modes` `forge-vs-loop-engineering` `git-workflow` `index` `skills` `state-contract` `team-workflow`), 여기에 `docs/index.html`의 KO/EN span(C13)까지 **10쌍**이다. Markdown 9쌍은 짝 누락 0건이고 `##` 헤딩 수가 모두 일치한다(13/5/7/5/9/4/5/3/6, `skills.md`는 `##` 5 + `###` 22). `index.html`의 22개 표기도 이번에 복구됐다. 그러나 이 복구는 기계 게이트가 아니라 사람 편집이다 — fg-doctor는 README 1쌍만 보고, `docs/` 쌍 검사는 `scripts/forge-doctor.{sh,js}` 어디에도 없다. CLAUDE.md가 확인용 셸을 적어 두었을 뿐 사람이 기억해서 돌려야 한다. 부수: `docs/icon.png`와 `docs/public/icon.png`가 **바이트 동일 중복**이다(랜딩용/VitePress static용으로 경로가 갈려 생긴 사본).
-- **C22. `forge-loop-spend`가 하네스 내부 디렉터리 규약에 결합돼 있다 — 이번 구간에 그 결합이 *문서화*됐고, Codex에서는 사실상 사용 불가로 판명됐다** `[확정 / 이번 세션 확인]` — 트랜스크립트 루트를 `$HOME/.claude/projects/<slug>`로 도출하며 slug는 `pwd -P`를 `tr -c 'A-Za-z0-9' '-'` 한 값이다(`scripts/forge-loop-spend.sh:116-135`, 스크립트 자신은 이번 구간 **무변경**). 이 머신에서는 일치를 확인했다(도출 `-Users-gyuha-workspace-forge` = 실재 디렉터리). 문서화되지 않은 하네스 내부 레이아웃이므로 규약이 바뀌면 `BLOCKED transcripts-unreadable`(exit 5) → `blocked-health` 벽으로 **영구 정지**한다. **`skills/fg-loop/SKILL.md`가 이번 구간에 이 결합을 명시 문단으로 인정했다** — 재는 것이 *Claude Code의* 트랜스크립트 파일이므로 다른 호스트에서는 첫 태스크 경계에서 곧바로 `blocked-health`가 되고, 처방은 둘뿐이다: `budget-tokens: none`으로 우회하거나 `--transcripts DIR`로 그 호스트의 위치를 직접 가리키는 것(플래그 실재 확인, `:55`). *"There is deliberately no built-in path for another host"* — 관측 없는 경로를 발명하지 않겠다는 `core/HOST.md` 규율의 정직한 적용이지만, 결과적으로 **`budget-exhausted`는 아홉 벽 중 유일하게 결정론인 동시에 유일하게 Claude Code 전용인 벽**이다. 설계상 이 방향이 안전(측정 불가를 0 지출로 위장하지 않음, `:29-33` 주석)이지만 goal 루프가 원인 불명으로 못 도는 형태가 된다. 부수: 이 스크립트는 판정과 동시에 `loop.md`의 `budget-spent · since:`를 **덮어쓴다**(`:214-224`) — `loop.md`를 변경하는 유일한 스크립트이며, 판정이 소비되지 않아도 `since:`는 이미 전진해 있다.
-- **C23. 비-기본 브랜치에서는 `drive.md`가 git 추적 대상이다** `[확정 / 이번 세션 `git check-ignore` 재현]` — `.gitignore:11`의 `!.forge/branch/`가 브랜치 루트를 통째로 화이트리스트하므로 `.forge/branch/<branch>/drive.md`는 ignored가 아니다(재현: `check-ignore` rc=1, `git status`에 `?? .forge/branch/` 노출). 무인 주행 중 `git add -A`가 세션 ID를 담은 마커를(그리고 크래시 시 `drive.md.tmp.$$` 잔해까지) 커밋한다. 실피해는 낮다 — `Stop` 훅은 해석된 루트의 `drive.md`만 보므로 머지된 마커가 main 세션을 막지 않고, `forge-merge.sh:339`의 `rm -rf "$SRC"`가 폴더째 치운다. 다만 `forge-merge.sh:65`의 forge-루트 판별 목록(`CONTEXT.md plan.md run.md STATUS.md loop.md`)과 GATE 1의 in-flight 목록(`:128-132`) **어느 쪽에도 `drive.md`가 없다** — 살아 있는 `fg-next all` 주행은 fg-merge의 in-flight 감지에 안 걸린다.
-- **C24. `.forge/agenda.md`는 어떤 결정론 표면에도 보이지 않는다** `[확정 / 이번 세션 grep + 상태 실측]` — `scripts/forge-status.{sh,js}`·`scripts/forge-hook-session-start.sh`·`scripts/forge-doctor.{sh,js}` 전부 `agenda` 문자열 0건(재확인). 유일한 노출 경로는 `skills/fg-status/SKILL.md`의 산문 지시이고, 그 문서 자신이 **"The script never reports this — deliberately"**라고 밝힌다(의도된 결정이지 버그가 아니다). 실측 대가: 현재 `.forge/agenda.md`는 2026-08-05 개시, 결정 **10**·열린 질문 **6**·fog **3**·범위 밖 **4** 상태로 **34일째** 서 있고 **네 수치가 지난 구간과 한 건도 다르지 않다**. 그런데 doctor는 **0 errors / 0 warnings**로 완전 clean이고 SessionStart 훅은 침묵한다. 의제는 "낡음"을 알려주는 장치가 없는 유일한 활성 상태 파일이다(비교: `loop.md`는 fg-status·fg-ask·fg-merge가 모두 본다).
-- **C25. 벤더링된 세 스킬(20파일)에 드리프트 감지가 없고, 그 안의 실행 코드는 스크립트 규약 밖이다 — 이번 구간에 벤더링 표면이 하나 더 늘었다** `[확정 / 이번 세션 grep 전수]` — 벤더링은 이제 셋이다: `skills/fg-security/` 12파일(cloudflare/security-audit-skill, MIT) · `skills/fg-showme/scripts/` 5파일(obra/superpowers, MIT) · **신설 `skills/fg-debug/` 3파일**(mattpocock/skills `diagnosing-bugs`, MIT — `DIAGNOSE.md` 138줄 · `LICENSE` · `scripts/hitl-loop.template.sh` 44줄). 세 스킬 모두 SKILL.md가 "byte-for-byte with upstream"을 요구하고 진입 파일만 개명했다(`SKILL.md`→`AUDIT.md`/`DIAGNOSE.md`, forge 자동 탐색 충돌 회피).
-  - **체크섬도 커밋 핀도 없다** — 이번 세션에 `commit <sha>`·`upstream sha`·`vendored at` 류를 전 리포에서 grep했고 **매치 0건**이다. 즉 "언제 것과 동일한가"를 확인할 방법이 세 스킬 어디에도 없고, 실수로 한 줄 고쳐도 아무 검사가 안 잡는다. `fg-debug`가 같은 결정을 세 번째로 반복했다는 것이 요점이다 — 선례가 되어 굳었다.
-  - 부수: `skills/fg-security/validate-findings.cjs`는 `scripts/` 밖이라 fg-doctor의 B15(트윈 존재 검사, `"$repo"/scripts/*.sh` 글롭 한정)와 ADR-0022 이중 디스패치 규약이 **닿지 않는** 실행 코드다. `skills/fg-debug/scripts/hitl-loop.template.sh`도 같은 자리에 있다(다만 이쪽은 트윈 규약의 대상이 아닌 *템플릿*이다 — B8 부수 참조).
-  - fg-security의 산출물을 리포 밖(`~/security-audit-skill/`)에 두는 결정은 커밋 경로를 구조적으로 없앤 옳은 선택이고, **fg-debug가 그 규율을 계승했다** — 원본 캡처·HAR·로그·인증 헤더는 워킹 트리 밖 임시 위치에서만 다루고 비밀 제거된 fixture와 영속 체크만 남긴다(`skills/fg-debug/SKILL.md`의 "Phase 1 artifacts" 절). **그러나 그것을 지키는 것은 산문뿐이다** — 새 `.forge/` 상태를 만들지 않기로 했으므로 임시 산출물의 위치·삭제를 기록하는 원장이 없고, "모든 종료 경로에서 정리"를 확인할 수단이 리포에 없다. doctor의 B18은 그 문장이 *적혀 있는지*만 본다(B16).
-- **C26. 버전 동기 표면이 3곳에서 4곳으로 늘었다 — 다만 이건 fail-closed다** `[확정 / 이번 세션 코드·실측 확인]` — `.codex-plugin/plugin.json`이 추가되며 릴리스마다 맞춰야 하는 `version`이 4개가 됐다(`.claude-plugin/plugin.json` · `.claude-plugin/marketplace.json`의 `metadata` + `plugins[0]` · `.codex-plugin/plugin.json`). 현재 전부 **`0.8.6`**(실측). fg-doctor B8이 `error`로 잡고, `npm run release:check`가 exit 1로 막고(`scripts/release-check.sh:22-24`), `.github/workflows/release-check.yml`이 그 게이트를 매니페스트 경로 변경마다 CI에서 자동 실행한다. 이 리포에서 가장 튼튼하게 지켜지는 계약이다. 남는 것은 산문 쪽이다: `CLAUDE.md`의 배포 규칙 "4곳을 반드시 동기 갱신"을 **검사하는 것은 아무것도 없다** — 다음에 매니페스트가 하나 더 늘면 코드는 막아 주고 지시문은 조용히 낡는다(C1·C1b·C15와 같은 부류).
-- **C27. fg-showme 철거 후 빈 `.forge/` 디렉터리가 남는다** `[확정 / 회고 관찰]` — 마지막 세션이 종료되면 `stop-server.sh`가 `.forge/showme/`를 통째 제거하는데, forge를 쓰지 않는 프로젝트에서는 그 부모인 빈 `.forge/`가 남는다. git은 빈 디렉터리를 추적하지 않으므로 `git status`는 깨끗하고(실측) 실피해는 없다 — 순전히 미관이다. 회고 `260903-155833`이 DoD 밖 관찰로 명시 기록.
-- **C28. runnable-DoD의 쌍 체크에서 *양성* 쪽만 의미로 서술하면 재측정이 추측이 된다 — 그리고 같은 실수가 부정 쪽에서 나면 fail-open이다** `[확정 / 실사례 1건]` — 이번 구간 태스크의 계획은 부정 체크(`→ 0`)에 정확한 grep 문자열을 못 박았으나 짝이 되는 양성 체크(`≥ 1`)는 *의미로만* 적었다. 그래서 다음 날 검증 재진입에서 문구를 추측해야 했고 `survive`↔`survives`, `sweep`↔`swept`에서 **거짓 음성 2건**이 났다. 양성 체크의 거짓 음성은 fail-closed라 드러났지만, **같은 어미 차이가 부정 체크에서 나면 fail-open이라 조용히 통과한다** — CLAUDE.md가 경고하는 "부정 체크(`→ 0`)는 fail-open" 함정의 쌍둥이다. 처방은 "쌍 체크는 양쪽 다 실행 가능한 정확 문자열로"다. **이번 구간에 이웃 규칙 하나가 승급했다** — `skills/fg-run/PLAN-FORMAT.md:43`의 runnable-DoD 규칙에 **(e) "DoD는 산출물의 *동작*을 재고 그 대리 지표를 재지 않는다"**가 추가됐다(`(a)`~`(d)` 다음). 근거는 두 표본의 escalation이다 — `#94`는 기준을 *못 충족해서 시끄럽게* 드러났고 `#133`(fg-help Glob)은 **통과하면서 숨었다**. 규칙 문언 자신이 *"the only one that passes while the work is still broken"*이라 적는다. 그러나 C28이 지목한 **쌍 체크의 대칭 요구는 여전히 없다** — (c)가 "authoring 시점과 promotion 시점에 각 명령을 한 번 실행"을 요구해 재측정 추측 문제를 우회하지만, 양성 쪽을 *의미로만* 적는 것 자체를 금지하지는 않는다. 회고 `260903-155833` 학습 2.
-- **C29. 호스트 어댑터 비대칭 자체가 영구 유지보수 표면이다** `[확정 / 이번 세션 문서 확인]` — `fg-statusline`은 Claude 전용(`capabilities.json`의 `status_display: false`), `fg-agents`는 `.claude/agents/` 카드만 낳고, Codex 무인 주행은 "제한적"이다. `hosts/<host>/capabilities.json`의 8키와 `docs/{,en/}codex.md`의 지원 범위 표는 `core/HOST.md`가 스스로 밝히는 대로 **같은 주장의 두 형태**이고 반드시 함께 갱신해야 한다. **이번 구간에 그 동기의 절반이 기계화됐다** — `release-check`가 8키 전부가 두 표에 *이름으로* 등장하는지 검사하고 CI가 그것을 돌린다(그전에는 **8키 중 2개가 표에 행 자체가 없었다** — 회고 `260904-175155` divergence ③이 "같은 선언의 두 형태"라는 주장이 문자 그대로 거짓이었음을 기록한다). 남은 절반은 **상태 문구**다 — 어떤 키가 `false`인데 표가 "지원"이라 적어도 아무것도 안 잡는다(스크립트 주석이 *"The status wording itself stays human-reviewed — this gate does not claim more than it checks"*로 사정거리를 정직하게 밝힌다). 한 주장이 세 곳에 사는 구조(JSON 8키 + ko 표 + en 표)는 그대로다.
-- **C30. 루트 `AGENTS.md`가 추적되지 않아 클론에 없던 문제 — 해소됨** `[확정 / git 인덱스 확인]` — 커밋 `09abada`가 5줄 포인터를 추적 파일로 추가했다. `AGENTS.md`는 `CLAUDE.md`를 복제하지 않고 권위 있는 리포 지시문으로 가리키며, 충돌 시 `CLAUDE.md` 우선이라고 명시한다. `git ls-files --error-unmatch AGENTS.md`가 성공하므로 이제 클론·Codex 세션에도 전달된다.
-- **C31. 봉인된 STATUS 38건에 이 머신의 절대 경로가 박혀 있다** `[확정 / 이번 세션 전수]` — `.forge/done/*/STATUS.md` 151건 중 **38건**이 `/Users/…` 문자열을 담는다(봉인 스크립트가 해석된 루트를 그대로 기록했던 것). **원인은 이번 구간에 고쳐졌다** — `forge-done.sh:86`에 `relpath()`가 들어가 새 봉인은 리포 상대경로를 쓴다(`:216` `reviewed` 포함, 회고 `260906-211315` 학습 ⑤). 과거분 38건은 남아 있고, 기본 브랜치에서는 gitignored라 무해하지만 **비-기본 브랜치의 `.forge/branch/<branch>/`는 통째로 git 추적**이므로 같은 형태가 커밋될 수 있었다(그것이 학습 ⑤의 동기다). 소급 정리는 안 됐고, 안 하기로 한 기록도 없다.
-- **C32. `docs/config-modes.md`(신규 쌍)를 최신으로 유지할 동기화 규율이 어디에도 없다** `[확정 / 이번 세션 grep]` — `grep -rn "config-modes" CLAUDE.md skills/ .forge/adr/` → **ADR 1건의 언급뿐이고 CLAUDE.md·스킬 본문에는 0건**이다. CLAUDE.md 배포 규칙의 docs 갱신 목록(`docs/skills.md`·`docs/state-contract.md` 등)에 이 페이지가 없어서, `fg-config`의 여섯 키가 바뀌어도 이 문서를 함께 고칠 이유가 문서화되지 않는다. 회고 `260906-161658`이 이를 "승급 바를 못 넘어 남기는 것"으로 명시 기록했다(당시 작업의 비목표가 CLAUDE.md 편집이었다). 부수 둘: 같은 회고가 사이드바 라벨 `설정 모드 (simple)`이 페이지가 `eco`·`tdd`로 자라면 부정확해진다고 적어 두었고, `docs.yml`의 아티팩트 smoke 목록(`test -f _site/docs/*.html` 6줄)에도 `config-modes.html`이 없다.
-- **C33. fg-debug의 HITL 템플릿은 사용자 터미널에서 도는 대화형 셸이고, 그 흐름을 지키는 계약이 산문뿐이다** `[확정 / 이번 세션 실기동]` — `skills/fg-debug/scripts/hitl-loop.template.sh`(44줄, 755)는 에이전트가 복사·편집해 돌리고 사용자가 터미널에서 `step`(Enter 대기)·`capture`(응답을 변수로 읽기)에 답하며, 끝에 `KEY=VALUE`를 찍어 에이전트가 파싱한다. **실기동 확인**: 파이프 입력으로 정상 동작, exit 0, `eval`·서브셸 주입 경로 없음(`read -r`만 사용, `printf -v`로 대입). 위험은 코드가 아니라 형태에 있다 — ⓐ 사용자가 붙여 넣는 값(에러 메시지·스택트레이스)이 그대로 에이전트 컨텍스트로 들어오는데 **SessionStart 훅의 `sanitize()`에 해당하는 초크포인트가 이 경로에는 없다**(훅과 달리 이건 에이전트가 읽는 도구 출력이므로 같은 계열의 방어가 설계돼 있지 않다) ⓑ `set -euo pipefail` 아래 `read`가 EOF를 만나면 스크립트가 중단되므로 부분 캡처만 남을 수 있고 그때 정리 책임은 산문 계약이다. 벤더링 파일이라 편집 금지 대상이고(C25), forge가 더한 계약(비밀 제거·모든 종료 경로 정리)은 doctor의 B18이 *문구로만* 확인한다(B16).
-
----
-
-## 이미 판정된 무해 항목 (재조사 불필요) `[확정/이월]`
-
-- **런타임 부재**: bash·node 둘 다 없으면 `hooks/run-hook.cmd`가 조용히 exit 0 → 훅 도입 전 현상 유지(`:82-88` 재확인).
-- **`.forge`가 파일인 경우 / STATUS 없는 park 디렉터리**: 훅이 exit 0(침묵/폴백).
-- **깨진 `config.json`**: `resolve-forge-root.{sh,js}`가 정규식으로 `defaultBranch`를 뽑아 파싱 예외가 없고 sh·js 일치.
-- **`forge-statusline-wrapper.sh`의 `.js` 트윈 부재**: 의도된 예외로 fg-doctor의 B15가 명시 제외(`*-wrapper.sh` case).
-- **`STATUS.md` 필드 표기 두 형식 공존**: 봉인 151건 중 legacy 불릿 형식(`- verified:`)이 섞여 있으나 파서가 양쪽을 명시 허용(`-\{0,1\}` 앵커). 이 리포에서 STATUS 통계를 낼 때는 불릿 접두를 허용해야 한다(이번 세션 집계도 그렇게 했다). 이번 구간에 이 표기 변주(대소문자·공백)가 표를 뒤집던 리포팅 결함이 `forge-status.parity.test.sh`의 eval 4건으로 영속화됐다(회고 `260906-211315`).
-- **`.forge/dropped/`(1건 존재)**: 기본 브랜치에서 gitignored — 설계 그대로(ADR-0021).
-- **루트 `package.json`에 `"type"` 필드 없음**: 이번 세션 재확인(`name: forge-docs`, `private: true`, scripts 4개 = vitepress 3종 + `release:check`, devDeps 3종). CLAUDE.md가 경고하는 CommonJS 붕괴 조건에 해당하지 않는다 — `release:check`가 `scripts/release-check.js`(CommonJS `require`)를 부르고 **이제 CI가 그것을 돌리므로** 이 필드 금지는 더 중요해졌다(넣으면 CI가 붉어지는 쪽으로 바뀌었다 = fail-closed로 개선).
-- **`Stop` 훅의 실패 경로 전량**: 마커 부재·세션 불일치·미파싱·시계 부재·tty·쓰기 실패 모두 exit 0(정지 허용)이며 behavior 10 + parity 케이스가 덮는다(이번 세션 재실측 전건 통과, 파일 무변경). 위험은 코드가 아니라 마커 삭제 계약에 있다(B11).
-- **`release-check.sh`의 bash 배열 사용**: `errors=()` + `${#errors[@]}`가 macOS 기본 `/bin/bash` 3.2.57에서도 `set -u` 아래 문제없이 동작한다(실측: 정상 경로 exit 0 + `ok` 출력, 위반 경로 exit 1 + 순서 보존). ADR-0022의 bash 이식성 요건에 걸리지 않는다.
-- **`.codex-plugin/plugin.json`의 JSON 유효성**: fg-doctor B9이 존재할 때만 파싱하도록 확장됐다(`forge-doctor.sh:128` — `if(f.existsSync('$CJ'))`). 세 매니페스트 모두 커버. 반면 `hosts/*/capabilities.json`은 이 검사 밖이다(B14 ①).
-- **`.forge/showme/`에 남아 있는 Aug 31자 죽은 세션 2개**: 이번 세션에도 그대로다(`10383-1788153446`·`33562-1788158886` + `.last-port`/`.last-token`, 자체-ignore `.gitignore` 없음 — 수정 이전에 생긴 것). 기본 브랜치에서는 `.gitignore:5`의 `.forge/*`가 덮으므로 `git status --porcelain`에 showme 항목 **0건**(실측). 다음 `start-server.sh` 호출의 sweep 대상이다 — 설계대로 회수되며, `skills/fg-showme/`는 이번 구간 무변경이다.
-- **fg-debug가 새 `.forge/` 상태를 만들지 않는다는 결정**: `ls .forge/` 실측에서 `debug` 디렉터리가 없음을 확인했다(현재 트리는 `CONTEXT.md adr agenda.md backlog codebase config.json done dropped executed quick retro showme`). 상태 계약 표에 행이 늘지 않았으므로 소비자 ripple이 없다 — 다만 그 결정의 대가는 임시 산출물의 원장이 없다는 것이고(C25·C33) 그쪽은 결함으로 남긴다.
-- **`AGENTS.md`가 `CLAUDE.md`를 복제하지 않는다**: 5줄 포인터이고 커밋 `09abada`부터 추적된다. 두 지시문이 갈라지는 부류의 위험도, 클론에 전달되지 않던 C30의 문제도 해소됐다.
+- `skills/fg-security/`, `skills/fg-debug/`, `skills/fg-showme/`, `hooks/run-hook.cmd`에는 외부 프로젝트에서 가져온 코드·문서가 포함된다. 각 디렉터리의 `LICENSE`와 소스 머리말이 출처·로컬 수정을 기록한다.
+- `skills/fg-security/SKILL.md`는 vendored 파일을 byte-for-byte 유지하도록 요구하고 Forge 연결부만 별도 절에서 관리한다. upstream 갱신 시 로컬 연결 규칙과 원본 보존을 함께 확인해야 한다.
+- `skills/fg-showme/`는 upstream 형태를 유지하지만 branding, telemetry 제거, 테마, 세션 저장소, 인증, wake 동작을 로컬 수정했다. 단순 upstream 덮어쓰기로 갱신할 수 없다.
+- 플러그인 버전은 `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`의 두 위치, `.codex-plugin/plugin.json`에 걸쳐 4개 값이 동기돼야 한다. `scripts/release-check.*`와 `scripts/forge-doctor.*`가 이 드리프트를 검사한다.
+- 2026-09-11 시점의 워킹 트리에는 출처가 다른 미커밋 변경이 섞여 있다. `skills/fg-loop/*`·`scripts/forge-doctor.*`·`CLAUDE.md`는 참조 정합 작업의 산물이고 `docs/.vitepress/config.mts`·`docs/index.html`·`docs/public/og-image.png`는 별개의 문서 사이트 작업이다. `CLAUDE.md`의 배포 규칙은 무관한 변경을 릴리스 커밋에 섞지 않도록 요구하므로 커밋 분리 판단이 필요하다.
+- README와 문서 사이트가 각각 한국어·영어 사본을 유지하고, Claude·Codex·opencode 지원표가 `hosts/*/capabilities.json`의 선언을 설명한다. capability 변경은 JSON, 호스트 어댑터, 두 언어 문서를 함께 수정해야 한다.

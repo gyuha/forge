@@ -255,5 +255,36 @@ t=$(mktmp); b20_seed "$t" '**Host contract**: this skill is host-neutral.
 Elsewhere it uses `structured_choice`.'; run_doc "$t"; assert "B20-key-outside-rc1" 1 "$RC"; assert_grep "B20-key-outside-msg" "$OUT" "B20 host contract names no capability"; rm -rf "$t"
 t=$(mktmp); b20_seed "$t" '**Host adapter**: needs `structured_choice`.'; run_doc "$t"; assert "B20-label-rc1" 1 "$RC"; assert_grep "B20-label-msg" "$OUT" "B20 host contract label"; rm -rf "$t"
 
+# --- B21: self-referential section pointer (retro 260911-160340 -> eval) ---
+# A `§N` citation inside section N. Seeds the canonical Explaining-forge body so B17 stays
+# silent, and asserts BOTH directions: a planted self-reference is caught, and a correct
+# cross-section citation is not. The negative case is what proves the check can actually see
+# — an earlier awk implementation reported zero on every input (BSD awk lacks 3-arg match()),
+# so "0 findings on the real repo" was indistinguishable from "detector is dead".
+b21_seed() { # $1=dir $2=body-after-rule
+  mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"
+  { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$RULE"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
+t=$(mktmp); b21_seed "$t" '## 1. One
+
+Cross-section citation to §2 is fine.
+
+## 2. Two
+
+And back to §1.'; run_doc "$t"; assert "B21-good-rc0" 0 "$RC"; assert_nogrep "B21-good-none" "$OUT" "B21 "; rm -rf "$t"
+t=$(mktmp); b21_seed "$t" '## 1. One
+
+This cites §1 from inside section 1.
+
+## 2. Two
+
+Fine.'; run_doc "$t"; assert "B21-self-rc1" 1 "$RC"; assert_grep "B21-self-msg" "$OUT" "B21 self-referential section pointer"; rm -rf "$t"
+t=$(mktmp); b21_seed "$t" '## 1. One
+
+Citing §12 must not match section 1.
+
+## 12. Twelve
+
+Fine.'; run_doc "$t"; assert "B21-prefix-rc0" 0 "$RC"; assert_nogrep "B21-prefix-none" "$OUT" "B21 "; rm -rf "$t"
+
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
