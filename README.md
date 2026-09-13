@@ -145,6 +145,8 @@ fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
 
 **How it phrases anything is a separate always-on rule.** Every skill carries an `**Explaining forge**` paragraph next to its language rule: gloss a forge-specific term the first time it appears in a message, put the purpose before the mechanism, and lead with the answer. It is **not** gated on `eco` — the installers who most need a gloss are the ones least likely to have turned eco on — and it governs **vocabulary** while `eco`'s terse rules govern **form**, so terseness never deletes a gloss. A `fg-doctor` check compares each skill's copy against a single canonical definition, so the rule cannot quietly drift out of one of them ([ADR `260824-134246`](./.forge/adr/260824-134246-explaining-forge-always-on.md)).
 
+Skill authors can consult the optional [situational output examples](./skills/fg-next/OUTPUT-EXAMPLES.md) when reviewing a specific skill’s output. They illustrate context restoration, numbered procedures, and grouping without dropping information. Routine skill execution does not require reading them; existing handoffs and output rules still apply.
+
 A detailed flow diagram (loop ↔ document artifacts) is in [docs/state-contract.md](./docs/state-contract.md) (Korean).
 
 ## Install
@@ -248,6 +250,8 @@ The code-simplicity discipline used by **eco mode** (`fg-config`'s `eco` key) �
 The terse-communication output rules in the same `ECO.md` — compressing execution/reporting prose to save context while keeping code/errors verbatim and leaving grilling questions and generated docs in full — are adapted from the [caveman skill by JuliusBrussee](https://github.com/JuliusBrussee/caveman).
 
 The **always-on `**Explaining forge**` rule** carried by every `SKILL.md` — gloss a forge-specific term on first use, purpose before mechanism, lead with the answer — is adapted **in concept** from the [eli5 skill by dreambigou](https://github.com/dreambigou/eli5) (MIT). No code was vendored: only the vocabulary-calibration rules were taken, its audience tables were dropped (forge output has one reader), and it is deliberately **not** part of eco — the installers who most need a gloss are the ones least likely to have eco on. It governs **vocabulary** while `ECO.md`'s terse rules govern **form**, so terseness never deletes a gloss (ADR `260824-134246`).
+
+The situational output examples adapt numbered procedures, context restoration, and grouped lists from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (MIT). These are forge-specific examples, not a vendored skill or a claim of measured output improvement.
 
 The landing page (`docs/index.html`) was built with the **Visual Companion** of [Superpowers by Jesse Vincent (obra)](https://github.com/obra/superpowers/blob/main/skills/brainstorming/visual-companion.md) — its browser-preview design tool that lays out mockup, layout, and color options before the page is coded.
 
