@@ -32,6 +32,11 @@ forge's convention (CLAUDE.md, "스킬 편집 규약"): skill bodies and format 
 | File paths, directory names, `.forge/` state fields (`verified:`, `retro:`), `/commands` | **verbatim, never translated** | They are typed or looked up literally. A translated path is a broken path. |
 | Natural-language trigger phrases in `How to start` | **the user's language, chosen from the skill's own `description`** | Each `fg-*` skill registers its triggers in **both** languages (e.g. fg-run: `'forge run'`, `'계획 실행'`). Handing an English-speaking user `"계획 실행"` gives them a cell they cannot act on. |
 
+Host syntax is selected before rendering: on Pi, map a shared
+`/forge:fg-<name>` command to `/skill:fg-<name>` and preserve its arguments.
+This is host adaptation, not translation; the selected command stays verbatim.
+See [../../hosts/pi/interaction.md](../../hosts/pi/interaction.md).
+
 So `How to start` is assembled, not copied: take the target skill's `/command` verbatim, and pick the natural-language trigger matching the user's language from that skill's `description`. **A skill's body must not hard-code trigger phrases in one language** — it names the skill and its `/command`, and the language-matching phrase is selected at render time.
 
 Rendered in a Korean session, the shape above comes out as:

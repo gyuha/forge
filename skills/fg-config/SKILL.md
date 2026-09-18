@@ -1,6 +1,6 @@
 ---
 name: fg-config
-description: Unified settings surface for forge — every key in .forge/config.json: `simple` (auto-seal — fg-run verifies then seals in the same turn, retro auto-skipped), `eco` (sonnet-capped subagents + ECO.md discipline), `tdd` (test-first default), `driveCommit`/`driveCommitMessage`, `defaultBranch`. Replaces fg-eco/fg-tdd. `fg-config` (no arg) shows all and offers changes via a menu; `fg-config <key> <value>` sets one directly. Outside the loop. Use in contexts like 'forge config', '설정', 'simple mode', '심플 모드', 'eco on', 'eco off', '에코 모드', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼'.
+description: "Unified settings surface for forge — every key in .forge/config.json: `simple` (auto-seal — fg-run verifies then seals in the same turn, retro auto-skipped), `eco` (sonnet-capped subagents + ECO.md discipline), `tdd` (test-first default), `driveCommit`/`driveCommitMessage`, `defaultBranch`. Replaces fg-eco/fg-tdd. `fg-config` (no arg) shows all and offers changes via a menu; `fg-config <key> <value>` sets one directly. Outside the loop. Use in contexts like 'forge config', '설정', 'simple mode', '심플 모드', 'eco on', 'eco off', '에코 모드', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼'."
 ---
 
 # fg-config — forge's settings surface (outside the loop)

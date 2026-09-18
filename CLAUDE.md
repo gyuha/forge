@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 이 리포가 무엇인가
 
-forge는 **Claude Code·Codex 플러그인**이다 — 코드를 빌드하는 프로젝트가 아니라, `fg-*` 워크플로우 스킬을 패키징한 플러그인이자 그 자신이 설치 가능한 마켓플레이스다. 산출물은 전부 Markdown(`SKILL.md`, 형식 문서)과 JSON(매니페스트)이다.
+forge는 **Claude Code·Codex 플러그인이자 opencode·Pi를 지원하는 공통 스킬 패키지**다 — 코드를 빌드하는 프로젝트가 아니라, `fg-*` 워크플로우 스킬을 패키징한 플러그인이자 그 자신이 설치 가능한 마켓플레이스다. 산출물은 전부 Markdown(`SKILL.md`, 형식 문서)과 JSON(매니페스트)이다.
 
 **플러그인 본체에는 빌드·테스트·린트 시스템이 없다.** Makefile 없고, 스킬 Markdown·매니페스트 JSON을 빌드하는 단계도 없다. "개발"은 Markdown/JSON을 편집하는 것이고, 검증은 아래 방법으로 한다. **예외는 문서 사이트 하나뿐** — 루트 `package.json`(VitePress)과 `.github/workflows/docs.yml`이 `docs/`의 Markdown을 `gyuha.com/forge/docs/`로 빌드·배포한다(랜딩 `gyuha.com/forge/`는 그대로 유지, ADR `260815-094725`). 이 `package.json`은 **문서 도구이지 플러그인 빌드가 아니다** — 이 경계를 흐리지 말 것.
 
@@ -50,8 +50,9 @@ npm run docs:build
 - `.claude-plugin/plugin.json` — 플러그인 매니페스트. `skills/` 가 자동 탐색되므로 `skills` 필드는 생략 가능.
 - `.claude-plugin/marketplace.json` — 이 리포를 마켓플레이스로 등록. `plugins[].source` 는 `"./"`(루트가 곧 플러그인).
 - `.codex-plugin/plugin.json` — **Codex 플러그인 매니페스트**(ADR `260903-080713`). `skills`가 `"./skills/"`를 가리켜 Claude와 **같은 스킬 트리**를 로드한다. 버전은 위 두 파일과 함께 4곳 동기 대상이다.
+- **Pi 기본 지원** — Pi가 기존 `skills/` 디렉터리를 패키지 관례로 탐색한다. 별도 매니페스트·확장·스킬 사본 없이 `/skill:fg-*`로 호출하며 `hosts/pi/`는 순차 실행과 경로 fallback을 정의한다. 설치된 Pi SDK를 쓰는 `node scripts/pi-host.test.mjs`로 22개 로딩·참조·외부 작업 디렉터리 상태 조회를 검증한다. 루트 package.json은 여전히 문서 도구이며 Pi 전용 의존성을 넣지 않는다.
 - `core/` — **호스트 중립 계약 3파일**(`HOST.md` 어댑터 선택+능력표 · `EXECUTION.md` 실행 계약 · `INTERACTION.md` 질문 계약). 워크플로·`.forge/` 상태 의미론은 전부 여기와 `skills/`·`scripts/`에 있고, 호스트별로 갈라지지 않는다.
-- `hosts/<claude|codex>/` — **호스트 어댑터**(`interaction.md` · `execution.md` · `capabilities.json`). 어댑터가 소유하는 것은 *질문 방식·위임 방식·프로젝트 에이전트 로드·주행 계속·상태 UI* 뿐이다. **어댑터에 상태 모델을 복제하거나 스킬의 Codex 전용 사본을 만들지 말 것.**
+- `hosts/<claude|codex|opencode|pi>/` — **호스트 어댑터**(`interaction.md` · `execution.md` · `capabilities.json`). 어댑터가 소유하는 것은 *질문 방식·위임 방식·프로젝트 에이전트 로드·주행 계속·상태 UI* 뿐이다. **어댑터에 상태 모델을 복제하거나 스킬의 Codex 전용 사본을 만들지 말 것.**
 - 스킬은 `skills/<name>/SKILL.md` 로 자동 탐색된다. **스킬 식별자는 디렉터리명이 아니라 frontmatter의 `name`** 이다.
 - **`.codex/skills/`는 플러그인이 아니라 *프로젝트 로컬* 스킬 경로다** — 이 리포에서만 쓰는 유틸리티(`issue-triage`)를 Codex에 노출시키는 자리이며, `skills/`(배포되는 forge 스킬 트리)와 혼동하면 안 된다. 필요한 이유는 호스트마다 프로젝트 스킬 탐색 경로가 다르기 때문이다 — **Claude Code·opencode는 `.claude/skills/`를 읽지만 Codex는 읽지 않는다**(`codex debug prompt-input`으로 관측). 그래서 실체는 `.claude/skills/<name>/`에 한 벌만 두고 `.codex/skills/<name>`은 **심볼릭 링크**로 잇는다(사본 금지 — 두 벌은 드리프트한다; git은 `mode 120000`으로 링크를 보존한다). 여기 두는 스킬은 forge 제품이 아니므로 매니페스트의 스킬 개수·설명에 넣지 않으며, `fg-doctor`의 `skills/*/SKILL.md` 검사(B17·B20·B21)도 적용되지 않는다.
 - `hooks/hooks.json` — **플러그인이 배포하는 훅**. `skills/`처럼 자동 탐색되므로 매니페스트에 등록하지 않으며, 사용자 설정(`settings.json`) 편집 없이 플러그인 설치만으로 걸린다. 현재 훅은 하나다 — `SessionStart`(매처 `startup|resume|clear|compact`, `async: false`)가 `hooks/run-hook.cmd session-start` 를 실행해 **미봉인 잔여**를 세션 진입 컨텍스트에 주입한다(ADR `260727-201031`). 본체는 `scripts/forge-hook-session-start.sh`/`.js` 트윈이고 `run-hook.cmd`는 bash→node 순으로 디스패치하는 polyglot 래퍼(superpowers 패턴 MIT 차용, 런타임 없으면 exit 0 침묵)다. **훅은 세션 시작 시 로드되므로 추가·수정은 세션 재시작 후에 적용된다**(`.claude/agents/` 카드와 동형 — ADR-0024).

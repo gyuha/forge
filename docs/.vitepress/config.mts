@@ -30,6 +30,7 @@ const sidebarKo = [
     items: [
       { text: 'Codex에서 사용하기', link: '/codex' },
       { text: 'opencode에서 사용하기', link: '/opencode' },
+      { text: 'Pi에서 사용하기', link: '/pi' },
       { text: 'git 워크플로우', link: '/git-workflow' },
       { text: '팀 워크플로우', link: '/team-workflow' },
       { text: 'fg-agenda 사용 가이드', link: '/agenda' },
@@ -59,6 +60,7 @@ const sidebarEn = [
     items: [
       { text: 'Using with Codex', link: '/en/codex' },
       { text: 'Using with opencode', link: '/en/opencode' },
+      { text: 'Using with Pi', link: '/en/pi' },
       { text: 'Git workflow', link: '/en/git-workflow' },
       { text: 'Team workflow', link: '/en/team-workflow' },
       { text: 'fg-agenda guide', link: '/en/agenda' },

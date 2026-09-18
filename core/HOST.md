@@ -9,7 +9,7 @@ delegates, loads project agents, continues a drive, and displays status.
 1. Explicit host metadata wins.
 2. `PLUGIN_ROOT` identifies Codex.
 3. `CLAUDE_PLUGIN_ROOT` without Codex metadata identifies Claude Code.
-4. Explicit host metadata is the **only** signal that identifies opencode.
+4. Explicit host metadata is the **only** signal that identifies opencode or Pi.
 5. If the host cannot be identified, use the sequential fallback: plain-text
    questions, no role-specific delegation, and no host UI mutation.
 
@@ -33,6 +33,12 @@ carries the procedure). Its
 adapter currently declares every capability `false`, which is the observation
 rule below applied literally, not a claim that opencode cannot do these things.
 
+Pi loads Forge's shared `skills/` directory as a Pi package and exposes native
+`/skill:fg-*` commands (see `hosts/pi/interaction.md`). Identify Pi from explicit
+session metadata or the user's host declaration, never from an installed `pi`
+executable or absent Claude/Codex variables. Basic Pi support uses sequential
+execution without extensions, hooks or automatic turn continuation.
+
 When a shell command needs the installed plugin root, normalize it locally:
 
 ```sh
@@ -54,6 +60,14 @@ precedence is safe. Textual `${CLAUDE_PLUGIN_ROOT}` substitution is the
 — which is why skill bodies keep `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}`
 (inverting *there* would leave an unexpanded expression for the agent to read).
 Do not "fix" one to match the other.
+
+If neither native root variable is provided (including Pi), resolve the loaded
+`<package>/skills/<name>/SKILL.md` path, take `<package>` two directories above
+its directory, and use that absolute path for the shared instructions' root
+placeholders before executing commands. Verify `core/HOST.md` and the requested
+script exist there; never expand an empty root into `/scripts/` or use the
+caller's working directory as the installation root. Keep that working
+directory unchanged so state scripts operate on the user's project.
 
 Skills should prefer paths relative to their own directory. They must not fork
 the state model or maintain a second Codex-specific copy of a skill.
@@ -82,10 +96,10 @@ its `**Language**` rule (fg-doctor B20 keeps the two in step).
 Unverified defaults to `false`, because every capability has a defined fallback
 (sequential execution, a numbered text list, a stated stop) and a fallback that
 runs is always cheaper than a tool call that does not exist. Flipping a `false`
-to `true` is an observation, not an assumption — and `docs/codex.md`'s support
-table must be updated in the same change, since the two are the same claim in
+to `true` is an observation, not an assumption — and the matching `docs/<host>.md` and `docs/en/<host>.md` support
+tables must be updated in the same change, since the two are the same claim in
 two forms.
 
 Read the matching adapter in `../hosts/claude/`, `../hosts/codex/` or
-`../hosts/opencode/` (relative to this file) before using a host-specific
+`../hosts/opencode/` or `../hosts/pi/` (relative to this file) before using a host-specific
 capability.

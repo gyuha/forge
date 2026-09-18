@@ -1,11 +1,11 @@
 ---
 name: fg-merge
-description: Integrates a merged branch's forge content (.forge/branch/<branch>/) into .forge/. Two modes: `fg-merge` (no arg) integrates only; `fg-merge <branch>` also runs `git merge <branch>` for you first, then integrates (default branch only; on conflict it stops, leaving the conflict in place). A deterministic script (forge-merge.sh/.js) does the git-free integration — usable AI-free in CI. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘', '머지하고 통합'.
+description: "Integrates a merged branch's forge content (.forge/branch/<branch>/) into .forge/. Two modes: `fg-merge` (no arg) integrates only; `fg-merge <branch>` also runs `git merge <branch>` for you first, then integrates (default branch only; on conflict it stops, leaving the conflict in place). A deterministic script (forge-merge.sh/.js) does the git-free integration — usable AI-free in CI. Use in contexts like 'forge merge', 'fg-merge <branch>', '브랜치 통합', '브랜치 forge 합쳐줘', '머지하고 통합'."
 ---
 
 # fg-merge — integrate a branch's forge content into `.forge/` (outside the loop)
 
-This is **not** a stage of the forge loop. It is the integration step for branch isolation (ADR-0011): when a feature branch has been run with its forge state under `.forge/branch/<branch>/` (a git-tracked, namespaced mini-root — see `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md`), fg-merge folds that branch's permanent forge docs into the default-branch `.forge/`.
+This is **not** a stage of the forge loop. It is the integration step for branch isolation (ADR-0011): when a feature branch has been run with its forge state under `.forge/branch/<branch>/` (a git-tracked, namespaced mini-root — see [../fg-run/FORGE-ROOT.md](../fg-run/FORGE-ROOT.md)), fg-merge folds that branch's permanent forge docs into the default-branch `.forge/`.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The integration summary and any conflict question are written in the user's language.
 

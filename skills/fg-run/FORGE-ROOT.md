@@ -2,6 +2,13 @@
 
 > Where forge state lives depends on the current git branch. This rule is defined **once, here** (owned by fg-run, the primary state navigator); every loop skill (fg-ask, fg-run, fg-learn, fg-done, fg-status, fg-next, fg-quick) resolves the root through it before reading or writing any `.forge/...` path. Do not duplicate the logic — reference this file. (See `.forge/adr/0011-branch-isolated-forge-root.md`.)
 
+## Installed files versus project state
+
+Before following plugin-root placeholders, resolve installed files through
+[../../core/HOST.md](../../core/HOST.md) when native root variables are absent
+(as in Pi). Installation paths come from the loaded skill, while all project
+state paths below remain relative to the caller's working directory.
+
 ## The rule
 
 1. **Current branch** — `git rev-parse --abbrev-ref HEAD`.

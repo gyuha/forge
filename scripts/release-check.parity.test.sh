@@ -145,6 +145,17 @@ assert_parity "unknown new host is checked" "$U" "missing host adapter: hosts/ne
 V="$(mkrepo 9.9.9 9.9.9 ./skills/)"; rm -rf "$V/hosts"; mkdir -p "$V/hosts"
 assert_parity "no host adapters at all" "$V" "no host adapters found under hosts/"
 
+# A complete fourth adapter is accepted, and its documentation remains gated.
+PI_FIXTURE="$(mkrepo 9.9.9 9.9.9 ./skills/)"
+cp -R "$PI_FIXTURE/hosts/opencode" "$PI_FIXTURE/hosts/pi"
+cp "$PI_FIXTURE/docs/opencode.md" "$PI_FIXTURE/docs/pi.md"
+cp "$PI_FIXTURE/docs/en/opencode.md" "$PI_FIXTURE/docs/en/pi.md"
+assert_parity "complete Pi adapter accepted" "$PI_FIXTURE" "claude/codex/opencode/pi adapters"
+PI_FIXTURE="$(mkrepo 9.9.9 9.9.9 ./skills/)"
+cp -R "$PI_FIXTURE/hosts/opencode" "$PI_FIXTURE/hosts/pi"
+cp "$PI_FIXTURE/docs/opencode.md" "$PI_FIXTURE/docs/pi.md"
+assert_parity "Pi support docs required" "$PI_FIXTURE" "docs/en/pi.md is missing"
+
 rm -f /tmp/rc.sh.err /tmp/rc.js.err
 [ "$fails" -eq 0 ] && { echo "RELEASE-CHECK PARITY OK"; exit 0; }
 echo "RELEASE-CHECK PARITY FAILED ($fails)"; exit 1

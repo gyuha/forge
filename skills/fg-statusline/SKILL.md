@@ -5,7 +5,7 @@ description: Set up (or refresh) a Claude Code statusline showing forge's loop p
 
 # fg-statusline — set up the forge progress statusline (outside the loop)
 
-**Codex capability**: persistent statusline installation is not supported by this adapter. On Codex, do not edit settings; explain the limitation and direct the user to `$fg-status`. The remaining instructions apply only to Claude Code.
+**Host contract**: read [../../core/HOST.md](../../core/HOST.md). Installation depends on `status_display`; when false or the host is unknown (including Pi), do not edit settings. Explain the limitation and direct the user to the active host's `fg-status` command. The remaining instructions apply only to Claude Code.
 
 This is **not** a stage of the forge loop. It is a one-time setup utility: it installs forge's statusline scripts to a stable location and wires one into your Claude Code `settings.json`, so your terminal statusline shows where the forge loop currently stands. Re-run it any time to refresh the installed scripts after a forge update.
 

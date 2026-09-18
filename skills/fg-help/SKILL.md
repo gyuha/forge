@@ -21,6 +21,12 @@ fg-help **never stores a copy** of any usage text. forge's top discipline is sin
 
 **Scope — forge `fg-*` skills only.** Glob the skill files and read each one's frontmatter (`name` + `description`). **Call Glob with the pattern `**/SKILL.md` and its `path` argument set to this skill's own parent directory** — the plugin's `skills/` directory, i.e. the parent of the base directory the host states for this skill at the top of this prompt. Two patterns look right and silently return **zero** files: a `${...}` one (Glob performs no shell parameter expansion, so it is matched literally) and a `../`-prefixed one (Glob resolves a non-absolute pattern against the **user's working directory**, never this skill's directory, and its globs never match upward). Anchoring `path` avoids both, and keeps the match inside the plugin. This file location is the deterministic boundary of "what is a forge skill" (the same auto-discovery convention the plugin uses). Do **not** include other plugins' skills loaded in the session (superpowers, codex, local `.claude/skills/` tools, etc.) — forge does not own or maintain their descriptions, so their help quality can't be guaranteed here; fg-help documents its own house only.
 
+If the host has no Glob tool (such as basic Pi), enumerate that same absolute
+`skills/` directory using its shell/file tools, then read the discovered
+`SKILL.md` files. Never invent a Glob tool. Render command examples using the
+active host's syntax from [../../core/HOST.md](../../core/HOST.md) and its
+interaction adapter; Pi uses `/skill:fg-*`.
+
 ## Two modes
 
 Mode is chosen by whether an argument was given.
