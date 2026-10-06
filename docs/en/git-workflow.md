@@ -15,13 +15,14 @@ What forge does:  writes .forge/ state  +  reminds you "commit these files"
 What you do:      git add / commit / push / branch / merge  (the one exception, fg-merge, is §2)
 ```
 
-## 2. The exception — only `fg-merge <branch>` actually runs git
+## 2. The exception — only `fg-merge` actually runs git
 
-There is exactly one exception. **Give `fg-merge` a branch argument** (`fg-merge <branch>`) and, as a convenience, it **runs `git merge <branch>` for you first**, then integrates the forge state (ADR `260717-10a`). `fg-merge` with no argument still **integrates only**, as before.
+`fg-merge` is the one exception, and two of its modes run git. **Run `fg-merge to main` from a feature branch** and it chains commit your work → check out main → `git merge` → integrate → commit the integration (ADR `261006-102435`). **Give `fg-merge` a branch argument** (`fg-merge <branch>`) and, as a convenience, it **runs `git merge <branch>` for you first**, then integrates the forge state (ADR `260717-10a`). `fg-merge` with no argument still **integrates only**, as before.
 
 - The git merge runs **only in the interactive skill layer**. The integration core — the deterministic `forge-merge.sh`/`.js` script and the CI path — **still never runs git** (which is what keeps it usable AI-free in CI).
 - If the merge **conflicts**, it leaves the conflict in place and **stops** (no integration) — you resolve the conflict, `git commit`, then integrate with `fg-merge` (no argument).
-- **It does not commit.** The merge commit is git's own; the integration changes are left uncommitted, with a reminder to commit them.
+- **The `<branch>` mode does not commit.** The merge commit is git's own; the integration changes are left uncommitted, with a reminder to commit them.
+- **Only the `to` mode commits** — your uncommitted work and the integration result — after first stopping on unfinished forge work with `forge-merge.sh --gate-only` and asking for confirmation once. **No mode pushes or deletes the branch.**
 
 No other forge skill runs git.
 
@@ -42,7 +43,7 @@ Where each skill touches git, at a glance:
 
 | Skill | git contact |
 |-------|-------------|
-| **fg-merge** | **Runs git** (`git merge` in `<branch>` mode) — the only one in forge. Reminds you to commit after integrating |
+| **fg-merge** | **Runs git** (`git merge` in `<branch>` mode; commit · checkout · merge in `to` mode) — the only one in forge. `<branch>` mode reminds you to commit after integrating; `to` mode commits the integration itself |
 | fg-done | Never runs git. After sealing, if tracked docs (retro·ADR·CONTEXT) are uncommitted, it **reminds you to commit** |
 | fg-learn / fg-ask | Never runs git. They write tracked fuel (CONTEXT·ADR·retro), so committing is yours |
 | fg-run | Never runs git. It changes your code but **never forces a commit** |
@@ -51,7 +52,7 @@ Where each skill touches git, at a glance:
 | fg-doctor | Read-only. It only **detects an orphaned branch root** you forgot to integrate after `git merge` (A8) |
 | Everything else (status·next·quick·loop·tdd·eco·cleanup·statusline·adversarial-review) | No git contact |
 
-In short: **`fg-merge <branch>` is the only thing that runs git**; the rest either tell you "commit this" when they write tracked files, or have nothing to do with git at all.
+In short: **`fg-merge` (its `<branch>` and `to` modes) is the only thing that runs git**; the rest either tell you "commit this" when they write tracked files, or have nothing to do with git at all.
 
 ## 5. Solo — on the default branch only (no branches needed)
 
@@ -103,9 +104,11 @@ fg-merge                         # (no arg) integrate .forge/branch/ → .forge/
 fg-merge feature/login           # git merge + integrate in one go
 ```
 
+Path C — **while still on the feature branch**, before switching to main, run `fg-merge to main`: it commits your uncommitted work → `git switch main` → `git merge feature/login` → integrates → commits the integration, all in one go. In that case the integration commit in ⑤ below is already done, and only the push and branch cleanup remain.
+
 `fg-merge` moves the branch's time-based ADRs as-is (only a same-second accidental collision takes the next free letter), moves retros, merges CONTEXT terms, remaps done/backlog task numbers, and then removes the `.forge/branch/feature/login/` folder.
 
-**⑤ Commit the integration + clean up the branch.** `fg-merge` doesn't commit, so you do.
+**⑤ Commit the integration + clean up the branch.** `fg-merge` in Paths A and B doesn't commit, so you do (Path C already committed it).
 
 ```bash
 git add -A
@@ -127,6 +130,8 @@ flowchart TD
     F -->|"Path A: manual"| G["git merge feature/login"]
     G --> H["fg-merge (no arg, integrate only)"]
     F -->|"Path B: convenience"| I["fg-merge feature/login<br/>(runs git merge + integrates)"]
+    D -->|"Path C: all at once from the feature branch"| M["fg-merge to main<br/>(commit → merge → integrate → commit)"]
+    M --> L
     H --> J["Integrated<br/>.forge/branch/ → .forge/<br/>branch folder removed"]
     I --> J
     J --> K["git add -A && git commit<br/>(integration result)"]
@@ -134,6 +139,7 @@ flowchart TD
 
     style A fill:#e3f2fd,stroke:#1565c0,color:#1a1a1a
     style I fill:#fff3e0,stroke:#e65100,color:#1a1a1a
+    style M fill:#fff3e0,stroke:#e65100,color:#1a1a1a
     style J fill:#e8f5e9,stroke:#2e7d32,color:#1a1a1a
     style K fill:#fce4ec,stroke:#c2185b,color:#1a1a1a
 ```
@@ -163,13 +169,13 @@ forge never forces a commit, so use the table below to decide what to commit whe
 | After the `fg-learn` retro | Promoted ADRs, CONTEXT entries, and the retro log (tracked) | |
 | After the `fg-done` seal | Any tracked docs still uncommitted | The done archive itself is gitignored on the default branch |
 | While working on a feature branch | Code + `.forge/branch/<branch>/` (tracked whole) | |
-| After the `fg-merge` integration | The integration result (moved docs + the deleted branch folder) | fg-merge doesn't commit |
+| After the `fg-merge` integration | The integration result (moved docs + the deleted branch folder) | the `<branch>` and no-arg modes don't commit (`to` mode already did) |
 
 ## 9. The boundary — what forge does not do
 
 - **It does not own PRs, branch protection, or merge timing.** Those belong to GitHub (or your host) and your team's conventions.
 - **It does not `push`.** Getting things to the remote is yours.
-- **The integration core (`forge-merge.sh`) and the CI path never run git** — only the interactive convenience of `fg-merge <branch>` is the exception (§2).
+- **The integration core (`forge-merge.sh`) and the CI path never run git** — only the interactive convenience of `fg-merge <branch>` and `fg-merge to` is the exception (§2).
 
 ### See also
 - **Team merge policy, conflict authority, CI gates** → [team-workflow.md](./team-workflow.md)

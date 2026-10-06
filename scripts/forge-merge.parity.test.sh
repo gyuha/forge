@@ -72,6 +72,9 @@ check "dropped moved"                 seed_dropped  feat-x
 check "in-flight -> 3"                seed_inflight feat-x
 check "ambiguous -> 6"                seed_ambig
 check "empty -> 2"                    seed_empty
+check "gate-only in-flight -> 3"      seed_inflight feat-x --gate-only
+check "gate-only clean -> 0, no move" seed_clean    feat-x --gate-only
+check "gate-only skips redef -> 0"    seed_ctx_redef feat-x --gate-only
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-MERGE PARITY OK"; exit 0

@@ -5,7 +5,7 @@
 // fallback where bash can't run the .sh (PowerShell-blocked Windows).
 //
 // See forge-merge.sh's header for the full contract (gate-first, non-destructive
-// on refuse; exit codes 0/2/3/4/6).
+// on refuse; exit codes 0/2/3/4/6; `--gate-only` judges the in-flight gate only).
 'use strict';
 
 const fs = require('fs');
@@ -13,11 +13,12 @@ const path = require('path');
 const cp = require('child_process');
 
 // --- args --------------------------------------------------------------------
-let branchArg = '', completed = '';
+let branchArg = '', completed = '', gateOnly = false;
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
   if (a === '--completed') completed = argv[++i] || '';
+  else if (a === '--gate-only') gateOnly = true;
   else if (a[0] === '-') { process.stderr.write(`forge-merge: unknown arg: ${a}\n`); process.exit(64); }
   else branchArg = a;
 }
@@ -123,6 +124,7 @@ if (!inflight && exists(path.join(SRC, 'quick', 'LOG.md'))) {
   if (/^(- )?(result|결과)[ \t]*:[ \t]*pending/im.test(read(path.join(SRC, 'quick', 'LOG.md')))) inflight = 'quick(pending)';
 }
 if (inflight) die(`GATE_INFLIGHT ${inflight} branch=${SRC} — seal/recover/resume on the branch first`, 3);
+if (gateOnly) die(`GATE_OK branch=${SRC}`, 0);
 
 // --- GATE 2: CONTEXT term redefinition ---------------------------------------
 const srcCtx = path.join(SRC, 'CONTEXT.md'), tgtCtx = path.join(TARGET, 'CONTEXT.md');

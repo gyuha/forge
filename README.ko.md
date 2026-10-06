@@ -97,7 +97,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | **마무리 / 배포** | (선택 적대적 검토: `fg-adversarial-review`) → `fg-learn`(회고) → `fg-done`(봉인) → `배포` 입력 |
 | **보안 점검** (코드베이스 전체) | `fg-security`(감사) → 심각도 게이트 통과분 승인 → `fg-run`(수정 plan 실행) → 재감사(업스트림이 복수 실행 권장) |
 | **유지보수** | 오래된 ADR 은퇴 `fg-cleanup` · 머지된 브랜치 통합 `fg-merge` · 미완 작업 폐기 `fg-drop` · 설정 `fg-config` · 상태바 `fg-statusline` |
-| **팀 사용** (브랜치 + CI) | 브랜치에서 봉인 → `git merge` → `fg-merge`(또는 `fg-merge <branch>`로 둘 다 한 번에; CI에선 `forge-merge.sh`) · `forge-doctor` AI 없는 CI 게이트 — **[docs/team-workflow.md](./docs/team-workflow.md)** 참조 |
+| **팀 사용** (브랜치 + CI) | 브랜치에서 봉인 → `git merge` → `fg-merge`(또는 `fg-merge <branch>`로 둘 다 한 번에, 또는 feature 브랜치에서 `fg-merge to main`으로 커밋·머지·통합까지 한 번에; CI에선 `forge-merge.sh`) · `forge-doctor` AI 없는 CI 게이트 — **[docs/team-workflow.md](./docs/team-workflow.md)** 참조 |
 
 처음 셋업은 *빠른 시작*이 건너뛰는 유일한 순서다: 새 프로젝트에선 코드를 매핑하고 (선택적으로) 도메인 에이전트를 첫 `fg-ask` **전에** 만든다 — `fg-agents` 카드는 세션 시작 시에만 로드되므로 생성 후 한 번 재시작한다(ADR-0024).
 
@@ -117,7 +117,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행하며, 재개해도 필요한 결정·증거가 오기 전에는 미해결 벽을 유지한다. 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
 | `fg-config` | 유틸리티 | `.forge/config.json` 여섯 키(`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`)의 통합 설정 진입점 — `simple`은 검증 후 같은 턴에 자동 봉인(검증 게이트는 불가침), `eco`·`tdd` 의미론은 종전 그대로. 옛 키별 토글 스킬을 대체 |
-| `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
+| `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치), `fg-merge to main`이면 현재 feature 브랜치를 커밋 → checkout → 머지 → 통합 → 커밋(확인 1회, push 안 함). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
 | `fg-adversarial-review` | 유틸리티 | fg-run↔fg-learn 사이 선택적 적대적 검토 — 6개 렌즈, fix-forward findings |

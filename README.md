@@ -97,7 +97,7 @@ Reach for the right sequence by situation. The everyday and unattended rows poin
 | **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-learn` (retro) → `fg-done` (seal) → type `배포` (deploy) |
 | **Security check** (whole codebase) | `fg-security` (audit) → approve severity-gated findings → `fg-run` (fix-forward plans) → re-audit (upstream recommends repeat runs) |
 | **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · settings `fg-config` · statusline `fg-statusline` |
-| **Team use** (branches + CI) | seal on the branch → `git merge` → `fg-merge` (or `fg-merge <branch>` to do both; `forge-merge.sh` in CI) · `forge-doctor` as an AI-free CI gate — see **[docs/team-workflow.md](./docs/team-workflow.md)** |
+| **Team use** (branches + CI) | seal on the branch → `git merge` → `fg-merge` (or `fg-merge <branch>` to do both, or `fg-merge to main` from the feature branch to commit · merge · integrate in one go; `forge-merge.sh` in CI) · `forge-doctor` as an AI-free CI gate — see **[docs/team-workflow.md](./docs/team-workflow.md)** |
 
 First-time setup is the one sequence *Quick start* skips: on a fresh project, map the code and (optionally) generate domain agents **before** your first `fg-ask` — `fg-agents` cards load only at session start, so restart once after generating them (ADR-0024).
 
@@ -117,7 +117,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
 | `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass; a resume preserves unresolved walls until the required decision or evidence arrives. Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
 | `fg-config` | Utility | Unified settings surface for the six `.forge/config.json` keys (`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`) — `simple` auto-seals after verification in the same turn (the verification gate stays inviolable), `eco` and `tdd` keep their former semantics. Replaces the former per-key toggle skills |
-| `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
+| `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch), or `fg-merge to main` ships the current feature branch: commit → checkout → merge → integrate → commit (one confirmation, never pushes). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
 | `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and fg-learn — six lenses, fix-forward findings |

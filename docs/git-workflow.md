@@ -15,13 +15,14 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 네가 하는 일:      git add / commit / push / branch / merge (fg-merge 예외는 §2)
 ```
 
-## 2. 예외 — `fg-merge <branch>`만 git을 실제로 돌린다
+## 2. 예외 — `fg-merge`만 git을 실제로 돌린다
 
-딱 하나의 예외가 있다. **`fg-merge`에 브랜치 인자를 주면**(`fg-merge <branch>`) 편의를 위해 `git merge <branch>`를 **대신 돌려준 뒤** forge 상태를 통합한다(ADR `260717-10a`). 인자 없는 `fg-merge`는 종전대로 **통합만** 한다.
+예외는 `fg-merge` 하나이고, 인자에 따라 두 모드가 git을 돌린다. **`fg-merge`에 브랜치 인자를 주면**(`fg-merge <branch>`) 편의를 위해 `git merge <branch>`를 **대신 돌려준 뒤** forge 상태를 통합한다(ADR `260717-10a`). **feature 브랜치에서 `fg-merge to main`을 치면** 작업 커밋 → main checkout → `git merge` → 통합 → 통합 커밋을 한 번에 잇는다(ADR `261006-102435`). 인자 없는 `fg-merge`는 종전대로 **통합만** 한다.
 
 - git merge는 **대화형 스킬 계층에서만** 실행된다. 통합 코어인 결정론 스크립트 `forge-merge.sh`/`.js`와 CI 경로는 **여전히 git을 안 돌린다**(그래서 AI 없이 CI에서 쓸 수 있다).
 - merge가 **충돌**하면 그 자리에 충돌을 남기고 **멈춘다**(통합 안 함) — 네가 충돌을 풀고 `git commit`한 뒤 `fg-merge`(무인자)로 통합한다.
-- **커밋은 안 한다.** `git merge`가 만든 merge 커밋은 git이 만들고, 통합 변경분은 미커밋으로 남겨 "커밋하세요"라고 알린다.
+- **`<branch>` 모드는 커밋을 안 한다.** `git merge`가 만든 merge 커밋은 git이 만들고, 통합 변경분은 미커밋으로 남겨 "커밋하세요"라고 알린다.
+- **`to` 모드만 커밋한다** — 미커밋 작업과 통합 결과를 커밋하되, 1단계 전에 `forge-merge.sh --gate-only`로 미완 forge 작업을 먼저 막고 확인을 1회 받는다. **push와 브랜치 삭제는 어느 모드도 하지 않는다.**
 
 그 외 어떤 forge 스킬도 git을 실행하지 않는다.
 
@@ -42,7 +43,7 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 
 | 스킬 | git 접점 |
 |------|---------|
-| **fg-merge** | **git을 실행**(`<branch>` 모드의 `git merge`) — forge에서 유일. 통합 후 커밋 리마인드 |
+| **fg-merge** | **git을 실행**(`<branch>` 모드의 `git merge`, `to` 모드의 커밋·checkout·merge) — forge에서 유일. `<branch>` 모드는 통합 후 커밋 리마인드, `to` 모드는 통합까지 커밋 |
 | fg-done | git 실행 안 함. 봉인 후 tracked 문서(retro·ADR·CONTEXT)가 미커밋이면 **커밋 리마인드** |
 | fg-learn / fg-ask | git 실행 안 함. tracked 연료(CONTEXT·ADR·retro)를 쓰므로 커밋은 네 몫 |
 | fg-run | git 실행 안 함. 네 코드를 바꾸지만 **커밋을 강제하지 않음** |
@@ -51,7 +52,7 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 | fg-doctor | 읽기 전용. `git merge` 후 통합을 잊은 **고아 브랜치 루트를 감지**만(A8) |
 | 그 외 (status·next·quick·loop·tdd·eco·cleanup·statusline·adversarial-review) | git 접점 없음 |
 
-정리: **git을 돌리는 건 `fg-merge <branch>` 하나뿐**, 나머지는 tracked 파일을 쓰면 "커밋하세요"라고 알리거나 아예 git과 무관하다.
+정리: **git을 돌리는 건 `fg-merge`(`<branch>`·`to` 모드) 하나뿐**, 나머지는 tracked 파일을 쓰면 "커밋하세요"라고 알리거나 아예 git과 무관하다.
 
 ## 5. Solo — 기본 브랜치에서만 (브랜치 안 써도 됨)
 
@@ -103,9 +104,11 @@ fg-merge                         # (무인자) .forge/branch/ → .forge/ 통합
 fg-merge feature/login           # git merge + 통합을 한 번에
 ```
 
+갈래 C — main으로 옮기기 전, **feature 브랜치에 선 채로** `fg-merge to main`을 치면 미커밋 작업 커밋 → `git switch main` → `git merge feature/login` → 통합 → 통합 커밋까지 한 번에 끝난다. 이 경우 아래 ⑤의 통합 커밋은 이미 되어 있고 push·브랜치 삭제만 남는다.
+
 `fg-merge`는 브랜치의 시간ID ADR을 그대로 옮기고(같은-시 우연 충돌만 다음 글자로), retro 이동·CONTEXT 용어 병합·done/backlog task 번호 재부여 후 `​.forge/branch/feature/login/` 폴더를 제거한다.
 
-**⑤ 통합 결과 커밋 + 브랜치 정리.** `fg-merge`는 커밋을 안 하므로 네가 커밋한다.
+**⑤ 통합 결과 커밋 + 브랜치 정리.** 갈래 A·B의 `fg-merge`는 커밋을 안 하므로 네가 커밋한다(갈래 C는 이미 커밋됨).
 
 ```bash
 git add -A
@@ -127,6 +130,8 @@ flowchart TD
     F -->|"갈래 A: 수동"| G["git merge feature/login"]
     G --> H["fg-merge (무인자, 통합만)"]
     F -->|"갈래 B: 편의"| I["fg-merge feature/login<br/>(git merge 대행 + 통합)"]
+    D -->|"갈래 C: feature에서 한 번에"| M["fg-merge to main<br/>(커밋 → 머지 → 통합 → 통합 커밋)"]
+    M --> L
     H --> J["통합 완료<br/>.forge/branch/ → .forge/<br/>브랜치 폴더 제거"]
     I --> J
     J --> K["git add -A && git commit<br/>(통합 결과)"]
@@ -134,6 +139,7 @@ flowchart TD
 
     style A fill:#e3f2fd,stroke:#1565c0,color:#1a1a1a
     style I fill:#fff3e0,stroke:#e65100,color:#1a1a1a
+    style M fill:#fff3e0,stroke:#e65100,color:#1a1a1a
     style J fill:#e8f5e9,stroke:#2e7d32,color:#1a1a1a
     style K fill:#fce4ec,stroke:#c2185b,color:#1a1a1a
 ```
@@ -163,13 +169,13 @@ forge는 커밋을 강제하지 않으니, 무엇을 언제 커밋할지는 아�
 | `fg-learn` 회고 후 | 승급된 ADR·CONTEXT·회고 로그 (tracked) | |
 | `fg-done` 봉인 후 | 아직 미커밋인 tracked 문서 | done 아카이브 자체는 기본 브랜치에서 gitignore |
 | 피처 브랜치 작업 중 | 코드 + `.forge/branch/<branch>/` (통째 tracked) | |
-| `fg-merge` 통합 후 | 통합 결과(옮겨진 문서 + 브랜치 폴더 삭제) | fg-merge는 커밋 안 함 |
+| `fg-merge` 통합 후 | 통합 결과(옮겨진 문서 + 브랜치 폴더 삭제) | `<branch>`·무인자 모드는 커밋 안 함(`to` 모드는 이미 커밋) |
 
 ## 9. 경계 — forge가 하지 않는 것
 
 - **PR·브랜치 보호·머지 타이밍을 소유하지 않는다.** 그건 GitHub(또는 네 호스트)와 팀 규약의 몫이다.
 - **`push`를 하지 않는다.** 원격 반영은 네가 한다.
-- **통합의 코어(`forge-merge.sh`)·CI 경로는 git을 안 돌린다** — `fg-merge <branch>`의 대화형 편의만 예외(§2).
+- **통합의 코어(`forge-merge.sh`)·CI 경로는 git을 안 돌린다** — `fg-merge <branch>`·`fg-merge to`의 대화형 편의만 예외(§2).
 
 ### 더 보기
 - **팀 merge 정책·충돌 권한·CI 게이트** → [team-workflow.md](./team-workflow.md)

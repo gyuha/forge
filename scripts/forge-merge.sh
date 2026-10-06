@@ -25,9 +25,14 @@
 # GATE-FIRST, NON-DESTRUCTIVE-ON-REFUSE: blocking conditions exit non-zero BEFORE
 # anything moves.
 #
-# Usage:  forge-merge.sh [<branch>] [--completed <YYYY-MM-DD>]
+# Usage:  forge-merge.sh [<branch>] [--completed <YYYY-MM-DD>] [--gate-only]
 #   <branch>  branch whose root to integrate; omitted => resolve (one leaf root =>
 #             that one; several => exit 6 list).
+#   --gate-only  resolve the root and judge ONLY the in-flight gate (exit 3), then
+#             exit 0 (`GATE_OK`) without moving anything. fg-merge's `to <target>`
+#             mode runs it on the feature branch before committing/merging (ADR
+#             261006-102435). The conflict gates (exit 4) are skipped: they compare
+#             against the target `.forge/`, which is stale on a feature branch.
 #
 # Exit codes (fg-merge routes; CI fails on any non-zero):
 #   0  integrated OK (branch folder removed)
@@ -44,10 +49,11 @@
 set -u
 
 # --- args --------------------------------------------------------------------
-branch_arg=""; completed=""
+branch_arg=""; completed=""; gate_only=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --completed) completed="${2:-}"; shift 2 ;;
+    --gate-only) gate_only=1; shift ;;
     -*) echo "forge-merge: unknown arg: $1" >&2; exit 64 ;;
     *)  branch_arg="$1"; shift ;;
   esac
@@ -136,6 +142,7 @@ if [ -z "$inflight" ] && [ -f "$SRC/quick/LOG.md" ]; then
   grep -qiE '^(- )?(result|결과)[[:space:]]*:[[:space:]]*pending' "$SRC/quick/LOG.md" && inflight="quick(pending)"
 fi
 [ -n "$inflight" ] && { echo "GATE_INFLIGHT $inflight branch=$SRC — seal/recover/resume on the branch first"; exit 3; }
+[ "$gate_only" -eq 1 ] && { echo "GATE_OK branch=$SRC"; exit 0; }
 
 # --- GATE 2: CONTEXT term redefinition ---------------------------------------
 if [ -f "$SRC/CONTEXT.md" ] && [ -f "$TARGET/CONTEXT.md" ]; then

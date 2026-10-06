@@ -162,5 +162,30 @@ assert "i3-target-untouched" "$before" "$(cat "$t/.forge/CONTEXT.md")"
 assert_file "i3-branch-root-kept" "$t/.forge/branch/feat-x/CONTEXT.md"
 rm -rf "$t"
 
+# --- (o) --gate-only: judge the in-flight gate, move NOTHING -----------------
+# fg-merge's `to <target>` mode runs this on the feature branch BEFORE committing
+# or merging, so in-flight work stops the flow before main gets a merge commit
+# (ADR 261006-102435). Only gates the feature branch can judge are run: exit 4
+# needs the up-to-date target `.forge/`, which a feature branch does not have.
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; printf '<!-- forge-slug: x -->\n' > "$t/.forge/branch/feat-x/plan.md"
+run_merge "$t" feat-x --gate-only; assert "o-gateonly-inflight-rc3" 3 "$RC"
+assert_file "o-gateonly-inflight-kept" "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"
+assert_nofile "o-gateonly-inflight-not-moved" "$t/.forge/adr/260716-14a-foo.md"
+rm -f "$t/.forge/branch/feat-x/plan.md"
+run_merge "$t" feat-x --gate-only; assert "o-gateonly-clean-rc0" 0 "$RC"
+assert_file "o-gateonly-clean-kept" "$t/.forge/branch/feat-x/adr/260716-14a-foo.md"
+assert_nofile "o-gateonly-clean-not-moved" "$t/.forge/adr/260716-14a-foo.md"
+case "$OUT" in *GATE_OK*) assert "o-gateonly-clean-token" ok ok ;; *) assert "o-gateonly-clean-token" GATE_OK "$OUT" ;; esac
+rm -rf "$t"
+# a redefinition conflict is NOT judged in gate-only mode (target may be stale)
+t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md
+printf '# G\n\n## Language\n\n**Alpha**:\nBRANCH\n' > "$t/.forge/branch/feat-x/CONTEXT.md"
+printf '# G\n\n## Language\n\n**Alpha**:\nMAIN\n' > "$t/.forge/CONTEXT.md"
+run_merge "$t" feat-x --gate-only; assert "o-gateonly-skips-conflict-rc0" 0 "$RC"
+rm -rf "$t"
+t=$(mktmp); mkdir -p "$t/.forge"
+run_merge "$t" --gate-only; assert "o-gateonly-nothing-rc2" 2 "$RC"
+rm -rf "$t"
+
 printf '\nforge-merge: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]
