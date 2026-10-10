@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.6] - 2026-10-10
+
+### Added
+- **`fg-loop all <목표>`로 회고까지 남기는 루프를 돌린다** — 기본 fg-loop는 검증을 통과한 작업마다 회고를 건너뛰고 봉인한다. `all`로 시작하면 작업마다 봉인 직전에 그 작업의 plan·run·수리 기록만으로 회고 로그를 자동으로 써서(첫 줄 `<!-- auto-retro: fg-loop all -->`) 봉인한다. 모드는 `loop.md`의 `retro: auto`에 기록돼, 벽에서 멈췄다가 `/fg-loop`만 쳐서 재개해도 유지된다. 자동 회고는 CONTEXT·ADR 승급을 하지도 제안하지도 않고, 봉인 STATUS에 "자동, 승급 미검토"를 남겨 fg-learn 일괄 승급의 후보가 된다(ADR `261010-230950`).
+- 글로서리에 **자동 회고 (auto retro)** 용어를 추가했다.
+
+### Changed
+- fg-learn 일괄 승급이 `auto-retro` 표시가 붙은 작업도 후보로 잡고, 사람이 검토하면 표시를 지운다. `RETRO-FORMAT.md`에 자동 회고 규칙을 추가했다.
+- fg-status의 goal 루프 한 줄 보고에 `auto retro` 모드를 표시한다.
+- "fg-loop는 회고를 항상 건너뛴다"고 적던 문서(CLAUDE.md·README 한/영·docs의 skills·state-contract 한/영·매니페스트 설명)를 `all` 예외에 맞게 고쳤다.
+
 ## [0.9.5] - 2026-10-06
 
 ### Added
