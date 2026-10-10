@@ -24,7 +24,7 @@ repo/
     ├── review.md              # (optional) fg-adversarial-review findings — volatile, rides with the active slot, never a gate; input for fg-learn promotion, archived into done/ on seal (ADR-0018)
     ├── running.md             # the in-flight marker (fg-run): written immediately before launch with workflow: pending (forge-running slug · started epoch · session), updated when the host returns a collectable execution handle (the workflow Task ID on Claude), deleted right after run.md lands — distinguishes the launch boundary from "plan only" so a re-entry never executes twice (ADR 260909-150614)
     ├── STATUS.md              # active slot: written by fg-run when execution finishes (status: executed, verified: pending, retro: pending) — verified becomes yes/skipped/n/a (sealable) or failed (blocking), retro becomes the retro path or "skipped"
-    ├── loop.md                # the goal contract (fg-loop): stop checks · replan rounds/cap · ## Tasks membership — deleted by fg-loop once the goal is met (ADR-0016)
+    ├── loop.md                # the goal contract (fg-loop): stop checks · replan rounds/cap · ## Tasks membership · retro mode (auto under `fg-loop all`) — deleted by fg-loop once the goal is met (ADR-0016)
     ├── drive.md               # the unattended-drive marker (fg-next all · fg-loop): started(epoch) · blocked · session — forge's Stop hook blocks the turn from ending while it lives; the drive deletes it at every wall and at the terminal state (ADR-0028)
     ├── executed/<slug>/       # awaiting retro after "Run all" (plan+run+STATUS, not yet retro'd)
     ├── done/<date-slug>/      # ④ the fg-done seal archive (plan+run+STATUS, status: done)

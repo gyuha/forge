@@ -24,7 +24,7 @@ repo/
     ├── review.md              # (선택) fg-adversarial-review findings — 휘발·활성 슬롯 동반·비-게이트; fg-learn 승급 입력, 봉인 시 done/ 아카이브 (ADR-0018)
     ├── running.md             # 실행 중 마커(fg-run): launch 직전 workflow: pending으로 작성(forge-running slug·started epoch·session), 회수 가능한 호스트 실행 핸들을 받으면 즉시 기록(Claude는 workflow Task ID), run.md 직후 삭제 — launch 경계의 "plan만 있음"과 구별해 재진입 이중 실행을 막는다 (ADR 260909-150614)
     ├── STATUS.md              # 활성 슬롯: fg-run가 실행 완료 시 작성 (status: executed, verified: pending, retro: pending) — verified는 yes/skipped/n/a(봉인 가능) 또는 failed(차단), retro는 이후 경로 또는 "skipped"가 됨
-    ├── loop.md                # goal 계약(fg-loop): 정지 체크·replan 라운드/상한·## Tasks 멤버십 — goal 충족 시 fg-loop가 삭제 (ADR-0016)
+    ├── loop.md                # goal 계약(fg-loop): 정지 체크·replan 라운드/상한·## Tasks 멤버십·retro 모드(`fg-loop all`이면 auto) — goal 충족 시 fg-loop가 삭제 (ADR-0016)
     ├── drive.md               # 무인 주행 마커(fg-next all·fg-loop): started(epoch)·blocked·session — forge의 Stop 훅이 이것이 살아 있는 동안 턴 종료를 막는다. 모든 벽·종료에서 주행이 삭제 (ADR-0028)
     ├── executed/<slug>/       # "모두 실행" 후 회고 대기 (plan+run+STATUS, 미회고)
     ├── done/<날짜-slug>/       # ④ fg-done 봉인 아카이브 (plan+run+STATUS, status: done)

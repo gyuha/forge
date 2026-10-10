@@ -35,6 +35,7 @@ Documents are written in the user's language; the headings below are canonical E
 - **"Do differently next time" and "Divergences" are fuel the next loop reads.** Failing to be promoted does not mean they're buried — the next task's fg-ask grilling and fg-run workflow composition read these two fields from retros in the same area as a starting point. So write them concretely enough that the next task can use them directly (what diverged, why, and how to handle it next time) instead of vague impressions.
 - **Avoid polluting CONTEXT.md.** Record implementation details in the retro log, but do not put them into the glossary (CONTEXT.md).
 - **Decide what to promote together with the human.** Don't push automatically — propose and get confirmation.
+- **Auto retros (`fg-loop all`) are the one unattended author, and they never promote.** A retro written by `fg-loop all` carries `<!-- auto-retro: fg-loop all -->` as its first line, fills only `Plan vs actual` and `Learnings` from that task's plan/run/repair record, and marks `Doc updates` as unreviewed — it neither promotes nor proposes. The marker means "no human has judged this yet": fg-learn's batch promotion picks such tasks up, and the marker is removed once a human has reviewed it (ADR `261010-230950`).
 
 ## Promotion criteria (summary)
 

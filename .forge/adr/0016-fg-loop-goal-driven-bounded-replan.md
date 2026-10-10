@@ -187,3 +187,6 @@ GitHub 이슈 #12("loop의 다양한 조건을 fg-loop에서 선택해 쓰게 �
 **⑦ 트윈을 의도적으로 다른 방식으로 구현한다 — parity가 실제 교차 검증이 되도록.** `.sh`는 awk로 `iterations` strip, `.js`는 `JSON.parse` 구조 파싱. **같은 파싱 전략을 공유하면 두 트윈이 같은 실수를 하고 parity는 green이다** — 그것이 1.928배가 11/11 통과로 출하된 경로다. 자세한 규약은 ADR-0022 개정(2026-08-20) 소관이며, 이 개정은 그 첫 적용 사례다.
 
 **기각·경계(불변).** 시간(벽시계) budget · LoopX quota · USD 환산 · `sessionId` 필터·drive 마커 · 멱등 워터마크 · `fg-next all` 적용(여전히 **범위 결정**, 구조적 불가능 아님) · 기본 상한값 지정(실측 축적 후 별건) — 전부 기각 또는 유예 유지. ADR-0009·활성 슬롯 1개·authorized replan 범위·`replan-cap`·no-progress/tension/safety/waiting/blocked-health 기계·Reflexion·회고 auto-skip·ADR-0015 진술형은 불변이다.
+
+
+> **개정 노트 (261010)**: `/fg-loop all <목표>`로 시작한 루프는 회고를 건너뛰지 않고 작업마다 회고 로그를 자동으로 쓴다(`loop.md`의 `retro: auto`). 승급은 여전히 사람 몫이다 — ADR `261010-230950`.
