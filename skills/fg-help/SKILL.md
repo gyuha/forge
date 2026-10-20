@@ -27,6 +27,8 @@ If the host has no Glob tool (such as basic Pi), enumerate that same absolute
 active host's syntax from [../../core/HOST.md](../../core/HOST.md) and its
 interaction adapter; Pi uses `/skill:fg-*`.
 
+For `fg-monitor`, report the Claude Code-only live support and Node 22+ requirement from its own skill. Its `on`/`off` controls are outside the loop; never suggest fg-run as its next stage. The catalogue remains the discovered skill descriptions, with no separate hard-coded registry.
+
 ## Two modes
 
 Mode is chosen by whether an argument was given.

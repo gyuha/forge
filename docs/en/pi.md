@@ -1,6 +1,6 @@
 # Using forge with Pi
 
-[Pi](https://pi.dev/) loads forge's same 22 skills and uses the same repository `.forge/` state as the other hosts. Basic support provides conversational planning, sequential execution, verification, and sealing. It requires no Pi extension.
+[Pi](https://pi.dev/) loads forge's same 23 skills and uses the same repository `.forge/` state as the other hosts. Basic support provides conversational planning, sequential execution, verification, and sealing. It requires no Pi extension.
 
 ## Install and invoke
 
@@ -54,6 +54,10 @@ The nine flags match `hosts/pi/capabilities.json`. They conservatively describe 
 
 To repeat the check with Pi installed, run `node scripts/pi-host.test.mjs`. Set `FORGE_PI_PACKAGE_ROOT` for an SDK at another location. The check uses a temporary installation without model calls or changes to user settings.
 
-Resource loading is checked with Pi 0.85.1's actual loader, including all 22 skill names and companion paths. This verifies discovery and file resolution, not an authenticated model's end-to-end execution of every skill. `npm run release:check` validates the adapter files, the nine capability keys, and their documentation alongside the existing hosts.
+The earlier resource-loading observation used Pi 0.85.1's actual loader, including the then-current 22 skill names and companion paths. This verifies discovery and file resolution, not an authenticated model's end-to-end execution of every skill. `npm run release:check` validates the adapter files, the nine capability keys, and their documentation alongside the existing hosts.
 
 State belongs to the working repository and branch. You can plan on another host, then invoke `/skill:fg-status` or `/skill:fg-next` in Pi on the same working tree. After a turn-bounded drive stops, invoke `/skill:fg-loop` again for its saved goal, or `/skill:fg-next all` for the backlog.
+
+## fg-monitor support boundary
+
+The skill is discoverable in the shared tree, but live collection and owner-session shutdown currently support Claude Code only. On this host, report the limitation instead of starting `/fg-monitor on`. Use `fg-status` for ordinary forge state reporting.

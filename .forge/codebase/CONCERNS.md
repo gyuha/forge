@@ -14,7 +14,7 @@ mapped: 2026-09-11
 - 위 결함의 절반은 기계화됐다. `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`의 신규 검사 **B21**이 `## N.` 절 안에 있는 `§N` 자기참조를 warning으로 보고하고, `scripts/forge-doctor.test.sh`에 정상·자기참조·`§NN` 접두 3개 케이스가 있다. 두 구현의 주석은 이것이 **설계상 부분 가드**라고 명시한다 — 대상 절이 더는 그 규칙을 담고 있지 않은 교차 절 참조는 의미 판정이라 검출되지 않으며, 그 절반은 `CLAUDE.md`의 두 단계 체크리스트(양방향 상호참조 열거 + 내용 실재 확인)가 담당한다.
 - B21의 적용 범위는 `skills/*/SKILL.md`이고 절 인식은 `^## N.` 형식에 의존한다. `INQUIRY.md`·`ALL-MODE.md`·`RECOVERY.md` 같은 동반 파일과 번호 없는 헤딩 구조의 문서는 대상이 아니다. 현재 저장소에서 `scripts/forge-doctor.sh`는 0 errors / 0 warnings로 종료한다.
 - `skills/fg-ask/SKILL.md`는 upstream 원문과 파일 하단의 Forge integration 절이 별도로 움직인다. 형식 계약도 `skills/fg-ask/CONTEXT-FORMAT.md`와 `skills/fg-ask/ADR-FORMAT.md`로 분리돼 있어 동시 검토가 필요하다.
-- 공통 핸드오프 형식은 `skills/fg-next/HANDOFF.md`에 있지만 이를 참조하는 스킬이 다수다. 공통 설명 규칙은 `scripts/explaining-forge.rule.txt`와 22개 `skills/*/SKILL.md`에 함께 존재한다.
+- 공통 핸드오프 형식은 `skills/fg-next/HANDOFF.md`에 있지만 이를 참조하는 스킬이 다수다. 공통 설명 규칙은 `scripts/explaining-forge.rule.txt`와 23개 `skills/*/SKILL.md`에 함께 존재한다.
 - `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`가 일부 산문 정합을 검사하지만 키워드·절 경계·개수 기반 검사다(B17 canonical 문단 포함, B20 capability 키 언급, B21 자기참조 포인터). 자연어 규칙 전체의 의미적 동등성은 검사하지 않는다.
 - B21의 Bash 구현은 `grep`과 셸 산술로 작성돼 있다. 주석에 기록된 이유는 macOS 기본 `awk`에 3인자 `match()`가 없어 awk 판이 결함이 있는 저장소에서도 0건을 보고했다는 것이다. 같은 종류의 플랫폼 차이는 다른 Bash 검사에도 잠재한다.
 
@@ -93,3 +93,7 @@ mapped: 2026-09-11
 - 플러그인 버전은 `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`의 두 위치, `.codex-plugin/plugin.json`에 걸쳐 4개 값이 동기돼야 한다. `scripts/release-check.*`와 `scripts/forge-doctor.*`가 이 드리프트를 검사한다.
 - 2026-09-11 시점의 워킹 트리에는 출처가 다른 미커밋 변경이 섞여 있다. `skills/fg-loop/*`·`scripts/forge-doctor.*`·`CLAUDE.md`는 참조 정합 작업의 산물이고 `docs/.vitepress/config.mts`·`docs/index.html`·`docs/public/og-image.png`는 별개의 문서 사이트 작업이다. `CLAUDE.md`의 배포 규칙은 무관한 변경을 릴리스 커밋에 섞지 않도록 요구하므로 커밋 분리 판단이 필요하다.
 - README와 문서 사이트가 각각 한국어·영어 사본을 유지하고, Claude·Codex·opencode 지원표가 `hosts/*/capabilities.json`의 선언을 설명한다. capability 변경은 JSON, 호스트 어댑터, 두 언어 문서를 함께 수정해야 한다.
+
+## fg-monitor 추가 (2026-10-20)
+
+키 URL은 로컬에서도 필요하고 외부 바인딩은 명시적 on --host 0.0.0.0만 허용한다. 최소 메타데이터만 수집하고 HTML은 데이터로 렌더한다. SessionEnd 누락은 소유 프로세스 검사로 보완하며 Stop/유휴는 종료가 아니다. OS별 실제 Claude UAT는 별도 근거가 필요하다. 설치된 훅은 새 세션부터 적용된다.

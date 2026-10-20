@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty-two shared `fg-` skills — four that form the loop, plus eighteen utilities outside it.
+> A loop-style workflow plugin built from twenty-three shared `fg-` skills — four that form the loop, plus nineteen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -17,7 +17,7 @@ Sealing prepares a complete archive before removing source files, and recovery e
 
 ## Quick start — you mostly only need three
 
-Twenty-two skills look like a lot, but day to day you drive with **three**:
+Twenty-three skills look like a lot, but day to day you drive with **three**:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -103,7 +103,7 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The four loop stages, then the eighteen utilities outside the loop:
+The four loop stages, then the nineteen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -116,7 +116,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
 | `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass; a resume preserves unresolved walls until the required decision or evidence arrives. Retros are skipped by default; `fg-loop all` instead writes an auto retro log per task before sealing (promotion to CONTEXT/ADR stays a human fg-learn step). Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
-| `fg-config` | Utility | Unified settings surface for the six `.forge/config.json` keys (`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`) — `simple` auto-seals after verification in the same turn (the verification gate stays inviolable), `eco` and `tdd` keep their former semantics. Replaces the former per-key toggle skills |
+| `fg-config` | Utility | Unified settings surface for the seven `.forge/config.json` keys (`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch` · `monitorRetention`) — `simple` auto-seals after verification in the same turn (the verification gate stays inviolable), `eco` and `tdd` keep their former semantics. Replaces the former per-key toggle skills |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch), or `fg-merge to main` ships the current feature branch: commit → checkout → merge → integrate → commit (one confirmation, never pushes). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
@@ -125,6 +125,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-help` | Utility | Read-only usage help — `/fg-help` prints an overview of every forge skill grouped by loop stage + outside-the-loop utilities, `/fg-help <command>` a 4-line detail; reads each skill's own `description` as the single source, LLM-rendered in your language (no script twin) |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
 | `fg-agents` | Utility | Generates Claude Code project domain agents (`.claude/agents/<role>.md`) by conversational grilling; Codex-native project-agent materialization is not yet supported |
+| `fg-monitor` | Utility | Read-only Node dashboard for Claude Code tasks and main/subagents. on/off, first-launch retention choice, localhost default |
 | `fg-showme` | Utility | Browser-based visual companion (vendored from superpowers, MIT) — a zero-dependency local server shows HTML the agent pushes (mockups, diagrams, visual A/B options) and takes your answers back as events. **It fires for explanations too, not only questions** — when a structural explanation (a branching flow, state transitions, a multi-axis comparison) outgrows a text flow diagram (`A → B → C`), it is offered as well; if the text diagram carries it, the answer stays in the terminal — on an `event_wake` host, a required confirm button on choice screens wakes you directly with no terminal turn; on other hosts, confirm then send one terminal turn; exploratory clicks never wake it; offered just-in-time once during fg-ask grilling (a decline stands), `fg-showme stop` shuts it down. Its frame renders in the Anthropic/Claude design system documented at the repo root in `DESIGN.md` (cream canvas + coral accent + serif display), so every screen an agent pushes inherits it |
 | `fg-agenda` | Utility | Decision queue for work still in fog — settles a destination with you, then surfaces what must be decided and keeps it in `.forge/agenda.md`, resolving one question at a time until the way is clear and then deleting itself; the agent finds the decisions, **you answer them**, and anything that becomes buildable leaves for the backlog |
 | `fg-security` | Utility | Security audit of a codebase (methodology vendored from cloudflare/security-audit-skill, MIT) — multi-phase, multi-agent hunting by attack class; artefacts stay OUTSIDE the repo (upstream's `~/security-audit-skill/`) so a vulnerability list has no path into a commit at all, and findings past a severity gate become fix-forward backlog plans on your approval |
@@ -181,7 +182,7 @@ Codex currently supports the core loop, state utilities, serial fallback, parall
 
 ### Pi
 
-Pi loads the same 22 skills from a local forge checkout: run `pi install /absolute/path/to/forge`, then start a fresh Pi session and invoke `/skill:fg-ask`, `/skill:fg-run`, or `/skill:fg-status`. It discovers the package’s `skills/` directory without a separate manifest or extension. Use a checkout containing the Pi support changes.
+Pi loads the same 23 skills from a local forge checkout: run `pi install /absolute/path/to/forge`, then start a fresh Pi session and invoke `/skill:fg-ask`, `/skill:fg-run`, or `/skill:fg-status`. It discovers the package’s `skills/` directory without a separate manifest or extension. Use a checkout containing the Pi support changes.
 
 Basic support uses text choices and sequential execution. `fg-next all` and `fg-loop` run within the current turn and resume when invoked again; Pi hooks, a statusline, and custom subagents are not included. Installation, capability limits, and verification scope: [Pi guide](./docs/en/pi.md).
 
@@ -264,3 +265,11 @@ The landing page (`docs/index.html`) was built with the **Visual Companion** of 
 The **security-audit methodology** behind `fg-security` is [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill), **vendored** under MIT — its entry file plus nine attack-class playbooks, `report-schema.json` and `validate-findings.cjs` live in `skills/fg-security/`, with the licence copy at `skills/fg-security/LICENSE`. Only the entry file was renamed (`SKILL.md` → `AUDIT.md`, so it does not collide with forge's own skill-discovery path); the other eleven files are kept **byte-for-byte with upstream** so a future diff stays cheap. forge adds only the loop integration — a severity gate, fix-forward plans on approval, and keeping artefacts outside the repo.
 
 The **bug-diagnosis discipline** behind `fg-debug` is [diagnosing-bugs in mattpocock/skills](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnosing-bugs), **vendored** under MIT — its entry file and `scripts/hitl-loop.template.sh` live in `skills/fg-debug/`, with the licence copy at `skills/fg-debug/LICENSE`. Only the entry file was renamed (`SKILL.md` → `DIAGNOSE.md`, so it does not collide with forge's own skill-discovery path); the files are kept **byte-for-byte with upstream** so a future diff stays cheap. forge adds only the loop integration — diagnosis only, with routing decided by state before fix size: an active `verified: failed` task returns to fg-run's fix-and-re-run path even when the fix is trivial; only an independent diagnosis goes to fg-quick when trivial or to a human-approved fix-forward plan when non-trivial. Its Phase 1 red command counts as the plan's persistent eval only when it is itself durable; otherwise the plan adds a persistent regression check or records why that is not mechanically possible. Only secret-scrubbed fixtures and tests may remain in the working tree; raw captures stay outside it, and every exit cleans temporary instrumentation and artefacts.
+
+## fg-monitor — session monitoring
+
+Use Node 22+ to view the current project, starting branch and Claude Code session's tasks and main/subagent observations in a read-only dashboard. `/fg-monitor on` starts on localhost with an available port and returns a keyed URL. External access requires `/fg-monitor on --host 0.0.0.0`; the result lists real LAN addresses. `/fg-monitor off` stops only the caller's monitor.
+
+The first launch asks whether to delete (`delete`) or retain (`keep`) summaries on shutdown, then saves `monitorRetention` in `.forge/config.json`. Later launches reuse it. Change it with `/fg-config monitorRetention delete|keep`; changes apply to the next launch and never bulk-delete past archives. Retained summaries appear in monitor history for the same project and branch, separate from live observations.
+
+Layout A combines a top stage flow with task and agent panels. Unobserved state is unknown, and full conversations/tool input/output are not exposed. Stop (turn completion) leaves the server running; SessionEnd or actual owner-Claude process death cleans it up. `/clear` does not automatically attach the new session. Start a fresh Claude session after installation or hook changes. Exec-form Node hooks were observed on Claude Code 2.1.303; older versions are unverified. Live collection is unsupported on Codex/opencode/Pi. macOS observations are not proof of Windows behavior.

@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode·Pi 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
-> 네 호스트가 함께 쓰는 22개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
+> 네 호스트가 함께 쓰는 23개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 18개.
 
 [English](./README.md)
 
@@ -17,7 +17,7 @@
 
 ## 빠른 시작 — 사실 3개만 쓰면 된다
 
-스킬이 22개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
+스킬이 23개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -116,7 +116,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-status` | 유틸리티 | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 다음 단계 하나를 출력 |
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
 | `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행하며, 재개해도 필요한 결정·증거가 오기 전에는 미해결 벽을 유지한다. 회고는 기본적으로 건너뛰고, `fg-loop all`이면 작업마다 회고 로그를 자동으로 쓴 뒤 봉인한다(CONTEXT·ADR 승급은 여전히 사람의 fg-learn 몫). 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
-| `fg-config` | 유틸리티 | `.forge/config.json` 여섯 키(`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch`)의 통합 설정 진입점 — `simple`은 검증 후 같은 턴에 자동 봉인(검증 게이트는 불가침), `eco`·`tdd` 의미론은 종전 그대로. 옛 키별 토글 스킬을 대체 |
+| `fg-config` | 유틸리티 | `.forge/config.json` 일곱 키(`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch` · `monitorRetention`)의 통합 설정 진입점 — `simple`은 검증 후 같은 턴에 자동 봉인(검증 게이트는 불가침), `eco`·`tdd` 의미론은 종전 그대로. 옛 키별 토글 스킬을 대체 |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치), `fg-merge to main`이면 현재 feature 브랜치를 커밋 → checkout → 머지 → 통합 → 커밋(확인 1회, push 안 함). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
@@ -125,6 +125,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-help` | 유틸리티 | 읽기 전용 사용법 도움말 — `/fg-help`는 forge 스킬 전체를 루프 단계 + 루프 밖 유틸리티로 그룹핑한 개요를, `/fg-help <명령>`은 4줄 상세를 출력; 각 스킬의 `description`을 단일 소스로 읽어 사용자 언어로 LLM 렌더(스크립트 트윈 없음) |
 | `fg-drop` | 유틸리티 | 미완 작업(backlog/활성/executed/멈춘 루프) 폐기 — 위험도 표기 목록, 하드 삭제 또는 `.forge/dropped/` 보관 |
 | `fg-agents` | 유틸리티 | 대화형 그릴링으로 Claude Code 프로젝트 도메인 에이전트(`.claude/agents/<role>.md`) 생성; Codex 네이티브 프로젝트 에이전트 materialize는 아직 미지원 |
+| `fg-monitor` | 유틸리티 | Claude Code 세션의 작업·주/서브에이전트 읽기 전용 Node 대시보드. on/off, 최초 기록 보관 선택, localhost 기본 |
 | `fg-showme` | 유틸리티 | 브라우저 시각 컴패니언(superpowers vendoring, MIT) — zero-dependency 로컬 서버가 에이전트가 push하는 HTML(목업·다이어그램·A/B 시각 비교)을 표시하고 당신의 답을 이벤트로 되읽음. **질문뿐 아니라 설명에서도 발동한다** — 분기 있는 흐름·상태 전이·다축 비교처럼 텍스트 흐름도(`A → B → C`)가 담지 못하는 구조를 *설명*할 때도 제안하며, 텍스트로 감당되면 터미널에 남는다 — `event_wake` 지원 호스트에서는 선택형 화면의 확정 버튼이 터미널 턴 없이 바로 당신을 깨우며, 미지원 호스트에서는 확정 뒤 터미널 입력 한 번이 필요하고 탐색 클릭만으로는 깨우지 않음; fg-ask 그릴링 중 just-in-time 1회 제안(거절하면 재제안 없음), `fg-showme stop`으로 종료. 프레임은 리포 루트 `DESIGN.md`가 정의하는 Anthropic/Claude 디자인 시스템(크림 캔버스 + 코랄 강조 + serif 디스플레이)으로 렌더되므로, 에이전트가 미는 모든 화면이 그것을 상속한다 |
 | `fg-agenda` | 유틸리티 | 안개 속 작업의 결정 대기열 — 목적지를 함께 정한 뒤 무엇을 결정해야 하는지 캐내 `.forge/agenda.md`에 담고, 길이 밝아질 때까지 한 번에 하나씩 해소한 다음 스스로 삭제; 결정을 찾는 것은 에이전트, **답은 당신**이 하며, 빌드 가능해진 것은 백로그로 떠난다 |
 | `fg-security` | 유틸리티 | 코드베이스 보안 감사(방법론은 cloudflare/security-audit-skill vendoring, MIT) — 공격 유형별 다중 에이전트 다단계 hunting, 산출물은 **리포 밖**(업스트림 `~/security-audit-skill/`)에 남아 커밋 경로가 애초에 없고, 심각도 게이트와 당신의 승인을 통과한 findings가 fix-forward 백로그 plan이 된다 |
@@ -180,7 +181,7 @@ Forge는 `.codex-plugin/plugin.json`을 포함한다. Codex의 플러그인/마�
 
 ### Pi
 
-Pi는 로컬 forge 체크아웃에서 동일한 스킬 22개를 로드한다. `pi install /absolute/path/to/forge`를 실행하고 새 Pi 세션에서 `/skill:fg-ask`, `/skill:fg-run`, `/skill:fg-status`로 호출한다. 별도 매니페스트나 확장 없이 패키지의 `skills/` 디렉터리를 탐색한다. Pi 지원 변경이 포함된 체크아웃을 사용한다.
+Pi는 로컬 forge 체크아웃에서 동일한 스킬 23개를 로드한다. `pi install /absolute/path/to/forge`를 실행하고 새 Pi 세션에서 `/skill:fg-ask`, `/skill:fg-run`, `/skill:fg-status`로 호출한다. 별도 매니페스트나 확장 없이 패키지의 `skills/` 디렉터리를 탐색한다. Pi 지원 변경이 포함된 체크아웃을 사용한다.
 
 기본 지원은 텍스트 선택과 순차 실행이다. `fg-next all`과 `fg-loop`는 현재 턴 안에서 실행하고 다시 호출하면 재개한다. Pi 훅·statusline·커스텀 subagent는 포함하지 않는다. 설치 방법·능력 제한·검증 범위는 [Pi 가이드](./docs/pi.md)를 참조한다.
 
@@ -263,3 +264,11 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 `fg-security`의 **보안 감사 방법론**은 [cloudflare/security-audit-skill](https://github.com/cloudflare/security-audit-skill)을 MIT 라이선스로 **vendoring**한 것이다 — 진입 파일과 공격 유형별 플레이북 9종, `report-schema.json`·`validate-findings.cjs`가 `skills/fg-security/`에 있고 라이선스 사본은 `skills/fg-security/LICENSE`다. 개명한 것은 진입 파일 하나뿐이며(`SKILL.md` → `AUDIT.md` — forge의 스킬 자동 탐색 경로와 충돌하지 않도록), 나머지 11개는 업스트림과 **바이트 동일**로 두어 이후 diff가 싸게 유지된다. forge가 더한 것은 루프 통합뿐이다 — 심각도 게이트, 승인 시 fix-forward plan, 그리고 산출물을 리포 밖에 두는 것.
 
 `fg-debug`의 **버그 진단 규율**은 [mattpocock/skills의 diagnosing-bugs](https://github.com/mattpocock/skills/tree/main/skills/engineering/diagnosing-bugs)를 MIT 라이선스로 **vendoring**한 것이다 — 진입 파일과 `scripts/hitl-loop.template.sh`가 `skills/fg-debug/`에 있고 라이선스 사본은 `skills/fg-debug/LICENSE`다. 개명한 것은 진입 파일 하나뿐이며(`SKILL.md` → `DIAGNOSE.md` — forge의 스킬 자동 탐색 경로와 충돌하지 않도록), 파일들은 업스트림과 **바이트 동일**로 두어 이후 diff가 싸게 유지된다. forge가 더한 것은 루프 통합뿐이다 — 진단 전용이며 수정 크기보다 상태를 먼저 판정한다. 활성 `verified: failed` 작업은 수정이 trivial이어도 fg-run의 fix-and-re-run 경로로 복귀하고, 독립 진단만 trivial이면 fg-quick, non-trivial이면 사람 승인 fix-forward plan으로 간다. Phase 1 red 명령은 그 자체가 영속할 때만 plan의 eval이며, 아니면 영속 회귀 체크를 추가하거나 기계적 영속화가 불가능한 이유를 기록한다. 비밀 제거가 확인된 fixture와 테스트만 워킹 트리에 남길 수 있고, 원본 캡처는 밖에서 다루며 모든 종료 경로가 임시 계측과 산출물을 정리한다.
+
+## fg-monitor — 세션 모니터링
+
+Node 22+로 현재 프로젝트·시작 브랜치·Claude Code 세션의 작업과 주/서브에이전트를 읽기 전용 대시보드에서 봅니다. `/fg-monitor on`은 localhost에 빈 포트로 시작하며 접속 키 URL을 제공합니다. 외부 접속은 `/fg-monitor on --host 0.0.0.0`을 명시한 경우만 허용하며 실제 LAN 주소를 안내합니다. `/fg-monitor off`는 호출한 세션만 종료합니다.
+
+첫 실행에서 기록을 종료 시 삭제(`delete`)할지 보관(`keep`)할지 묻고 `.forge/config.json`의 `monitorRetention`으로 저장합니다. 이후에는 재사용하며 `/fg-config monitorRetention delete|keep`으로 변경할 수 있습니다. 변경은 다음 시작부터 적용되며 과거 보관 기록을 일괄 삭제하지 않습니다. 보관분은 같은 프로젝트·브랜치의 모니터 기록에서 실시간 상태와 구분해 봅니다.
+
+A안은 상단 단계 흐름과 하단 작업·에이전트 패널입니다. 관측되지 않은 상태는 확인 불가로 표시하고 대화·도구 입출력 전문을 노출하지 않습니다. Stop(응답 종료)은 서버를 끄지 않으며 SessionEnd 또는 실제 소유 Claude 프로세스 종료로 정리합니다. `/clear` 뒤 새 세션에 자동 연결하지 않습니다. 설치·훅 변경 후 새 Claude 세션이 필요합니다. Claude Code 2.1.303에서 exec-form Node 훅을 관측했으며 이전 버전은 미검증입니다. Codex/opencode/Pi 실시간 수집은 미지원입니다. macOS 실측을 Windows 동작 보장으로 확대하지 않습니다.

@@ -80,3 +80,7 @@ mapped: 2026-09-11
 - `skills/fg-security/`는 Cloudflare의 `security-audit-skill`을 MIT 라이선스와 함께 vendoring한다. 출처 표기는 `skills/fg-security/AUDIT.md`와 `skills/fg-security/LICENSE`에 있다.
 - `skills/fg-debug/`는 `mattpocock/skills`의 진단 자료를 MIT 라이선스와 함께 vendoring한다. 출처와 수정 경계는 `skills/fg-debug/SKILL.md`와 `skills/fg-debug/LICENSE`에 있다.
 - `skills/fg-showme/`와 `hooks/run-hook.cmd`는 obra/superpowers 계열 코드를 MIT 고지와 함께 포함한다. 라이선스는 `skills/fg-showme/LICENSE`, 변경 내역은 각 소스 파일 머리말에 있다.
+
+## fg-monitor 추가 (2026-10-20)
+
+Claude Code 이벤트 11종을 exec-form Node 훅으로 수집한다. 기존 SessionStart/Stop 제어 훅은 보존한다. 실제 `CLAUDE_CODE_SESSION_ID`·`CLAUDE_PID` 연결이 필요하다. Claude Code 2.1.303에서 관측했으며 Codex/opencode/Pi 실시간 수집은 미지원이다.

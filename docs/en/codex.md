@@ -65,3 +65,7 @@ npm run release:check
 ```
 
 This checks Claude/Codex manifest versions, the shared `skills/` path, the default hook file, and both host adapters. When the Codex manifest exists, `fg-doctor` also checks all four version locations for drift.
+
+## fg-monitor support boundary
+
+The skill is discoverable in the shared tree, but live collection and owner-session shutdown currently support Claude Code only. On this host, report the limitation instead of starting `/fg-monitor on`. Use `fg-status` for ordinary forge state reporting.
