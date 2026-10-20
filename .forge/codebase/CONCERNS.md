@@ -24,7 +24,7 @@ mapped: 2026-09-11
 - 기계적 변경 중 위험도가 높은 봉인과 병합은 `scripts/forge-done.*`, `scripts/forge-merge.*`가 임시 디렉터리·롤백 경로를 사용한다. 반면 스킬이 직접 작성하는 plan, run, retro, ADR에는 저장소 전체를 감싸는 공통 트랜잭션 계층이 없다.
 - 실행 중복 방지는 활성 작업의 `.forge/running.md`, 무인 drive 연속성은 `.forge/drive.md`에 의존한다. 오래되거나 파싱할 수 없는 marker는 `scripts/forge-doctor.*`와 훅이 별도 규칙으로 판정한다.
 - `scripts/`, `hooks/`, `skills/fg-showme/scripts/`의 실행 코드에는 범용 `flock` 또는 lockfile 구현이 없다. 여러 세션이 같은 브랜치의 Forge 상태를 동시에 편집하면 파일 단위 marker가 다루지 않는 쓰기 경합은 직렬화되지 않는다.
-- 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 저장되지만 `.forge/config.json`과 `.forge/codebase/`는 모든 브랜치가 공유한다. 병렬 브랜치에서 설정이나 지도를 갱신하면 동일 파일을 수정한다.
+- 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 저장되지만 `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 모든 브랜치가 공유한다. 병렬 브랜치에서 설정·지도·규칙을 갱신하면 동일 파일을 수정한다.
 
 ## 자동 검증의 공백
 

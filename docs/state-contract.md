@@ -17,6 +17,7 @@ repo/
     ├── retro/YYMMDD-HHMMSS-*.md  # 회고 로그 (구 YYYY-MM-DD-*는 grandfather)
     ├── followups.md           # 후속 후보 원장 (출처·날짜·상태·채택 task)
     ├── codebase/*.md          # fg-map이 만든 코드베이스 지도
+    ├── rules/                # 채택한 규칙 INDEX.md·주제 파일 (항상 최상위)
     ├── config.json            # 프로젝트 설정 일곱 키(simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch · monitorRetention) — 전역, 브랜치 해석 안 함. 진입점은 fg-config
     │                          # ── 휘발 루프 상태 (gitignore) ──
     ├── backlog/<slug>.md      # ① fg-ask 그릴링 산출 — 미실행 plan 대기열
@@ -34,7 +35,9 @@ repo/
     └── branch/<branch>/       # 비-기본 브랜치는 forge 루트 전체를 여기서 운영(git 추적); fg-merge가 .forge/로 통합 (ADR-0011)
 ```
 
-비-기본 브랜치에서는 위의 모든 `.forge/...` 경로가 `.forge/branch/<branch>/` 아래로 해석된다(기본 브랜치는 `.forge/`를 그대로 사용) — 단 전역 예외 두 개, `.forge/config.json`(규칙 자신이 읽어야 하는 `defaultBranch`를 담음)과 `.forge/codebase/`(지도는 공유 참조 연료)는 모든 브랜치에서 항상 최상위 `.forge/`에 머문다. 해석 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번 정의되고 모든 루프 스킬이 이를 참조한다.
+비-기본 브랜치에서는 위의 모든 `.forge/...` 경로가 `.forge/branch/<branch>/` 아래로 해석된다(기본 브랜치는 `.forge/`를 그대로 사용) — 단 전역 영속 예외 세 개, `.forge/config.json`(규칙 자신이 읽어야 하는 `defaultBranch`를 담음)과 `.forge/codebase/`(지도는 공유 참조 연료), `.forge/rules/`(일반 작업에서도 읽는 채택한 규칙)는 모든 브랜치에서 항상 최상위 `.forge/`에 머문다. 해석 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번 정의되고 모든 루프 스킬이 이를 참조한다.
+
+`fg-rules`는 후보·지침 연결·필요한 ignore 변경을 먼저 검토하고 채택한 변경만 저장한다. 기존 지침과 수동 수정을 보존하며, 재실행의 삭제도 검토 대상이다. 규칙은 브랜치별 작업 상태가 아니므로 `fg-merge`가 이동하지 않고 git이 일반 파일처럼 버전 관리한다. 읽기 연결 검증과 새 일반 코딩 세션의 실제 로드 관측을 구분한다. 휘발 예외 `.forge/showme/`도 항상 최상위에 남는다.
 
 `.gitignore` 패턴:
 
@@ -45,6 +48,7 @@ repo/
 !.forge/retro/
 !.forge/followups.md
 !.forge/codebase/
+!.forge/rules/
 !.forge/config.json
 !.forge/branch/        # 비-기본 브랜치 루트는 통째로 추적 (ADR-0011)
 ```

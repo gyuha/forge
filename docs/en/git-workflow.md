@@ -33,9 +33,11 @@ To understand branch operations you need to know what goes into git. Only the su
 | What | Default branch | Non-default (feature) branch |
 |------|---------------|------------------------------|
 | Volatile loop state (`plan`/`run`/`STATUS`/`backlog`/`executed`/`done`) | **git-ignored** (gitignore) | under the branch root `.forge/branch/<branch>/` → **tracked whole** |
-| Permanent fuel (`CONTEXT.md`·`adr/`·`retro/`·`codebase/`·`config.json`) | **tracked** (whitelist) | under the branch root → **tracked** |
+| Permanent fuel (`CONTEXT.md`·`adr/`·`retro/`) | **tracked** (whitelist) | under the branch root → **tracked** |
 
 The key asymmetry (ADR-0011): **the default branch's volatile state is never committed, but a feature branch's forge state is committed whole.** Because the paths are namespaced per branch (`.forge/branch/<branch>/`), two branches never write the same file, so `git merge` conflicts on forge state are eliminated at the source.
+
+Global persistent documents (`.forge/config.json`, `.forge/codebase/`, `.forge/rules/`) are tracked at top-level on both branches. Rules merge as ordinary git files; concurrent edits to the same rule can conflict.
 
 ## 4. Skill-by-skill git contact map
 
@@ -48,6 +50,7 @@ Where each skill touches git, at a glance:
 | fg-learn / fg-ask | Never runs git. They write tracked fuel (CONTEXT·ADR·retro), so committing is yours |
 | fg-run | Never runs git. It changes your code but **never forces a commit** |
 | fg-map / fg-agents | Never runs git. Their output (`.forge/codebase/` · Claude Code's `.claude/agents/`) is tracked → commit reminder. Codex-native agent materialization is not yet supported |
+| fg-rules | Applies only adopted rules, instruction connections and necessary minimal ignore exceptions. Checks actual ignore behavior; never auto-stages, commits or pushes |
 | fg-drop | Never runs git. On a non-default branch a deletion shows up as a tracked change → you `commit` or `git restore` |
 | fg-doctor | Read-only. It only **detects an orphaned branch root** you forgot to integrate after `git merge` (A8) |
 | Everything else (status·next·quick·loop·tdd·eco·cleanup·statusline·adversarial-review) | No git contact |

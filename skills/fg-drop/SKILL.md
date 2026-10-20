@@ -15,7 +15,7 @@ Note the contrast with its neighbors: **fg-done** *completes* a task and seals i
 
 **Explaining forge**: forge's vocabulary is not the user's — `verified: failed`, `unsealed tail`, a pillar or gate name means nothing unread. **Always, never gated on `eco`**: gloss a forge-specific term on first use in a message (a few words, not a paragraph), put the purpose before the mechanism, and lead with the answer, closing on what it means for the user. A gloss is not filler — with `eco` on, ECO.md's terse rules govern **form** (length, padding) while these govern **vocabulary**, so terseness never deletes a gloss.
 
-**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading, deleting, or archiving any state (ADR-0011). The two global exemptions (`.forge/config.json`, `.forge/codebase/`) are never drop targets.
+**Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading, deleting, or archiving any state (ADR-0011). The persistent global exemptions (`.forge/config.json`, `.forge/codebase/`, `.forge/rules/`) are never drop targets.
 
 ## What is droppable (and what is not)
 
@@ -32,7 +32,7 @@ Drop targets are **incomplete** work = anything not sealed in `done/`. Scan the 
 | `executed/<slug>/` | parked after "Run all", awaiting retro | **high** — already executed, same warning |
 | `loop.md` (halted goal loop) | an fg-loop drive stopped at a wall | **high** — abandons the whole goal loop |
 
-**Excluded — never drop targets:** `done/` (sealed work — that is "completed", not incomplete; un-completing a sealed task is a different operation, out of scope), `quick/LOG.md` (an append-only log, not a task), and the two global exemptions above.
+**Excluded — never drop targets:** `done/` (sealed work — that is "completed", not incomplete; un-completing a sealed task is a different operation, out of scope), `quick/LOG.md` (an append-only log, not a task), and the persistent global exemptions above.
 
 **Goal-loop rule (loop.md present).** If `loop.md` exists, surface it as a **single** droppable item (`goal loop: <one-line goal>`, risk high) — dropping it abandons the whole loop. "Whole" means `loop.md` **and all member tasks' incomplete forge state**: member plans in `backlog/`, a member in the active slot, and member directories in `executed/`. Sealed member history in `done/` remains immutable, and non-member work is untouched. The tasks listed in its `## Tasks` membership section are **excluded from individual drop** while `loop.md` exists: drop the loop whole, or finish it via fg-loop first. This avoids leaving orphan member tasks behind or having to re-synchronize membership after a partial removal. Non-member plans (e.g. ones fg-ask stacked while the loop was halted) remain individually droppable as usual.
 

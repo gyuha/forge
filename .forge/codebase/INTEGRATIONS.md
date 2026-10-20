@@ -64,7 +64,7 @@ mapped: 2026-09-11
 ## 파일 시스템과 프로세스 경계
 
 - Forge의 영속·휘발 상태는 프로젝트 로컬 `.forge/` 파일에 저장된다. 별도 데이터베이스나 원격 상태 저장소는 없다.
-- 기본 브랜치 상태는 `.forge/`, 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 둔다. 예외인 전역 지도는 `.forge/codebase/`, 시각 컴패니언 임시 상태는 `.forge/showme/`에 둔다.
+- 기본 브랜치 상태는 `.forge/`, 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 둔다. 예외인 전역 지도는 `.forge/codebase/`, 채택한 규칙은 `.forge/rules/`, 시각 컴패니언 임시 상태는 `.forge/showme/`에 둔다.
 - `hooks/run-hook.cmd`는 `CLAUDE_PROJECT_DIR`가 있으면 그 경로로 이동한 뒤 훅 본체를 실행한다. Unix에서는 Bash 우선·Node 폴백, Windows에서는 Git Bash 우선·Node 폴백이다.
 - `scripts/forge-loop-spend.*`는 Claude Code transcript 파일을 읽어 선택적 토큰 예산을 계측한다. 다른 호스트에서는 transcript 경로를 명시하지 않으면 해당 기능을 사용할 수 없다는 제한이 `docs/codex.md`와 `docs/opencode.md`에 기록돼 있다.
 

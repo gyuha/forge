@@ -30,6 +30,7 @@ These paths are **always** read/written at the top-level `.forge/`, on every bra
 - **`.forge/monitor/`** — Node monitor runtime and retained activity summaries, self-ignored at the project top level. Session IDs isolate active ownership; records retain their starting branch and are never merged into loop state.
 - **`.forge/showme/`** — the visual companion runtime, self-ignored and independent of monitor lifetime.
 - **`.forge/codebase/`** — the fg-map codebase map is shared reference fuel. If it were branch-local, a freshly created branch would have an empty `codebase/` and `fg-ask` would lose the map (the whole context-rot benefit). So `fg-map` writes and `fg-ask` reads `.forge/codebase/` globally; a branch reads main's map as its base.
+- **`.forge/rules/`** — adopted project rules and their routing index. Project instructions must reach the same root-relative path during ordinary coding, without resolving forge task state. fg-rules writes here on every branch; git versions these files normally within each branch/worktree. This adds a persistent-document exception to the original ADR-0011 rule.
 
 Everything else — backlog, plan, run, STATUS, executed, done, **followups.md**, **adr/**, **retro/**, **CONTEXT.md** — resolves to the branch root. (These are exactly the things that collide across branches, which is the point of isolating them.)
 
@@ -63,8 +64,8 @@ Both print the resolved root on stdout (`.forge` or `.forge/branch/<branch>`) an
 
 ## What lives where, and why no merge conflict
 
-- **Default branch** — root `.forge/`. Volatile state (plan/run/STATUS/backlog/executed/done) stays **gitignored**; persistent docs (adr/retro/codebase/CONTEXT.md/config.json) **tracked** via the `.gitignore` whitelist. Unchanged from before.
-- **Non-default branch** — root `.forge/branch/<branch>/`, and the **whole branch root is git-tracked** (`.gitignore` whitelists `.forge/branch/`, including the volatile-type files under it). The two global exemptions (`.forge/config.json`, `.forge/codebase/`, `.forge/showme/`, `.forge/monitor/`) stay at the top-level `.forge/` and are **not** copied into the branch root. Because every branch's paths are namespaced by branch name, **two branches never write the same file**, so `git merge` adds the namespaced folder without ever conflicting on forge state. (This makes branch volatile state tracked — an intentional asymmetry vs the default branch; see ADR-0011.) Branch forge state must be **committed on the branch** like any code change — an uncommitted branch root never reaches the default branch for fg-merge to integrate.
+- **Default branch** — root `.forge/`. Volatile state (plan/run/STATUS/backlog/executed/done) stays **gitignored**; persistent docs (adr/retro/codebase/rules/CONTEXT.md/config.json) **tracked** via the `.gitignore` whitelist. Unchanged from before.
+- **Non-default branch** — root `.forge/branch/<branch>/`, and the **whole branch root is git-tracked** (`.gitignore` whitelists `.forge/branch/`, including the volatile-type files under it). The global exemptions (`.forge/config.json`, `.forge/codebase/`, `.forge/rules/`, `.forge/showme/`, `.forge/monitor/`) stay at the top-level `.forge/` and are **not** copied into the branch root. Because every branch's paths are namespaced by branch name, **two branches never write the same file**, so `git merge` adds the namespaced folder without ever conflicting on forge state. (This makes branch volatile state tracked — an intentional asymmetry vs the default branch; see ADR-0011.) Branch forge state must be **committed on the branch** like any code change — an uncommitted branch root never reaches the default branch for fg-merge to integrate.
 
 ## Integration
 

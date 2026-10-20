@@ -11,6 +11,7 @@
 | `fg-learn` | ③ 회고 | 학습을 문서로 승급(기계 확인 가능한 학습은 eval — 영속 회귀 체크 — 로 승급), 다음 질의 도출 | `.forge/run.md`, `plan.md`, `executed/` | `.forge/retro/*.md` + 승급 | `fg-done` (크게 어긋났으면 `fg-ask`로 재그릴링) |
 | `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md`를 done으로 마감, 아카이브, 활성 상태 비우기, 루프 닫기. 기계적 봉인은 결정론 스크립트(`forge-done.sh`/`.js`)가 처리(ADR-0030). `all` 모드는 실행된 작업 일괄 봉인(회고 skip·백로그 불가침) | `.forge/*` | `.forge/done/<날짜-slug>/` | `fg-ask` / 종료 |
 | `fg-map` | 유틸리티(루프 밖) | 병렬 서브에이전트로 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드를 다시 탐색하지 않고 지도를 읽게 한다(context rot 감소) | 코드베이스 | `.forge/codebase/*.md` (7개 문서) | — (`fg-ask`가 소비) |
+| `fg-rules` | 유틸리티(루프 밖) | 프로젝트 규칙 검토 후 채택, 갱신 시 직접 수정 보존 | 현재 코드·지침·선택적 지도 | 최상위 `.forge/rules/INDEX.md`·주제 파일과 검토한 지침·ignore 변경 | — (일반 코딩 작업) |
 | `fg-quick` | 경량 차선(루프 밖) | 사소한 작업용 — 가볍게 그릴링한 뒤 형식 산출물(ADR/plan/회고) 없이 바로 실행; 비-trivial로 드러나면 `fg-ask`로 bail | 사용자 요청 | `.forge/quick/LOG.md`에 항목 하나 | — (자체 완결) |
 | `fg-status` | 리포터(루프 밖) | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 지금 필요한 다음 단계 하나를 출력; 아무것도 쓰지 않고 자동 실행도 안 함 | `.forge/*` (읽기 전용) | 출력 보고(파일 없음) | — (다음 단계 제안) |
 | `fg-next` | 오케스트레이터(루프 밖) | fg-status의 상태 머신으로 다음 단계 하나를 도출해 한 줄로 알린 뒤 그 스킬을 곧바로 실행 — 보고만 하지 않음, one-shot; fg-status는 보고, fg-next는 행동 | `.forge/*` (자신은 읽기 전용) | 없음 — 호출한 스킬에 위임 | — (다음 스킬을 호출) |
@@ -39,7 +40,7 @@
 - **표는 사용자 언어로 렌더된다.** 라벨의 canonical 이름은 영문(`Just did` · `Next step` · `How to start` · `Alternative`)이고 — 스킬 문서가 영문이므로 셀을 가리킬 때 쓰는 이름이다 — 화면에 나갈 때 사용자 언어로 번역된다(한국어 세션이면 위 네 라벨). 경로·`.forge/` 필드·`/명령`만 verbatim이며, **자연어 트리거는 verbatim이 아니라** 스킬 `description`에 등록된 한/영 트리거 중 사용자 언어에 맞는 것을 골라 채운다.
 
 - **적용 15곳** — 루프 4단계(`fg-ask`·`fg-run`·`fg-learn`·`fg-done`) + 가리킬 다음 단계가 실재하는 유틸리티 11개(`fg-status`·`fg-next`·`fg-loop`·`fg-quick`·`fg-map`·`fg-doctor`·`fg-agenda`·`fg-adversarial-review`·`fg-agents`·`fg-security`·`fg-debug`).
-- **제외 7곳** — `fg-config`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-showme`·`fg-help`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
+- **제외 8곳** — `fg-config`·`fg-statusline`은 토글·설정이라 가리킬 다음이 없고 본문 한 줄이 표보다 짧다. `fg-cleanup`·`fg-drop`·`fg-showme`·`fg-help`·`fg-rules`은 다음 단계 안내를 애초에 내지 않는다. `fg-merge`는 가장 좁은 근거로 제외됐다 — 그것이 내는 것은 **git 상태 복구 지시**("충돌 해소 → `git commit` → `fg-merge` 재실행")이지 루프 핸드오프가 아니다.
 - **표는 메뉴가 아니다.** 진술형은 불변이다(ADR-0015) — `AskUserQuestion`으로 내지 않고, `대안` 행은 고르라는 질문이 아니며, 알리고 멈춘다. 체이닝은 여전히 `fg-next`의 몫이다.
 - **조건부 다음 단계는 우선순위 규칙으로 채운다.** 한 분기를 행에 못 박고 나머지를 `대안`으로 밀면 표가 스킬이 방금 하지 말라고 한 것을 지시하게 된다(`fg-run`·`fg-learn`의 divergence 규칙이 그 예다).
 - **무인 주행에서는 위임 스킬이 표를 렌더하지 않는다** — `fg-next all`·`fg-loop`에서 주행자가 억제하고 자기 단계(벽·완료)에만 낸다. 위임된 "fg-learn 실행" 안내가 사용자에게 새어 나가면 주행이 정지한다(`DRIVE.md`).
@@ -49,13 +50,13 @@
 
 ## Explaining forge — forge가 자기 어휘를 설명하는 방식 (항상)
 
-forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 사람에게 암호다. 그래서 23개 `SKILL.md` 전부가 `**Language**` 규칙 옆에 **항상-on `**Explaining forge**` 규율**을 담는다. `eco` 게이트와 무관하다 — ADR `260824-134246`.
+forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verified: failed`·`unsealed tail`·"기둥 1"·`wall: stalled-waiting`은 문서를 안 읽은 사람에게 암호다. 그래서 24개 `SKILL.md` 전부가 `**Language**` 규칙 옆에 **항상-on `**Explaining forge**` 규율**을 담는다. `eco` 게이트와 무관하다 — ADR `260824-134246`.
 
 - **규칙 3개** — ① forge 전문용어는 한 메시지 안 첫 등장에서 즉시 주석(몇 단어, 문단 아님) ② 목적을 메커니즘보다 먼저 ③ 결론을 먼저 내고 사용자에게 갖는 의미로 닫기.
 - **eco에 넣지 않은 것이 핵심 결정이다.** `eco` 기본값은 `false`이고, 주석을 가장 필요로 하는 사람 — forge를 방금 설치한 사용자 — 이 바로 eco를 켜 봤을 리 없는 사람이다. eco에 번들하면 규율이 거꾸로 배달된다. ADR-0014가 caveman을 eco에 번들한 것과 **의도적으로 다른** 결정이며, 차이의 근거는 caveman이 토큰 절약(축=비용)이고 이것은 정확한 전달(축=품질)이라는 것이다.
 - **[`ECO.md`의 간결 규칙](#fg-config)과 분업한다** — 간결 규칙은 **형태**(길이·군더더기), 이 규율은 **어휘**를 지배한다. **주석은 군더더기가 아니므로** 간결함이 주석을 지우지 않는다. `eco` off = 장문+주석, on = 간결+주석 — 주석은 두 상태에서 불변이다.
 - **[dreambigou의 eli5](https://github.com/dreambigou/eli5)(MIT)에서 개념만 각색했다** — 코드 vendoring이 아니다(파일 복사 0). 청중 표(나이·학년·관계·직무 24행)는 버렸다: forge 출력을 5살이나 배우자나 디자이너가 읽지 않으므로 남길 청중 축이 없고, 청중 변화는 사람 사이가 아니라 **숙련도 사이**에 있다.
-- **단일정의 문서를 만들지 않고 인라인했다** — 규칙이 3문장 1줄이라 참조 한 줄이 규칙 본문과 길이가 비슷해진다(`HANDOFF.md`·`ECO.md`는 파일을 벌지만 3줄은 못 번다). 대가인 23중 복제 드리프트는 **`fg-doctor` 검사 B17**이 막는다 — **canonical 본문**의 단일 정의(`scripts/explaining-forge.rule.txt`)를 23곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩만 남기고 본문을 삭제·축약·약화·반대로 쓴 경우까지 잡힌다. **포함**(동일성 아님)이라 `fg-ask`의 의도된 상위집합(문장 하나 추가)은 예외 목록 없이 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 forge 리포에 한정된다(사용자 프로젝트의 자기 스킬은 오탐이 되므로 **최상위** 매니페스트 `name`으로 스코프를 좁혔다 — 중첩된 `"author": {"name": "forge"}`는 발동시키지 못한다).
+- **단일정의 문서를 만들지 않고 인라인했다** — 규칙이 3문장 1줄이라 참조 한 줄이 규칙 본문과 길이가 비슷해진다(`HANDOFF.md`·`ECO.md`는 파일을 벌지만 3줄은 못 번다). 대가인 23중 복제 드리프트는 **`fg-doctor` 검사 B17**이 막는다 — **canonical 본문**의 단일 정의(`scripts/explaining-forge.rule.txt`)를 24곳 전부에서 **verbatim 포함**으로 요구하므로, 헤딩만 남기고 본문을 삭제·축약·약화·반대로 쓴 경우까지 잡힌다. **포함**(동일성 아님)이라 `fg-ask`의 의도된 상위집합(문장 하나 추가)은 예외 목록 없이 통과한다. severity는 **warning** — 형제 산문 드리프트 검사(B12·B13·B15·B16)와 같은 rubric이고, 스타일 문단 누락은 릴리스 파손이 아니다. 적용은 forge 리포에 한정된다(사용자 프로젝트의 자기 스킬은 오탐이 되므로 **최상위** 매니페스트 `name`으로 스코프를 좁혔다 — 중첩된 `"author": {"name": "forge"}`는 발동시키지 못한다).
 
 ## 루프 스킬 (4단계)
 
@@ -85,7 +86,13 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](https://github.com/gyuha/forge/blob/main/.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (19개)
+## 루프 밖 유틸리티 (20개)
+
+### fg-rules
+
+`/forge:fg-rules [주제]`는 현재 프로젝트에서 근거와 적용 범위를 가진 규칙 후보를 제안합니다. **채택 전에는 파일을 쓰지 않으며**, 선택한 규칙만 최상위 `.forge/rules/`에 저장합니다. `AGENTS.md`·`CLAUDE.md`의 기존 위임과 중첩 지침을 보존하면서 색인과 해당 주제를 읽도록 연결합니다. 기존 지침과 충돌하는 후보는 보류하고, 재실행에서도 추가·수정·삭제를 검토해 선택한 변경만 반영하며 직접 수정은 보존합니다. 포매터·린터가 이미 강제하는 항목은 중복하지 않습니다.
+
+`fg-map`은 현재 구현을 설명하고, `fg-rules`는 앞으로 따를 기준을 관리합니다. 지도가 없어도 실행하며, 오래된 지도는 현재 코드와 대조하고 자동 갱신하지 않습니다. 규칙 경로는 feature 브랜치에서도 `.forge/rules/`이며 일반 git 버전 관리를 따릅니다. 일반 코딩 작업으로의 **연결 검증**(읽기 지시·경로 확인)과 **로드 관측**(새 일반 세션에서 실제로 읽은 증거)은 구분해 보고합니다. 둘 모두 AI의 지속적인 준수를 보장하지는 않습니다.
 
 ### fg-map
 
