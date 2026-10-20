@@ -233,6 +233,21 @@ else
   fi
 fi
 
+# Preserve marked candidates before any source can be archived or removed.
+# Both inputs are parsed as one transaction: malformed data leaves the ledger intact.
+followup_files=()
+[ ! -f "$R" ] || followup_files+=(--file "$R")
+followup_retro="$(find_retro "$slug")"
+if [ -n "$followup_retro" ]; then
+  case "$followup_retro" in /*) ;; *) [ -z "$repo_top" ] || followup_retro="$repo_top/$followup_retro";; esac
+  followup_files+=(--file "$followup_retro")
+fi
+if [ "${#followup_files[@]}" -gt 0 ]; then
+  bash "$SCRIPT_DIR/forge-followups.sh" collect --root "$root" "${followup_files[@]}" || {
+    echo "SEAL_IO followup-collection-failed slug=$slug (source retained)"; exit 6;
+  }
+fi
+
 # --- SEAL (mutation only past this point) ------------------------------------
 reviewed=""
 [ -f "$V" ] && reviewed="$(relpath "$V")"   # repo-relative, never a machine path

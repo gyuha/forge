@@ -37,6 +37,10 @@ Documents are written in the user's language; the headings below are canonical E
 - **Decide what to promote together with the human.** Don't push automatically — propose and get confirmation.
 - **Auto retros (`fg-loop all`) are the one unattended author, and they never promote.** A retro written by `fg-loop all` carries `<!-- auto-retro: fg-loop all -->` as its first line, fills only `Plan vs actual` and `Learnings` from that task's plan/run/repair record, and marks `Doc updates` as unreviewed — it neither promotes nor proposes. The marker means "no human has judged this yet": fg-learn's batch promotion picks such tasks up, and the marker is removed once a human has reviewed it (ADR `261010-230950`).
 
+## Follow-up candidates
+
+When concrete future work exists, append its marked blocks as the **final** section, using [FOLLOWUPS-FORMAT.md](./FOLLOWUPS-FORMAT.md), and persist them in the ledger before the handoff. Reuse IDs from run.md; an auto retro also preserves these IDs. Omit the section when there are no candidates. The ledger, not a localized heading or a chat list, owns candidate state.
+
 ## Promotion criteria (summary)
 
 | Nature of the learning | Destination | Criterion |

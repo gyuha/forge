@@ -15,6 +15,7 @@ repo/
     ├── adr/0001-*.md          # 아키텍처 결정
     ├── adr/retired/           # 은퇴/대체된 ADR (fg-cleanup이 이동)
     ├── retro/YYMMDD-HHMMSS-*.md  # 회고 로그 (구 YYYY-MM-DD-*는 grandfather)
+    ├── followups.md           # 후속 후보 원장 (출처·날짜·상태·채택 task)
     ├── codebase/*.md          # fg-map이 만든 코드베이스 지도
     ├── config.json            # 프로젝트 설정 일곱 키(simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch · monitorRetention) — 전역, 브랜치 해석 안 함. 진입점은 fg-config
     │                          # ── 휘발 루프 상태 (gitignore) ──
@@ -42,6 +43,7 @@ repo/
 !.forge/CONTEXT.md
 !.forge/adr/
 !.forge/retro/
+!.forge/followups.md
 !.forge/codebase/
 !.forge/config.json
 !.forge/branch/        # 비-기본 브랜치 루트는 통째로 추적 (ADR-0011)
@@ -88,6 +90,24 @@ repo/
 봉인은 임시 복사본의 STATUS를 마감하고 완성된 아카이브를 게시한 뒤 원본 파일을 정리한다. 아카이브 준비가 실패하면 원본을 보존한다. 파일 작업 오류는 `SEAL_IO`와 exit 6으로 반환하며, 게시 후 정리 오류라면 원본 일부와 아카이브가 함께 남을 수 있으므로 재시도 전에 양쪽을 확인한다. 반봉인 복구도 검증·회고 게이트를 통과해야 한다.
 
 브랜치 자동 통합은 `feature/team/topic`처럼 여러 `/`가 있는 이름도 재귀적으로 탐색한다. 여러 후보가 발견되면 하나를 임의로 고르지 않고 선택을 요구한다.
+
+## 후속 후보와 외부 상태 조회 {#followups}
+
+후속 후보는 해석된 forge 루트의 `followups.md`에 남는다. `fg-learn`은 회고에서 나온 후보를 저장하고, `fg-done`은 봉인 전에 run/retro의 후보를 수집한다. `fg-ask` 자동 마감, `fg-loop`, `fg-next all`, simple 모드, `fg-done all`도 같은 저장 절차를 거치므로 회고를 건너뛰어도 후보가 보존된다. 후보가 없으면 파일을 만들지 않는다.
+
+각 항목은 고정 ID, 출처 slug와 task 번호, 발견 날짜, `open`·`taken`·`dismissed` 상태를 HTML 주석 마커로 기록한다. `taken`에는 새 task 번호가 붙는다. `fg-ask`는 후보로 시작한 계획을 백로그에 저장한 뒤 채택 상태를 기록하며, 같은 후보를 다시 읽어도 이미 채택·제외한 상태를 초기화하지 않는다. `taken`은 계획이 만들어졌다는 뜻이며 작업 완료를 뜻하지 않는다. 제외한 후보도 이력으로 남는다.
+
+이 원장은 브랜치별로 읽고 쓴다(기본 브랜치 문서와 오버레이하지 않음). `fg-merge`가 후보를 보존하면서 출처와 채택 task 번호를 재매핑한다. 기존 프로젝트는 `.gitignore`의 `.forge/*` 뒤에 `!.forge/followups.md`를 허용해야 한다. 과거 자유 제목 기록 전체를 자동 이관하지는 않는다. 봉인하는 작업의 기록을 읽어 정규화하며, 형식의 단일 정의는 `skills/fg-learn/FOLLOWUPS-FORMAT.md`다.
+
+외부 모니터는 프로젝트 디렉터리에서 설치된 forge의 스크립트를 호출할 수 있다:
+
+```sh
+bash /path/to/forge/scripts/forge-status.sh --json
+# bash가 없는 호스트
+node /path/to/forge/scripts/forge-status.js --json
+```
+
+`schemaVersion: 1` JSON은 모든 작업(완료 이력 5건 제한 없음), 원시 검증/회고 값, 실행 중 마커, 루프 계약, 집계, 후속 후보를 제공한다. 빈 상태도 유효한 JSON이며 stdout에는 JSON만 출력한다. 다음 단계의 판단은 기존 스킬 상태 머신에 남고 JSON은 파일 상태를 전달한다. 기존 텍스트와 `--table` 출력은 유지된다. 스키마는 `skills/fg-status/STATUS-JSON.md`에 정의한다.
 
 ## 생산자·소비자 계약
 

@@ -131,6 +131,8 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-security` | 유틸리티 | 코드베이스 보안 감사(방법론은 cloudflare/security-audit-skill vendoring, MIT) — 공격 유형별 다중 에이전트 다단계 hunting, 산출물은 **리포 밖**(업스트림 `~/security-audit-skill/`)에 남아 커밋 경로가 애초에 없고, 심각도 게이트와 당신의 승인을 통과한 findings가 fix-forward 백로그 plan이 된다 |
 | `fg-debug` | 유틸리티 | 어려운 버그의 대화형 진단 규율(mattpocock/skills의 diagnosing-bugs vendoring, MIT) — 진단 전용; 활성 실패 작업은 fg-run으로 복귀하고, 독립 진단만 fg-quick 또는 승인된 fix plan으로 갈린다. red 명령은 영속할 때만 eval이며, 원본 캡처는 리포 밖에 두고 모든 종료 경로에서 임시 산출물을 정리한다. 무인 주행에선 항상 skip |
 
+후속 후보는 `.forge/followups.md`에 출처·날짜·상태와 함께 보존됩니다. `fg-ask`에서 계획으로 채택하면 새 task 번호로 연결됩니다. 외부 도구는 `forge-status.sh --json` 또는 `forge-status.js --json`으로 전체 작업과 후보를 읽을 수 있습니다.
+
 스킬별 상세 — 입력·출력·다음 단계, 트리거, 근거 ADR — 은 **[docs/skills.md](./docs/skills.md)** 에 있다. `fg-ask`가 루프의 진입점이며("forge 시작", "새 작업", "계획 다듬자" 등에서 트리거), 유틸리티는 각자 고유 발화로 트리거되는 온디맨드 스킬이다.
 
 ## 전체 흐름

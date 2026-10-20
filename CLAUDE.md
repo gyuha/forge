@@ -10,7 +10,7 @@ forge는 **Claude Code·Codex 플러그인이자 opencode·Pi를 지원하는 �
 
 > **CI 워크플로우는 셋이다.** `docs.yml`(문서 사이트 배포, `docs/**`·`package.json` 경로에만 발동)과 `release-check.yml`(**릴리스 게이트** — 매니페스트 4곳 버전 동기·공통 skills 경로·기본 훅 파일·호스트 어댑터 완비 + `core/HOST.md`에서 파싱한 capability 8키 계약. `.claude-plugin/`·`.codex-plugin/`·`core/`·`hosts/`·`hooks/`·`scripts/release-check.*` 경로에 발동하며 두 트윈과 패리티 테스트를 함께 돌린다). 모니터 전용 `monitor-check.yml`은 macOS·Linux·Windows에서 Node 모니터 기능·배선 테스트를 실행한다. **게이트를 `docs.yml`에 넣지 말 것** — 그쪽은 `docs/**`에만 발동하므로 정작 지켜야 할 매니페스트·어댑터 변경에 발동하지 않는 fail-open 게이트가 된다(배선된 것처럼 보이는 게이트는 없는 것보다 나쁘다). `fg-doctor`는 CI에 배선하지 않았다 — 현재 B16 warning 1건으로 exit 1이라 즉시 붉어진다.
 
-> **루트 `package.json`에 `"type"` 필드를 넣지 말 것.** `scripts/*.js` 트윈 8개가 CommonJS(`require`)라 `"type": "module"`을 넣으면 리포 전체 `.js`가 ESM으로 해석되어 fg-done·fg-doctor·fg-status·fg-merge·세션 시작 훅이 전부 죽는다(bash 없는 Windows에서 실제 증상이 드러난다). VitePress 설정은 `.mts` 확장자만으로 이미 ESM이므로 이 필드가 애초에 필요 없다. 실제로 한 번 넣었다가 적대적 리뷰에서 잡혔다 — ADR `260815-094725`.
+> **루트 `package.json`에 `"type"` 필드를 넣지 말 것.** `scripts/*.js` 트윈이 CommonJS(`require`)라 `"type": "module"`을 넣으면 리포 전체 `.js`가 ESM으로 해석되어 fg-done·fg-doctor·fg-status·fg-merge·세션 시작 훅이 전부 죽는다(bash 없는 Windows에서 실제 증상이 드러난다). VitePress 설정은 `.mts` 확장자만으로 이미 ESM이므로 이 필드가 애초에 필요 없다. 실제로 한 번 넣었다가 적대적 리뷰에서 잡혔다 — ADR `260815-094725`.
 
 **문서 사이트를 검증할 때 반드시 볼 세 가지** — 라이트모드에서 페이지가 200으로 열리는 것만으로는 부족하다:
 
@@ -107,6 +107,7 @@ fg-ask(①질의·계획·그릴링) → fg-run(②실행) → fg-learn(③회�
 - `.forge/CONTEXT.md` / 루트 `CONTEXT-MAP.md`(멀티 컨텍스트) — 도메인 글로서리. 용어만, 구현 세부 금지. fg-ask가 그릴링 중 인라인 갱신. **멀티 컨텍스트만 예외** — 컨텍스트별 `CONTEXT.md`는 코드 옆(`src/<context>/`)에, `CONTEXT-MAP.md`는 루트에 둔다(`.forge/` 통합 대상 아님). 단일 컨텍스트만 `.forge/CONTEXT.md`.
 - `.forge/adr/<id>-slug.md` — 아키텍처 결정. ID는 시간기반(`YYMMDD-HHMMSS`+같은-초 충돌 시에만 소문자 글자; 기존 `YYMMDD-HH`+글자·순차 `NNNN`은 grandfather로 공존, ADR-FORMAT.md). `decided`에 시각(분)까지 기록. 세 조건(되돌리기 어렵다/맥락 없이 의아하다/진짜 트레이드오프) 모두 충족 시에만.
 - `.forge/retro/YYMMDD-HHMMSS-slug.md` — 세션 회고 로그. 승급 바를 못 넘는 학습의 종착지.
+- `.forge/followups.md` — 후속 후보 영속 원장. 고정 ID·출처 slug/task·날짜·open/taken/dismissed·채택 task 마커. fg-learn과 모든 봉인 경로가 기록하고 fg-ask가 계획 저장 후 taken으로 전이한다. 브랜치별 원장(오버레이 없음), fg-merge가 task 참조를 재매핑한다. 단일 정의: `skills/fg-learn/FOLLOWUPS-FORMAT.md`. `forge-status --json`의 기계 스키마는 `skills/fg-status/STATUS-JSON.md`.
 - `.forge/codebase/*.md` — fg-map(루프 밖 유틸리티)이 생성하는 코드베이스 지도(7문서). fg-ask가 그릴링 전 읽어 context rot을 줄인다.
 
 형식 정의는 한 벌만 존재하며 소유 스킬의 디렉터리에 둔다 — `skills/fg-ask/{CONTEXT,ADR}-FORMAT.md`(grill-with-docs 원본), `skills/fg-run/PLAN-FORMAT.md`(plan.md 형식 + 분할 규칙; 생산자는 fg-ask지만 fg-ask 디렉터리는 verbatim 영역이라 소비자 쪽에 둠), `skills/fg-learn/RETRO-FORMAT.md`. 전부 영문(생성되는 문서는 사용자 언어). 다른 스킬(fg-done 포함)은 `${CLAUDE_PLUGIN_ROOT}/skills/<소유 스킬>/<파일>`(상대경로 `../fg-ask/` 등)로 참조하고 자체 복사하지 않는다. 루트 `references/` 디렉터리는 폐지됐다.
