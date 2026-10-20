@@ -3,16 +3,16 @@
 실행일: 2026-10-20
 계획: `plan.md` (task 1, tdd on)
 브랜치: `feat-fg-monitor-web-dashboard`
-결과: 구현·검토 수정 완료, 일부 환경/시각 검증 대기. 커밋·push·봉인은 하지 않았다.
+결과: 구현·검토 수정·검증 완료. 사용자 승인으로 기능 브랜치 커밋·push 및 초안 PR #25 생성. 회고·봉인은 아직 하지 않았다. 아래 초기 기록 뒤의 최종 검증 절이 현재 결과다.
 
 ## 슬라이스 결과
 
 - S1 호스트 입력·소유 세션 관측 — ✅ 실제 Claude 주/서브에이전트·Stop·SessionEnd와 정상/강제 종료 관측, 익명화 테스트 입력 포함.
 - S2 상태 조회·이벤트 수집 — ✅ 순수 조회 분리, 기존 CLI parity 보존, 세션 격리·부분 쓰기·checkpoint·지연 이벤트 회귀 검증.
 - S3 Node 서버·명령·보관 — ✅ 인증 HTTP·기본/외부 바인딩·중복·소유권·설정·keep/delete 검증.
-- S4 A안 대시보드 — ⚠ 구현과 실제 브라우저 기능/크기 검증 완료, 스크린샷 시각 검증은 브라우저 도구 오류로 대기.
+- S4 A안 대시보드 — ✅ 기능/크기 검증 및 Ego Lite 업데이트 후 1440px/390px 스크린샷 시각 검증 완료.
 - S5 스킬·훅·설정·문서 — ✅ 실제 새 Claude에 plugin-dir 설치해 첫 질문·저장·재사용·설정 변경·off 확인.
-- S6 OS 통합 검증 — ⚠ macOS Node 24 및 Linux Node 22 통과, Windows/나머지 CI 조합·문서 시각 검증 대기.
+- S6 OS 통합 검증 — ✅ macOS/Linux/Windows × Node 22/24 CI, 실제 macOS Claude 종료 UAT, 문서 다크모드·자산 검증 완료.
 
 ## 구현과 검토
 
@@ -75,3 +75,24 @@
 - 원격 검증을 위한 커밋·push·초안 PR과, 스크린샷 오류 복구를 위한 Ego Lite 업데이트는 사용자 결정을 요청했다. 응답 전에는 수행하지 않는다.
 
 현재 남은 항목은 Windows Node 22/24 CI와 화면/문서 시각 검증이며, 이 확인 없이는 verified를 yes로 바꾸지 않는다.
+
+## 승인 후 최종 검증 — 2026-10-20
+
+사용자가 Ego Lite 업데이트와 기능 브랜치 커밋·push·초안 PR을 승인했다.
+
+- 최초 제품 커밋 `b79595f`, 초안 PR https://github.com/gyuha/forge/pull/25 생성.
+- PR의 main 충돌 때문에 검사 실행이 없음을 확인하고 origin/main을 병합했다. `forge-status.js`의 JSON API 추가와 공유 조회 분리가 충돌했으며 두 기능을 보존했다. JSON parity/behavior 12개, 모니터 22개, 기존 text parity, release check, docs build를 재검증했다. 병합 커밋 `6b00407`.
+- **Monitor checks** https://github.com/gyuha/forge/actions/runs/39373263744 — ubuntu/macos/windows × Node 22/24, **6개 조합 모두 success**. Windows에서는 기존 hook dispatch 검사도 통과했다.
+- **Release gate** https://github.com/gyuha/forge/actions/runs/39373263620 — **success**.
+- Ego Lite를 승인 후 업데이트했고 최신 사용 가이드를 다시 읽었다. 기존 screenshot 오류가 해소됐다. 실제 제품 서버의 1440×1000 데스크톱과 390×844 모바일 화면을 캡처·열람했다. 데스크톱의 좌측 탐색/단계/두 패널과 모바일의 세로 배치, 한국어 상태 텍스트를 확인했다. 사용자에게 두 캡처를 표시했다.
+- 문서의 fg-monitor 절을 다크모드로 캡처·열람했다. 상태 계약의 Mermaid **20개 노드 최소 명암비 10.17:1**로 기준 3:1 이상, 페이지의 **70개 자산 모두 HTTP 200**.
+- 검증 중 문서 재빌드 전 preview 프로세스가 이전 자산 목록을 사용해 404를 냈다. 새 빌드 후 preview를 재시작하여 해결했고 제품 변경은 필요하지 않았다.
+
+시각 검증 캡처(이 실행 환경의 로컬 산출물):
+
+- `/tmp/forge-monitor-desktop-approved.png`
+- `/tmp/forge-monitor-mobile-approved.png`
+- `/tmp/forge-docs-monitor-section.png`
+- `/tmp/forge-docs-diagram-dark.png`
+
+따라서 DoD 1의 미수행 OS 조합, DoD 7의 스크린샷, DoD 8의 문서 다크모드/자산 확인은 **대기 → 통과**로 갱신한다. STATUS는 verified yes, retro pending이다. PR은 승인한 초안 상태를 유지하며 merge·이슈 닫기·릴리스는 수행하지 않았다. 실제 Claude 관측은 macOS에 한정되고 Windows/Linux는 Node CI 검증이라는 구분 및 PID 재사용 한계는 유지한다.
