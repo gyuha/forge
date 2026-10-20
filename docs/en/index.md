@@ -19,7 +19,7 @@ In Codex, install the repository's `.codex-plugin/plugin.json` from a local Mark
 
 ## One turn of the loop
 
-Twenty-two skills look like a lot, but day to day you drive with **three**.
+Twenty-three skills look like a lot, but day to day you drive with **three**.
 
 ```
 fg-ask   →   fg-run   →   fg-next

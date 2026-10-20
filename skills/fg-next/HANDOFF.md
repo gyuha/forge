@@ -105,13 +105,14 @@ So, without exception:
 | Loop stages | `fg-ask` · `fg-run` · `fg-learn` · `fg-done` |
 | Outside-the-loop, with a next step | `fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents` · `fg-security` · `fg-debug` |
 
-**Does NOT apply (7)** — leave their prose as it is:
+**Does NOT apply (8)** — leave their prose as it is:
 
 | Skills | Why |
 | --- | --- |
 | `fg-config` · `fg-statusline` | Toggles and setup: there is nothing to point at, and their one-line body is already shorter than any table |
 | `fg-cleanup` · `fg-drop` · `fg-showme` | They emit no next-step guidance at all — there is nothing to reshape |
 | `fg-merge` | Excluded on a narrower rationale: what it emits are **git-state recovery instructions** ("resolve the conflicts, `git commit`, then run `fg-merge`"), not a loop handoff. It is the weakest line in this split — if the recovery instruction should be a table, wire it; do not defend the exclusion by claiming the file is silent, because it is not |
+| `fg-rules` | Reports adopted rules and connection evidence; ordinary coding has no fixed next loop stage |
 | `fg-help` | Read-only usage help: it answers the requested command question and has no workflow next step to hand off |
 
 Applying it everywhere was considered and rejected: a toggle would render three rows of `—`, so a table meant to make the next step findable would instead pad the output with rows carrying no information.

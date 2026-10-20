@@ -9,7 +9,7 @@ mapped: 2026-09-11
 
 ## 저장소 산출물
 
-- 플러그인의 주 산출물은 `skills/*/SKILL.md`, 그 형제 Markdown 계약 문서, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`이다. `skills/` 아래에는 `SKILL.md`가 22개 있다.
+- 플러그인의 주 산출물은 `skills/*/SKILL.md`, 그 형제 Markdown 계약 문서, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`이다. `skills/` 아래에는 `SKILL.md`가 23개 있다.
 - 결정론적 동작은 최상위 `scripts/`에 둔다. 운영 스크립트는 Bash/Node 트윈 11쌍이며, `scripts/forge-statusline-wrapper.sh`만 최상위 Bash 전용 구현이다.
 - `package.json`은 `docs/`의 VitePress 사이트와 릴리스 검사 명령을 제공한다. 플러그인 Markdown이나 JSON을 컴파일하는 빌드 단계는 없다.
 - `package.json`에는 `"type"` 필드가 없다. `scripts/*.js`는 `require(...)`를 사용하는 CommonJS이며 파일 시작에 `'use strict';`를 둔다.

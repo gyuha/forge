@@ -28,7 +28,7 @@ mapped: 2026-09-11
 
 ### 플러그인 실행
 
-- 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 22개의 `SKILL.md`가 있다.
+- 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 23개의 `SKILL.md`가 있다.
 - 결정론 작업은 Bash 구현과 Node.js 구현을 쌍으로 제공한다. `scripts/forge-status.sh`와 `scripts/forge-status.js`처럼 같은 basename의 트윈이 상태 조사, 봉인, 병합, 상태줄, 훅, 예산 계측을 담당한다.
 - `scripts/`에는 11개의 Node.js 실행 파일과 그에 대응하는 11개의 Bash 구현이 있다. Node 구현은 외부 패키지 없이 `fs`, `path`, `os`, `child_process` 같은 내장 모듈을 사용한다.
 - `hooks/run-hook.cmd`는 Windows batch와 Unix shell을 한 파일에 담은 polyglot 디스패처다. Windows에서는 Git Bash를 먼저 찾고 Node.js로 폴백하며, Unix에서는 Bash 구현을 먼저 실행하고 Node.js로 폴백한다.
@@ -81,4 +81,4 @@ mapped: 2026-09-11
 - `.github/workflows/docs.yml`은 Node.js 22에서 `npm ci`와 `npm run docs:build`를 실행하고 GitHub Pages 아티팩트를 조립한다.
 - `.github/workflows/release-check.yml`은 Node.js 20에서 Bash·Node 릴리스 게이트와 패리티 테스트를 실행한다. 이 잡은 npm 패키지를 설치하지 않는다.
 - `.gitattributes`는 `*.sh`를 LF로 고정해 Windows Git Bash에서도 shebang과 인자가 CRLF로 깨지지 않게 한다.
-- `.gitignore`는 `node_modules/`, VitePress 캐시·빌드 결과, 휘발성 `.forge/` 상태를 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/codebase/`, `.forge/config.json`, `.forge/branch/`를 다시 추적 대상으로 포함한다.
+- `.gitignore`는 `node_modules/`, VitePress 캐시·빌드 결과, 휘발성 `.forge/` 상태를 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/codebase/`, `.forge/rules/`, `.forge/config.json`, `.forge/branch/`를 다시 추적 대상으로 포함한다.

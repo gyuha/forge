@@ -16,6 +16,7 @@ repo/
     ├── adr/retired/           # retired/superseded ADRs (moved here by fg-cleanup)
     ├── retro/YYMMDD-HHMMSS-*.md  # retro log (the old YYYY-MM-DD-* form is grandfathered)
     ├── codebase/*.md          # the codebase map fg-map writes
+    ├── rules/                # adopted rules: INDEX.md and topics (always top-level)
     ├── config.json            # six project settings (simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch) — global, never branch-resolved. fg-config is the entry point
     │                          # ── volatile loop state (gitignored) ──
     ├── backlog/<slug>.md      # ① fg-ask grilling output — the queue of unexecuted plans
@@ -33,7 +34,9 @@ repo/
     └── branch/<branch>/       # a non-default branch runs its entire forge root here (git-tracked); fg-merge integrates it into .forge/ (ADR-0011)
 ```
 
-On a non-default branch every `.forge/...` path above resolves under `.forge/branch/<branch>/` (the default branch uses `.forge/` as-is) — except for two global exemptions, `.forge/config.json` (which holds the `defaultBranch` the rule itself must read) and `.forge/codebase/` (the map is shared reference fuel), which always stay at the top-level `.forge/` on every branch. The resolution rule is defined once in `skills/fg-run/FORGE-ROOT.md` and every loop skill references it.
+On a non-default branch every `.forge/...` path above resolves under `.forge/branch/<branch>/` (the default branch uses `.forge/` as-is) — except for three persistent global exemptions, `.forge/config.json` (which holds the `defaultBranch` the rule itself must read) `.forge/codebase/` (the map is shared reference fuel), and `.forge/rules/` (adopted rules read during ordinary work), which always stay at the top-level `.forge/` on every branch. The resolution rule is defined once in `skills/fg-run/FORGE-ROOT.md` and every loop skill references it.
+
+`fg-rules` reviews candidates, instruction connections and necessary ignore changes before writing adopted changes. Existing instructions and manual edits are preserved; deletions on re-run need review too. Rules are not branch-local task state: `fg-merge` does not move them, and git versions them as ordinary files. Connection verification is distinct from observing actual loading in a fresh ordinary coding session. The ephemeral exception `.forge/showme/` also remains top-level.
 
 The `.gitignore` patterns:
 
@@ -43,6 +46,7 @@ The `.gitignore` patterns:
 !.forge/adr/
 !.forge/retro/
 !.forge/codebase/
+!.forge/rules/
 !.forge/config.json
 !.forge/branch/        # a non-default branch root is tracked whole (ADR-0011)
 ```

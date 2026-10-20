@@ -107,7 +107,7 @@ Then it **removes `.forge/branch/<branch>/`** (and prunes an empty slashed paren
 
 **Warn-only, never rewritten**: after re-lettering a bumped ADR (its collision bump), the script greps the merge-changed **non-`.forge/` project files** (`git diff --name-only ORIG_HEAD..HEAD`, best-effort) for citations of the bumped ID by its old value and **warns** — outside `.forge/` an `ADR-<id>` citation can't be safely disambiguated, so the human rewrites it.
 
-**Not integrated** (the two global exemptions of ADR-0011 — never branch-local): **`.forge/config.json`** and **`.forge/codebase/`**.
+**Not integrated** (persistent global exemptions — never branch-local; see [../fg-run/FORGE-ROOT.md](../fg-run/FORGE-ROOT.md)): **`.forge/config.json`**, **`.forge/codebase/`**, and **`.forge/rules/`**. Rules remain ordinary git-versioned project files, not branch-root task state.
 
 ## The conflicts the script detects (exit 3 / 4) — and the one it cannot
 

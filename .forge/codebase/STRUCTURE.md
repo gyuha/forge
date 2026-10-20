@@ -69,7 +69,7 @@ hosts/
 
 ## 스킬 트리
 
-직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 22개다.
+직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 23개다.
 
 ```text
 skills/
@@ -79,6 +79,7 @@ skills/
 ├── fg-done/                완료 봉인
 ├── fg-next/                다음 단계 실행; 핸드오프·자동 주행 계약 포함
 ├── fg-loop/                목표 주행; 신규 질의와 재개 시나리오 fixture 포함
+├── fg-rules/               규칙 후보 검토·채택·일반 작업 연결
 ├── fg-map/                 `.forge/codebase/` 지도 생성
 ├── fg-status/              현재 상태 보고
 ├── fg-doctor/              상태·문서 무결성 검사
@@ -166,6 +167,7 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 .forge/
 ├── config.json             전역 설정
 ├── codebase/               7개 구현 지도 문서
+├── rules/                  fg-rules 호출 시 채택한 규칙 색인·주제 파일 (선택 생성)
 ├── CONTEXT.md              영속 문서
 ├── adr/                    활성 결정 기록
 │   └── retired/            은퇴한 결정 기록
@@ -188,7 +190,7 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 └── showme/<session>/       시각 동반 세션 파일
 ```
 
-이 중 `.forge/config.json`과 `.forge/codebase/`는 모든 브랜치가 공유한다. `.forge/showme/`는 시각 기능의 전역 휘발 저장소다. 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
+이 중 `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 모든 브랜치가 공유한다. `.forge/showme/`는 시각 기능의 전역 휘발 저장소다. 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
 
 계획 파일은 첫 줄에 `<!-- forge-slug: <slug> -->` 표식을 사용하고 `<!-- task: N -->`, `<!-- priority: high|medium|low -->`, 필요 시 `<!-- part: N/M -->` 같은 HTML 주석 메타데이터를 둔다. 완료 디렉터리는 `YYMMDD-HHMMSS-<slug>` 형태이며 같은 초·slug 충돌 때 문자 접미사가 붙는다. 신규 ADR은 `YYMMDD-HHMMSS` 기반 ID를 사용하고 같은 초 충돌 때 문자 접미사를 붙는다. 기존의 4자리 ADR 파일도 `.forge/adr/`에 함께 남아 있다.
 

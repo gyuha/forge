@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty-two shared `fg-` skills — four that form the loop, plus eighteen utilities outside it.
+> A loop-style workflow plugin built from twenty-three shared `fg-` skills — four that form the loop, plus nineteen utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -17,7 +17,7 @@ Sealing prepares a complete archive before removing source files, and recovery e
 
 ## Quick start — you mostly only need three
 
-Twenty-two skills look like a lot, but day to day you drive with **three**:
+Twenty-three skills look like a lot, but day to day you drive with **three**:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -103,7 +103,7 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The four loop stages, then the eighteen utilities outside the loop:
+The four loop stages, then the nineteen utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -112,6 +112,7 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-learn` | ③ Retro | Promotes learnings to docs — `CONTEXT.md`, ADRs, the retro log, and **evals** (a machine-checkable learning becomes a persistent regression check in the project's own test suite; where there is no suite, an equivalent executable landing spot) ([ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) — and surfaces the next inquiry |
 | `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
+| `fg-rules` | Utility | Reviews evidence-backed project rules, saves adopted changes and connects them to ordinary AI coding |
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
@@ -132,9 +133,15 @@ The four loop stages, then the eighteen utilities outside the loop:
 
 Per-skill detail — input/output/next, triggers, and the rationale ADRs — is in **[docs/skills.md](./docs/skills.md) (Korean)**. `fg-ask` is the loop's entry point (it triggers on "start with forge", "new task", "refine the plan"); the utilities are on-demand, each triggered by its own utterances.
 
+### fg-rules
+
+`/forge:fg-rules [topic]` proposes project-specific rules with evidence and applicability. **It writes no files before adoption** and stores only selected rules in top-level `.forge/rules/`. It connects the index and applicable topics through project instructions such as `AGENTS.md` and `CLAUDE.md`, preserving existing delegation and nested instructions. Conflicts with existing instructions are deferred. Re-runs review additions, modifications and deletions, apply only selected changes and preserve manual edits. Constraints already enforced by formatters or linters are not duplicated.
+
+`fg-map` describes the current implementation; `fg-rules` manages standards for future work. A map is optional, and stale map claims are checked against current code without automatically updating the map. The rules path remains `.forge/rules/` on feature branches and follows normal git versioning. Reports distinguish **connection verified** (read instructions and paths checked) from **loading observed** (evidence of actual reads in a fresh ordinary coding session). Neither guarantees ongoing model compliance.
+
 ## Overall flow
 
-When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **15 points** that have a real next step (the other seven are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: default retro via `fg-learn`, skip+seal via `fg-done` only when divergence is low, re-grill via `fg-ask` when it is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
+When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **15 points** that have a real next step (the other eight are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: default retro via `fg-learn`, skip+seal via `fg-done` only when divergence is low, re-grill via `fg-ask` when it is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
@@ -181,7 +188,7 @@ Codex currently supports the core loop, state utilities, serial fallback, parall
 
 ### Pi
 
-Pi loads the same 22 skills from a local forge checkout: run `pi install /absolute/path/to/forge`, then start a fresh Pi session and invoke `/skill:fg-ask`, `/skill:fg-run`, or `/skill:fg-status`. It discovers the package’s `skills/` directory without a separate manifest or extension. Use a checkout containing the Pi support changes.
+Pi loads the same 23 skills from a local forge checkout: run `pi install /absolute/path/to/forge`, then start a fresh Pi session and invoke `/skill:fg-ask`, `/skill:fg-run`, or `/skill:fg-status`. It discovers the package’s `skills/` directory without a separate manifest or extension. Use a checkout containing the Pi support changes.
 
 Basic support uses text choices and sequential execution. `fg-next all` and `fg-loop` run within the current turn and resume when invoked again; Pi hooks, a statusline, and custom subagents are not included. Installation, capability limits, and verification scope: [Pi guide](./docs/en/pi.md).
 

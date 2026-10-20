@@ -32,6 +32,14 @@ Always include actual file paths in backticks (e.g. `src/services/user.ts`) — 
 
 forge already has a permanent doc named `CONTEXT.md`. It is a **domain glossary — terms only, no implementation detail**. `.forge/codebase/` is the exact opposite: **implementation facts only, no domain term definitions**. They are two separate ledgers. A mapper agent must never write domain term definitions into `.forge/codebase/`, and must never treat `CONTEXT.md` as a place for stack/architecture facts. If you find yourself defining what a domain term *means*, that belongs to fg-ask and `CONTEXT.md`, not here.
 
+### Boundary with project rules
+
+`CONVENTIONS.md` describes observed patterns; it does not adopt instructions for
+future work. [fg-rules](../fg-rules/SKILL.md) uses current code and, optionally,
+this map to propose rules that the user reviews before storing under
+`.forge/rules/`. Mapping neither creates nor updates those rules, and fg-rules
+does not require a map or trigger mapping automatically.
+
 ## How it runs — parallel subagents that write directly
 
 The reason this is a separate utility (not a step inside fg-ask) is context rot: if one session reads the whole codebase to build the map, every byte of that exploration piles up in the session's context. So the work is fanned out to **4 parallel subagents**, one per focus, and **each subagent writes its own documents directly to `.forge/codebase/`**. This session receives only a confirmation (file paths + line counts) back — never the document contents. That is what keeps the orchestrator's context small.

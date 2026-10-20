@@ -33,9 +33,11 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 | 대상 | 기본 브랜치 | 비-기본(피처) 브랜치 |
 |------|------------|--------------------|
 | 휘발 루프 상태 (`plan`/`run`/`STATUS`/`backlog`/`executed`/`done`) | **git 무시**(gitignore) | 브랜치 루트 `.forge/branch/<branch>/` 아래 → **통째 추적** |
-| 영속 연료 (`CONTEXT.md`·`adr/`·`retro/`·`codebase/`·`config.json`) | **추적**(화이트리스트) | 브랜치 루트 아래 → **추적** |
+| 영속 연료 (`CONTEXT.md`·`adr/`·`retro/`) | **추적**(화이트리스트) | 브랜치 루트 아래 → **추적** |
 
 핵심 비대칭(ADR-0011): **기본 브랜치의 휘발 상태는 커밋 안 되지만, 피처 브랜치의 forge 상태는 통째로 커밋된다.** 경로가 브랜치별로 네임스페이스(`​.forge/branch/<branch>/`)돼 두 브랜치가 같은 파일을 안 건드리므로 `git merge` 충돌이 원천 차단된다.
+
+전역 영속 문서(`.forge/config.json`·`.forge/codebase/`·`.forge/rules/`)는 양쪽 모두 최상위 경로에서 추적한다. 규칙은 일반 git 파일처럼 병합되므로 같은 규칙을 동시에 수정하면 충돌할 수 있다.
 
 ## 4. 스킬별 git 접점 맵
 
@@ -48,6 +50,7 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 | fg-learn / fg-ask | git 실행 안 함. tracked 연료(CONTEXT·ADR·retro)를 쓰므로 커밋은 네 몫 |
 | fg-run | git 실행 안 함. 네 코드를 바꾸지만 **커밋을 강제하지 않음** |
 | fg-map / fg-agents | git 실행 안 함. 산출물(`.forge/codebase/` · Claude Code의 `.claude/agents/`)이 tracked → 커밋 리마인드. Codex 네이티브 agent materialize는 아직 미지원 |
+| fg-rules | 채택한 규칙·지침 연결·필요한 최소 ignore 예외만 반영. 실제 ignore 판정을 확인하며 자동 stage/commit/push는 하지 않음 |
 | fg-drop | git 실행 안 함. 비-기본 브랜치에선 삭제가 tracked 변경으로 보임 → 네가 `commit`/`git restore` |
 | fg-doctor | 읽기 전용. `git merge` 후 통합을 잊은 **고아 브랜치 루트를 감지**만(A8) |
 | 그 외 (status·next·quick·loop·tdd·eco·cleanup·statusline·adversarial-review) | git 접점 없음 |

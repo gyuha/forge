@@ -69,11 +69,11 @@ forge 상태 루트의 단일 규칙은 `skills/fg-run/FORGE-ROOT.md`에 있고,
 
 - 기본 브랜치에서는 `<forge-root>`가 `.forge/`다.
 - 다른 브랜치에서는 `<forge-root>`가 `.forge/branch/<branch>/`다.
-- `.forge/config.json`과 `.forge/codebase/`는 브랜치와 무관하게 최상위 경로를 사용한다.
+- `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 브랜치와 무관하게 최상위 경로를 사용한다.
 - 비기본 브랜치의 영속 자료 읽기는 브랜치 쪽 `.forge/branch/<branch>/CONTEXT.md`, `adr/`, `retro/`를 최상위 `.forge/` 위에 겹쳐 읽는다.
 - 비기본 브랜치 상태의 기본 브랜치 통합은 `skills/fg-merge/SKILL.md`와 `scripts/forge-merge.sh`/`.js`가 수행한다.
 
-기본 브랜치의 휘발 상태는 `.gitignore`가 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/codebase/`, `.forge/config.json`, `.forge/branch/`만 추적 대상으로 다시 포함한다.
+기본 브랜치의 휘발 상태는 `.gitignore`가 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/codebase/`, `.forge/rules/`, `.forge/config.json`, `.forge/branch/`만 추적 대상으로 다시 포함한다.
 
 ## 자동 주행과 훅
 
