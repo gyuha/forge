@@ -85,7 +85,7 @@ forge 출력은 자기 어휘를 독자가 안다고 가정해 왔다 — `verif
 
 `all` 인자(`fg-done all`, "봉인 all"·"모두 봉인")는 **봉인 전용 batch 모드**다 — 이미 실행된 작업(활성 슬롯 + `.forge/executed/` 전부)의 회고를 무조건 일괄 skip하고 각자 개별 `done/`으로 봉인한다. `fg-next all`의 봉인 전용 사촌으로, **백로그의 미실행 작업은 promote·run하지 않는다**(그게 유일한 구분점). 검증 게이트([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md))는 불가침이라 `verified:` 봉인 가능값만 봉인하고 `failed`는 fg-run 수리로 라우팅하며, `pending`은 단일 경로와 같은 봉인 시점 UAT를 작업마다 반복한다. 봉인 직전 대상·제외 목록을 한 번 보여주고 go-ahead 하나를 받은 뒤 작업당 질문 없이 일괄 봉인한다. 회고 skip은 `retro: skipped (fg-done all — …)`로 감사 가능하게 남고 학습은 run.md에 보존된다 ([ADR-0023](https://github.com/gyuha/forge/blob/main/.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## 루프 밖 유틸리티 (18개)
+## 루프 밖 유틸리티 (19개)
 
 ### fg-map
 

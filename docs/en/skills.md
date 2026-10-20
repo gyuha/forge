@@ -87,7 +87,7 @@ The mechanical seal (pre-checks · gate enforcement · closing `STATUS.md` · ar
 
 The `all` argument (`fg-done all`, "seal all") is a **seal-only batch mode** — it unconditionally skips the retro of every already-executed task (the active slot plus everything in `.forge/executed/`) and seals each into its own `done/`. It is the seal-only cousin of `fg-next all`, and it **does not promote or run unexecuted backlog tasks** (that is the only difference). The verification gate ([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md)) is inviolable, so it seals only sealable `verified:` values, routes `failed` to an fg-run repair, and for `pending` repeats per task the same seal-time UAT as the single path. Just before sealing it shows the included/excluded lists once, takes a single go-ahead, and then seals everything without a per-task question. The skipped retros stay auditable as `retro: skipped (fg-done all — …)`, and the learnings are preserved in run.md ([ADR-0023](https://github.com/gyuha/forge/blob/main/.forge/adr/0023-fg-done-all-batch-seal.md)).
 
-## Outside-the-loop utilities (18)
+## Outside-the-loop utilities (19)
 
 ### fg-map
 
