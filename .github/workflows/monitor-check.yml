@@ -1,0 +1,52 @@
+name: Monitor checks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/forge-monitor*'
+      - 'scripts/forge-monitor-ui/**'
+      - 'scripts/forge-hook-monitor*'
+      - 'scripts/forge-status*'
+      - 'scripts/resolve-forge-root*'
+      - 'hooks/**'
+      - 'skills/fg-monitor/**'
+      - 'skills/fg-config/**'
+      - '.github/workflows/monitor-check.yml'
+  pull_request:
+    paths:
+      - 'scripts/forge-monitor*'
+      - 'scripts/forge-monitor-ui/**'
+      - 'scripts/forge-hook-monitor*'
+      - 'scripts/forge-status*'
+      - 'scripts/resolve-forge-root*'
+      - 'hooks/**'
+      - 'skills/fg-monitor/**'
+      - 'skills/fg-config/**'
+      - '.github/workflows/monitor-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  monitor:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: ['22', '24']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Monitor behavior, HTTP, lifecycle, UI and wiring
+        run: node --test scripts/forge-monitor.test.js
+      - name: Existing release contracts
+        run: node scripts/release-check.js
+      - name: Windows hook dispatch
+        if: runner.os == 'Windows'
+        run: node hooks/run-hook.windows.test.js

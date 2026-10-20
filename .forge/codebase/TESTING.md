@@ -9,10 +9,10 @@ mapped: 2026-09-11
 
 ## 테스트 체계
 
-- Jest, Vitest, pytest 같은 테스트 프레임워크나 통합 test runner는 없다. 검증 파일은 실행 가능한 셸 스크립트와 Windows 전용 Node 스크립트다.
-- 저장소에는 테스트 파일이 22개 있다. `scripts/`와 `hooks/`에 `*.test.sh` 21개, `hooks/run-hook.windows.test.js` 1개가 있다.
+- Jest, Vitest, pytest 같은 테스트 프레임워크나 통합 test runner는 없다. 검증 파일은 실행 가능한 셸 스크립트와 Node 내장 테스트다.
+- 모니터 도입 전 조사에는 테스트 파일이 22개 있었다. `scripts/`와 `hooks/`에 `*.test.sh` 21개, `hooks/run-hook.windows.test.js` 1개가 있다.
 - 일반 동작 테스트는 임시 디렉터리에 최소 `.forge/` 상태나 가짜 저장소를 만들고 대상 스크립트를 실행한 뒤 문자열, exit code, 파일 존재 여부와 파일 내용을 비교한다.
-- 테스트는 `pass`/`fail` 카운터와 `assert`, `assert_grep`, `assert_nogrep` 같은 로컬 helper를 사용한다. 프레임워크 assertion은 Windows 테스트의 Node 내장 `assert`만 사용한다.
+- 테스트는 `pass`/`fail` 카운터와 `assert`, `assert_grep`, `assert_nogrep` 같은 로컬 helper를 사용한다. 모니터는 Node 내장 `test`/`assert`를 사용하며 기존 Windows 테스트도 Node `assert`를 쓴다.
 - fixture는 `mktemp -d "${TMPDIR:-/tmp}/<접두>.XXXXXX"` 형태로 격리하고 종료 전 제거한다. git 동작이 필요한 테스트는 임시 저장소와 로컬 bare remote를 만든다.
 - ANSI 색상은 상태줄 테스트에서 제거하고 텍스트 구조를 비교한다. 시간 의존 출력은 `FORGE_SL_NOW`, `--now`, `--completed`, `--sealed-id` 같은 입력으로 고정한다.
 
@@ -81,3 +81,7 @@ mapped: 2026-09-11
 - 수정용 새 plan에서 원래 실패가 기계적으로 재현 가능하면 프로젝트의 영속 테스트나 동등한 실행 가능 검사와 red→green 증거를 포함한다. 이 규칙의 단일 정의는 `skills/fg-run/PLAN-FORMAT.md`에 있다.
 - CRLF, 다국어, 빈 상태, 오래된 형식, 중복 필드, 접미사 충돌, 잘못된 JSON, 경로 구분자, 큰 입력과 제어 문자는 여러 fixture의 공통 경계값이다.
 - 두 구현이 같은 오류를 내는 것만으로 통과하지 않도록 명시적 예상 결과를 둔다. 특히 parity 테스트는 빈 출력의 우연한 일치와 같은 fail-open을 막는 sentinel 또는 expected value를 사용한다.
+
+## fg-monitor 추가 (2026-10-20)
+
+Node 내장 test/assert를 쓰는 `scripts/forge-monitor.test.js`와 `scripts/forge-monitor-wiring.test.js`가 서버·격리·정리·설정 및 실제 훅 dispatch를 검증한다. wiring은 누락된 SessionStart handler로 RED 후 3/3 GREEN. 기존 parity/release/hook 검사와 함께 수행한다. OS 매트릭스 설정은 실행 성공의 증거가 아니며 실제 결과를 작업 run.md에 남긴다.

@@ -19,7 +19,7 @@ Codex에서는 저장소의 `.codex-plugin/plugin.json`을 로컬 Marketplace에
 
 ## 루프 한 바퀴
 
-스킬이 23개지만 평소에는 **3개**로 굴린다.
+스킬이 24개지만 평소에는 **3개**로 굴린다.
 
 ```
 fg-ask   →   fg-run   →   fg-next

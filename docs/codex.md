@@ -65,3 +65,7 @@ npm run release:check
 ```
 
 이 검사는 Claude/Codex 매니페스트 버전, 공통 `skills/` 경로, 기본 훅 파일, 양쪽 호스트 어댑터 존재 여부를 함께 확인한다. `fg-doctor`도 Codex 매니페스트가 존재할 때 네 버전 위치의 drift를 검사한다.
+
+## fg-monitor 지원 범위
+
+스킬은 공통 트리에서 탐색되지만 현재 실시간 수집·소유 세션 자동 종료는 Claude Code 전용입니다. 이 호스트에서는 `/fg-monitor on`을 실행하지 않고 미지원임을 안내합니다. 일반 forge 상태 조회는 `fg-status`를 사용합니다.

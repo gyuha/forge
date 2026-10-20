@@ -120,3 +120,7 @@ forge 상태 루트의 단일 규칙은 `skills/fg-run/FORGE-ROOT.md`에 있고,
 - 매니페스트·호스트 계약 릴리스 게이트: `.github/workflows/release-check.yml`
 
 `.github/workflows/docs.yml`은 정적 랜딩을 `/forge/`, VitePress 산출물을 `/forge/docs/`에 조립한다. `.github/workflows/release-check.yml`은 두 릴리스 검사 트윈과 parity 검사를 별도 의존성 설치 없이 실행하고, Windows에서는 `hooks/run-hook.windows.test.js`로 훅 종료 코드 전달을 확인한다.
+
+## fg-monitor 추가 (2026-10-20)
+
+모니터 CLI/서버는 `scripts/forge-monitor.js`, 수집 훅은 `scripts/forge-hook-monitor.js`다. `forge-status-query.js`의 순수 상태 조회를 기존 CLI와 공유하며 화면에서 다음 행동을 실행하지 않는다. 시작 프로젝트·브랜치·세션을 고정하고 `.forge/monitor/`에 격리한다.

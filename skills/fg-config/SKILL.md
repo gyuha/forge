@@ -1,6 +1,6 @@
 ---
 name: fg-config
-description: "Unified settings surface for forge — every key in .forge/config.json: `simple` (auto-seal — fg-run verifies then seals in the same turn, retro auto-skipped), `eco` (sonnet-capped subagents + ECO.md discipline), `tdd` (test-first default), `driveCommit`/`driveCommitMessage`, `defaultBranch`. Replaces fg-eco/fg-tdd. `fg-config` (no arg) shows all and offers changes via a menu; `fg-config <key> <value>` sets one directly. Outside the loop. Use in contexts like 'forge config', '설정', 'simple mode', '심플 모드', 'eco on', 'eco off', '에코 모드', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼'."
+description: "Unified settings surface for forge — every key in .forge/config.json: `simple` (auto-seal — fg-run verifies then seals in the same turn, retro auto-skipped), `eco` (sonnet-capped subagents + ECO.md discipline), `tdd` (test-first default), `driveCommit`/`driveCommitMessage`, `defaultBranch`, `monitorRetention` (delete or keep monitor summaries). Replaces fg-eco/fg-tdd. `fg-config` (no arg) shows all and offers changes via a menu; `fg-config <key> <value>` sets one directly. Outside the loop. Use in contexts like 'forge config', '설정', 'simple mode', '심플 모드', 'eco on', 'eco off', '에코 모드', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼'."
 ---
 
 # fg-config — forge's settings surface (outside the loop)
@@ -17,7 +17,7 @@ This is **not** a stage of the forge loop. It is the **single entry point for ev
 
 ## What it does
 
-- **`fg-config` (no argument)** → render the current value of every key below as a small table (key · value · one-line meaning), then **offer changes interactively** via the host's `structured_choice` (e.g. `AskUserQuestion`, multi-select): toggle options for the boolean keys (`simple` · `eco` · `tdd`) plus a "leave as is" option; the auto-provided free-text entry ("Other") is the route for the value-typed keys (`driveCommit true`, `driveCommitMessage <template>`, `defaultBranch <name>` — each still validated against its contract below, `defaultBranch` keeping its confirm-first warning). Apply exactly what the user picks — a picked boolean flips and saves, "leave as is" changes nothing. This menu is a deliberately retained selection (the same family as fg-run's backlog menu), **not** a loop handoff — ADR-0015's statement-form rule governs handoffs, not settings menus. When `structured_choice` is `false` or the host is unknown, print the table and accept one typed `<key> <value>` instead.
+- **`fg-config` (no argument)** → render the current value of every key below as a small table (key · value · one-line meaning), then **offer changes interactively** via the host's `structured_choice` (e.g. `AskUserQuestion`, multi-select): toggle options for the boolean keys (`simple` · `eco` · `tdd`) plus a "leave as is" option; the auto-provided free-text entry ("Other") is the route for the value-typed keys (`driveCommit true`, `driveCommitMessage <template>`, `defaultBranch <name>`, `monitorRetention keep|delete` — each still validated against its contract below, `defaultBranch` keeping its confirm-first warning). Apply exactly what the user picks — a picked boolean flips and saves, "leave as is" changes nothing. This menu is a deliberately retained selection (the same family as fg-run's backlog menu), **not** a loop handoff — ADR-0015's statement-form rule governs handoffs, not settings menus. When `structured_choice` is `false` or the host is unknown, print the table and accept one typed `<key> <value>` instead.
 - **`fg-config <key>`** → report that key's current value and its one-line meaning. Change nothing.
 - **`fg-config <key> <value>`** → validate the value against the key's contract below, write it (read → set the one key → write back, **preserving all other keys**; keep the JSON valid; create the file lazily on first write), and state the new value in one line. Unknown key → list the valid keys and stop; invalid value → state the contract and stop.
 - Bare toggle phrasings route here: "eco on" = `fg-config eco true`, "TDD 꺼" = `fg-config tdd false`, "simple on" = `fg-config simple true`, and so on.
@@ -31,6 +31,7 @@ This is **not** a stage of the forge loop. It is the **single entry point for ev
 | `tdd` | boolean, default `false` | Test-first default for new tasks — see below |
 | `driveCommit` | **strict boolean**, default `false` | Per-task local commit in unattended drives |
 | `driveCommitMessage` | string, optional | Template for that commit message |
+| `monitorRetention` | `delete` or `keep`, initially unset | Session-summary retention; ask on first monitor launch |
 | `defaultBranch` | string, default `main` | The branch whose forge root is the top-level `.forge/` |
 
 ### `simple` — auto-seal mode (ADR `260905-212045`)
@@ -60,6 +61,10 @@ Single definition: `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-next/DRIVE.m
 ### `defaultBranch` — branch-root anchor (ADR-0011)
 
 Read by forge-root resolution (FORGE-ROOT.md) to decide which branch uses the top-level `.forge/` — every other branch gets `.forge/branch/<branch>/`. **Changing it re-points where all loop state is read and written**; warn before setting it that in-flight state under the old root does not move (integration is fg-merge's job), and set it only when the user confirms.
+
+### `monitorRetention` — monitor summaries
+
+Accept only `delete` or `keep`; unset means ask once on first `/fg-monitor on`. Resolve the plugin root through HOST.md and run `node <plugin>/scripts/forge-monitor.js config <value>` from the project directory. This validates and preserves other keys; malformed JSON is an error and must not be silently overwritten. This command does not start a monitor and requires no Claude identity. Running monitors keep their startup policy; changes apply on the **next launch**. Changing keep to delete never removes earlier retained records. Browser configuration is not supported.
 
 ## The config file
 

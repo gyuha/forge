@@ -76,6 +76,78 @@ check "gate-only in-flight -> 3"      seed_inflight feat-x --gate-only
 check "gate-only clean -> 0, no move" seed_clean    feat-x --gate-only
 check "gate-only skips redef -> 0"    seed_ctx_redef feat-x --gate-only
 
+# Ledger integration: parity alone cannot catch identical data loss in both twins.
+fu_entry() { printf '<!-- followup: fu-%s | source: alpha | task: %s | date: 2026-10-20 | status: %s | taken: %s -->\n%s\n\n' "$1" "$2" "$3" "$4" "$5"; }
+seed_followups() {
+  seed_remap "$1"
+  { printf '# Follow-ups\n\n'; fu_entry 111111111111 2 open - 'Open body'; fu_entry 222222222222 2 taken 3 'Taken body'; fu_entry 333333333333 - dismissed - 'Dismissed body'; fu_entry 444444444444 88 open - 'Unresolved legacy'; } > "$1/.forge/branch/feat-x/followups.md"
+  { printf '# Follow-ups\n\n'; fu_entry aaaaaaaaaaaa 5 open - 'Existing target'; } > "$1/.forge/followups.md"
+}
+seed_followups_only() { mkdir -p "$1/.forge/branch/feat-x"; { printf '# Follow-ups\n\n'; fu_entry 111111111111 - open - 'Only ledger'; } > "$1/.forge/branch/feat-x/followups.md"; }
+seed_followups_same() { seed_followups_only "$1"; cp "$1/.forge/branch/feat-x/followups.md" "$1/.forge/followups.md"; }
+seed_followups_conflict() { seed_followups_same "$1"; { printf '# Follow-ups\n\n'; fu_entry 111111111111 - dismissed - 'Only ledger'; } > "$1/.forge/followups.md"; }
+seed_followups_bad() { seed_followups "$1"; printf '<!-- followup: broken -->\n' >> "$1/.forge/branch/feat-x/followups.md"; }
+seed_followups_duplicate() { seed_followups_only "$1"; fu_entry 111111111111 - open - 'Only ledger' >> "$1/.forge/branch/feat-x/followups.md"; }
+seed_followups_body_conflict() { seed_followups_same "$1"; printf 'Different body\n' >> "$1/.forge/followups.md"; }
+seed_followups_empty_body() { seed_followups_only "$1"; sed -i.bak '/Only ledger/d' "$1/.forge/branch/feat-x/followups.md"; rm "$1/.forge/branch/feat-x/followups.md.bak"; }
+seed_followups_bad_target() { seed_followups_only "$1"; printf '<!-- followup: broken -->\n' > "$1/.forge/followups.md"; }
+seed_followups_snapshots() {
+  seed_followups "$1"
+  mkdir -p "$1/.forge/branch/feat-x/retro"
+  { printf '# Run\n\nLiteral task: 2 and taken: 3 stay unchanged.\n\n'; fu_entry 222222222222 2 taken 3 'Taken body'; } > "$1/.forge/branch/feat-x/done/2026-01-01-a/run.md"
+  cp "$1/.forge/branch/feat-x/done/2026-01-01-a/run.md" "$1/.forge/branch/feat-x/retro/261020-120000-a.md"
+}
+seed_followups_bad_snapshot() { seed_followups_snapshots "$1"; printf '<!-- followup: broken -->\n' >> "$1/.forge/branch/feat-x/retro/261020-120000-a.md"; }
+seed_followups_unicode() { seed_followups_only "$1"; sed -i.bak 's/source: alpha/source: 후속.후보-수집/' "$1/.forge/branch/feat-x/followups.md"; rm "$1/.forge/branch/feat-x/followups.md.bak"; }
+seed_followups_unterminated() { seed_followups_snapshots "$1"; printf 'Final body without newline' >> "$1/.forge/branch/feat-x/done/2026-01-01-a/run.md"; }
+check 'followups unterminated body preservation' seed_followups_unterminated feat-x
+check 'followups snapshots remap' seed_followups_snapshots feat-x
+check 'followups snapshot validation before mutation' seed_followups_bad_snapshot feat-x
+check 'followups Unicode source' seed_followups_unicode feat-x
+check 'followups all states + task and taken remap' seed_followups feat-x
+check 'followups-only root discovery' seed_followups_only
+check 'followups identical ID deduplicates' seed_followups_same feat-x
+check 'followups terminal conflict refuses' seed_followups_conflict feat-x
+check 'followups malformed refuses' seed_followups_bad feat-x
+check 'followups duplicate ID refuses' seed_followups_duplicate feat-x
+check 'followups changed body refuses' seed_followups_body_conflict feat-x
+check 'followups empty body refuses' seed_followups_empty_body feat-x
+check 'followups malformed target refuses' seed_followups_bad_target feat-x
+check 'followups gate-only skips conflicts' seed_followups_conflict feat-x --gate-only
+for runtime in bash node; do
+  script="$SH"; [ "$runtime" = node ] && script="$JS"
+  D=$(mktmp); seed_followups "$D"
+  (cd "$D" && "$runtime" "$script" feat-x) >/dev/null 2>&1; rc=$?
+  if [ "$rc" -eq 0 ] && [ ! -d "$D/.forge/branch/feat-x" ] &&
+     grep -qF 'task: 6 | date: 2026-10-20 | status: taken | taken: 7' "$D/.forge/followups.md" &&
+     grep -qF 'task: 88 |' "$D/.forge/followups.md" &&
+     grep -qF 'Dismissed body' "$D/.forge/followups.md" &&
+     grep -qF 'Existing target' "$D/.forge/followups.md" &&
+     [ "$(grep -c '^<!-- followup:' "$D/.forge/followups.md")" -eq 5 ]; then
+    echo "ok   - $runtime followups content assertions"
+  else echo "FAIL - $runtime followups content assertions"; fails=$((fails+1)); fi
+  rm -rf "$D"
+  for seed in seed_followups_conflict seed_followups_bad seed_followups_duplicate seed_followups_body_conflict seed_followups_empty_body seed_followups_bad_target seed_followups_bad_snapshot; do
+    D=$(mktmp); "$seed" "$D"; cp -R "$D/.forge" "$D/before"
+    (cd "$D" && "$runtime" "$script" feat-x) >/dev/null 2>&1; rc=$?
+    if [ "$rc" -eq 4 ] && diff -r "$D/.forge" "$D/before" >/dev/null; then echo "ok   - $runtime $seed non-destructive gate"
+    else echo "FAIL - $runtime $seed non-destructive gate"; fails=$((fails+1)); fi
+    rm -rf "$D"
+  done
+  D=$(mktmp); seed_followups_snapshots "$D"
+  (cd "$D" && "$runtime" "$script" feat-x) >/dev/null 2>&1
+  helper="$HERE/forge-followups.sh"; [ "$runtime" = node ] && helper="$HERE/forge-followups.js"
+  (cd "$D" && "$runtime" "$helper" collect --root .forge --file .forge/done/2026-01-01-a/run.md --file .forge/retro/261020-120000-a.md) >/dev/null 2>&1; rc=$?
+  if [ "$rc" -eq 0 ] && grep -qF 'Literal task: 2 and taken: 3 stay unchanged.' "$D/.forge/done/2026-01-01-a/run.md" && grep -qF 'task: 6 | date: 2026-10-20 | status: taken | taken: 7' "$D/.forge/retro/261020-120000-a.md"; then echo "ok   - $runtime merged snapshots replay and prose preserved"
+  else echo "FAIL - $runtime merged snapshots replay"; fails=$((fails+1)); fi
+  rm -rf "$D"
+  D=$(mktmp); seed_followups_same "$D"
+  (cd "$D" && "$runtime" "$script" feat-x) >/dev/null 2>&1
+  if [ "$(grep -c '^<!-- followup:' "$D/.forge/followups.md")" -eq 1 ]; then echo "ok   - $runtime identical ID retained once"
+  else echo "FAIL - $runtime identical ID dedup"; fails=$((fails+1)); fi
+  rm -rf "$D"
+done
+
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-MERGE PARITY OK"; exit 0
 else echo "FORGE-MERGE PARITY FAILED ($fails)"; exit 1; fi

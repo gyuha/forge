@@ -93,3 +93,7 @@ mapped: 2026-09-11
 - 플러그인 버전은 `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`의 두 위치, `.codex-plugin/plugin.json`에 걸쳐 4개 값이 동기돼야 한다. `scripts/release-check.*`와 `scripts/forge-doctor.*`가 이 드리프트를 검사한다.
 - 2026-09-11 시점의 워킹 트리에는 출처가 다른 미커밋 변경이 섞여 있다. `skills/fg-loop/*`·`scripts/forge-doctor.*`·`CLAUDE.md`는 참조 정합 작업의 산물이고 `docs/.vitepress/config.mts`·`docs/index.html`·`docs/public/og-image.png`는 별개의 문서 사이트 작업이다. `CLAUDE.md`의 배포 규칙은 무관한 변경을 릴리스 커밋에 섞지 않도록 요구하므로 커밋 분리 판단이 필요하다.
 - README와 문서 사이트가 각각 한국어·영어 사본을 유지하고, Claude·Codex·opencode 지원표가 `hosts/*/capabilities.json`의 선언을 설명한다. capability 변경은 JSON, 호스트 어댑터, 두 언어 문서를 함께 수정해야 한다.
+
+## fg-monitor 추가 (2026-10-20)
+
+키 URL은 로컬에서도 필요하고 외부 바인딩은 명시적 on --host 0.0.0.0만 허용한다. 최소 메타데이터만 수집하고 HTML은 데이터로 렌더한다. SessionEnd 누락은 소유 프로세스 검사로 보완하며 Stop/유휴는 종료가 아니다. OS별 실제 Claude UAT는 별도 근거가 필요하다. 설치된 훅은 새 세션부터 적용된다.

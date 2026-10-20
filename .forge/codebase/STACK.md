@@ -82,3 +82,7 @@ mapped: 2026-09-11
 - `.github/workflows/release-check.yml`은 Node.js 20에서 Bash·Node 릴리스 게이트와 패리티 테스트를 실행한다. 이 잡은 npm 패키지를 설치하지 않는다.
 - `.gitattributes`는 `*.sh`를 LF로 고정해 Windows Git Bash에서도 shebang과 인자가 CRLF로 깨지지 않게 한다.
 - `.gitignore`는 `node_modules/`, VitePress 캐시·빌드 결과, 휘발성 `.forge/` 상태를 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/codebase/`, `.forge/rules/`, `.forge/config.json`, `.forge/branch/`를 다시 추적 대상으로 포함한다.
+
+## fg-monitor 추가 (2026-10-20)
+
+모니터는 Node 22+ CommonJS와 내장 HTTP/파일 API만 사용한다. 정적 UI는 빌드 단계·외부 앱 의존성 없이 배포된다. 문서용 package.json의 type을 바꾸지 않는다. 기존 Bash/Node 트윈 규칙과 별도로 Node 전용 런타임이다.

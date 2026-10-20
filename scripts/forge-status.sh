@@ -33,7 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 root="$(bash "$SCRIPT_DIR/resolve-forge-root.sh" 2>/dev/null)"
 [ -n "$root" ] || root=".forge"
 
-if [ ! -d "$root" ]; then
+if [ ! -d "$root" ] && [ "${1:-}" != --json ]; then
   echo "No forge state (no $root/). Start a task with fg-ask."
   exit 0
 fi
@@ -90,6 +90,67 @@ part_num() { # part: N/M → N zero-padded to 3 (so 2 sorts before 10); 000 if n
   n="$(sed -n 's/.*part:[[:space:]]*\([0-9]\{1,\}\)\/.*/\1/p' "$1" 2>/dev/null | head -1 | tr -d '\r')"
   if [ -n "$n" ]; then printf '%03d' "$n"; else printf '000'; fi
 }
+
+# Machine survey: separate representation, no next-step decision logic.
+json_quote() {
+  LC_ALL=C awk 'BEGIN { for(i=1;i<32;i++) esc[sprintf("%c",i)]=sprintf("\\u%04x",i) }
+    { sub(/\r$/, ""); if(NR>1) s=s "\n"; s=s $0 }
+    END { printf "\""; for(i=1;i<=length(s);i++){c=substr(s,i,1); if(c=="\\") printf "\\\\"; else if(c=="\"") printf "\\\""; else if(c in esc) printf "%s",esc[c]; else printf "%s",c} printf "\"" }'
+}
+jq_string() { printf '%s' "$1" | json_quote; }
+jq_nullable() { if [ -n "$1" ]; then jq_string "$1"; else printf null; fi; }
+full_field() { [ -f "$1" ] || return 0; sed -n "s/^[[:blank:]]*-\{0,1\}[[:blank:]]*$2:[[:blank:]]*//p" "$1" | head -1 | sed 's/[[:space:]]*$//'; }
+json_task() {
+  local location="$1" dir="$2" plan="$3" st slug num title key val
+  st="$dir/STATUS.md"; slug="$(slugof "$plan")"
+  [ -n "$slug" ] || slug="$(full_field "$st" slug)"
+  if [ -z "$slug" ]; then
+    case "$location" in active) slug=plan;; backlog) slug="$(basename "$plan" .md)";; *) slug="$(basename "$dir" | sed -E 's/^([0-9]{6}-[0-9]{6}[a-z]?|[0-9]{4}-[0-9]{2}-[0-9]{2})-//')";; esac
+  fi
+  num="$(taskof "$plan")"; if [ -n "$num" ]; then num="$(printf '%s' "$num" | sed 's/^0*//')"; num="${num:-0}"; fi; title="$(sed -n 's/^# //p' "$plan" 2>/dev/null | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+  printf '%s{"location":' "$json_sep"; jq_string "$location"; printf ',"path":'; jq_string "$plan"
+  printf ',"slug":'; jq_string "$slug"; printf ',"task":%s,"title":' "${num:-null}"; jq_nullable "$title"
+  for key in status verified retro executed completed; do printf ',"%s":' "$key"; jq_nullable "$(full_field "$st" "$key")"; done
+  printf ',"hasRun":'; if [ "$location" != backlog ] && [ -f "$dir/run.md" ]; then printf true; else printf false; fi
+  printf ',"generatedByLoop":'; if [ -n "$(looptag "$plan")" ]; then printf true; else printf false; fi
+  printf '}'; json_sep=,
+}
+emit_json() {
+  local ledger followups f dir location key pair value json_sep='' active=0 backlog=0 executed=0 done=0 quick=0 retro=0 adr=0 adr_dir exists=false
+  # Validate before writing any stdout, so malformed input cannot look successful.
+  ledger="$(bash "$SCRIPT_DIR/forge-followups.sh" list --root "$root")" || return 1
+  followups="$(printf '%s' "$ledger" | LC_ALL=C awk '
+    function quote(s, i,c,o) { o="\""; for(i=1;i<=length(s);i++){c=substr(s,i,1); if(c=="\\")o=o "\\\\"; else if(c=="\"")o=o "\\\""; else if(c in esc)o=o esc[c]; else o=o c} return o "\"" }
+    function emit() { if(!id)return; sub(/^[[:space:]]+/,"",body); sub(/[[:space:]]+$/,"",body); printf "%s{\"id\":%s,\"source\":%s,\"task\":%s,\"date\":%s,\"status\":%s,\"taken\":%s,\"body\":%s}",sep,quote(id),quote(source),(task=="-"?"null":task),quote(date),quote(status),(taken=="-"?"null":taken),quote(body); sep="," }
+    BEGIN { for(i=1;i<32;i++)esc[sprintf("%c",i)]=sprintf("\\u%04x",i); printf "[" }
+    {gsub(/\r/,"")}
+    /^<!-- followup:/ { emit(); split($0,a," \\| "); id=a[1]; sub(/^<!-- followup: /,"",id); source=a[2];sub(/^source: /,"",source);task=a[3];sub(/^task: /,"",task);date=a[4];sub(/^date: /,"",date);status=a[5];sub(/^status: /,"",status);taken=a[6];sub(/^taken: /,"",taken);sub(/ -->$/,"",taken);body="";next }
+    id {body=body $0 "\n"}
+    END {emit();print "]"}')"
+  [ -d "$root" ] && exists=true
+  printf '{"schemaVersion":1,"root":'; jq_string "$root"; printf ',"exists":%s,"tasks":[' "$exists"
+  if [ -f "$root/plan.md" ]; then json_task active "$root" "$root/plan.md"; active=1; fi
+  for f in "$root"/backlog/*.md; do [ -f "$f" ] || continue; json_task backlog "$root/backlog" "$f"; backlog=$((backlog+1)); done
+  for location in executed done; do
+    for dir in "$root/$location"/*; do [ -d "$dir" ] || continue; json_task "$location" "$dir" "$dir/plan.md"; if [ "$location" = executed ]; then executed=$((executed+1)); else done=$((done+1)); fi; done
+  done
+  printf '],"running":'
+  if [ -f "$root/running.md" ]; then printf '{"path":'; jq_string "$root/running.md"; printf ',"content":'; jq_string "$(cat "$root/running.md")"; printf '}'; else printf null; fi
+  printf ',"loop":'
+  if [ -f "$root/loop.md" ]; then
+    printf '{"path":'; jq_string "$root/loop.md"; printf ',"goal":'; jq_nullable "$(sed -n 's/^# //p' "$root/loop.md" | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//;s/^LOOP — //')"
+    for pair in wall:wall replanRound:replan-round replanCap:replan-cap budgetTokens:budget-tokens budgetSpent:budget-spent retro:retro; do key="${pair%%:*}"; value="${pair#*:}"; printf ',"%s":' "$key"; jq_nullable "$(full_field "$root/loop.md" "$value")"; done
+    printf ',"content":'; jq_string "$(cat "$root/loop.md")"; printf '}'
+  else printf null; fi
+  [ ! -f "$root/quick/LOG.md" ] || quick="$(grep -c '^## ' "$root/quick/LOG.md" || true)"
+  for f in "$root"/retro/*.md; do [ ! -f "$f" ] || retro=$((retro+1)); done
+  adr_dir="$root/adr"; [ -d "$adr_dir" ] || adr_dir=.forge/adr
+  for f in "$adr_dir"/*.md; do [ ! -f "$f" ] || adr=$((adr+1)); done
+  printf ',"counts":{"active":%s,"backlog":%s,"executed":%s,"done":%s,"quick":%s,"retro":%s,"adr":%s,"followups":{' "$active" "$backlog" "$executed" "$done" "$quick" "$retro" "$adr"
+  json_sep=''; for key in open taken dismissed; do value="$(printf '%s' "$ledger" | grep -c "^<!-- followup:.* | status: $key |" || true)"; printf '%s"%s":%s' "$json_sep" "$key" "$value"; json_sep=,; done
+  printf '}},"followups":%s}\n' "$followups"
+}
+if [ "${1:-}" = --json ]; then LC_ALL=C emit_json; exit $?; fi
 
 # --- Collect rows ------------------------------------------------------------
 # Each row: No.|Date|Task|Stage|Verify|Retro  (joined later, aligned by column)

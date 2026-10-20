@@ -10,34 +10,50 @@
 //
 // Usage (CLI):  node scripts/resolve-forge-root.js
 // Usage (lib):  const { resolveForgeRoot } = require('./resolve-forge-root.js')
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const { execSync } = require('child_process');
+const fs = require("fs");
+const { execFileSync } = require("child_process");
 
-function resolveForgeRoot() {
+function resolveForgeRoot(cwd = process.cwd()) {
   // Anchor to the git repo root so state resolves from a subdirectory too
   // (ADR-0022 review). Non-git → empty top → CWD-relative `.forge` fallback.
-  let top = '';
+  let top = "";
   try {
-    top = execSync('git rev-parse --show-toplevel', { stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString().trim();
-  } catch (_) { top = ''; }
-  const prefix = top ? `${top}/` : '';
+    top = execFileSync("git", ["rev-parse", "--show-toplevel"], {
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch (_) {
+    top = "";
+  }
+  const prefix = top ? `${top}/` : "";
 
-  let branch = '';
+  let branch = "";
   try {
-    branch = execSync('git rev-parse --abbrev-ref HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString().trim();
-  } catch (_) { branch = ''; }
+    branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+      cwd,
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch (_) {
+    branch = "";
+  }
 
-  let defaultBranch = 'main';
+  let defaultBranch = "main";
   try {
-    const m = fs.readFileSync(`${top || '.'}/.forge/config.json`, 'utf8').match(/"defaultBranch"\s*:\s*"([^"]*)"/);
+    const m = fs
+      .readFileSync(`${top || cwd}/.forge/config.json`, "utf8")
+      .match(/"defaultBranch"\s*:\s*"([^"]*)"/);
     if (m && m[1]) defaultBranch = m[1];
-  } catch (_) { /* no config */ }
+  } catch (_) {
+    /* no config */
+  }
 
-  if (!branch || branch === 'HEAD') {
+  if (!branch || branch === "HEAD") {
     return { root: `${prefix}.forge`, fallback: true };
   }
   if (branch === defaultBranch) {
@@ -51,7 +67,9 @@ module.exports = { resolveForgeRoot };
 if (require.main === module) {
   const { root, fallback } = resolveForgeRoot();
   if (fallback) {
-    process.stderr.write('resolve-forge-root: not on a named branch; using default .forge/ root\n');
+    process.stderr.write(
+      "resolve-forge-root: not on a named branch; using default .forge/ root\n",
+    );
   }
-  process.stdout.write(root + '\n');
+  process.stdout.write(root + "\n");
 }
