@@ -239,3 +239,7 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 - `.DS_Store`
 
 기본 브랜치 `.forge/`의 휘발 상태도 기본적으로 제외하며, 영속 경로만 whitelist로 다시 추적한다. `.forge/branch/`는 전체가 추적 대상이다.
+
+## fg-monitor 추가 (2026-10-20)
+
+`skills/fg-monitor/SKILL.md`, `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js`, `scripts/forge-monitor-ui/`가 추가됐다. `.forge/monitor/active/`는 소유권/키, `records/`는 최소 요약이며 자체-ignore 전역 예외다.

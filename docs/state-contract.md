@@ -17,7 +17,7 @@ repo/
     ├── retro/YYMMDD-HHMMSS-*.md  # 회고 로그 (구 YYYY-MM-DD-*는 grandfather)
     ├── followups.md           # 후속 후보 원장 (출처·날짜·상태·채택 task)
     ├── codebase/*.md          # fg-map이 만든 코드베이스 지도
-    ├── config.json            # 프로젝트 설정 여섯 키(simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch) — 전역, 브랜치 해석 안 함. 진입점은 fg-config
+    ├── config.json            # 프로젝트 설정 일곱 키(simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch · monitorRetention) — 전역, 브랜치 해석 안 함. 진입점은 fg-config
     │                          # ── 휘발 루프 상태 (gitignore) ──
     ├── backlog/<slug>.md      # ① fg-ask 그릴링 산출 — 미실행 plan 대기열
     ├── plan.md                # 활성 슬롯: 지금 도는 한 바퀴의 정답 기준 (fg-run가 백로그에서 승격)
@@ -174,3 +174,7 @@ flowchart LR
     style AR fill:#e8f5e9,color:#1a1a1a
     style DROP fill:#e8f5e9,color:#1a1a1a
 ```
+
+## 모니터 런타임의 전역 예외
+
+`.forge/monitor/`는 브랜치 루트로 이동하지 않는 자체-ignore 런타임입니다. active에는 세션별 소유권·접속 키, records에는 최소 활동 요약을 둡니다. 종료 시 키/PID는 항상 제거하고 delete는 해당 실행 기록만 삭제하며 keep은 같은 시작 브랜치의 과거 기록으로 보존합니다. forge plan/run/done은 바꾸지 않습니다. `monitorRetention`은 최초 실행에서 묻는 프로젝트 설정이며 다음 실행부터 변경이 적용됩니다. showme와 서버 수명을 공유하지 않습니다.

@@ -92,3 +92,7 @@ npm run release:check
 ```
 
 This checks the four manifest versions, the shared `skills/` path, the default hook file, and **every host adapter that actually exists under `hosts/`** — the host list is not hardcoded, so `hosts/opencode/` is checked automatically.
+
+## fg-monitor support boundary
+
+The skill is discoverable in the shared tree, but live collection and owner-session shutdown currently support Claude Code only. On this host, report the limitation instead of starting `/fg-monitor on`. Use `fg-status` for ordinary forge state reporting.

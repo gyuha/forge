@@ -130,87 +130,9 @@ if (process.argv[2] === '--json') {
   process.exit(0);
 }
 
-// --- Collect rows -----------------------------------------------------------
-const rows = [];
-const addRow = (no, date, task, stage, v, r) => rows.push([no, date, task, stage, v, r]);
-
-// Active slot
-const planPath = path.join(root, 'plan.md');
-if (isFile(planPath)) {
-  let slug = slugof(planPath) || 'plan';
-  let no = taskof(planPath); no = no ? `#${no}` : '-';
-  const tag = looptag(planPath);
-  const st = path.join(root, 'STATUS.md');
-  if (isFile(path.join(root, 'run.md'))) {
-    let date = field(st, 'executed') || '-';
-    const v = field(st, 'verified');
-    // Stage is gated on the verification gate, not on run.md's existence — see
-    // the bash twin's comment (fg-run still owns a pending/failed UAT).
-    const stage = ['yes', 'skipped', 'n/a'].includes(norm(v)) ? 'learn' : 'run';
-    addRow(no, date, `${slug}${tag}`, stage, vsym(v), rsym(field(st, 'retro'), slug));
-  } else {
-    addRow(no, '-', `${slug}${tag}`, 'run', '-', '-');
-  }
-}
-
-// Backlog — ordered by fg-run's selection contract: priority(high→med→low) →
-// part N → slug (NOT filename glob order, which misorders priorities and 10+ parts
-// vs how fg-run actually runs — ADR-0022 review). Mirrors the .sh `LC_ALL=C sort`.
-const prioRank = (txt) => { const m = txt.match(/priority:[\t ]*([A-Za-z]+)/); const p = m ? m[1] : ''; return p === 'high' ? 0 : p === 'low' ? 2 : 1; };
-const partPad = (txt) => { const m = txt.match(/part:[\t ]*([0-9]+)\//); return m ? String(m[1]).padStart(3, '0') : '000'; };
-const backlogDir = path.join(root, 'backlog');
-if (isDir(backlogDir)) {
-  const entries = fs.readdirSync(backlogDir).filter((f) => f.endsWith('.md')).map((f) => {
-    const fp = path.join(backlogDir, f);
-    const txt = read(fp);
-    const slug = slugof(fp) || path.basename(f, '.md');
-    return { key: `${prioRank(txt)}\t${partPad(txt)}\t${slug}`, fp, slug };
-  });
-  entries.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-  for (const e of entries) {
-    let no = taskof(e.fp); no = no ? `#${no}` : '-';
-    addRow(no, '-', `${e.slug}${looptag(e.fp)}`, 'ask', '-', '-');
-  }
-}
-
-// Awaiting retro (executed/)
-for (const d of subDirs(path.join(root, 'executed'))) {
-  const dir = path.join(root, 'executed', d);
-  const p = path.join(dir, 'plan.md');
-  const st = path.join(dir, 'STATUS.md');
-  let slug = slugof(p) || d;
-  let no = taskof(p); no = no ? `#${no}` : '-';
-  let date = field(st, 'executed') || '-';
-  const v = field(st, 'verified');
-  // Only `failed` goes back to fg-run (unpark); a parked `pending` routes to
-  // fg-learn — see the bash twin's comment.
-  const stage = norm(v) === 'failed' ? 'run' : 'learn';
-  addRow(no, date, `${slug}${looptag(p)}`, stage, vsym(v), rsym(field(st, 'retro'), slug));
-}
-
-// Done (most recent DONE_ROWS by directory name, which is date-prefixed)
-let doneTotal = 0;
-const doneRoot = path.join(root, 'done');
-if (isDir(doneRoot)) {
-  const dirs = subDirs(doneRoot);
-  doneTotal = dirs.length;
-  const recent = dirs.slice().sort().reverse().slice(0, DONE_ROWS);
-  for (const name of recent) {
-    const dir = path.join(doneRoot, name);
-    const p = path.join(dir, 'plan.md');
-    const st = path.join(dir, 'STATUS.md');
-    // Date from STATUS (format-agnostic YYYY-MM-DD); fall back to the legacy dirname prefix.
-    // The dir name is a timestamp prefix (YYMMDD-HHMMSS or old YYYY-MM-DD), NOT always a date.
-    // Fallback split by FORM, not fixed offsets — see the .sh twin.
-    const m = name.match(/^(\d{6}-\d{6}[a-z]?|\d{4}-\d{2}-\d{2})-(.+)$/);
-    const idPfx = m ? m[1] : name;
-    const nameSlug = m ? m[2] : name;
-    const date = field(st, 'completed') || field(st, 'executed') || idPfx;
-    let slug = slugof(p) || field(st, 'slug') || nameSlug;
-    let no = taskof(p); no = no ? `#${no}` : '-';
-    addRow(no, date, `${slug}${looptag(p)}`, 'done', vsym(field(st, 'verified')), rsym(field(st, 'retro'), slug));
-  }
-}
+// The monitor and human-readable CLI share the same state survey.
+const { surveyForge } = require("./forge-status-query.js");
+const { rows, footer } = surveyForge(root);
 
 // --- Emit table (replicate the .sh `LC_ALL=C awk` aligner) ------------------
 // Pad by UTF-8 BYTE length, not String.length: the bash twin aligns with
@@ -231,22 +153,4 @@ process.stdout.write(lines.join('\n') + '\n');
 
 if (tableOnly) process.exit(0);
 
-// --- Footer (counts + loop), full mode only ---------------------------------
-let quickN = 0;
-const logPath = path.join(root, 'quick', 'LOG.md');
-if (isFile(logPath)) {
-  quickN = read(logPath).split('\n').filter((l) => /^## /.test(l)).length;
-}
-const retroN = lsMd(path.join(root, 'retro')).length;
-let adrDir = path.join(root, 'adr');
-if (!isDir(adrDir)) adrDir = '.forge/adr';
-const adrN = lsMd(adrDir).length;
-
-let footer = `done: ${doneTotal} · quick: ${quickN} · retro: ${retroN} · adr: ${adrN}`;
-const loopPath = path.join(root, 'loop.md');
-if (isFile(loopPath)) {
-  const rnd = field(loopPath, 'replan-round');
-  const cap = field(loopPath, 'replan-cap');
-  if (rnd && cap) footer += ` · loop: r${rnd}/${cap}`;
-}
 process.stdout.write('\n' + footer + '\n');

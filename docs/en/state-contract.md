@@ -17,7 +17,7 @@ repo/
     ├── retro/YYMMDD-HHMMSS-*.md  # retro log (the old YYYY-MM-DD-* form is grandfathered)
     ├── followups.md           # follow-up ledger (source/date/state/adopted task)
     ├── codebase/*.md          # the codebase map fg-map writes
-    ├── config.json            # six project settings (simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch) — global, never branch-resolved. fg-config is the entry point
+    ├── config.json            # six project settings (simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch · monitorRetention) — global, never branch-resolved. fg-config is the entry point
     │                          # ── volatile loop state (gitignored) ──
     ├── backlog/<slug>.md      # ① fg-ask grilling output — the queue of unexecuted plans
     ├── plan.md                # active slot: the source of truth for the turn now running (fg-run promotes it from the backlog)
@@ -174,3 +174,7 @@ flowchart LR
     style AR fill:#e8f5e9,color:#1a1a1a
     style DROP fill:#e8f5e9,color:#1a1a1a
 ```
+
+## Global monitor runtime exception
+
+`.forge/monitor/` is self-ignored runtime data, never relocated under a branch root. active contains session ownership and access keys; records contains minimal activity summaries. Shutdown always removes keys/PIDs. delete removes only this run's records; keep preserves them as history for the starting branch. Existing forge plan/run/done files are unchanged. `monitorRetention` is a project setting asked on first launch; changes affect the next launch. The monitor does not share showme's lifetime.

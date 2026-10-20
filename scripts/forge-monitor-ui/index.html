@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>
+      forge 모니터
+    </title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/app.js" defer>
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">
+      본문으로 건너뛰기
+    </a>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">
+          f
+        </span>
+        forge
+        <span>
+          모니터
+        </span>
+      </div>
+      <div id="connection" role="status">
+        연결 중
+      </div>
+    </header>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="project-label">
+          현재 프로젝트
+        </div>
+        <h1 id="project-name">
+          불러오는 중
+        </h1>
+        <p id="branch" class="branch">
+          브랜치 확인 중
+        </p>
+        <nav aria-label="모니터 보기">
+          <button class="nav-button selected" data-view="overview" aria-current="page">
+            <span aria-hidden="true">
+              ▦
+            </span>
+            전체 현황
+          </button>
+          <button class="nav-button" data-view="tasks">
+            <span aria-hidden="true">
+              ≡
+            </span>
+            작업 기록
+          </button>
+          <button class="nav-button" data-view="history">
+            <span aria-hidden="true">
+              ◷
+            </span>
+            모니터 기록
+          </button>
+        </nav>
+        <div class="scope">
+          <span class="scope-dot">
+          </span>
+          현재 브랜치 · 단일 세션
+          <p>
+            Claude Code
+          </p>
+          <p id="retention">
+            보관 방식 확인 중
+          </p>
+        </div>
+      </aside>
+      <main id="main">
+        <div class="page-heading">
+          <div>
+            <p id="scope-label">
+              현재 세션
+            </p>
+            <button id="current-session" hidden>현재 세션으로 돌아가기</button>
+            <h2 id="view-title">
+              전체 현황
+            </h2>
+          </div>
+          <div class="updated">
+            마지막 관측
+            <time id="updated">
+              —
+            </time>
+          </div>
+        </div>
+        <div id="notice" class="notice" role="status">
+          세션의 작업과 에이전트 상태를 불러오고 있습니다.
+        </div>
+        <section id="history-view" hidden aria-labelledby="history-title">
+          <div class="panel">
+            <div class="panel-heading">
+              <h3 id="history-title">
+                보관된 세션
+              </h3>
+              <button id="return-live">
+                현재 세션 보기
+              </button>
+            </div>
+            <p class="panel-note">
+              종료 당시의 관측 기록입니다. 현재 세션과 합산하지 않습니다.
+            </p>
+            <div id="history-list" class="history-list">
+            </div>
+          </div>
+        </section>
+        <section id="dashboard" aria-label="세션 관측">
+          <ol class="pipeline" aria-label="forge 진행 단계">
+            <li data-phase="ask">
+              <span class="step-dot">
+              </span>
+              <span>
+                계획
+                <small>
+                  작업 정의
+                </small>
+              </span>
+            </li>
+            <li data-phase="run">
+              <span class="step-dot">
+              </span>
+              <span>
+                실행
+                <small>
+                  구현 진행
+                </small>
+              </span>
+            </li>
+            <li data-phase="verify">
+              <span class="step-dot">
+              </span>
+              <span>
+                검증
+                <small>
+                  결과 확인
+                </small>
+              </span>
+            </li>
+            <li data-phase="learn">
+              <span class="step-dot">
+              </span>
+              <span>
+                회고
+                <small>
+                  학습 기록
+                </small>
+              </span>
+            </li>
+            <li data-phase="done">
+              <span class="step-dot">
+              </span>
+              <span>
+                완료
+                <small>
+                  작업 마감
+                </small>
+              </span>
+            </li>
+          </ol>
+          <div class="workspace">
+            <section class="panel task-panel" aria-labelledby="task-heading">
+              <div class="panel-heading">
+                <h3 id="task-heading">
+                  현재 작업
+                </h3>
+                <span id="task-state" class="tag">
+                  확인 중
+                </span>
+              </div>
+              <div class="task-summary">
+                <h4 id="task-title">
+                  작업을 불러오는 중
+                </h4>
+                <p id="progress">
+                  진행률 확인 불가
+                </p>
+                <p id="verification">
+                </p>
+              </div>
+              <div class="document-tabs" role="group" aria-label="작업 문서">
+                <button class="selected" data-doc="plan" aria-pressed="true">
+                  계획
+                </button>
+                <button data-doc="run" aria-pressed="false">
+                  실행 기록
+                </button>
+                <button data-doc="status" aria-pressed="false">
+                  검증 결과
+                </button>
+              </div>
+              <pre id="document" tabindex="0">
+                연결을 기다리고 있습니다.
+              </pre>
+            </section>
+            <div class="observation-column">
+              <section class="panel" aria-labelledby="agents-heading">
+                <div class="panel-heading">
+                  <h3 id="agents-heading">
+                    에이전트
+                  </h3>
+                  <span id="agent-count" class="panel-count">
+                    —
+                  </span>
+                </div>
+                <p id="collection" class="panel-note">
+                </p>
+                <div id="agents">
+                </div>
+              </section>
+              <section class="panel activity-panel" aria-labelledby="activity-heading">
+                <div class="panel-heading">
+                  <h3 id="activity-heading">
+                    최근 활동
+                  </h3>
+                  <span class="panel-count">
+                    관측 순서
+                  </span>
+                </div>
+                <ol id="activities" class="activity-list">
+                </ol>
+              </section>
+            </div>
+          </div>
+        </section>
+        <section id="tasks-view" hidden aria-labelledby="tasks-heading">
+          <div class="panel">
+            <div class="panel-heading">
+              <h3 id="tasks-heading">
+                브랜치 작업 기록
+              </h3>
+              <span id="task-count" class="panel-count">
+              </span>
+            </div>
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>
+                      작업
+                    </th>
+                    <th>
+                      단계
+                    </th>
+                    <th>
+                      검증
+                    </th>
+                    <th>
+                      회고
+                    </th>
+                    <th>
+                      날짜
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="task-rows">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+        <footer>
+          forge 상태를 읽기 전용으로 관찰합니다.
+          <span id="session-id">
+          </span>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

@@ -9,7 +9,7 @@ mapped: 2026-09-11
 
 ## 저장소 산출물
 
-- 플러그인의 주 산출물은 `skills/*/SKILL.md`, 그 형제 Markdown 계약 문서, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`이다. `skills/` 아래에는 `SKILL.md`가 22개 있다.
+- 플러그인의 주 산출물은 `skills/*/SKILL.md`, 그 형제 Markdown 계약 문서, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`이다. `skills/` 아래에는 `SKILL.md`가 23개 있다.
 - 결정론적 동작은 최상위 `scripts/`에 둔다. 운영 스크립트는 Bash/Node 트윈 11쌍이며, `scripts/forge-statusline-wrapper.sh`만 최상위 Bash 전용 구현이다.
 - `package.json`은 `docs/`의 VitePress 사이트와 릴리스 검사 명령을 제공한다. 플러그인 Markdown이나 JSON을 컴파일하는 빌드 단계는 없다.
 - `package.json`에는 `"type"` 필드가 없다. `scripts/*.js`는 `require(...)`를 사용하는 CommonJS이며 파일 시작에 `'use strict';`를 둔다.
@@ -72,3 +72,7 @@ mapped: 2026-09-11
 - 상태를 바꾸는 도구는 검증 실패와 파일 작업 실패를 서로 다른 exit code로 구분한다. `scripts/forge-done.*`, `scripts/forge-merge.*`, `scripts/forge-loop-spend.*`의 머리말에 해당 계약이 적혀 있다.
 - 누락·모호·파싱 실패가 자동 주행을 지속시키는 근거가 되지 않도록 보수적으로 종료한다. 특히 `scripts/forge-hook-stop.*`는 세션·시간·횟수·marker가 모두 확인된 경우에만 정지를 막는다.
 - 사용자가 만든 값이 지시문이나 태그 경계를 깨지 않도록 제어 문자, 개행, 태그 구분자, 길이를 제한한다. 이 처리는 `scripts/forge-hook-session-start.*`에서 구현되고 fixture와 parity 테스트로 고정된다.
+
+## fg-monitor 추가 (2026-10-20)
+
+모니터 서버·훅은 Node 전용이며 Bash 트윈 예외다. Node 22+ 내장 모듈만 사용한다. 관측 오류는 Claude를 막지 않고 불명 상태를 성공으로 승격하지 않는다. 설정은 기존 키를 보존하며 첫 실행의 기록 정책을 사용자에게 묻는다. 브라우저는 읽기 전용이다.
