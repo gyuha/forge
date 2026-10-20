@@ -17,7 +17,7 @@ repo/
     ├── retro/YYMMDD-HHMMSS-*.md  # retro log (the old YYYY-MM-DD-* form is grandfathered)
     ├── followups.md           # follow-up ledger (source/date/state/adopted task)
     ├── codebase/*.md          # the codebase map fg-map writes
-    ├── config.json            # six project settings (simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch · monitorRetention) — global, never branch-resolved. fg-config is the entry point
+    ├── config.json            # seven project settings (simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch · monitorRetention) — global, never branch-resolved. fg-config is the entry point
     │                          # ── volatile loop state (gitignored) ──
     ├── backlog/<slug>.md      # ① fg-ask grilling output — the queue of unexecuted plans
     ├── plan.md                # active slot: the source of truth for the turn now running (fg-run promotes it from the backlog)

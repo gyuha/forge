@@ -207,3 +207,9 @@ Node 22+로 현재 프로젝트·시작 브랜치·Claude Code 세션의 작업�
 첫 실행에서 기록을 종료 시 삭제(`delete`)할지 보관(`keep`)할지 묻고 `.forge/config.json`의 `monitorRetention`으로 저장합니다. 이후에는 재사용하며 `/fg-config monitorRetention delete|keep`으로 변경할 수 있습니다. 변경은 다음 시작부터 적용되며 과거 보관 기록을 일괄 삭제하지 않습니다. 보관분은 같은 프로젝트·브랜치의 모니터 기록에서 실시간 상태와 구분해 봅니다.
 
 A안은 상단 단계 흐름과 하단 작업·에이전트 패널입니다. 관측되지 않은 상태는 확인 불가로 표시하고 대화·도구 입출력 전문을 노출하지 않습니다. Stop(응답 종료)은 서버를 끄지 않으며 SessionEnd 또는 실제 소유 Claude 프로세스 종료로 정리합니다. `/clear` 뒤 새 세션에 자동 연결하지 않습니다. 설치·훅 변경 후 새 Claude 세션이 필요합니다. Claude Code 2.1.303에서 exec-form Node 훅을 관측했으며 이전 버전은 미검증입니다. Codex/opencode/Pi 실시간 수집은 미지원입니다. macOS 실측을 Windows 동작 보장으로 확대하지 않습니다.
+
+**보안.** 키가 든 URL이 유일한 자격 증명입니다. `key`를 아는 사람은 누구나 이 세션의 작업과 에이전트 활동을 읽을 수 있습니다. 기본은 루프백(`127.0.0.1`)이며 `--host 0.0.0.0`은 이 머신의 모든 인터페이스에 서버를 엽니다. 신뢰하는 네트워크에서만 URL을 공유하고 끝나면 `/fg-monitor off`로 종료하세요. 대시보드에는 실행·취소·설정 변경 기능이 없습니다.
+
+**예시.** `on`은 `{"status":"started","host":"0.0.0.0","port":64303,"url":"http://127.0.0.1:64303/?key=…","urls":[…]}` 같은 JSON을 출력합니다. `url`은 로컬 주소이고 `urls`는 LAN 주소마다 하나씩 더합니다. `0.0.0.0` 자체는 접속 대상이 아닙니다. 로컬 URL은 가능하면 브라우저로 자동으로 열립니다. 화면은 상단 단계 흐름, 프로젝트·뷰 내비게이션, 아래쪽 작업·에이전트 패널로 구성됩니다.
+
+**검증.** `node --test scripts/forge-monitor.test.js scripts/forge-monitor-wiring.test.js`로 기능·훅 배선 테스트를 돌립니다. CI는 `.github/workflows/monitor-check.yml`로 macOS·Linux·Windows에서 이를 실행합니다. 여기서 통과해도 보장되는 것은 Node 경로뿐이며, 각 OS의 실제 Claude·화면 동작은 별도로 확인하고 관측하지 않은 OS의 성공은 추정하지 않습니다.
