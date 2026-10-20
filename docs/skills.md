@@ -29,6 +29,8 @@
 | `fg-security` | 감사 유틸리티(루프 밖) | 코드베이스 보안 감사 — cloudflare 방법론 vendoring; 산출물은 리포 밖; 심각도 게이트 통과분이 fix-forward plan | 코드베이스 전체 + 이전 run의 `findings.json`(복수 실행으로 기존 finding 건너뛰고 빈틈 노림) | `~/security-audit-skill/<repo>/run-N/`(`REPORT.md`·`FINDINGS-DETAIL.md`·`findings.json` — **리포 밖**) + 승인 시 `.forge/backlog/*.md` | `fg-run`(승인된 fix-forward plan 실행) — 봉인 게이트 아님 |
 | `fg-debug` | 진단 유틸리티(루프 밖) | 어려운 버그의 대화형 진단 규율 — diagnosing-bugs vendoring(MIT); red를 낼 수 있는 피드백 루프 구축·재현·최소화·가설 순위화, 진단 전용(수정은 루프의 것) | 버그 리포트 + 프로젝트 워킹 트리 | 활성 실패면 기존 fg-run 복귀; 독립 진단이면 trivial은 fg-quick, non-trivial은 승인된 `.forge/backlog/*.md`; red 명령은 영속할 때만 eval, 원본 캡처는 리포 밖에서 전 종료 cleanup | `fg-run`(활성 실패 복귀 또는 승인된 fix plan 실행) |
 
+후속 후보는 `fg-learn`과 모든 봉인 경로에서 `.forge/followups.md`에 저장하며, `fg-ask`는 계획 저장 후 후보를 `taken`과 새 task 번호로 연결한다. `fg-status --json`은 외부 도구를 위한 전체 작업·루프·후속 후보 JSON을 출력한다. [후속 후보와 외부 상태 조회](./state-contract.md#followups)를 참고한다.
+
 ## 핸드오프 표 — 모든 다음 단계 안내의 공통 형태
 
 스킬이 끝에서 내는 다음 단계 안내는 고정 4행 **핸드오프 표**(`방금 한 것` · `다음 단계` · `시작하는 법` · `대안`)로 렌더된다. 다음 단계가 산문 사이에 묻혀 안 보이던 문제를 형태로 고친 것이며(통증은 **길이가 아니라 찾기 어려움**이었다), `eco` 게이트와 무관하게 **항상** 적용된다 — ADR `260805-231104`.

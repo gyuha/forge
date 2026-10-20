@@ -17,6 +17,9 @@
 #   retros — moved; `-2` on filename collision.
 #   CONTEXT.md — terms appended; a term redefined differently halts (exit 4).
 #   done/ + backlog/ — folded, with ONE monotonic task-number remap across both.
+#   followups.md — IDs deduplicated; source/taken task refs remapped. Conflicting
+#            same-ID records or malformed ledgers halt before any writes (exit 4).
+#            Unresolved task references are preserved as historical references.
 #   dropped/ — moved (never blocks).
 #   bumped-ADR cross-references — rewritten within the moved incoming docs;
 #            merge-changed non-.forge/ files are grepped and WARNED (never rewritten).
@@ -68,7 +71,7 @@ BRANCHES_DIR="$TARGET/branch"
 # --- resolve which branch root to integrate ----------------------------------
 is_leaf_root() {
   for m in adr retro done backlog dropped; do [ -d "$1/$m" ] && return 0; done
-  for m in CONTEXT.md plan.md run.md STATUS.md loop.md; do [ -e "$1/$m" ] && return 0; done
+  for m in CONTEXT.md plan.md run.md STATUS.md loop.md followups.md; do [ -e "$1/$m" ] && return 0; done
   return 1
 }
 find_leaf_roots() {
@@ -174,6 +177,124 @@ if [ -d "$SRC/adr" ]; then
   done
 fi
 
+# Prepare task references and the merged ledger before mutating either tree.
+# Unknown legacy references stay unchanged; only incoming plans define mappings.
+merge_tmp="$(mktemp -d)" || exit 4
+trap 'rm -rf "$merge_tmp"' EXIT
+: > "$merge_tmp/tasks"
+plan_task_remap() {
+  local tmax=0 n
+  for p in "$TARGET"/backlog/*.md "$TARGET"/plan.md "$TARGET"/executed/*/plan.md "$TARGET"/done/*/plan.md; do
+    [ -e "$p" ] || continue; n="$(taskof "$p")"; [ -n "$n" ] && [ "$n" -gt "$tmax" ] && tmax="$n"
+  done
+  # incoming plans in ascending old-N order (done/*/plan.md + backlog/*.md)
+  local incoming="" line oldn f
+  for f in "$SRC"/done/*/plan.md "$SRC"/backlog/*.md; do
+    [ -e "$f" ] || continue; oldn="$(taskof "$f")"; [ -n "$oldn" ] || oldn=0
+    incoming="$incoming$oldn	$f"$'\n'
+  done
+  incoming="$(printf '%s' "$incoming" | grep -c . >/dev/null 2>&1 && printf '%s' "$incoming" | sort -n)"
+  while IFS=$'\t' read -r oldn f; do
+    [ -n "${f:-}" ] || continue
+    tmax=$((tmax+1))
+    printf '%s\t%s\t%s\n' "$oldn" "$tmax" "$f" >> "$merge_tmp/tasks"
+
+  done <<EOF
+$incoming
+EOF
+}
+plan_task_remap
+if ! awk -F '\t' '$1 != "0" {if (seen[$1]++) exit 1}' "$merge_tmp/tasks"; then
+  echo "GATE_CONFLICT duplicate-incoming-task — human resolves"; exit 4
+fi
+validate_followups() {
+  awk -v mapfile="$merge_tmp/tasks" -v targetfile="$merge_tmp/target" '
+    function fail(msg) { print "GATE_CONFLICT " msg " — human resolves" > "/dev/stderr"; bad=1; exit 1 }
+    function trim(s) { sub(/\n+$/, "", s); return s }
+    function flush(   b, body) {
+      if (id == "") return
+      b=trim(block)
+      body=b; sub(/^[^\n]*\n?/, "", body); if(body !~ /[^[:space:]]/) fail("empty-followup-body")
+      if (seenFile[side SUBSEP id]++) fail("duplicate-followup-id")
+      if (id in blocks) { if (blocks[id] != b) fail("followup-id-conflict") }
+      else { order[++count]=id; blocks[id]=b }
+      id=""; block=""
+    }
+    BEGIN { while ((getline line < mapfile)>0) { split(line,m,"\t"); if(m[1]!="0") mapping[m[1]]=m[2] }; close(mapfile) }
+    FNR==1 { flush(); side=(FILENAME==targetfile ? "target" : "source") }
+    {
+      gsub(/\r/, "")
+      if (index($0,"<!-- followup:")) {
+        flush()
+        if ($0 !~ /^<!-- followup: fu-[a-f0-9]+ \| source: [^[:space:]|<>\/\\]+ \| task: ([1-9][0-9]*|-) \| date: [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] \| status: (open|taken|dismissed) \| taken: ([1-9][0-9]*|-) -->$/) fail("invalid-followups")
+        split($0,a," [|] ")
+        source=a[2]; sub(/^source: /,"",source)
+        if(source ~ /^\./ || index(source,"..")) fail("invalid-followups")
+        id=a[1]; sub(/^<!-- followup: /,"",id)
+        if(length(id)!=15) fail("invalid-followups")
+        task=a[3]; sub(/^task: /,"",task)
+        state=a[5]; sub(/^status: /,"",state)
+        taken=a[6]; sub(/^taken: /,"",taken); sub(/ -->$/,"",taken)
+        if ((state=="taken") != (taken!="-")) fail("invalid-followups")
+        if(side=="source") { if(task in mapping) task=mapping[task]; if(taken in mapping) taken=mapping[taken] }
+        block=a[1] " | " a[2] " | task: " task " | " a[4] " | " a[5] " | taken: " taken " -->\n"
+      } else if(id!="") block=block $0 "\n"
+      else headers[side]=headers[side] $0 "\n"
+    }
+    END {
+      if(bad) exit 1
+      flush()
+      h=trim(headers["target"]); if(h=="") h=trim(headers["source"]); if(h=="") h="# Follow-ups"
+      printf "%s\n",h
+      for(i=1;i<=count;i++) printf "\n%s\n",blocks[order[i]]
+    }
+  ' "$1" "$2"
+}
+if [ -e "$SRC/followups.md" ]; then
+  for ledger in "$SRC/followups.md" "$TARGET/followups.md"; do
+    if [ -L "$ledger" ] || { [ -e "$ledger" ] && [ ! -f "$ledger" ]; }; then
+      echo "GATE_CONFLICT invalid-followups-file — human resolves"; exit 4
+    fi
+  done
+  # Files are copied to fixed names so absent/empty ledgers are unambiguous to awk.
+  : > "$merge_tmp/target"; : > "$merge_tmp/source"
+  if [ -e "$TARGET/followups.md" ]; then cp "$TARGET/followups.md" "$merge_tmp/target" || exit 4; fi
+  cp "$SRC/followups.md" "$merge_tmp/source" || exit 4
+  if ! validate_followups "$merge_tmp/target" "$merge_tmp/source" > "$merge_tmp/followups"; then
+    echo "GATE_CONFLICT followups — human resolves"; exit 4
+  fi
+fi
+
+# Validate archived snapshots before mutation; stage only marker-field rewrites.
+: > "$merge_tmp/snapshots"
+: > "$merge_tmp/empty"
+snapshot_index=0
+for snapshot in "$SRC"/retro/*.md "$SRC"/done/*/run.md; do
+  [ -f "$snapshot" ] || continue
+  grep -q '<!-- followup:' "$snapshot" || continue
+  if [ -L "$snapshot" ] || ! validate_followups "$merge_tmp/empty" "$snapshot" > /dev/null; then
+    echo "GATE_CONFLICT followup-snapshot — human resolves"; exit 4
+  fi
+  snapshot_index=$((snapshot_index+1))
+  staged="$merge_tmp/snapshot-$snapshot_index"
+  awk -v mapfile="$merge_tmp/tasks" '
+    BEGIN { while((getline line < mapfile)>0){split(line,m,"\t");if(m[1]!="0") mapping[m[1]]=m[2]};close(mapfile) }
+    /^<!-- followup:/ {
+      split($0,a," [|] "); task=a[3];sub(/^task: /,"",task); taken=a[6];sub(/^taken: /,"",taken);sub(/ -->\r?$/,"",taken)
+      if(task in mapping) sub(/ [|] task: ([1-9][0-9]*|-) /," | task: " mapping[task] " ")
+      if(taken in mapping) sub(/ [|] taken: ([1-9][0-9]*|-) /," | taken: " mapping[taken] " ")
+    }
+    {print}
+  ' "$snapshot" > "$staged" || exit 4
+  # awk prints a final newline; preserve an unterminated original body exactly.
+  if [ -n "$(tail -c 1 "$snapshot")" ]; then
+    bytes="$(wc -c < "$staged")"
+    head -c "$((bytes-1))" "$staged" > "$staged.trim" || exit 4
+    mv "$staged.trim" "$staged"
+  fi
+  printf '%s\t%s\n' "$staged" "$snapshot" >> "$merge_tmp/snapshots"
+done
+
 # =============================================================================
 # MUTATION PHASE (past all gates)
 # =============================================================================
@@ -266,24 +387,11 @@ EOF
 
 # ONE monotonic task-number remap across incoming done/ + backlog/, then fold.
 integrate_done_and_backlog() {
-  local tmax=0 n
-  for p in "$TARGET"/backlog/*.md "$TARGET"/plan.md "$TARGET"/executed/*/plan.md "$TARGET"/done/*/plan.md; do
-    [ -e "$p" ] || continue; n="$(taskof "$p")"; [ -n "$n" ] && [ "$n" -gt "$tmax" ] && tmax="$n"
-  done
-  # incoming plans in ascending old-N order (done/*/plan.md + backlog/*.md)
-  local incoming="" line oldn f
-  for f in "$SRC"/done/*/plan.md "$SRC"/backlog/*.md; do
-    [ -e "$f" ] || continue; oldn="$(taskof "$f")"; [ -n "$oldn" ] || oldn=0
-    incoming="$incoming$oldn	$f"$'\n'
-  done
-  incoming="$(printf '%s' "$incoming" | grep -c . >/dev/null 2>&1 && printf '%s' "$incoming" | sort -n)"
-  while IFS=$'\t' read -r oldn f; do
+  local oldn newn f
+  while IFS=$'\t' read -r oldn newn f; do
     [ -n "${f:-}" ] || continue
-    tmax=$((tmax+1))
-    sed -i.bak -E "s/(task:[[:space:]]*)[0-9]+/\1$tmax/" "$f" 2>/dev/null && rm -f "$f.bak"
-  done <<EOF
-$incoming
-EOF
+    sed -i.bak -E "s/(task:[[:space:]]*)[0-9]+/\1$newn/" "$f" 2>/dev/null && rm -f "$f.bak"
+  done < "$merge_tmp/tasks"
   # fold done/
   if [ -d "$SRC/done" ]; then
     mkdir -p "$TARGET/done"
@@ -351,11 +459,16 @@ remove_branch_folder() {
   [ "$parent" != "$BRANCHES_DIR" ] && [ -d "$parent" ] && [ -z "$(ls -A "$parent" 2>/dev/null)" ] && rmdir "$parent" 2>/dev/null || true
 }
 
+while IFS=$'\t' read -r staged snapshot; do
+  [ -n "${snapshot:-}" ] || continue
+  cp "$staged" "$snapshot" || exit 4
+done < "$merge_tmp/snapshots"
 integrate_adrs
 integrate_retros
 integrate_context
 integrate_done_and_backlog
 integrate_dropped
+if [ -f "$merge_tmp/followups" ]; then cp "$merge_tmp/followups" "$TARGET/followups.md" || exit 4; fi
 rewrite_bumped_crossrefs
 remove_branch_folder
 

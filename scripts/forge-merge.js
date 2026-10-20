@@ -44,7 +44,7 @@ const ls = (dir) => { try { return fs.readdirSync(dir).sort(); } catch (_) { ret
 // --- resolve which branch root to integrate ----------------------------------
 function isLeafRoot(p) {
   for (const m of ['adr', 'retro', 'done', 'backlog', 'dropped']) if (isDir(path.join(p, m))) return true;
-  for (const m of ['CONTEXT.md', 'plan.md', 'run.md', 'STATUS.md', 'loop.md']) if (exists(path.join(p, m))) return true;
+  for (const m of ['CONTEXT.md', 'plan.md', 'run.md', 'STATUS.md', 'loop.md', 'followups.md']) if (exists(path.join(p, m))) return true;
   return false;
 }
 function findLeafRoots() {
@@ -155,6 +155,85 @@ if (isDir(srcAdr)) {
   }
 }
 
+// Plan reference rewrites before touching either tree. Unresolved legacy task
+// references remain unchanged; only actual incoming plans establish a mapping.
+function planTaskRemap() {
+  let tmax = 0;
+  const targPlans = [];
+  for (const p of ls(path.join(TARGET, 'backlog'))) targPlans.push(path.join(TARGET, 'backlog', p));
+  if (exists(path.join(TARGET, 'plan.md'))) targPlans.push(path.join(TARGET, 'plan.md'));
+  for (const d of ls(path.join(TARGET, 'executed'))) targPlans.push(path.join(TARGET, 'executed', d, 'plan.md'));
+  for (const d of ls(path.join(TARGET, 'done'))) targPlans.push(path.join(TARGET, 'done', d, 'plan.md'));
+  for (const p of targPlans) { const n = parseInt(taskof(p), 10); if (n > tmax) tmax = n; }
+  // incoming: done/*/plan.md then backlog/*.md, sorted by (oldn, path)
+  const incoming = [];
+  for (const d of ls(path.join(SRC, 'done'))) { const p = path.join(SRC, 'done', d, 'plan.md'); if (exists(p)) incoming.push(p); }
+  for (const p of ls(path.join(SRC, 'backlog'))) { const fp = path.join(SRC, 'backlog', p); if (exists(fp)) incoming.push(fp); }
+  incoming.sort((a, b) => { const na = parseInt(taskof(a) || '0', 10), nb = parseInt(taskof(b) || '0', 10); return na - nb || (a < b ? -1 : a > b ? 1 : 0); });
+  const assignments = [], mapping = new Map();
+  for (const p of incoming) {
+    tmax += 1;
+    const old = taskof(p);
+    if (old && mapping.has(old)) die('GATE_CONFLICT duplicate-incoming-task — human resolves', 4);
+    if (old) mapping.set(old, String(tmax));
+    assignments.push([p, tmax]);
+  }
+  return { assignments, mapping };
+}
+const taskRemap = planTaskRemap();
+const followupPattern = /^<!-- followup: (fu-[a-f0-9]{12}) \| source: ([^\s|<>/\\]+) \| task: ([1-9][0-9]*|-) \| date: ([0-9]{4}-[0-9]{2}-[0-9]{2}) \| status: (open|taken|dismissed) \| taken: ([1-9][0-9]*|-) -->$/;
+function parseFollowups(file, mapping) {
+  if (!exists(file)) return { header: '', entries: [] };
+  if (!fs.lstatSync(file).isFile()) die('GATE_CONFLICT invalid-followups-file — human resolves', 4);
+  const lines = fs.readFileSync(file, 'utf8').replace(/\r/g, '').split('\n');
+  const entries = []; let header = [], current = null;
+  for (const line of lines) {
+    if (line.includes('<!-- followup:')) {
+      const m = line.match(followupPattern);
+      if (!m || m[2].startsWith('.') || m[2].includes('..') || (m[5] === 'taken') !== (m[6] !== '-')) die('GATE_CONFLICT invalid-followups — human resolves', 4);
+      const task = mapping.get(m[3]) || m[3], taken = mapping.get(m[6]) || m[6];
+      current = { id: m[1], lines: [`<!-- followup: ${m[1]} | source: ${m[2]} | task: ${task} | date: ${m[4]} | status: ${m[5]} | taken: ${taken} -->`] };
+      entries.push(current);
+    } else if (current) current.lines.push(line); else header.push(line);
+  }
+  const trim = (a) => { while (a.length && a[a.length - 1] === '') a.pop(); return a.join('\n'); };
+  const seen = new Set();
+  for (const e of entries) {
+    if (seen.has(e.id)) die('GATE_CONFLICT duplicate-followup-id — human resolves', 4);
+    if (!e.lines.slice(1).join('\n').trim()) die('GATE_CONFLICT empty-followup-body — human resolves', 4);
+    seen.add(e.id); e.block = trim(e.lines);
+  }
+  return { header: trim(header), entries };
+}
+let mergedFollowups = null;
+if (exists(path.join(SRC, 'followups.md'))) {
+  const target = parseFollowups(path.join(TARGET, 'followups.md'), new Map());
+  const source = parseFollowups(path.join(SRC, 'followups.md'), taskRemap.mapping);
+  const entries = target.entries.slice(), known = new Map(entries.map(e => [e.id, e.block]));
+  for (const e of source.entries) {
+    if (known.has(e.id)) {
+      if (known.get(e.id) !== e.block) die('GATE_CONFLICT followup-id-conflict — human resolves', 4);
+    } else { entries.push(e); known.set(e.id, e.block); }
+  }
+  mergedFollowups = [target.header || source.header || '# Follow-ups', ...entries.map(e => e.block)].join('\n\n') + '\n';
+}
+
+// Archived snapshots must remain replayable against the remapped ledger. Validate
+// every candidate-bearing source first, then rewrite only marker reference fields.
+const snapshotRewrites = [];
+const snapshots = ls(path.join(SRC, 'retro')).filter(n => n.endsWith('.md')).map(n => path.join(SRC, 'retro', n));
+for (const d of ls(path.join(SRC, 'done'))) snapshots.push(path.join(SRC, 'done', d, 'run.md'));
+for (const file of snapshots) {
+  if (!exists(file)) continue;
+  const raw = fs.readFileSync(file, 'utf8');
+  if (!raw.includes('<!-- followup:')) continue;
+  parseFollowups(file, taskRemap.mapping);
+  const updated = raw.replace(/^<!-- followup: .* -->\r?$/gm, line => line
+    .replace(/ \| task: ([1-9][0-9]*|-) /, (_, n) => ` | task: ${taskRemap.mapping.get(n) || n} `)
+    .replace(/ \| taken: ([1-9][0-9]*|-) /, (_, n) => ` | taken: ${taskRemap.mapping.get(n) || n} `));
+  snapshotRewrites.push([file, updated]);
+}
+
 // =============================================================================
 // MUTATION PHASE
 // =============================================================================
@@ -248,19 +327,7 @@ function integrateContext() {
   MOVED.push(tgtCtx);
 }
 function integrateDoneAndBacklog() {
-  let tmax = 0;
-  const targPlans = [];
-  for (const p of ls(path.join(TARGET, 'backlog'))) targPlans.push(path.join(TARGET, 'backlog', p));
-  if (exists(path.join(TARGET, 'plan.md'))) targPlans.push(path.join(TARGET, 'plan.md'));
-  for (const d of ls(path.join(TARGET, 'executed'))) targPlans.push(path.join(TARGET, 'executed', d, 'plan.md'));
-  for (const d of ls(path.join(TARGET, 'done'))) targPlans.push(path.join(TARGET, 'done', d, 'plan.md'));
-  for (const p of targPlans) { const n = parseInt(taskof(p), 10); if (n > tmax) tmax = n; }
-  // incoming: done/*/plan.md then backlog/*.md, sorted by (oldn, path)
-  const incoming = [];
-  for (const d of ls(path.join(SRC, 'done'))) { const p = path.join(SRC, 'done', d, 'plan.md'); if (exists(p)) incoming.push(p); }
-  for (const p of ls(path.join(SRC, 'backlog'))) { const fp = path.join(SRC, 'backlog', p); if (exists(fp)) incoming.push(fp); }
-  incoming.sort((a, b) => { const na = parseInt(taskof(a) || '0', 10), nb = parseInt(taskof(b) || '0', 10); return na - nb || (a < b ? -1 : a > b ? 1 : 0); });
-  for (const p of incoming) { tmax += 1; fs.writeFileSync(p, read(p).replace(/task:(\s*)\d+/, `task:$1${tmax}`)); }
+  for (const [p, n] of taskRemap.assignments) fs.writeFileSync(p, read(p).replace(/task:(\s*)\d+/, `task:$1${n}`));
   // fold done/
   if (isDir(path.join(SRC, 'done'))) {
     mkdirp(path.join(TARGET, 'done'));
@@ -323,11 +390,13 @@ function removeBranchFolder() {
   if (parent !== BRANCHES_DIR && isDir(parent) && ls(parent).length === 0) { try { fs.rmdirSync(parent); } catch (_) {} }
 }
 
+for (const [file, content] of snapshotRewrites) fs.writeFileSync(file, content);
 integrateAdrs();
 integrateRetros();
 integrateContext();
 integrateDoneAndBacklog();
 integrateDropped();
+if (mergedFollowups !== null) fs.writeFileSync(path.join(TARGET, 'followups.md'), mergedFollowups);
 rewriteBumpedCrossrefs();
 removeBranchFolder();
 

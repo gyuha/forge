@@ -197,6 +197,17 @@ if (skipGiven) {
   else die(`GATE_RETRO retro-owed slug=${slug}`, 4);
 }
 
+// Preserve candidates even when retro is skipped. Parse all inputs before publishing.
+const followupFiles = isFile(R) ? [R] : [];
+const followupRetro = findRetro(slug);
+if (followupRetro) followupFiles.push(path.isAbsolute(followupRetro) || !repoTop ? followupRetro : path.join(repoTop, followupRetro));
+try {
+  if (followupFiles.length) require('./forge-followups.js').main(['collect', '--root', root, ...followupFiles.flatMap(f => ['--file', f])]);
+} catch (e) {
+  process.stderr.write(`forge-followups: ${e.message}\n`);
+  die(`SEAL_IO followup-collection-failed slug=${slug} (source retained)`, 6);
+}
+
 // --- SEAL (mutation only past this point) ------------------------------------
 const reviewed = isFile(V) ? relpath(V) : '';   // repo-relative, never a machine path
 let markerClaim = '';

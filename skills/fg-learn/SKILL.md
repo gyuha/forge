@@ -107,13 +107,17 @@ Classify each learning (promote only past the bar, after human confirmation):
 Guide fg-done + surface follow-up candidates
 ```
 
+## Persist follow-up candidates
+
+Before the handoff, including Batch promotion mode, record every concrete follow-up in `.forge/followups.md` using [FOLLOWUPS-FORMAT.md](./FOLLOWUPS-FORMAT.md). Read existing entries first and reuse IDs from the run or earlier retro. Put marked snapshots in the final section of the retro, then collect them into the ledger; replay must preserve taken/dismissed states. Candidates are proposals, so this does not bypass human confirmation for CONTEXT/ADR/eval promotion. No candidates means no ledger creation.
+
 ## Next-flow guidance (handoff)
 
 When the retro is done, **render the handoff table** at the end — its shape is defined once in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, from this material:
 
 - **What you just did** — you left a retro at `.forge/retro/...`, and one line on what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
 - **Next step / How to start** — divergence and any remaining retro-awaiting work decide these two cells; fill them by the precedence below.
-- **Follow-up candidates** — if any surfaced during the retro, they are list-shaped, so put them **below** the table as bullets (HANDOFF.md's rule for lists), not crammed into a cell.
+- **Follow-up candidates** — render the entries just persisted in `.forge/followups.md` **below** the table as bullets with their IDs and ledger path (HANDOFF.md's list rule). Chat is a view of the saved candidates, never their only home.
 
 **Divergence shapes the cells** (the same rule fg-run's handoff carries). Read the plan-vs-actual divergence in `run.md` — already read in step 1 — and fill `Next step` / `How to start` by the **first case that applies**:
 
@@ -126,6 +130,7 @@ Then **state it and stop**; the table is text output, never an `AskUserQuestion`
 ## Doc impact
 
 - Creates `.forge/retro/YYMMDD-HHMMSS-slug.md` (always, lazy).
+- Creates/updates `.forge/followups.md` when candidates exist, per FOLLOWUPS-FORMAT; preserves terminal states on repeated retros.
 - When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/NNNN-slug.md` (after human confirmation).
 - **Does NOT touch the STATUS.md `retro:` field on in-flight tasks** — it stays `pending` until fg-done fills in the retro path at seal time; retro completion is judged by the retro file's existence (slug match), not by the STATUS field (see fg-status's state machine and fg-done's close-out). The STATUS writes this skill may make are: the `verified:` field of a parked/legacy task during the verification-gate recovery, and — **in Batch promotion mode only** — correcting a *sealed* task's `retro: skipped` to the late-written retro path (never `status:`).
 - On the default branch the volatile loop state is gitignored; the retro/ADR/CONTEXT docs this skill writes are git-tracked via the `.gitignore` whitelist, and a non-default branch root is tracked whole (ADR-0011).

@@ -19,6 +19,8 @@ This is **not** a stage of the forge loop. It is a read-only dashboard: run it a
 
 The mechanical survey and the 6-column task table are produced by a **deterministic script**, not by an LLM re-reading `.forge/` and hand-rendering the table (that was slow — ADR-0020). Run the script and treat its rows, order, counts, values, and symbols as canonical — do not re-survey or recompute them. To honor the language contract, **translate only the fixed labels** (`No./Date/Task/Stage/Verify/Retro`, stage words, footer keys, and the no-state sentence) into the user's language while preserving every data value and row exactly; then derive the one next step in prose (the next-step machine below — the script never derives it).
 
+**Machine mode (`--json`)**: pass `--json` to either script below and relay its JSON verbatim, with no translation, Markdown fence, diagnostic prose, next-step derivation or handoff table. Return immediately. The versioned schema and null/ordering/error contracts are in [STATUS-JSON.md](STATUS-JSON.md). This mode includes all history, full STATUS reasons, running/loop contracts and parsed follow-ups for external monitors. The following prose workflow applies only to human-readable modes.
+
 Dual dispatch (ADR-0022): prefer bash, fall back to node.
 - **Has bash** (mac/Linux/WSL/git-bash — the Bash tool's normal case): `bash "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-status.sh"` (full: table + footer) or `… --table` (table only).
 - **No bash** (e.g. PowerShell-blocked Windows): `node "${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/scripts/forge-status.js"` — the node twin produces identical output (guarded by `scripts/forge-status.parity.test.sh`).

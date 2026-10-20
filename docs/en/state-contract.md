@@ -15,6 +15,7 @@ repo/
     ├── adr/0001-*.md          # architecture decisions
     ├── adr/retired/           # retired/superseded ADRs (moved here by fg-cleanup)
     ├── retro/YYMMDD-HHMMSS-*.md  # retro log (the old YYYY-MM-DD-* form is grandfathered)
+    ├── followups.md           # follow-up ledger (source/date/state/adopted task)
     ├── codebase/*.md          # the codebase map fg-map writes
     ├── config.json            # six project settings (simple · eco · tdd · driveCommit · driveCommitMessage · defaultBranch) — global, never branch-resolved. fg-config is the entry point
     │                          # ── volatile loop state (gitignored) ──
@@ -42,6 +43,7 @@ The `.gitignore` patterns:
 !.forge/CONTEXT.md
 !.forge/adr/
 !.forge/retro/
+!.forge/followups.md
 !.forge/codebase/
 !.forge/config.json
 !.forge/branch/        # a non-default branch root is tracked whole (ADR-0011)
@@ -88,6 +90,24 @@ There are **two** hooks (`hooks/hooks.json` — installed with the plugin, no us
 Sealing closes out STATUS in a temporary copy, publishes the complete archive, and then removes source files. Archive preparation failures preserve the source. File-operation errors return `SEAL_IO` and exit 6; a cleanup failure after publication can leave source residue alongside the archive, so inspect both before retrying. Half-sealed recovery must pass the verification and retro gates too.
 
 Automatic branch integration recursively discovers names with multiple slashes, such as `feature/team/topic`. When several candidates exist, it requests a selection instead of choosing one arbitrarily.
+
+## Follow-up candidates and external status queries {#followups}
+
+Follow-up candidates live in `followups.md` under the resolved forge root. `fg-learn` saves candidates from retros, and `fg-done` collects run/retro candidates before sealing. `fg-ask` auto-close, `fg-loop`, `fg-next all`, simple mode, and `fg-done all` use the same persistence checkpoint, so skipping a retro still preserves candidates. No candidates means no file is created.
+
+Each entry records a stable ID, source slug and task number, discovery date, and `open`, `taken`, or `dismissed` state in an HTML comment marker. `taken` links to the new task number. `fg-ask` records adoption after saving the candidate's plan in the backlog; rereading a candidate never resets an adopted or dismissed state. `taken` means a plan exists, not that execution is complete. Dismissed entries remain as history.
+
+Read and write this ledger per branch, without overlaying the default branch's ledger. `fg-merge` preserves candidates and remaps source and adopted task references. Existing projects must allow `!.forge/followups.md` after `.forge/*` in `.gitignore`. There is no automatic migration of all historical free-heading notes: the sealing skill reads and normalizes the selected task's material. The single format definition is `skills/fg-learn/FOLLOWUPS-FORMAT.md`.
+
+External monitors can call the installed forge scripts from the project directory:
+
+```sh
+bash /path/to/forge/scripts/forge-status.sh --json
+# Hosts without bash
+node /path/to/forge/scripts/forge-status.js --json
+```
+
+The `schemaVersion: 1` JSON includes all tasks (without the five-done-row limit), raw verification/retro values, the in-flight marker, loop contract, counts, and follow-ups. Empty state is valid JSON, and stdout contains JSON only. Next-step judgment stays in the existing skill state machine; JSON reports file state. Existing text and `--table` output remain available. The schema is defined in `skills/fg-status/STATUS-JSON.md`.
 
 ## Producer/consumer contract
 

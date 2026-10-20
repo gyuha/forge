@@ -130,6 +130,8 @@ The four loop stages, then the eighteen utilities outside the loop:
 | `fg-security` | Utility | Security audit of a codebase (methodology vendored from cloudflare/security-audit-skill, MIT) — multi-phase, multi-agent hunting by attack class; artefacts stay OUTSIDE the repo (upstream's `~/security-audit-skill/`) so a vulnerability list has no path into a commit at all, and findings past a severity gate become fix-forward backlog plans on your approval |
 | `fg-debug` | Utility | Conversational diagnosis discipline for hard bugs (vendored from mattpocock/skills' diagnosing-bugs, MIT) — diagnosis only; an active failed task returns to fg-run, while an independent diagnosis branches to fg-quick or an approved fix plan. A red command counts as a persistent eval only when durable; raw captures stay outside the repo and every exit cleans temporary artefacts. Always skipped in unattended drives |
 
+Follow-up candidates persist in `.forge/followups.md` with source, date, and state. When `fg-ask` adopts one into a plan, it links to the new task number. External tools can read all tasks and candidates with `forge-status.sh --json` or `forge-status.js --json`.
+
 Per-skill detail — input/output/next, triggers, and the rationale ADRs — is in **[docs/skills.md](./docs/skills.md) (Korean)**. `fg-ask` is the loop's entry point (it triggers on "start with forge", "new task", "refine the plan"); the utilities are on-demand, each triggered by its own utterances.
 
 ## Overall flow
