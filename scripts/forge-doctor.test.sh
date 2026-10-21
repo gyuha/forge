@@ -106,6 +106,12 @@ run_doc "$t"; assert "B14gap-rc1" 1 "$RC"; assert_grep "B14gap-msg" "$OUT" "B14 
 # --- B15 missing .js twin -> warning -----------------------------------------
 t=$(mktmp); mkdir -p "$t/.forge" "$t/scripts"; printf '#!/bin/bash\n' > "$t/scripts/lonely.sh"
 run_doc "$t"; assert "B15-rc1" 1 "$RC"; assert_grep "B15-msg" "$OUT" "B15 missing .js twin"; rm -rf "$t"
+# --- B15 Node-only scripts (*.test.js, monitor runtime) need no .sh twin -> clean ---
+t=$(mktmp); mkdir -p "$t/.forge" "$t/scripts"; : > "$t/scripts/x.test.js"; : > "$t/scripts/forge-monitor.js"; : > "$t/scripts/forge-hook-monitor.js"; : > "$t/scripts/forge-status-query.js"
+run_doc "$t"; assert "B15-node-only-rc0" 0 "$RC"; rm -rf "$t"
+# --- B15 other lone .js still -> warning -------------------------------------
+t=$(mktmp); mkdir -p "$t/.forge" "$t/scripts"; : > "$t/scripts/lonely.js"
+run_doc "$t"; assert "B15-lone-js-rc1" 1 "$RC"; assert_grep "B15-lone-js-msg" "$OUT" "B15 missing .sh twin"; rm -rf "$t"
 # --- B16 description too long (> 600 chars) -> warning ------------------------
 t=$(mktmp); mkdir -p "$t/.forge" "$t/skills/foo"; longdesc="$(head -c 700 < /dev/zero | tr '\0' x)"; printf 'name: foo\ndescription: %s\n' "$longdesc" > "$t/skills/foo/SKILL.md"
 run_doc "$t"; assert "B16-rc1" 1 "$RC"; assert_grep "B16-msg" "$OUT" "B16 description length"; rm -rf "$t"

@@ -305,7 +305,11 @@ if command -v node >/dev/null 2>&1; then
   assert "17-shell"         "bash"    "$(hj shell)"
   assert "17-async-false"   "false"   "$(hj async)"
   assert "17-command-shape" "ok"      "$(hj cmd)"
-  assert "17-single-entry"  "1"       "$(hj count)"
+  # Other plugin features (fg-monitor) may add their own SessionStart entries; assert only
+  # that exactly ONE entry runs this hook, so a duplicate registration is still caught.
+  assert "17-single-entry"  "1"       "$(node -e '
+    const h=require(process.argv[1]);
+    process.stdout.write(String(h.hooks.SessionStart.filter(e=>e.hooks.some(c=>/run-hook\.cmd" session-start$/.test(c.command||""))).length));' "$HJ" 2>/dev/null)"
 else
   printf '  SKIP 17-hooks-json (node unavailable)\n'
 fi

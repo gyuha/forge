@@ -209,6 +209,8 @@ for (const f of ls(path.join(repo, 'scripts'))) {
 }
 for (const f of ls(path.join(repo, 'scripts'))) {
   if (!f.endsWith('.js')) continue;
+  // Node-only by design (no bash twin): *.test.js and the monitor runtime (CLAUDE.md "fg-monitor Node 런타임")
+  if (f.endsWith('.test.js') || ['forge-monitor.js', 'forge-hook-monitor.js', 'forge-status-query.js'].includes(f)) continue;
   const sh = path.join(repo, 'scripts', f.replace(/\.js$/, '.sh'));
   if (!isFile(sh)) finding('warning', 'B15 missing .sh twin', path.join(repo, 'scripts', f), 'add the bash primary (dual dispatch, ADR-0022)');
 }

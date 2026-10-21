@@ -203,7 +203,9 @@ for sh in "$repo"/scripts/*.sh; do [ -f "$sh" ] || continue
   case "$sh" in *.test.sh|*.parity.test.sh|*-wrapper.sh) continue;; esac
   js="${sh%.sh}.js"; [ -f "$js" ] || finding warning "B15 missing .js twin" "$sh" "add the node twin (dual dispatch, ADR-0022)"
 done
+# Node-only by design (no bash twin): *.test.js and the monitor runtime (CLAUDE.md "fg-monitor Node 런타임")
 for js in "$repo"/scripts/*.js; do [ -f "$js" ] || continue
+  case "$js" in *.test.js|*/forge-monitor.js|*/forge-hook-monitor.js|*/forge-status-query.js) continue;; esac
   sh="${js%.js}.sh"; [ -f "$sh" ] || finding warning "B15 missing .sh twin" "$js" "add the bash primary (dual dispatch, ADR-0022)"
 done
 # B16 SKILL.md description length (drift lint for the trigger-core discipline, ADR 260716-22a):
