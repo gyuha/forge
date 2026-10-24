@@ -247,11 +247,14 @@ for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'ski
 // TOP-LEVEL manifest name; jname is line-bounded ([ \t], like jvers) so a nested
 // `"author": {"name": "forge"}` cannot trigger it and the bash twin agrees on every shape.
 const jname = (f) => { const m = read(f).match(/"name"[ \t]*:[ \t]*"([^"]*)"/); return m ? m[1] : ''; };
-const RULE_FILE = path.join(scriptDir, 'explaining-forge.rule.txt');
-if (isFile(PJ) && jname(PJ) === 'forge' && isFile(RULE_FILE)) {
-  const rule = read(RULE_FILE).replace(/\n+$/, '');
-  for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
-    if (!read(sf).includes(rule)) finding('warning', 'B17 missing Explaining forge rule', sf, "the canonical **Explaining forge** paragraph is absent or altered — copy it verbatim from scripts/explaining-forge.rule.txt next to this skill's **Language** rule (ADR 260824-134246)");
+// Every scripts/*.rule.txt is one always-on rule (ADR 261025-005131), compared independently;
+// the finding names the rule from its leading **bold** label, exactly like the bash twin.
+if (isFile(PJ) && jname(PJ) === 'forge') {
+  for (const rf of ls(scriptDir).filter((f) => f.endsWith('.rule.txt'))) { const RULE_FILE = path.join(scriptDir, rf); if (!isFile(RULE_FILE)) continue;
+    const rule = read(RULE_FILE).replace(/\n+$/, ''); const m = rule.match(/^\*\*([^*]*)\*\*/); const rname = m ? m[1] : '';
+    for (const s of ls(path.join(repo, 'skills'))) { const sf = path.join(repo, 'skills', s, 'SKILL.md'); if (!isFile(sf)) continue;
+      if (!read(sf).includes(rule)) finding('warning', `B17 missing ${rname} rule`, sf, `the canonical **${rname}** paragraph is absent or altered — copy it verbatim from scripts/${rf} next to this skill's **Language** rule (ADR 260824-134246)`);
+    }
   }
 }
 

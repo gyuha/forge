@@ -270,11 +270,16 @@ done
 # "forge"}` cannot trigger it and the node twin (same [ \t] bound) reaches the same verdict on
 # a manifest whose value sits on the next line.
 jname() { grep -oE '"name"[[:space:]]*:[[:space:]]*"[^"]*"' "$1" | sed -E 's/.*"([^"]*)"$/\1/' | head -1; }
-RULE_FILE="$SCRIPT_DIR/explaining-forge.rule.txt"
-if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ] && [ -f "$RULE_FILE" ]; then
-  rule="$(cat "$RULE_FILE")"
-  for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue
-    grep -qF -e "$rule" "$s" || finding warning "B17 missing Explaining forge rule" "$s" "the canonical **Explaining forge** paragraph is absent or altered — copy it verbatim from scripts/explaining-forge.rule.txt next to this skill's **Language** rule (ADR 260824-134246)"
+# Every scripts/*.rule.txt is one always-on rule (ADR 261025-005131 generalised this from the
+# single explaining-forge file); each is compared independently and the finding names the rule
+# from its leading **bold** label. A rule file MUST stay one line: grep -F treats a multi-line
+# pattern as an OR of its lines, which would split this twin's verdict from the node twin's.
+if [ -f "$PJ" ] && [ "$(jname "$PJ")" = "forge" ]; then
+  for RULE_FILE in "$SCRIPT_DIR"/*.rule.txt; do [ -f "$RULE_FILE" ] || continue
+    rule="$(cat "$RULE_FILE")"; rname="$(printf '%s' "$rule" | sed -n 's/^\*\*\([^*]*\)\*\*.*/\1/p')"
+    for s in "$repo"/skills/*/SKILL.md; do [ -f "$s" ] || continue
+      grep -qF -e "$rule" "$s" || finding warning "B17 missing $rname rule" "$s" "the canonical **$rname** paragraph is absent or altered — copy it verbatim from scripts/$(basename "$RULE_FILE") next to this skill's **Language** rule (ADR 260824-134246)"
+    done
   done
 fi
 

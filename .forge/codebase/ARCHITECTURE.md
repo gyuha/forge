@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
-mapped: 2026-10-24
+last_mapped_commit: 18f65aca4d0c378be314380cb816967ed59b5453
+mapped: 2026-10-25
 ---
 
 # ARCHITECTURE — forge
@@ -56,10 +56,10 @@ skills/fg-ask/SKILL.md
 ```
 
 - `skills/fg-ask/SKILL.md`는 대화를 통해 계획을 작성하고 `skills/fg-run/PLAN-FORMAT.md` 형식으로 backlog에 둔다.
-- `skills/fg-run/SKILL.md`는 계획을 활성 슬롯으로 승격한 뒤 `scripts/forge-plan-lint.sh`(bash 없으면 `.js`)로 구조를 검사하고(exit 1이면 실행하지 않음, exit 0의 `WARN`은 표시 후 진행, exit 2는 읽기 불가 정지), `core/EXECUTION.md`와 선택된 `hosts/<host>/execution.md`를 통해 실행한다. 무인 주행에서 린트 error는 `skills/fg-next/ALL-MODE.md`·`skills/fg-loop/SKILL.md`의 벽으로 처리된다.
+- `skills/fg-run/SKILL.md`는 계획을 활성 슬롯으로 승격한 뒤 `scripts/forge-plan-lint.sh`(bash 없으면 `.js`)로 구조를 검사하고(exit 1이면 실행하지 않음, exit 0의 `WARN`은 표시 후 진행, exit 2는 읽기 불가 정지), 린트는 slug·슬라이스·depends·마커 값 외에 fix-forward(`generated-by`)·`playbook: bug-fix` 계획의 `eval` 마커(E6/E7), `playbook: refactor` 계획의 `pin` 마커와 모든 슬라이스가 pin 슬라이스에 직·간접 의존하는 순서(E8/E9), 계획당 playbook 1개(E5)를 검사한다(형식 단일 정의는 `skills/fg-run/PLAN-FORMAT.md`의 Playbooks 절, ADR `.forge/adr/261025-005132-bug-fix-refactor-playbooks.md`). `core/EXECUTION.md`와 선택된 `hosts/<host>/execution.md`를 통해 실행한다. 무인 주행에서 린트 error는 `skills/fg-next/ALL-MODE.md`·`skills/fg-loop/SKILL.md`의 벽으로 처리된다.
 - 위임 시작과 결과 기록 사이에는 `<forge-root>/running.md`가 존재한다. 복구 절차는 `skills/fg-run/RECOVERY.md`가 소유한다.
 - 실행 결과와 계획 차이는 `<forge-root>/run.md`, 검증 및 회고 상태는 `<forge-root>/STATUS.md`에 기록된다.
-- `skills/fg-done/SKILL.md`는 봉인 전에 step 0(대상 작업의 follow-up 후보를 run/retro 끝의 표식 블록으로 정규화)과 step 0b(회고 판정 — `run.md`의 `⚠` 슬라이스 줄·`## Failed attempts`·`## Rulings`, STATUS `fix-rounds`, `review.md`의 `disposition: accepted`를 신호로 읽어 회고 로그 작성 또는 `--skip-retro` 결정)를 수행한 뒤 `scripts/forge-done.sh` 또는 `scripts/forge-done.js`를 호출한다. 스크립트는 검증 게이트(exit 3)·회고 게이트(exit 4 — 회고 파일 부재, 또는 신호가 있는데 `--skip-retro`를 받으면 `GATE_RETRO skip-refused signals=…`)·중복(exit 5)을 무변경으로 거부하고, 통과 시 `scripts/forge-followups.sh collect`로 후보를 원장에 모은 뒤 staging 복사→STATUS 마감→rename 게시→원본 제거 순으로 봉인한다(exit 6은 I/O 실패).
+- `skills/fg-done/SKILL.md`는 봉인 전에 step 0(대상 작업의 follow-up 후보를 run/retro 끝의 표식 블록으로 정규화)과 step 0b(회고 판정 — `run.md`의 `⚠` 슬라이스 줄·`## Failed attempts`·`## Rulings`, STATUS `fix-rounds`, `review.md`의 `disposition: accepted`를 신호로 읽어 회고 로그 작성 또는 `--skip-retro` 결정)를 수행한 뒤 `scripts/forge-done.sh` 또는 `scripts/forge-done.js`를 호출한다. 스크립트는 검증 게이트(exit 3)·회고 게이트(exit 4 — 회고 파일 부재, 또는 스크립트가 직접 읽는 신호(`run.md`의 `⚠` 슬라이스 줄·`## Failed attempts`·`## Rulings` 항목, STATUS `fix-rounds` ≥ 1)가 있는데 `--skip-retro`를 받으면 `GATE_RETRO skip-refused signals=…`; `review.md` 신호는 스킬만 판정)·중복(exit 5)을 무변경으로 거부하고, 통과 시 `scripts/forge-followups.sh collect`로 후보를 원장에 모은 뒤 staging 복사→STATUS 마감→rename 게시→원본 제거 순으로 봉인한다(exit 6은 I/O 실패).
 - 대화형 봉인만 승급 후보를 한 번 묻고, 무인 봉인은 회고 로그 첫 줄 `<!-- auto-retro: <seal path> -->`로 남긴다. `skills/fg-learn/SKILL.md`는 루프 단계가 아니라 이런 미검토·`retro: skipped` 작업과 `<!-- promotion-pending -->` 로그를 모아 승급하는 루프 밖 유틸리티다.
 
 `skills/fg-status/SKILL.md`는 `scripts/forge-status.sh` 또는 `scripts/forge-status.js`의 조사를 바탕으로 현재 상태를 표시하지만(작업 표의 단계 열은 `ask`/`run`/`done`이며 봉인된 작업은 `done ✔`; `--json` 출력 스키마는 `skills/fg-status/STATUS-JSON.md`, 그 안의 follow-up 집계는 `forge-followups.sh list`에서 온다) 다음 단계 판정은 스킬 본문에 둔다. `skills/fg-next/SKILL.md`는 그 판정을 참조해 다음 스킬을 호출한다. 공통 핸드오프 출력 형식은 `skills/fg-next/HANDOFF.md`에 한 번 정의되어 있다.
@@ -97,7 +97,7 @@ forge 상태 루트의 단일 규칙은 `skills/fg-run/FORGE-ROOT.md`에 있고,
 기계적 기능은 같은 basename의 Bash 기본 구현과 Node 대체 구현으로 쌍을 이룬다.
 
 - 상태 조사: `scripts/forge-status.sh`, `scripts/forge-status.js`
-- 상태 무결성 검사: `scripts/forge-doctor.sh`, `scripts/forge-doctor.js`
+- 상태 무결성 검사: `scripts/forge-doctor.sh`, `scripts/forge-doctor.js` (B17은 `scripts/*.rule.txt` 각각 — 현재 `scripts/explaining-forge.rule.txt`·`scripts/evidence-and-candor.rule.txt` — 의 한 줄 본문이 모든 `skills/*/SKILL.md`에 verbatim 포함됐는지 대조, ADR `.forge/adr/261025-005131-evidence-and-candor-always-on.md`)
 - 작업 봉인: `scripts/forge-done.sh`, `scripts/forge-done.js`
 - 계획 구조 린트: `scripts/forge-plan-lint.sh`, `scripts/forge-plan-lint.js` (exit 0 통과/1 error/2 읽기 불가)
 - follow-up 원장: `scripts/forge-followups.sh`, `scripts/forge-followups.js` (parity 테스트 대신 `scripts/forge-followups.test.js`)

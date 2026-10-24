@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
-mapped: 2026-10-24
+last_mapped_commit: 18f65aca4d0c378be314380cb816967ed59b5453
+mapped: 2026-10-25
 ---
 
 # INTEGRATIONS — 외부 연동

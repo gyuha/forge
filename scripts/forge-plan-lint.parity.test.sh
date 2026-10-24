@@ -22,11 +22,15 @@ printf '%s\n' '# no slug' '<!-- task: x -->' '<!-- tdd: maybe -->' '<!-- priorit
   '<!-- generated-by: fg-loop -->' '<!-- eval: none -->' '- [ ] S1. a — 완료 기준: b' '- [ ] S1. dup — 완료 기준: c (depends: S7)' > "$D/mixed.md"
 printf '%s\n' '<!-- forge-slug: b -->' '# t' '<!-- generated-by: fg-debug -->' '- [ ] S1. a — 완료 기준: b' > "$D/noeval.md"
 printf '%s\n' '<!-- forge-slug: c -->' '# t' '본문만' > "$D/noslice.md"
+printf '%s\n' '<!-- forge-slug: d -->' '<!-- task: 4 -->' '<!-- playbook: refactor -->' '<!-- pin: S1 -->' '# t' '- [ ] S1. 고정 — 완료 기준: y' '- [ ] S2. 이동 — 완료 기준: w (depends: S1)' '- [ ] S3. 정리 — 완료 기준: v' > "$D/pinorder.md"
+printf '%s\n' '<!-- forge-slug: e -->' '<!-- task: 5 -->' '<!-- playbook: bug-fix -->' '<!-- playbook: lint -->' '<!-- pin: none -->' '# t' '- [ ] S1. a — 완료 기준: b' > "$D/pbmixed.md"
 
 check "clean plan" "$D/clean.md"
 check "mixed findings" "$D/mixed.md"
 check "fix-forward without eval" "$D/noeval.md"
 check "no slices + missing task" "$D/noslice.md"
+check "refactor pin order" "$D/pinorder.md"
+check "playbook mixed findings" "$D/pbmixed.md"
 check "missing file" "$D/absent.md"
 check "no argument" ""
 

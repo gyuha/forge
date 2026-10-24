@@ -154,6 +154,8 @@ fg-ask ───▶ fg-run ───▶ fg-done
 
 **무엇을 어떻게 말하는지는 별개의 항상-on 규율이다.** 모든 스킬이 언어 규칙 옆에 `**Explaining forge**` 문단을 담는다 — forge 전문용어는 한 메시지 안 첫 등장에서 즉시 주석하고, 목적을 메커니즘보다 먼저 쓰고, 결론을 먼저 낸다. **`eco` 게이트와 무관하다** — 주석을 가장 필요로 하는 설치자가 바로 eco를 켜 봤을 리 없는 사람이기 때문이다 — 그리고 이 규율은 **어휘**를, `eco`의 간결 규칙은 **형태**를 지배하므로 간결함이 주석을 지우지 않는다. `fg-doctor` 검사가 각 스킬의 사본을 단일 canonical 정의에 대고 비교하므로, 규율이 어느 한 곳에서 조용히 어긋날 수 없다([ADR `260824-134246`](./.forge/adr/260824-134246-explaining-forge-always-on.md)).
 
+**무엇을 주장해도 되는지는 두 번째 항상-on 규율이다.** 모든 스킬이 그 옆에 `**Evidence and candor**` 문단을 담는다 — 코드·상태·결과에 대한 주장은 같은 문장에 근거를 담거나 **측정 / 추론 / 추측** 라벨을 달고, 싸게 확인할 수 있으면 라벨 대신 확인하며, 동의는 기본값이 아니다 — 에이전트는 진짜 판단을 먼저 말하고, 새 사실·논증으로만 입장을 바꾸며, 결정은 사용자에게 남긴다. 설명 규율과 달리 forge가 쓰는 문서(plan·run 기록·회고·ADR)에도 걸린다 — 사실처럼 적힌 추측은 다음 계획의 출발점이 되기 때문이다. 같은 `fg-doctor` 검사가 지킨다([ADR `261025-005131`](./.forge/adr/261025-005131-evidence-and-candor-always-on.md)).
+
 스킬 작성자는 특정 스킬의 출력을 검토할 때 선택적으로 [상황별 출력 예시](./skills/fg-next/OUTPUT-EXAMPLES.md)를 참고할 수 있다. 맥락 복원·절차 번호·정보를 빠뜨리지 않는 묶기를 보여준다. 일반 스킬 실행에는 예시 읽기를 요구하지 않으며, 기존 핸드오프와 출력 규칙을 따른다.
 
 루프와 문서 산출물의 관계를 그린 상세 흐름도는 [docs/state-contract.md](./docs/state-contract.md)에 있다.
@@ -265,6 +267,8 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 같은 `ECO.md`의 출력 prose 압축 규칙 — 코드/에러는 verbatim으로 두고 그릴링 질문·생성 문서는 full로 보존하되 실행·보고 prose를 간결화해 컨텍스트를 아낀다 — 은 [JuliusBrussee의 caveman 스킬](https://github.com/JuliusBrussee/caveman)에서 차용·각색했다.
 
 모든 `SKILL.md`가 담는 **항상-on `**Explaining forge**` 규율** — forge 전문용어를 첫 등장에서 주석하고, 목적을 메커니즘보다 먼저 쓰고, 결론을 먼저 낸다 — 은 [dreambigou의 eli5 스킬](https://github.com/dreambigou/eli5)(MIT)에서 **개념만** 각색했다. 코드 vendoring이 아니다 — 어휘 교정 규칙만 취하고 청중 표는 버렸으며(forge 출력의 독자는 한 명이다), 의도적으로 eco에 **넣지 않았다** — 주석을 가장 필요로 하는 설치자가 eco를 켜 봤을 리 없는 사람이기 때문이다. 이 규율은 **어휘**를, `ECO.md`의 간결 규칙은 **형태**를 지배하므로 간결함이 주석을 지우지 않는다(ADR `260824-134246`).
+
+**항상-on `**Evidence and candor**` 규율** — 모든 주장에 근거 또는 측정/추론/추측 라벨, 그리고 "동의가 기본값이 아니다" — 은 [Lauren Tan의 pstack](https://github.com/cursor/plugins/tree/main/pstack)(MIT) poteto-mode 스킬에서 **개념만** 각색했다. 코드 vendoring이 아니다 — forge가 "결정은 사용자의 것" 절을 더하고 적용면을 생성 문서까지 넓혔다(ADR `261025-005131`).
 
 상황별 출력 예시는 [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)(MIT)의 절차 번호·맥락 복원·목록 묶기 아이디어를 각색했다. forge 상황에 맞춘 예시이며, 원본 스킬을 vendoring하거나 출력 개선을 실측했다고 주장하는 것은 아니다.
 

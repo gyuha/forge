@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
-mapped: 2026-10-24
+last_mapped_commit: 18f65aca4d0c378be314380cb816967ed59b5453
+mapped: 2026-10-25
 ---
 
 # STRUCTURE — forge
@@ -153,7 +153,9 @@ Node 전용(Bash 트윈 없음) 파일은 다음과 같다.
 - `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js`
 - `scripts/forge-monitor-ui/` — `index.html`, `app.js`, `style.css`
 - Node 테스트 — `scripts/forge-monitor.test.js`, `scripts/forge-monitor-wiring.test.js`, `scripts/forge-monitor-ui.test.js`, `scripts/forge-status.json.test.js`, `scripts/forge-followups.test.js`
-- `scripts/pi-host.test.mjs` — 설치된 Pi SDK로 공통 스킬 로딩을 검증하는 ESM 테스트 모든 스킬의 설명 규칙을 검사하는 기준 텍스트는 `scripts/explaining-forge.rule.txt`다.
+- `scripts/pi-host.test.mjs` — 설치된 Pi SDK로 공통 스킬 로딩을 검증하는 ESM 테스트
+
+모든 스킬에 들어가야 하는 항상-on 규율의 기준 텍스트는 `scripts/*.rule.txt`(현재 `scripts/explaining-forge.rule.txt`·`scripts/evidence-and-candor.rule.txt`, 각 파일 한 줄)이며, `scripts/forge-doctor.*`의 B17이 이 글롭 전체를 대조한다.
 
 파일명 접미사는 역할을 구분한다.
 

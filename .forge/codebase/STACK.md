@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
-mapped: 2026-10-24
+last_mapped_commit: 18f65aca4d0c378be314380cb816967ed59b5453
+mapped: 2026-10-25
 ---
 
 # STACK — 기술 스택
@@ -19,6 +19,7 @@ mapped: 2026-10-24
 | 플러그인·호스트·상태 설정 | JSON | `.claude-plugin/*.json`, `.codex-plugin/plugin.json`, `hosts/*/capabilities.json`, `hooks/hooks.json`, `.forge/config.json` |
 | 결정론 로직의 기본 구현 | Bash | `scripts/*.sh` |
 | 결정론 로직의 교차 플랫폼 트윈 | Node.js CommonJS | `scripts/*.js` |
+| 항상-on 스킬 규율의 canonical 원문(한 줄 평문) | Plain text | `scripts/explaining-forge.rule.txt`, `scripts/evidence-and-candor.rule.txt` |
 | Node 전용 모니터 런타임·상태 조회 | Node.js CommonJS | `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js` |
 | Node 기반 테스트 | Node.js `node:test`(CommonJS), ESM | `scripts/*.test.js`, `scripts/pi-host.test.mjs` |
 | 독립 검증기와 로컬 서버 | Node.js CommonJS | `skills/fg-security/validate-findings.cjs`, `skills/fg-showme/scripts/server.cjs` |
@@ -33,6 +34,7 @@ mapped: 2026-10-24
 - 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 24개의 `SKILL.md`가 있다(`skills/fg-monitor/`, `skills/fg-rules/` 포함).
 - 결정론 작업은 Bash 구현과 Node.js 구현을 쌍으로 제공한다. `scripts/forge-status.sh`와 `scripts/forge-status.js`처럼 같은 basename의 트윈이 상태 조사, 봉인, 병합, 상태줄, 훅, 예산 계측, 계획 린트(`scripts/forge-plan-lint.*`), 후속 후보 원장(`scripts/forge-followups.*`)을 담당한다.
 - `scripts/`에는 Bash·Node 트윈 13쌍(`forge-doctor`, `forge-done`, `forge-followups`, `forge-hook-session-start`, `forge-hook-stop`, `forge-loop-spend`, `forge-merge`, `forge-plan-lint`, `forge-status`, `forge-statusline`, `forge-statusline-full`, `release-check`, `resolve-forge-root`)이 있고, `scripts/forge-statusline-wrapper.sh`는 Bash 전용이다. Node 구현은 외부 패키지 없이 `fs`, `path`, `os`, `crypto`, `child_process` 같은 내장 모듈을 사용한다.
+- `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`는 B17 검사에서 `scripts/*.rule.txt`를 전부 순회해 각 원문이 모든 `skills/*/SKILL.md`에 그대로 포함되는지 대조한다. Bash 쪽은 `grep -F`로 비교하므로 rule 파일은 한 줄이어야 트윈 판정이 일치한다.
 - 트윈이 없는 Node 전용 스크립트는 `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js` 셋이다. `scripts/forge-status.js`의 `--json` 출력은 Node 쪽에만 있고 `scripts/forge-status-query.js`의 조사 함수를 재사용한다.
 - `hooks/run-hook.cmd`는 Windows batch와 Unix shell을 한 파일에 담은 polyglot 디스패처다. Windows에서는 Git Bash를 먼저 찾고 Node.js로 폴백하며, Unix에서는 Bash 구현을 먼저 실행하고 Node.js로 폴백한다.
 - Git 저장소·브랜치 판정이 필요한 스크립트는 시스템 `git` 명령을 호출한다. 공통 루트 판정은 `scripts/resolve-forge-root.sh`와 `scripts/resolve-forge-root.js`가 제공한다.

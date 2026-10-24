@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
-mapped: 2026-10-24
+last_mapped_commit: 18f65aca4d0c378be314380cb816967ed59b5453
+mapped: 2026-10-25
 ---
 
 # CONCERNS — 기술부채·취약 영역
@@ -14,14 +14,16 @@ mapped: 2026-10-24
 - 위 결함의 절반은 기계화됐다. `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`의 신규 검사 **B21**이 `## N.` 절 안에 있는 `§N` 자기참조를 warning으로 보고하고, `scripts/forge-doctor.test.sh`에 정상·자기참조·`§NN` 접두 3개 케이스가 있다. 두 구현의 주석은 이것이 **설계상 부분 가드**라고 명시한다 — 대상 절이 더는 그 규칙을 담고 있지 않은 교차 절 참조는 의미 판정이라 검출되지 않으며, 그 절반은 `CLAUDE.md`의 두 단계 체크리스트(양방향 상호참조 열거 + 내용 실재 확인)가 담당한다.
 - B21의 적용 범위는 `skills/*/SKILL.md`이고 절 인식은 `^## N.` 형식에 의존한다. `INQUIRY.md`·`ALL-MODE.md`·`RECOVERY.md` 같은 동반 파일과 번호 없는 헤딩 구조의 문서는 대상이 아니다. 현재 저장소에서 `scripts/forge-doctor.sh`는 0 errors / 0 warnings로 종료한다.
 - `skills/fg-ask/SKILL.md`는 upstream 원문과 파일 하단의 Forge integration 절이 별도로 움직인다. 형식 계약도 `skills/fg-ask/CONTEXT-FORMAT.md`와 `skills/fg-ask/ADR-FORMAT.md`로 분리돼 있어 동시 검토가 필요하다.
-- 공통 핸드오프 형식은 `skills/fg-next/HANDOFF.md`에 있지만 이를 참조하는 스킬이 다수다. 공통 설명 규칙은 `scripts/explaining-forge.rule.txt`와 24개 `skills/*/SKILL.md`에 함께 존재한다.
+- 공통 핸드오프 형식은 `skills/fg-next/HANDOFF.md`에 있지만 이를 참조하는 스킬이 다수다. 항상-on 규칙은 `scripts/explaining-forge.rule.txt`·`scripts/evidence-and-candor.rule.txt`의 canonical 한 줄과 24개 `skills/*/SKILL.md`의 인라인 사본에 함께 존재하므로, 규칙 하나를 고치면 25곳을 함께 수정해야 한다.
 - `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`가 일부 산문 정합을 검사하지만 키워드·절 경계·개수 기반 검사다(B17 canonical 문단 포함, B20 capability 키 언급, B21 자기참조 포인터). 자연어 규칙 전체의 의미적 동등성은 검사하지 않는다.
+- B17은 이제 `scripts/*.rule.txt`를 전부 순회해 각 파일을 `grep -qF -e`(Node는 동등 포함 검사)로 대조한다. rule 파일이 여러 줄이 되면 Bash 쪽 `grep -F`가 줄별 OR로 읽어 두 트윈의 판정이 갈라지는데, 이 한 줄 제약은 `scripts/forge-doctor.sh`의 주석에만 있고 기계로 강제되지 않는다. 또한 B17이 보장하는 것은 문단 원문의 존재뿐이며, 그 규칙(예: 측정/추론/추측 라벨)이 실제 출력·문서에서 지켜지는지는 검출하지 않는다(ADR `261025-005131`).
 - B21의 Bash 구현은 `grep`과 셸 산술로 작성돼 있다. 주석에 기록된 이유는 macOS 기본 `awk`에 3인자 `match()`가 없어 awk 판이 결함이 있는 저장소에서도 0건을 보고했다는 것이다. 같은 종류의 플랫폼 차이는 다른 Bash 검사에도 잠재한다.
 
 ### 상태가 파일 묶음으로 분산된다
 
 - 작업 상태는 단일 데이터베이스나 트랜잭션 로그가 아니라 `.forge/plan.md`, `.forge/run.md`, `.forge/STATUS.md`, `.forge/running.md`, `.forge/loop.md`, `.forge/executed/`, `.forge/done/`에 분산된다.
 - 회고 판정이 별도 단계가 아니라 봉인에 흡수되면서(ADR `261024-191024`) `scripts/forge-done.sh`/`.js`의 GATE 2가 `--skip-retro`를 신호 존재 시 exit 4(`GATE_RETRO skip-refused`)로 거부한다. 신호는 `run.md`의 `⚠` 슬라이스 줄, `## Failed attempts`·`## Rulings` 절의 `- ` 항목, STATUS `fix-rounds` > 0 넷뿐이며 헤딩은 영문 정확 일치로만 찾는다. 따라서 fg-run이 이 두 헤딩을 사용자 언어로 번역해 쓰면 신호가 조용히 사라져 건너뛰기가 통과한다(fail-open). 스킬 계약이 말하는 `review.md`의 미수정 지적은 스크립트가 신호로 보지 않고 `reviewed:` 기록에만 쓰므로, 이 신호는 fg-done 스킬의 판단에만 의존한다. 근거는 `.forge/retro/261024-232853-review-fix-seal-gate.md`.
+- `scripts/forge-plan-lint.sh`/`.js`에 플레이북 검사(E5 playbook 값·계획당 1개, E6 bug-fix의 `eval` 의무, E8 refactor의 `pin` 마커, E9 모든 슬라이스의 pin 직·간접 의존)가 추가됐다. 검사는 마커와 `(depends: …)` 그래프의 구조뿐이라, pin 슬라이스가 실제로 동작을 고정하는 테스트를 더하는지, `none — <사유>`의 사유가 참인지는 판정하지 않는다. 슬라이스는 목록 항목이 하나라도 있으면 목록 항목만, 없을 때만 `#` 헤딩 형태를 센다는 규칙이 두 트윈에 각각 구현돼 있어 이 경계 변경 시 `scripts/forge-plan-lint.parity.test.sh`와 함께 고쳐야 한다.
 - 기계적 변경 중 위험도가 높은 봉인과 병합은 `scripts/forge-done.*`, `scripts/forge-merge.*`가 임시 디렉터리·롤백 경로를 사용한다. 반면 스킬이 직접 작성하는 plan, run, retro, ADR에는 저장소 전체를 감싸는 공통 트랜잭션 계층이 없다.
 - 실행 중복 방지는 활성 작업의 `.forge/running.md`, 무인 drive 연속성은 `.forge/drive.md`에 의존한다. 오래되거나 파싱할 수 없는 marker는 `scripts/forge-doctor.*`와 훅이 별도 규칙으로 판정한다.
 - `scripts/`, `hooks/`, `skills/fg-showme/scripts/`의 실행 코드에는 범용 `flock` 또는 lockfile 구현이 없다. 여러 세션이 같은 브랜치의 Forge 상태를 동시에 편집하면 파일 단위 marker가 다루지 않는 쓰기 경합은 직렬화되지 않는다.
@@ -94,7 +96,7 @@ mapped: 2026-10-24
 - `skills/fg-security/SKILL.md`는 vendored 파일을 byte-for-byte 유지하도록 요구하고 Forge 연결부만 별도 절에서 관리한다. upstream 갱신 시 로컬 연결 규칙과 원본 보존을 함께 확인해야 한다.
 - `skills/fg-showme/`는 upstream 형태를 유지하지만 branding, telemetry 제거, 테마, 세션 저장소, 인증, wake 동작을 로컬 수정했다. 단순 upstream 덮어쓰기로 갱신할 수 없다.
 - 플러그인 버전은 `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`의 두 위치, `.codex-plugin/plugin.json`에 걸쳐 4개 값이 동기돼야 한다. `scripts/release-check.*`와 `scripts/forge-doctor.*`가 이 드리프트를 검사한다.
-- 2026-10-24 시점의 워킹 트리에는 회고-봉인 흡수 작업의 미커밋 변경(스킬 본문, 상태·상태줄·세션 시작 훅 트윈과 테스트, README·docs 쌍, 모니터 UI)과 스테이징된 봉인·린트 수정, 새 회고·`.forge/followups.md`가 함께 있다. `CLAUDE.md`의 배포 규칙은 기능 커밋과 릴리스 커밋을 분리하도록 요구한다.
+- 회고-봉인 흡수 작업은 v0.9.7(`18f65ac`)로 릴리스됐다. 2026-10-25 시점의 워킹 트리에는 Evidence and candor 규칙(24개 `skills/*/SKILL.md`, `scripts/evidence-and-candor.rule.txt`, `scripts/forge-doctor.*` B17 일반화)과 플레이북(`skills/fg-run/PLAN-FORMAT.md`, `scripts/forge-plan-lint.*`) 작업이 일부 스테이징·일부 미스테이징 상태로 섞여 있고, 두 ADR(`261025-005131`·`261025-005132`)은 스테이징돼 있다. `CLAUDE.md`의 배포 규칙은 기능 커밋과 릴리스 커밋을 분리하도록 요구한다.
 - README와 문서 사이트가 각각 한국어·영어 사본을 유지하고(`docs/pi.md`·`docs/en/pi.md` 추가), Claude·Codex·opencode·Pi 지원표가 `hosts/*/capabilities.json`의 선언을 설명한다. capability 변경은 JSON, 호스트 어댑터, 두 언어 문서를 함께 수정해야 한다.
 
 ## fg-monitor 추가 (2026-10-20)

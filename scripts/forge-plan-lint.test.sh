@@ -61,6 +61,28 @@ run_lint "$P"; assert "E5ok-rc0" 0 "$RC"
 { good; printf '%s\n' '<!-- generated-by: fg-debug -->' '<!-- eval: none -->'; } > "$P"; run_lint "$P"; assert "E7none-rc1" 1 "$RC"; assert_grep "E7none-msg" "$OUT" "ERROR E7"
 # --- an eval marker mentioned mid-line (prose/backticks) is NOT a marker ------
 { good; printf '%s\n' '<!-- generated-by: fg-loop -->' '- 메모: 마커는 `<!-- eval: S2 -->` 형태다'; } > "$P"; run_lint "$P"; assert "midline-rc1" 1 "$RC"; assert_grep "midline-msg" "$OUT" "ERROR E6"
+# --- playbooks (PLAN-FORMAT.md "Playbooks", ADR 261025-005132) ----------------
+# A three-slice plan in the user's language; refactor fixtures vary only the depends.
+pb() { printf '%s\n' '<!-- forge-slug: pb -->' '<!-- task: 9 -->' "<!-- playbook: $1 -->" '# 플레이북' '' '## 작업 단위' \
+  '- [ ] S1. 동작 고정 — 완료 기준: 테스트 통과' "- [ ] S2. 구조 이동 — 완료 기준: 고정 green$2" "- [ ] S3. 정리 — 완료 기준: 고정 green$3"; }
+# bug-fix: same eval obligation as a generated-by fix-forward plan (the fg-ask entry)
+pb bug-fix '' '' > "$P"; run_lint "$P"; assert "PB-bugfix-noeval-rc1" 1 "$RC"; assert_grep "PB-bugfix-noeval-msg" "$OUT" "ERROR E6"
+{ pb bug-fix '' ''; printf '%s\n' '<!-- eval: none — 재현이 사람 손을 거쳐야만 일어난다 -->'; } > "$P"; run_lint "$P"; assert "PB-bugfix-none-rc0" 0 "$RC"
+{ pb bug-fix '' ''; printf '%s\n' '<!-- eval: S1 -->'; } > "$P"; run_lint "$P"; assert "PB-bugfix-eval-rc0" 0 "$RC"
+# refactor: a pin marker is required
+pb refactor ' (depends: S1)' ' (depends: S1)' > "$P"; run_lint "$P"; assert "PB-refactor-nopin-rc1" 1 "$RC"; assert_grep "PB-refactor-nopin-msg" "$OUT" "ERROR E8"
+{ pb refactor '' ''; printf '%s\n' '<!-- pin: none -->'; } > "$P"; run_lint "$P"; assert "PB-pin-none-noreason-rc1" 1 "$RC"; assert_grep "PB-pin-none-noreason-msg" "$OUT" "ERROR E8"
+{ pb refactor '' ''; printf '%s\n' '<!-- pin: none — 기존 스냅샷 테스트가 이미 동작 전체를 고정한다 -->'; } > "$P"; run_lint "$P"; assert "PB-pin-none-reason-rc0" 0 "$RC"
+{ pb refactor ' (depends: S1)' ' (depends: S1)'; printf '%s\n' '<!-- pin: S7 -->'; } > "$P"; run_lint "$P"; assert "PB-pin-missing-slice-rc1" 1 "$RC"; assert_grep "PB-pin-missing-slice-msg" "$OUT" "ERROR E8"
+{ pb refactor ' (depends: S1)' ' (depends: S1)'; printf '%s\n' '<!-- pin: S1, S2 -->'; } > "$P"; run_lint "$P"; assert "PB-pin-malformed-rc1" 1 "$RC"; assert_grep "PB-pin-malformed-msg" "$OUT" "ERROR E8"
+# refactor: every other slice must depend on the pin, directly or through another slice
+{ pb refactor ' (depends: S1)' ' (depends: S2)'; printf '%s\n' '<!-- pin: S1 -->'; } > "$P"; run_lint "$P"; assert "PB-pin-transitive-rc0" 0 "$RC"; assert_nogrep "PB-pin-transitive-msg" "$OUT" "ERROR"
+{ pb refactor ' (depends: S1)' ''; printf '%s\n' '<!-- pin: S1 -->'; } > "$P"; run_lint "$P"; assert "PB-pin-order-rc1" 1 "$RC"; assert_grep "PB-pin-order-msg" "$OUT" "ERROR E9 S3"
+# unknown playbook value, and more than one playbook marker -> E5
+pb feature '' '' > "$P"; run_lint "$P"; assert "PB-unknown-rc1" 1 "$RC"; assert_grep "PB-unknown-msg" "$OUT" "ERROR E5 playbook: feature"
+{ pb bug-fix '' ''; printf '%s\n' '<!-- eval: S1 -->' '<!-- playbook: refactor -->' '<!-- pin: S1 -->'; } > "$P"; run_lint "$P"; assert "PB-two-rc1" 1 "$RC"; assert_grep "PB-two-msg" "$OUT" "ERROR E5"
+# no playbook marker -> a pin marker alone imposes no order (only its value is checked)
+{ good; printf '%s\n' '<!-- pin: S1 -->'; } > "$P"; run_lint "$P"; assert "PB-pin-without-playbook-rc0" 0 "$RC"
 # --- W1 missing task marker -> warning only, exit 0 ---------------------------
 good | grep -v 'task:' > "$P"; run_lint "$P"; assert "W1-rc0" 0 "$RC"; assert_grep "W1-msg" "$OUT" "WARN W1"
 # --- slice variants used by real plans are recognised (no false E2) --------

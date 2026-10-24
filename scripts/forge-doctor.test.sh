@@ -152,6 +152,12 @@ run_doc "$t"; assert "B14-ar-distinct-rc0" 0 "$RC"; rm -rf "$t"
 # definition instead of hardcoding a 23rd copy. severity is warning (rc 1), per the rubric in
 # skills/fg-doctor/SKILL.md — a missing style paragraph is drift, not release breakage.
 RULE="$(cat "$(cd "$(dirname "$SCRIPT")" && pwd)/explaining-forge.rule.txt")"
+# Every always-on rule B17 compares (scripts/*.rule.txt). A SKILL.md meant to be CLEAN carries
+# all of them; RULE alone is kept for the fixtures that mutate the Explaining forge body.
+EVRULE="$(cat "$(cd "$(dirname "$SCRIPT")" && pwd)/evidence-and-candor.rule.txt")"
+RULES="$RULE
+
+$EVRULE"
 seed_forge_manifest() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; }
 seed_skill() { printf 'name: foo\ndescription: short core\n---\n**Language**: write in the user language.\n\n' > "$1/skills/foo/SKILL.md"; printf '%s\n' "$2" >> "$1/skills/foo/SKILL.md"; }
 # no rule at all -> warning
@@ -159,11 +165,13 @@ t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "(nothing here)"
 run_doc "$t"; assert "B17-missing-rc1" 1 "$RC"; assert_grep "B17-missing-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
 # canonical body present -> clean (the old fixture passed an abbreviated sentence; that is the
 # gap Codex flagged, so this one uses the real canonical text)
-t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE"
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULES"
 run_doc "$t"; assert "B17-canonical-rc0" 0 "$RC"; assert_nogrep "B17-canonical-msg" "$OUT" "B17 missing"; rm -rf "$t"
 # SUPERSET (canonical + an appended sentence, exactly what skills/fg-ask/SKILL.md carries)
 # -> clean. This is why containment needs no exception list.
-t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE **One extra normative sentence.**"
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE **One extra normative sentence.**
+
+$EVRULE"
 run_doc "$t"; assert "B17-superset-rc0" 0 "$RC"; assert_nogrep "B17-superset-msg" "$OUT" "B17 missing"; rm -rf "$t"
 # heading-only: marker kept, body gone -> warning (marker-substring check missed this)
 t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "**Explaining forge**: (body deleted)"
@@ -179,6 +187,19 @@ run_doc "$t"; assert "B17-altered-rc1" 1 "$RC"; assert_grep "B17-altered-msg" "$
 # have blinded B17 to its own documentation.
 t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "- **B17 missing Explaining forge rule** — a SKILL.md without the **Explaining forge** paragraph is a warning."
 run_doc "$t"; assert "B17-mention-only-rc1" 1 "$RC"; assert_grep "B17-mention-only-msg" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# second rule (ADR 261025-005131): B17 compares EVERY scripts/*.rule.txt independently, so a
+# SKILL.md carrying only Explaining forge warns for Evidence and candor -- and names that rule,
+# not the one that is present.
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE"
+run_doc "$t"; assert "B17-evidence-missing-rc1" 1 "$RC"; assert_grep "B17-evidence-missing-msg" "$OUT" "B17 missing Evidence and candor rule"; assert_nogrep "B17-evidence-missing-other" "$OUT" "B17 missing Explaining forge rule"; rm -rf "$t"
+# ...and the reverse: only Evidence and candor -> warns for Explaining forge only
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$EVRULE"
+run_doc "$t"; assert "B17-explaining-missing-rc1" 1 "$RC"; assert_grep "B17-explaining-missing-msg" "$OUT" "B17 missing Explaining forge rule"; assert_nogrep "B17-explaining-missing-other" "$OUT" "B17 missing Evidence and candor rule"; rm -rf "$t"
+# altered second rule: one clause negated -> warning
+t=$(mktmp); seed_forge_manifest "$t"; seed_skill "$t" "$RULE
+
+$(printf '%s' "$EVRULE" | sed 's/Agreement is not the default/Agreement is the default/')"
+run_doc "$t"; assert "B17-evidence-altered-rc1" 1 "$RC"; assert_grep "B17-evidence-altered-msg" "$OUT" "B17 missing Evidence and candor rule"; rm -rf "$t"
 # scope guard: not the forge plugin repo -> never flagged (fg-doctor is an AI-free CI gate, so
 # a false finding in a user project would break it)
 t=$(mktmp); mkdir -p "$t/.forge" "$t/.claude-plugin" "$t/skills/theirs"
@@ -204,7 +225,7 @@ seed_b18_base() {
 }
 write_b18_debug() { # <dir> <active-failure> <eval> <cleanup> <loop-inconclusive>
   {
-    printf '%s\n' '---' 'name: fg-debug' 'description: short core' '---' '**Language**: x' '' "$RULE" ''
+    printf '%s\n' '---' 'name: fg-debug' 'description: short core' '---' '**Language**: x' '' "$RULES" ''
     printf '%s\n' '## Route by invocation state before diagnosis size' "$2" '## Phase 1 artifacts' "$3" "$4" '## The boundary' "$5"
   } > "$1/skills/fg-debug/SKILL.md"
 }
@@ -252,7 +273,7 @@ t=$(mktmp); b19_seed "$t" "<button>no confirm</button>"; run_doc "$t"; assert "B
 b20_seed() { # $1=dir $2=skill-body-after-rule
   mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/core" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"
   cp "$(cd "$(dirname "$SCRIPT")" && pwd)/../core/HOST.md" "$1/core/HOST.md"
-  { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$RULE"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
+  { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$RULES"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
 t=$(mktmp); b20_seed "$t" '**Host contract**: needs `structured_choice`; falls back to a numbered list.'; run_doc "$t"; assert "B20-good-rc0" 0 "$RC"; assert_nogrep "B20-good-none" "$OUT" "B20 "; rm -rf "$t"
 t=$(mktmp); b20_seed "$t" 'Uses `spawn_parallel` for fan-out.'; run_doc "$t"; assert "B20-missing-rc1" 1 "$RC"; assert_grep "B20-missing-msg" "$OUT" "B20 host contract missing"; rm -rf "$t"
 t=$(mktmp); b20_seed "$t" '**Host contract**: this skill is host-neutral.'; run_doc "$t"; assert "B20-nokey-rc1" 1 "$RC"; assert_grep "B20-nokey-msg" "$OUT" "B20 host contract names no capability"; rm -rf "$t"
@@ -269,7 +290,7 @@ t=$(mktmp); b20_seed "$t" '**Host adapter**: needs `structured_choice`.'; run_do
 # so "0 findings on the real repo" was indistinguishable from "detector is dead".
 b21_seed() { # $1=dir $2=body-after-rule
   mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"
-  { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$RULE"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
+  { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$RULES"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
 t=$(mktmp); b21_seed "$t" '## 1. One
 
 Cross-section citation to §2 is fine.

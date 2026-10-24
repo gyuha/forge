@@ -61,6 +61,10 @@ seed_b17_scoped_out() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/thei
 # a nested name (nested). The canonical-altered one guards the body comparison itself. Both
 # twins must now reach the same verdict on each.
 B17_RULE="$(cat "$HERE/explaining-forge.rule.txt")"
+B17_RULES="$B17_RULE
+
+$(cat "$HERE/evidence-and-candor.rule.txt")"
+seed_b17_evidence_missing() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n' "$B17_RULE"; } > "$1/skills/foo/SKILL.md"; }  # B17 second rule missing
 seed_b17_multiline_name() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{\n  "name":\n    "forge"\n}\n' > "$1/.claude-plugin/plugin.json"; printf 'name: foo\ndescription: short core\n---\n**Language**: x\n' > "$1/skills/foo/SKILL.md"; }  # B17 scope: value on the next line
 seed_b17_nested_name() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"my-plugin","author":{"name":"forge"}}\n' > "$1/.claude-plugin/plugin.json"; printf 'name: foo\ndescription: short core\n---\n**Language**: x\n' > "$1/skills/foo/SKILL.md"; }  # B17 scope: nested name must not trigger
 seed_b17_canonical_altered() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n' "$B17_RULE" | sed 's/A gloss is not filler/A gloss IS filler/'; } > "$1/skills/foo/SKILL.md"; }  # B17 canonical body altered
@@ -74,7 +78,7 @@ seed_b18_base() {
   printf '# forge\n\n**핸드오프 표 (handoff table)**:\n적용 지점은 다음 단계가 있는 2곳이다.\n\n**다음 용어**:\n끝.\n' > "$1/.forge/CONTEXT.md"
 }
 write_b18_debug() {
-  { printf '%s\n' '---' 'name: fg-debug' 'description: short core' '---' '**Language**: x' '' "$B17_RULE" ''; printf '%s\n' '## Route by invocation state before diagnosis size' "$2" '## Phase 1 artifacts' "$3" "$4" '## The boundary' "$5"; } > "$1/skills/fg-debug/SKILL.md"
+  { printf '%s\n' '---' 'name: fg-debug' 'description: short core' '---' '**Language**: x' '' "$B17_RULES" ''; printf '%s\n' '## Route by invocation state before diagnosis size' "$2" '## Phase 1 artifacts' "$3" "$4" '## The boundary' "$5"; } > "$1/skills/fg-debug/SKILL.md"
 }
 seed_b18_good() { seed_b18_base "$1"; write_b18_debug "$1" 'For `verified: failed`, return to fg-run fix-and-re-run.' 'Classify persistent checks separately from one-off curl, trace, HITL, and throwaway commands. See PLAN-FORMAT.' 'Delete raw captures and temporary instrumentation on every exit path.' 'A feedback loop may exist while the root cause remains unconfirmed.'; }
 seed_b18_handoff_bad() { seed_b18_good "$1"; sed 's/Applies (2)/Applies (3)/' "$1/skills/fg-next/HANDOFF.md" > "$1/H"; mv "$1/H" "$1/skills/fg-next/HANDOFF.md"; }
@@ -97,7 +101,7 @@ seed_b19_missing()  { seed_b19_base "$1" "<button>no confirm</button>"; }
 
 # B20 coherence fixtures: real core/HOST.md is copied for the vocabulary; the seeded skill carries
 # the canonical Explaining-forge body so only B20 can fire. Both twins must agree on each shape.
-seed_b20_base() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/core" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; cp "$HERE/../core/HOST.md" "$1/core/HOST.md"; { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$B17_RULE"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
+seed_b20_base() { mkdir -p "$1/.forge" "$1/.claude-plugin" "$1/core" "$1/skills/foo"; printf '{"name":"forge"}\n' > "$1/.claude-plugin/plugin.json"; cp "$HERE/../core/HOST.md" "$1/core/HOST.md"; { printf 'name: foo\ndescription: short core\n---\n**Language**: x\n\n'; printf '%s\n\n' "$B17_RULES"; printf '%s\n' "$2"; } > "$1/skills/foo/SKILL.md"; }
 seed_b20_good()    { seed_b20_base "$1" '**Host contract**: needs `structured_choice`; falls back to a numbered list.'; }
 seed_b20_missing() { seed_b20_base "$1" 'Uses `spawn_parallel` for fan-out.'; }
 seed_b20_nokey()   { seed_b20_base "$1" '**Host contract**: this skill is host-neutral.'; }
@@ -125,6 +129,7 @@ check "A10 stale running.md"    seed_a10_stale
 check "A10 started leading zero" seed_a10_leading_zero
 check "A10 started out of range" seed_a10_huge
 check "B17 rule missing"       seed_b17_missing
+check "B17 second rule missing" seed_b17_evidence_missing
 check "B17 scope guard"        seed_b17_scoped_out
 check "B17 multiline name"     seed_b17_multiline_name
 check "B17 nested name"        seed_b17_nested_name

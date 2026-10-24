@@ -24,9 +24,13 @@
 #   E2 no slice line (`- [ ] S<n>.` and the variants listed at slice_re)
 #   E3 duplicate slice id
 #   E4 `(depends: ...)` names a slice that does not exist
-#   E5 malformed marker value (task / tdd / priority / part)
-#   E6 fix-forward plan (`generated-by`) without an `eval` marker
+#   E5 malformed marker value (task / tdd / priority / part / playbook), or more than one playbook
+#   E6 fix-forward plan (`generated-by`) or bug-fix playbook without an `eval` marker
 #   E7 `eval` marker names a missing slice, or `none` without a reason, or is malformed
+#   E8 refactor playbook without a `pin` marker, or a `pin` naming a missing slice /
+#      `none` without a reason / malformed (PLAN-FORMAT.md "Playbooks")
+#   E9 refactor playbook: a slice that does not depend on the pin slice, directly or
+#      through another slice (the behavior is pinned before any structure moves)
 #   W1 no `task` marker (tolerated for plans written before task numbering)
 #
 # Twin: forge-plan-lint.js (identical output and exit code; scripts/forge-plan-lint.parity.test.sh).
@@ -60,7 +64,7 @@ fi
 
 # Collect slices, depends, markers in one pass (file order).
 slices=" "; slice_order=(); deps=(); list_items=(); head_items=()
-has_task=0; generated=0; evals=()
+has_task=0; generated=0; evals=(); playbook=""; pbs=0; pins=()
 for l in "${lines[@]+"${lines[@]}"}"; do
   if [[ "$l" =~ $slice_re ]]; then
     id="${BASH_REMATCH[4]}"; dep=""
@@ -83,9 +87,20 @@ for l in "${lines[@]+"${lines[@]}"}"; do
         else err E5 "part: $val"; fi ;;
       generated-by) generated=1 ;;
       eval) evals+=("$val") ;;
+      playbook) pbs=$((pbs+1)); case "$val" in bug-fix|refactor) playbook="$val" ;; *) err E5 "playbook: $val" ;; esac ;;
+      pin) pins+=("$val") ;;
     esac
   fi
 done
+[ "$pbs" -gt 1 ] && err E5 "playbook: one per plan ($pbs markers)"
+
+# `none — <reason>`: true when text follows `none` past one separator (— / - / :).
+none_reason() {
+  local r="${1#none}"; r="${r#"${r%%[![:space:]]*}"}"
+  case "$r" in —*) r="${r#—}" ;; -*) r="${r#-}" ;; :*) r="${r#:}" ;; esac
+  r="${r#"${r%%[![:space:]]*}"}"
+  [ -n "$r" ]
+}
 
 # Slices = list items; heading-form slices count only when there are no list items.
 if [ "${#list_items[@]}" -gt 0 ]; then chosen=("${list_items[@]}"); else chosen=("${head_items[@]+"${head_items[@]}"}"); fi
@@ -108,11 +123,7 @@ done
 # E6/E7 — fix-forward eval marker (PLAN-FORMAT.md fix-forward eval rule)
 for v in "${evals[@]+"${evals[@]}"}"; do
   if [[ "$v" =~ ^none ]]; then
-    # reason = text after `none`, minus one separator (— / - / :) and surrounding spaces
-    r="${v#none}"; r="${r#"${r%%[![:space:]]*}"}"
-    case "$r" in —*) r="${r#—}" ;; -*) r="${r#-}" ;; :*) r="${r#:}" ;; esac
-    r="${r#"${r%%[![:space:]]*}"}"
-    [ -n "$r" ] || err E7 "eval: none needs a reason"
+    none_reason "$v" || err E7 "eval: none needs a reason"
   elif [[ "$v" =~ ^S[0-9]+([[:space:]]*,[[:space:]]*S[0-9]+)*$ ]]; then
     for ref in $(printf '%s' "$v" | grep -oE 'S[0-9]+'); do
       case "$slices" in *" $ref "*) ;; *) err E7 "eval: $ref is not a slice" ;; esac
@@ -121,8 +132,40 @@ for v in "${evals[@]+"${evals[@]}"}"; do
     err E7 "eval: $v"
   fi
 done
-if [ "$generated" -eq 1 ] && [ "${#evals[@]}" -eq 0 ]; then
-  err E6 "fix-forward plan (generated-by) needs <!-- eval: S<n> --> or <!-- eval: none — <reason> -->"
+if { [ "$generated" -eq 1 ] || [ "$playbook" = bug-fix ]; } && [ "${#evals[@]}" -eq 0 ]; then
+  err E6 "fix-forward plan (generated-by) or bug-fix playbook needs <!-- eval: S<n> --> or <!-- eval: none — <reason> -->"
+fi
+
+# E8/E9 — playbooks (PLAN-FORMAT.md "Playbooks"): pin values are checked wherever they
+# appear; the requirement and the order constraint bind only a refactor playbook.
+pin_ok=""
+for v in "${pins[@]+"${pins[@]}"}"; do
+  if [[ "$v" =~ ^none ]]; then
+    none_reason "$v" || err E8 "pin: none needs a reason"
+  elif [[ "$v" =~ ^S[0-9]+$ ]]; then
+    case "$slices" in *" $v "*) pin_ok="$v" ;; *) err E8 "pin: $v is not a slice" ;; esac
+  else
+    err E8 "pin: $v"
+  fi
+done
+if [ "$playbook" = refactor ]; then
+  if [ "${#pins[@]}" -eq 0 ]; then
+    err E8 "refactor playbook needs <!-- pin: S<n> --> or <!-- pin: none — <reason> -->"
+  elif [ "${#pins[@]}" -eq 1 ] && [ -n "$pin_ok" ]; then
+    reached=" $pin_ok "; changed=1
+    while [ "$changed" -eq 1 ]; do
+      changed=0
+      for d in "${deps[@]+"${deps[@]}"}"; do
+        from="${d%%|*}"; case "$reached" in *" $from "*) continue ;; esac
+        for ref in $(printf '%s' "${d#*|}" | grep -oE 'S[0-9]+'); do
+          case "$reached" in *" $ref "*) reached="$reached$from "; changed=1; break ;; esac
+        done
+      done
+    done
+    for id in "${slice_order[@]}"; do
+      case "$reached" in *" $id "*) ;; *) err E9 "$id does not depend on pin $pin_ok" ;; esac
+    done
+  fi
 fi
 
 [ "$has_task" -eq 0 ] && warn W1 "no <!-- task: N --> marker"
