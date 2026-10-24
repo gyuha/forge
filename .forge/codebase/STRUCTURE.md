@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 6146cae539151b65850e1e2609bdf8f7e78a1e47
-mapped: 2026-09-11
+last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
+mapped: 2026-10-24
 ---
 
 # STRUCTURE — forge
@@ -11,9 +11,10 @@ mapped: 2026-09-11
 forge/
 ├── .claude-plugin/       Claude Code 플러그인·마켓플레이스 매니페스트
 ├── .codex-plugin/        Codex 플러그인 매니페스트
-├── .claude/              프로젝트 에이전트 카드와 로컬 Claude 설정
+├── .claude/              프로젝트 에이전트 카드·로컬 스킬과 로컬 Claude 설정
+├── .codex/skills/        `.claude/skills/` 로컬 스킬을 가리키는 Codex용 심볼릭 링크
 ├── .forge/               forge 상태, 결정 기록, 회고, 코드베이스 지도
-├── .github/workflows/    문서 배포 및 릴리스 검사 CI
+├── .github/workflows/    문서 배포·릴리스 검사·모니터 검사 CI
 ├── core/                 호스트 중립 계약
 ├── hosts/                호스트별 interaction/execution/capability 어댑터
 ├── skills/               공유 fg-* 스킬 트리
@@ -59,7 +60,11 @@ hosts/
 │   ├── capabilities.json
 │   ├── execution.md
 │   └── interaction.md
-└── opencode/
+├── opencode/
+│   ├── capabilities.json
+│   ├── execution.md
+│   └── interaction.md
+└── pi/
     ├── capabilities.json
     ├── execution.md
     └── interaction.md
@@ -69,19 +74,20 @@ hosts/
 
 ## 스킬 트리
 
-직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 23개다.
+직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 24개다. 루프 단계는 `fg-ask`→`fg-run`→`fg-done` 셋이고 `fg-learn`은 루프 밖 일괄 승급 유틸리티다.
 
 ```text
 skills/
 ├── fg-ask/                 계획 질의; ADR/CONTEXT 형식 포함
 ├── fg-run/                 실행; 계획 형식·루트·복구·배치 계약 포함
-├── fg-learn/               회고; 회고 형식 포함
-├── fg-done/                완료 봉인
+├── fg-done/                완료 봉인; 회고 판정(step 0b) 포함
+├── fg-learn/               미뤄 둔 학습 일괄 승급; 회고·follow-up 형식 포함
 ├── fg-next/                다음 단계 실행; 핸드오프·자동 주행 계약 포함
 ├── fg-loop/                목표 주행; 신규 질의와 재개 시나리오 fixture 포함
 ├── fg-rules/               규칙 후보 검토·채택·일반 작업 연결
 ├── fg-map/                 `.forge/codebase/` 지도 생성
-├── fg-status/              현재 상태 보고
+├── fg-status/              현재 상태 보고; `--json` 스키마 포함
+├── fg-monitor/             세션 읽기 전용 Node 대시보드
 ├── fg-doctor/              상태·문서 무결성 검사
 ├── fg-config/              전역 설정; eco 규율 포함
 ├── fg-quick/               경량 작업 경로
@@ -102,9 +108,11 @@ skills/
 
 - `skills/fg-ask/ADR-FORMAT.md`, `skills/fg-ask/CONTEXT-FORMAT.md`
 - `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-run/RECOVERY.md`, `skills/fg-run/RUN-ALL.md`
-- `skills/fg-next/HANDOFF.md`, `skills/fg-next/DRIVE.md`, `skills/fg-next/ALL-MODE.md`
+- `skills/fg-next/HANDOFF.md`, `skills/fg-next/DRIVE.md`, `skills/fg-next/ALL-MODE.md`, `skills/fg-next/OUTPUT-EXAMPLES.md`(스킬 작성자용 출력 예시)
 - `skills/fg-loop/INQUIRY.md`(신규 목표 계약 확정 전용 — `loop.md`가 없을 때만 읽음), `skills/fg-loop/tests/resume-scenarios.md`
-- `skills/fg-learn/RETRO-FORMAT.md`
+- `skills/fg-learn/RETRO-FORMAT.md`, `skills/fg-learn/FOLLOWUPS-FORMAT.md`
+- `skills/fg-status/STATUS-JSON.md`
+- `skills/fg-rules/CONNECTIONS.md`
 - `skills/fg-config/ECO.md`
 - `skills/fg-debug/DIAGNOSE.md`, `skills/fg-debug/scripts/hitl-loop.template.sh`
 - `skills/fg-security/AUDIT.md`, `skills/fg-security/ATTACK-CLASSES.md`, `skills/fg-security/report-schema.json`, `skills/fg-security/validate-findings.cjs`
@@ -131,13 +139,21 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 - `scripts/forge-hook-stop.*`
 - `scripts/forge-loop-spend.*`
 - `scripts/forge-merge.*`
+- `scripts/forge-plan-lint.*`
 - `scripts/forge-status.*`
 - `scripts/forge-statusline.*`
 - `scripts/forge-statusline-full.*`
 - `scripts/release-check.*`
 - `scripts/resolve-forge-root.*`
 
-추가 Bash 보조는 `scripts/forge-statusline-wrapper.sh`이며 자체 검사 `scripts/forge-statusline-wrapper.test.sh`가 있다. 모든 스킬의 설명 규칙을 검사하는 기준 텍스트는 `scripts/explaining-forge.rule.txt`다.
+`scripts/forge-followups.sh`/`.js`도 트윈이지만 검사는 `.test.sh`/`.parity.test.sh` 대신 Node 테스트 `scripts/forge-followups.test.js` 하나다. 추가 Bash 보조는 `scripts/forge-statusline-wrapper.sh`이며 자체 검사 `scripts/forge-statusline-wrapper.test.sh`가 있다.
+
+Node 전용(Bash 트윈 없음) 파일은 다음과 같다.
+
+- `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js`
+- `scripts/forge-monitor-ui/` — `index.html`, `app.js`, `style.css`
+- Node 테스트 — `scripts/forge-monitor.test.js`, `scripts/forge-monitor-wiring.test.js`, `scripts/forge-monitor-ui.test.js`, `scripts/forge-status.json.test.js`, `scripts/forge-followups.test.js`
+- `scripts/pi-host.test.mjs` — 설치된 Pi SDK로 공통 스킬 로딩을 검증하는 ESM 테스트 모든 스킬의 설명 규칙을 검사하는 기준 텍스트는 `scripts/explaining-forge.rule.txt`다.
 
 파일명 접미사는 역할을 구분한다.
 
@@ -145,10 +161,11 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 - `.js` — Node 대체 구현; CommonJS 사용
 - `.test.sh` — fixture 기반 동작 검사
 - `.parity.test.sh` — Bash와 Node 결과 비교
+- `.test.js` — `node --test` 기반 Node 검사
 
 ## 훅
 
-`hooks/hooks.json`은 `SessionStart`와 `Stop`을 선언하고 둘 다 `hooks/run-hook.cmd`를 호출한다. `hooks/run-hook.cmd`는 이벤트 이름에 따라 `scripts/forge-hook-<event>.sh` 또는 `.js`를 실행한다.
+`hooks/hooks.json`은 `SessionStart`와 `Stop`에서 `hooks/run-hook.cmd`를 호출한다. `hooks/run-hook.cmd`는 이벤트 이름에 따라 `scripts/forge-hook-<event>.sh` 또는 `.js`를 실행한다. 같은 파일은 이 두 이벤트와 `SessionEnd`·`UserPromptSubmit`·`SubagentStart`·`SubagentStop`·`PreToolUse`·`PostToolUse`·`PostToolUseFailure`·`PermissionRequest`·`Notification`에 `node scripts/forge-hook-monitor.js` 관측 핸들러를 추가로 선언한다.
 
 훅 전용 검사는 다음 위치에 있다.
 
@@ -172,12 +189,13 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 ├── adr/                    활성 결정 기록
 │   └── retired/            은퇴한 결정 기록
 ├── retro/                  회고 기록
+├── followups.md            follow-up 후보 원장 (브랜치별, 추적)
 ├── backlog/                실행 전 계획
 ├── plan.md                 활성 계획
 ├── running.md              위임 시작 후 결과 수집 전 표식
 ├── run.md                  실행 결과
 ├── STATUS.md               활성 작업 상태
-├── executed/<slug>/        실행 후 회고 대기 작업
+├── executed/<slug>/        실행 후 봉인 대기 작업
 ├── done/<timestamp-slug>/  완료된 plan/run/STATUS 묶음
 ├── dropped/                보관 방식으로 버린 상태
 ├── quick/LOG.md            경량 작업 기록
@@ -187,10 +205,11 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 ├── drive.md                Stop 훅용 일시 표식
 ├── review.md               선택적 적대 검토 결과
 ├── branch/<branch>/        비기본 브랜치의 forge 루트
-└── showme/<session>/       시각 동반 세션 파일
+├── showme/<session>/       시각 동반 세션 파일
+└── monitor/                모니터 런타임 (active/ 소유권·키, records/ 요약; 자체 ignore)
 ```
 
-이 중 `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 모든 브랜치가 공유한다. `.forge/showme/`는 시각 기능의 전역 휘발 저장소다. 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
+이 중 `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 모든 브랜치가 공유한다. `.forge/showme/`와 `.forge/monitor/`는 전역 휘발 저장소다. 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
 
 계획 파일은 첫 줄에 `<!-- forge-slug: <slug> -->` 표식을 사용하고 `<!-- task: N -->`, `<!-- priority: high|medium|low -->`, 필요 시 `<!-- part: N/M -->` 같은 HTML 주석 메타데이터를 둔다. 완료 디렉터리는 `YYMMDD-HHMMSS-<slug>` 형태이며 같은 초·slug 충돌 때 문자 접미사가 붙는다. 신규 ADR은 `YYMMDD-HHMMSS` 기반 ID를 사용하고 같은 초 충돌 때 문자 접미사를 붙는다. 기존의 4자리 ADR 파일도 `.forge/adr/`에 함께 남아 있다.
 
@@ -209,7 +228,7 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 문서 소스는 `docs/`에 있다.
 
 - `docs/index.html` — 수기 작성 이중언어 랜딩 페이지
-- `docs/*.md` — 한국어 VitePress 페이지
+- `docs/*.md` — 한국어 VitePress 페이지 (호스트 안내 `docs/codex.md`·`docs/opencode.md`·`docs/pi.md` 포함)
 - `docs/en/*.md` — 영어 VitePress 페이지
 - `docs/.vitepress/config.mts` — 사이트 base, locale, nav, sidebar, Mermaid 설정과 sitemap·소셜 메타(`transformHead`) 구성
 - `docs/public/icon.png`, `docs/public/og-image.png` — VitePress public 자산(사이트 루트로 방출)
@@ -222,6 +241,7 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 
 - `.github/workflows/docs.yml` — `docs/**`, `package.json`, `package-lock.json` 변경 시 VitePress를 빌드하고 Pages artifact를 조립
 - `.github/workflows/release-check.yml` — 매니페스트, `core/`, `hosts/`, `hooks/`, 릴리스 검사 파일, 호스트 문서 변경 시 릴리스 계약 검사
+- `.github/workflows/monitor-check.yml` — 모니터·상태 스크립트, `hooks/**`, `skills/fg-monitor/**`, `skills/fg-config/**` 변경 시 macOS·Linux·Windows에서 모니터 Node 테스트 실행
 - `package.json`의 `docs:dev`, `docs:build`, `docs:preview` — 문서 사이트 로컬 명령
 - `package.json`의 `release:check` — `node scripts/release-check.js` 실행
 
@@ -242,6 +262,6 @@ Bash/Node 트윈을 가진 기능은 다음 basename으로 묶인다.
 
 기본 브랜치 `.forge/`의 휘발 상태도 기본적으로 제외하며, 영속 경로만 whitelist로 다시 추적한다. `.forge/branch/`는 전체가 추적 대상이다.
 
-## fg-monitor 추가 (2026-10-20)
+## fg-monitor 배치
 
-`skills/fg-monitor/SKILL.md`, `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js`, `scripts/forge-monitor-ui/`가 추가됐다. `.forge/monitor/active/`는 소유권/키, `records/`는 최소 요약이며 자체-ignore 전역 예외다.
+`skills/fg-monitor/SKILL.md`가 진입점이고 런타임은 위 Node 전용 파일들이다. `.forge/monitor/active/`는 소유권/키, `records/`는 최소 요약이며 자체-ignore 전역 예외다.

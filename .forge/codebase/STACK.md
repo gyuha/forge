@@ -1,14 +1,14 @@
 ---
-last_mapped_commit: 6146cae539151b65850e1e2609bdf8f7e78a1e47
-mapped: 2026-09-11
+last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
+mapped: 2026-10-24
 ---
 
 # STACK — 기술 스택
 
 ## 저장소 성격
 
-- forge 본체는 Claude Code, Codex, opencode가 공유하는 에이전트 워크플로 플러그인이다. 실행 규칙은 `skills/`, 호스트 중립 계약은 `core/`, 호스트별 어댑터는 `hosts/`에 있다.
-- 주 산출물은 Markdown과 JSON이다. 스킬은 `skills/<name>/SKILL.md`, Claude 플러그인 메타데이터는 `.claude-plugin/plugin.json`과 `.claude-plugin/marketplace.json`, Codex 메타데이터는 `.codex-plugin/plugin.json`에 있다.
+- forge 본체는 Claude Code, Codex, opencode, Pi가 공유하는 에이전트 워크플로 플러그인이다. 실행 규칙은 `skills/`, 호스트 중립 계약은 `core/`, 호스트별 어댑터는 `hosts/`에 있다.
+- 주 산출물은 Markdown과 JSON이다. 스킬은 `skills/<name>/SKILL.md`, Claude 플러그인 메타데이터는 `.claude-plugin/plugin.json`과 `.claude-plugin/marketplace.json`, Codex 메타데이터는 `.codex-plugin/plugin.json`에 있다. Pi는 별도 매니페스트 없이 같은 `skills/` 디렉터리를 패키지로 탐색한다.
 - 플러그인 본체를 컴파일하거나 번들링하는 단계는 없다. 루트 `package.json`은 `docs/`의 VitePress 사이트와 릴리스 검사 명령만 제공한다.
 
 ## 언어와 파일 형식
@@ -19,18 +19,21 @@ mapped: 2026-09-11
 | 플러그인·호스트·상태 설정 | JSON | `.claude-plugin/*.json`, `.codex-plugin/plugin.json`, `hosts/*/capabilities.json`, `hooks/hooks.json`, `.forge/config.json` |
 | 결정론 로직의 기본 구현 | Bash | `scripts/*.sh` |
 | 결정론 로직의 교차 플랫폼 트윈 | Node.js CommonJS | `scripts/*.js` |
+| Node 전용 모니터 런타임·상태 조회 | Node.js CommonJS | `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js` |
+| Node 기반 테스트 | Node.js `node:test`(CommonJS), ESM | `scripts/*.test.js`, `scripts/pi-host.test.mjs` |
 | 독립 검증기와 로컬 서버 | Node.js CommonJS | `skills/fg-security/validate-findings.cjs`, `skills/fg-showme/scripts/server.cjs` |
-| 브라우저 클라이언트·랜딩 | HTML, CSS, 브라우저 JavaScript | `docs/index.html`, `skills/fg-showme/scripts/frame-template.html`, `skills/fg-showme/scripts/helper.js` |
+| 브라우저 클라이언트·랜딩 | HTML, CSS, 브라우저 JavaScript | `docs/index.html`, `skills/fg-showme/scripts/frame-template.html`, `skills/fg-showme/scripts/helper.js`, `scripts/forge-monitor-ui/{index.html,app.js,style.css}` |
 | 문서 사이트 설정 | TypeScript ESM | `docs/.vitepress/config.mts` |
-| 자동화 | GitHub Actions YAML | `.github/workflows/docs.yml`, `.github/workflows/release-check.yml` |
+| 자동화 | GitHub Actions YAML | `.github/workflows/docs.yml`, `.github/workflows/release-check.yml`, `.github/workflows/monitor-check.yml` |
 
 ## 런타임
 
 ### 플러그인 실행
 
-- 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 23개의 `SKILL.md`가 있다.
-- 결정론 작업은 Bash 구현과 Node.js 구현을 쌍으로 제공한다. `scripts/forge-status.sh`와 `scripts/forge-status.js`처럼 같은 basename의 트윈이 상태 조사, 봉인, 병합, 상태줄, 훅, 예산 계측을 담당한다.
-- `scripts/`에는 11개의 Node.js 실행 파일과 그에 대응하는 11개의 Bash 구현이 있다. Node 구현은 외부 패키지 없이 `fs`, `path`, `os`, `child_process` 같은 내장 모듈을 사용한다.
+- 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 24개의 `SKILL.md`가 있다(`skills/fg-monitor/`, `skills/fg-rules/` 포함).
+- 결정론 작업은 Bash 구현과 Node.js 구현을 쌍으로 제공한다. `scripts/forge-status.sh`와 `scripts/forge-status.js`처럼 같은 basename의 트윈이 상태 조사, 봉인, 병합, 상태줄, 훅, 예산 계측, 계획 린트(`scripts/forge-plan-lint.*`), 후속 후보 원장(`scripts/forge-followups.*`)을 담당한다.
+- `scripts/`에는 Bash·Node 트윈 13쌍(`forge-doctor`, `forge-done`, `forge-followups`, `forge-hook-session-start`, `forge-hook-stop`, `forge-loop-spend`, `forge-merge`, `forge-plan-lint`, `forge-status`, `forge-statusline`, `forge-statusline-full`, `release-check`, `resolve-forge-root`)이 있고, `scripts/forge-statusline-wrapper.sh`는 Bash 전용이다. Node 구현은 외부 패키지 없이 `fs`, `path`, `os`, `crypto`, `child_process` 같은 내장 모듈을 사용한다.
+- 트윈이 없는 Node 전용 스크립트는 `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js` 셋이다. `scripts/forge-status.js`의 `--json` 출력은 Node 쪽에만 있고 `scripts/forge-status-query.js`의 조사 함수를 재사용한다.
 - `hooks/run-hook.cmd`는 Windows batch와 Unix shell을 한 파일에 담은 polyglot 디스패처다. Windows에서는 Git Bash를 먼저 찾고 Node.js로 폴백하며, Unix에서는 Bash 구현을 먼저 실행하고 Node.js로 폴백한다.
 - Git 저장소·브랜치 판정이 필요한 스크립트는 시스템 `git` 명령을 호출한다. 공통 루트 판정은 `scripts/resolve-forge-root.sh`와 `scripts/resolve-forge-root.js`가 제공한다.
 
@@ -44,6 +47,12 @@ mapped: 2026-09-11
 - `docs/index.html`은 VitePress 밖에서 제공되는 정적 랜딩 페이지다. 자체 `<head>`에 canonical·OG·Twitter 메타 태그를 하드코딩하며, 소셜 이미지는 VitePress가 방출하는 `/forge/docs/og-image.png`를 가리킨다(아티팩트 경계를 넘는 참조). 문서 빌드 결과는 `docs/.vitepress/dist/`에 생성되며 `.gitignore`로 제외된다.
 - 루트 `package.json`에는 `type` 필드가 없다. 따라서 `scripts/*.js`는 CommonJS로 실행되고, VitePress 설정만 `.mts` 확장자로 ESM을 사용한다.
 
+### fg-monitor 런타임
+
+- `scripts/forge-monitor.js`는 Node 22+ CommonJS로 `node:http`, `node:crypto`, `node:fs`, `node:child_process`(`fork`, `execFileSync`)만 사용한다. bind 주소는 `127.0.0.1`(기본) 또는 `0.0.0.0`만 허용하고 포트 기본값은 `0`(OS 할당)이며 CLI는 `on [--host 0.0.0.0] [--port N] | off | config delete|keep` 형태다.
+- HTTP API는 `/api/identity`, `/api/snapshot`, `/api/history`이며 URL query 키를 `crypto.timingSafeEqual`로 검사한다. `scripts/forge-monitor-ui/app.js`는 빌드 없는 정적 클라이언트로 `fetch` 폴링(1.8초 타임아웃)을 사용한다.
+- 런타임 파일은 `.forge/monitor/`에 두고, 보관 설정 `monitorRetention`이 `keep`이면 세션별 `summary.json`만 남긴다.
+
 ## 의존성 경계
 
 - 플러그인의 스킬·상태 스크립트에는 npm 런타임 의존성이 없다. npm 패키지는 문서 사이트 빌드에만 사용된다.
@@ -54,11 +63,11 @@ mapped: 2026-09-11
 
 ## 호스트 계약과 설정
 
-- `core/HOST.md`가 호스트 선택 규칙과 capability 어휘를 소유한다. 현재 capability 키는 9개이며 `structured_choice`, `spawn_parallel`, `spawn_role`, `plugin_root`, `session_start`, `prevent_stop`, `project_agents`, `status_display`, `event_wake`다.
-- 각 호스트는 `hosts/claude/`, `hosts/codex/`, `hosts/opencode/` 아래에 `interaction.md`, `execution.md`, `capabilities.json`을 한 벌씩 둔다.
-- `hosts/claude/capabilities.json`은 9개 capability를 모두 `true`로 선언한다. `hosts/codex/capabilities.json`은 `spawn_parallel`, `plugin_root`, `session_start`만 `true`이고, `hosts/opencode/capabilities.json`은 모두 `false`다.
+- `core/HOST.md`가 호스트 선택 규칙과 capability 어휘를 소유한다. opencode와 Pi는 명시적 호스트 메타데이터로만 식별한다. 현재 capability 키는 9개이며 `structured_choice`, `spawn_parallel`, `spawn_role`, `plugin_root`, `session_start`, `prevent_stop`, `project_agents`, `status_display`, `event_wake`다.
+- 각 호스트는 `hosts/claude/`, `hosts/codex/`, `hosts/opencode/`, `hosts/pi/` 아래에 `interaction.md`, `execution.md`, `capabilities.json`을 한 벌씩 둔다.
+- `hosts/claude/capabilities.json`은 9개 capability를 모두 `true`로 선언한다. `hosts/codex/capabilities.json`은 `spawn_parallel`, `plugin_root`, `session_start`만 `true`이고, `hosts/opencode/capabilities.json`과 `hosts/pi/capabilities.json`은 모두 `false`다.
 - 설치된 플러그인 경로는 셸 명령에서 `CLAUDE_PLUGIN_ROOT`와 `PLUGIN_ROOT`로 전달된다. 경로 우선순위와 텍스트 치환의 차이는 `core/HOST.md`에 구현 계약으로 기록돼 있다.
-- 프로젝트별 Forge 설정은 `.forge/config.json`에 저장된다. 지원 키의 읽기·쓰기 진입점은 `skills/fg-config/SKILL.md`이며, 현재 저장소 설정은 `eco: false`만 명시한다.
+- 프로젝트별 Forge 설정은 `.forge/config.json`에 저장된다. 지원 키의 읽기·쓰기 진입점은 `skills/fg-config/SKILL.md`이며, 현재 저장소 설정은 `eco: false`와 `monitorRetention: "delete"`를 명시한다.
 - 상태줄 스크립트는 `FORGE_SL_SEP`, `FORGE_SL_DENSITY`, `FORGE_SL_PREFIX` 환경 변수로 출력 일부를 조정한다. 구현은 `scripts/forge-statusline.sh`, `scripts/forge-statusline.js`, `scripts/forge-statusline-full.sh`, `scripts/forge-statusline-full.js`에 있다.
 
 ## 빌드·검증 명령
@@ -71,18 +80,18 @@ mapped: 2026-09-11
 | `npm run release:check` | 매니페스트·호스트 어댑터·capability 계약 검사 | `scripts/release-check.js` |
 | `bash scripts/<name>.test.sh` | 개별 Bash 기반 동작 테스트 | `scripts/*.test.sh` |
 | `bash scripts/<name>.parity.test.sh` | Bash와 Node 트윈의 출력·종료 코드·파일 결과 비교 | `scripts/*.parity.test.sh` |
+| `node --test scripts/forge-monitor.test.js scripts/forge-monitor-wiring.test.js` | 모니터 동작·훅 배선 검사 | `scripts/forge-monitor*.test.js` |
+| `node scripts/pi-host.test.mjs` | 설치된 Pi SDK로 공통 스킬 로딩 검증(`FORGE_PI_PACKAGE_ROOT` 또는 `pi` 실행 파일 위치로 SDK 탐색) | `scripts/pi-host.test.mjs` |
 
-- `scripts/`에는 동작 테스트와 패리티 테스트를 합쳐 20개의 `*.test.sh`가 있다. 훅 디스패처는 `hooks/run-hook.test.sh`와 `hooks/run-hook.windows.test.js`에서 별도로 검사한다.
+- `scripts/`에는 동작 테스트와 패리티 테스트를 합쳐 22개의 `*.test.sh`가 있고, Node 테스트로 `scripts/forge-followups.test.js`, `scripts/forge-monitor.test.js`, `scripts/forge-monitor-ui.test.js`, `scripts/forge-monitor-wiring.test.js`, `scripts/forge-status.json.test.js`, `scripts/pi-host.test.mjs`가 있다. 훅 디스패처는 `hooks/run-hook.test.sh`와 `hooks/run-hook.windows.test.js`에서 별도로 검사한다.
 - `skills/fg-loop/tests/resume-scenarios.md`는 `fg-loop` 재개 동작을 점검하는 Markdown 시나리오 모음이다.
 - 중앙 테스트 러너나 범용 린터 설정은 없다. 각 테스트 스크립트와 문서 빌드, 릴리스 검사를 직접 실행한다.
 
 ## CI와 배포 도구
 
 - `.github/workflows/docs.yml`은 Node.js 22에서 `npm ci`와 `npm run docs:build`를 실행하고 GitHub Pages 아티팩트를 조립한다.
-- `.github/workflows/release-check.yml`은 Node.js 20에서 Bash·Node 릴리스 게이트와 패리티 테스트를 실행한다. 이 잡은 npm 패키지를 설치하지 않는다.
+- `.github/workflows/release-check.yml`은 Node.js 20에서 Bash·Node 릴리스 게이트와 패리티 테스트를 실행한다. 이 잡은 npm 패키지를 설치하지 않으며, 별도 `windows-hooks` 잡이 Windows에서 `hooks/run-hook.windows.test.js`를 실행한다.
+- `.github/workflows/monitor-check.yml`은 Ubuntu·macOS·Windows × Node 22·24 매트릭스에서 `scripts/forge-monitor.test.js`와 `scripts/release-check.js`를 실행하고, Windows에서만 `hooks/run-hook.windows.test.js`를 추가로 실행한다.
 - `.gitattributes`는 `*.sh`를 LF로 고정해 Windows Git Bash에서도 shebang과 인자가 CRLF로 깨지지 않게 한다.
-- `.gitignore`는 `node_modules/`, VitePress 캐시·빌드 결과, 휘발성 `.forge/` 상태를 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/codebase/`, `.forge/rules/`, `.forge/config.json`, `.forge/branch/`를 다시 추적 대상으로 포함한다.
+- `.gitignore`는 `node_modules/`, VitePress 캐시·빌드 결과, 휘발성 `.forge/` 상태를 제외하고 `.forge/CONTEXT.md`, `.forge/adr/`, `.forge/retro/`, `.forge/followups.md`, `.forge/codebase/`, `.forge/rules/`, `.forge/config.json`, `.forge/branch/`를 다시 추적 대상으로 포함한다.
 
-## fg-monitor 추가 (2026-10-20)
-
-모니터는 Node 22+ CommonJS와 내장 HTTP/파일 API만 사용한다. 정적 UI는 빌드 단계·외부 앱 의존성 없이 배포된다. 문서용 package.json의 type을 바꾸지 않는다. 기존 Bash/Node 트윈 규칙과 별도로 Node 전용 런타임이다.
