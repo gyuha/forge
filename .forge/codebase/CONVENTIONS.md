@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 61204731efcb9f55f6169b33925fb3f18b4130fc
-mapped: 2026-10-24
+last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
+mapped: 2026-10-25
 ---
 
 # CONVENTIONS
@@ -19,13 +19,13 @@ mapped: 2026-10-24
 - 스킬은 `skills/fg-<이름>/SKILL.md` 형태로 배치하며, 식별자는 디렉터리명이 아니라 YAML frontmatter의 `name`이다.
 - `SKILL.md`의 `description`은 한 줄 값이다. `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`는 누락된 `name`, 600자를 넘는 `description`, folded-scalar 형태를 검사한다.
 - 스킬 본문과 `skills/fg-ask/ADR-FORMAT.md`, `skills/fg-ask/CONTEXT-FORMAT.md`, `skills/fg-run/PLAN-FORMAT.md`, `skills/fg-learn/RETRO-FORMAT.md`는 영문으로 작성된다. 사용자에게 표시하는 문구와 프로젝트 산출물은 사용자의 언어로 렌더하도록 각 스킬이 지시한다.
-- 모든 `skills/*/SKILL.md`는 `scripts/explaining-forge.rule.txt`의 표준 문단을 포함한다. `skills/fg-ask/SKILL.md`는 원본 본문과 Forge 연결 절을 분리한 상위집합 형태다.
+- 모든 `skills/*/SKILL.md`는 `scripts/*.rule.txt`의 표준 문단(현재 `scripts/explaining-forge.rule.txt`, `scripts/evidence-and-candor.rule.txt` 2개)을 포함한다. `skills/fg-ask/SKILL.md`는 원본 본문과 Forge 연결 절을 분리한 상위집합 형태다. `scripts/forge-doctor.sh`·`.js`의 B17은 rule 파일을 글롭으로 순회해 각각 독립 대조하고, 발견 메시지의 규칙 이름을 rule 본문 앞의 `**굵은 라벨**`에서 뽑는다. rule 파일은 한 줄이어야 한다 — `grep -F`가 여러 줄 패턴을 줄별 OR로 읽어 Node 트윈과 판정이 갈라진다고 `scripts/forge-doctor.sh` 주석에 적혀 있다.
 - 공유 계약은 소유 파일 하나에 두고 다른 스킬에서 경로로 참조한다. 실제 공유 파일은 `core/HOST.md`, `core/EXECUTION.md`, `core/INTERACTION.md`, `skills/fg-run/FORGE-ROOT.md`, `skills/fg-next/DRIVE.md`, `skills/fg-next/HANDOFF.md`, `skills/fg-config/ECO.md`, `skills/fg-learn/FOLLOWUPS-FORMAT.md`, `skills/fg-status/STATUS-JSON.md`다. `skills/fg-next/OUTPUT-EXAMPLES.md`는 스킬 작성자가 선택적으로 읽는 참고 자료이며 스킬 본문에서 일괄 참조하지 않는다.
 - 조건부로 읽는 동반 문서는 `skills/fg-run/RUN-ALL.md`, `skills/fg-run/RECOVERY.md`, `skills/fg-next/ALL-MODE.md`, `skills/fg-loop/INQUIRY.md`처럼 소유 스킬과 함께 둔다. 조건부 분할 시 조건 밖에서도 필요한 하위 절을 본문에 남기도록 `CLAUDE.md`가 규정한다.
 - `CLAUDE.md`는 그 조건부 분할의 판정 단위를 헤딩이 아니라 **문단**(빈 줄로 구분된 최상위 블록, 코드펜스 1단위·목록 최상위 항목별·blockquote 머리말 1단위)으로 규정하고, 검증을 두 단계 체크리스트로 요구한다 — 남는 문서와 옮긴 문서 양쪽의 상호참조(`§N`·"above"·절 이름)를 모두 열거한 뒤, 가리키는 내용이 그 절에 실재하는지 확인한다.
 - 위 체크리스트의 기계로 잡히는 절반은 `scripts/forge-doctor.sh`·`.js`의 검사 B21이다. `skills/*/SKILL.md`에서 섹션 N 안에 있는 `§N` 인용을 warning으로 보고하며, `§12`처럼 숫자가 이어지는 경우는 제외한다. 의미 판단이 필요한 나머지 절반(대상 절이 남아 있지만 규칙이 사라진 경우)은 계속 산문 규약이 소유한다.
 - 스킬 문서의 흐름과 분기는 Mermaid가 아니라 텍스트 화살표와 들여쓰기로 표현한다. 둘 이상의 결과를 기술할 때는 같은 문단에 판정 기준도 둔다.
-- `skills/fg-run/PLAN-FORMAT.md`의 언어 중립 구조 규칙(첫 줄 `forge-slug` 주석, `- [ ] S<n>.` 슬라이스 줄, `depends`, 마커 값, fix-forward plan의 `eval` 마커)은 `scripts/forge-plan-lint.sh`·`.js`가 구현한다. 사용자 언어로 렌더되는 헤딩·라벨은 검사하지 않고 HTML 주석 마커와 슬라이스 줄만 본다. 이 스크립트는 규칙을 구현만 하고 확장하지 않는다고 머리말에 적혀 있다.
+- `skills/fg-run/PLAN-FORMAT.md`의 언어 중립 구조 규칙(첫 줄 `forge-slug` 주석, `- [ ] S<n>.` 슬라이스 줄, `depends`, 마커 값, fix-forward plan과 `playbook: bug-fix`의 `eval` 마커, `playbook: refactor`의 `pin` 마커와 모든 슬라이스가 pin에 직·간접 의존하는 순서)은 `scripts/forge-plan-lint.sh`·`.js`가 구현한다(E1–E9, W1). `playbook` 값은 `bug-fix|refactor`만 허용하고 계획당 1개다. 목록형 슬라이스가 하나라도 있으면 헤딩형(`### S3 …`)은 메모 헤딩으로 보아 슬라이스로 세지 않고, 목록형이 없을 때만 헤딩을 슬라이스로 센다. `none — <사유>`의 사유 판정은 `eval`·`pin`이 같은 helper(`none_reason`)를 공유한다. 사용자 언어로 렌더되는 헤딩·라벨은 검사하지 않고 HTML 주석 마커와 슬라이스 줄만 본다. 이 스크립트는 규칙을 구현만 하고 확장하지 않는다고 머리말에 적혀 있다.
 - 다음 단계가 있는 스킬의 출력 표 형식은 `skills/fg-next/HANDOFF.md`가 소유한다. 다른 스킬은 그 파일을 참조하며 표 정의를 복사하지 않는다.
 
 ## Markdown과 사용자 문서
@@ -73,7 +73,8 @@ mapped: 2026-10-24
 ## 변경과 오류 처리 원칙
 
 - 읽기 전용 도구는 상태를 수정하지 않는다. `scripts/forge-status.*`와 `scripts/forge-doctor.*`는 조사·출력만 수행한다.
-- 상태를 바꾸는 도구는 검증 실패와 파일 작업 실패를 서로 다른 exit code로 구분한다. `scripts/forge-done.*`, `scripts/forge-merge.*`, `scripts/forge-loop-spend.*`, `scripts/forge-plan-lint.*`의 머리말에 해당 계약이 적혀 있다. `scripts/forge-done.*`는 0 봉인·2 대상 없음·3 검증 gate·4 회고 gate·5 중복·6 marker 충돌 또는 파일 작업 실패를 구분하며, `--skip-retro`가 주어져도 `run.md`/STATUS에 회고 신호(`⚠` 슬라이스, `## Failed attempts`, `## Rulings`, 0이 아닌 `fix-rounds`)가 있고 회고 파일이 없으면 exit 4로 거절한다. 빈 절과 `fix-rounds: 0`은 신호가 아니다. 봉인 중 후속 후보 수집은 `scripts/forge-followups.sh collect`를 호출하고, 그 실패는 원본을 옮기지 않은 채 exit 6이 된다.
+- 단계 이름은 `ask → run → done` 3개로 통일돼 있다. `scripts/forge-statusline.*`의 파이프라인과 `scripts/forge-status.*`의 Stage 열은 봉인 대기 단계를 `done`으로, 봉인된 이력 행을 `done ✔`로 표시하며, `scripts/forge-status.sh`의 표 정렬 awk는 3바이트 `✔`를 표시 폭 1로 센다(`vl()`). 세션 시작 훅 출력도 `Parked awaiting done`이라는 같은 어휘를 쓴다.
+- 상태를 바꾸는 도구는 검증 실패와 파일 작업 실패를 서로 다른 exit code로 구분한다. `scripts/forge-done.*`, `scripts/forge-merge.*`, `scripts/forge-loop-spend.*`, `scripts/forge-plan-lint.*`의 머리말에 해당 계약이 적혀 있다. `scripts/forge-done.*`는 0 봉인·2 대상 없음·3 검증 gate·4 회고 gate·5 중복·6 marker 충돌 또는 파일 작업 실패를 구분하며, `--skip-retro`가 주어져도 `run.md`/STATUS에 회고 신호(`⚠` 슬라이스, `## Failed attempts`, `## Rulings`, 0이 아닌 `fix-rounds`)가 있고 회고 파일이 없으면 exit 4로 거절한다. 빈 절과 `fix-rounds: 0`은 신호가 아니다. 이 경로가 통과하면 STATUS에 `retro: skipped (judged: <사유>)`를 기록한다. 신호 절 이름은 fg-run이 쓰는 영문 canonical 헤딩으로 고정된다. 봉인 중 후속 후보 수집은 `scripts/forge-followups.sh collect`를 호출하고, 그 실패는 원본을 옮기지 않은 채 exit 6이 된다.
 - `scripts/forge-merge.*`의 `--gate-only`는 진행 중 작업 gate만 판정하고 아무것도 옮기지 않는다(성공 시 `GATE_OK` 출력). 대상 `.forge/`가 최신이 아닐 수 있으므로 재정의 충돌은 이 모드에서 판정하지 않는다.
 - 누락·모호·파싱 실패가 자동 주행을 지속시키는 근거가 되지 않도록 보수적으로 종료한다. 특히 `scripts/forge-hook-stop.*`는 세션·시간·횟수·marker가 모두 확인된 경우에만 정지를 막는다.
 - 사용자가 만든 값이 지시문이나 태그 경계를 깨지 않도록 제어 문자, 개행, 태그 구분자, 길이를 제한한다. 이 처리는 `scripts/forge-hook-session-start.*`에서 구현되고 fixture와 parity 테스트로 고정된다.
