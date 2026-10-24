@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.7] - 2026-10-24
+
+### Added
+- **`fg-monitor` — 현재 Claude 세션의 작업·에이전트를 보는 읽기 전용 웹 대시보드.** Node 22+ 서버와 관측 훅으로 동작하고, 기본은 localhost이며 `on --host 0.0.0.0`일 때만 외부에 연다. 첫 실행에서 관측 기록의 보관 여부(`monitorRetention`)를 묻는다. macOS·Linux·Windows CI(`monitor-check.yml`)로 검증한다(#24).
+- **`fg-rules` — 근거 있는 규칙 후보를 검토해 채택한 것만 `.forge/rules/`에 저장하는 스킬.** 기존 프로젝트 지침에서 읽도록 연결한다(#23).
+- **후속 후보 원장 `.forge/followups.md`와 `forge-status --json`.** 모든 봉인 경로가 후속 후보를 고정 ID로 남기고, fg-ask가 채택하면 taken으로 바꾼다(#22).
+- **계획 린트 `forge-plan-lint.sh`/`.js`.** fg-ask가 저장 직후, fg-run이 실행 직전에 계획 구조(slug·슬라이스·depends·마커·fix-forward `eval` 마커)를 검사하며, 오류가 있으면 실행하지 않는다.
+
+### Changed
+- **루프가 3단계(질의·계획 → 실행 → 완료)가 됐다.** 별도 회고 단계를 없애고 fg-done이 봉인할 때 회고 필요 여부를 판정한다. 기계 신호(계획과 달라진 슬라이스 `⚠`·`## Failed attempts`/`fix-rounds`·`review.md`의 `disposition: accepted`·`## Rulings`)가 있으면 회고 로그를 반드시 쓰고, 없으면 기본은 건너뛰기다. 승급은 대화형 봉인에서만 한 번 묻고, 무인 봉인은 첫 줄 `<!-- auto-retro -->` 로그를 남겨 fg-learn으로 미룬다(ADR `261024-191024`).
+- **fg-learn은 루프 밖 일괄 승급 유틸리티가 됐다.** 후보는 날짜가 아니라 표식으로 고른다(`judged:` 없는 건너뛰기, `auto-retro`·`promotion-pending` 표식, `retro: pending`).
+- statusline 파이프라인은 `ask → run → done`이고, 상태 표는 검증을 마치고 fg-done만 남은 작업을 `done`, 끝난 작업을 `done ✔`로 표시한다. 대기 묶음 표기는 "완료 대기"(`awaiting done`)다.
+- 계획을 실행하는 동안 무인 주행이 대신 내린 결정은 run.md `## Rulings`에, UAT 실패 이력은 `## Failed attempts`와 STATUS `fix-rounds`에 남긴다. 실패가 2회를 넘으면 핸드오프가 fg-debug·fg-ask를 권한다.
+
+### Fixed
+- 봉인 스크립트가 회고 신호가 있는데도 `--skip-retro`를 받아들이던 문제 — 이제 exit 4로 거부하고, 건너뛰기는 `retro: skipped (judged: <사유>)`로 기록한다.
+- 계획 린트가 슬라이스 설명용 소제목(`### S3 …`)을 중복 슬라이스(E3)로 오탐하던 문제.
+- 봉인 스크립트가 exit 6(파일 작업 실패)로 멈췄을 때 회고 로그를 지우던 안내, 승급을 반영하기 전에 기록하던 순서를 바로잡았다.
+- fg-doctor가 Node 전용 모니터 스크립트를 짝 없는 트윈(B15)으로 잡던 문제.
+
 ## [0.9.6] - 2026-10-10
 
 ### Added
