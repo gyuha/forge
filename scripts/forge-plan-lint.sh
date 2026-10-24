@@ -59,13 +59,15 @@ if ! [[ "$first" =~ ^\<!--\ forge-slug:\ [^[:space:]].*\ --\>[[:space:]]*$ ]]; t
 fi
 
 # Collect slices, depends, markers in one pass (file order).
-slices=" "; slice_order=(); deps=()
+slices=" "; slice_order=(); deps=(); list_items=(); head_items=()
 has_task=0; generated=0; evals=()
 for l in "${lines[@]+"${lines[@]}"}"; do
   if [[ "$l" =~ $slice_re ]]; then
-    id="${BASH_REMATCH[4]}"
-    case "$slices" in *" $id "*) err E3 "$id" ;; *) slices="$slices$id "; slice_order+=("$id") ;; esac
-    if [[ "$l" =~ \(depends:\ ([^\)]*)\) ]]; then deps+=("$id|${BASH_REMATCH[1]}"); fi
+    id="${BASH_REMATCH[4]}"; dep=""
+    if [[ "$l" =~ \(depends:\ ([^\)]*)\) ]]; then dep="${BASH_REMATCH[1]}"; fi
+    # Headings are kept apart: a plan with list-item slices may annotate one
+    # with a note heading (`### S3 …`), which must not count as a second S3.
+    if [[ "$l" =~ ^[[:space:]]*# ]]; then head_items+=("$id|$dep"); else list_items+=("$id|$dep"); fi
     continue
   fi
   if [[ "$l" =~ $marker_re ]]; then
@@ -83,6 +85,14 @@ for l in "${lines[@]+"${lines[@]}"}"; do
       eval) evals+=("$val") ;;
     esac
   fi
+done
+
+# Slices = list items; heading-form slices count only when there are no list items.
+if [ "${#list_items[@]}" -gt 0 ]; then chosen=("${list_items[@]}"); else chosen=("${head_items[@]+"${head_items[@]}"}"); fi
+for it in "${chosen[@]+"${chosen[@]}"}"; do
+  id="${it%%|*}"; dep="${it#*|}"
+  case "$slices" in *" $id "*) err E3 "$id" ;; *) slices="$slices$id "; slice_order+=("$id") ;; esac
+  [ -z "$dep" ] || deps+=("$id|$dep")
 done
 
 [ "${#slice_order[@]}" -eq 0 ] && err E2 "no '- [ ] S<n>.' slice"

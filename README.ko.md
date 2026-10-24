@@ -2,7 +2,7 @@
 
 ![forge](./docs/icon-sm.png)
 
-> 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode·Pi 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 봉인**의 한 바퀴로(회고는 봉인 안에서 판정).
+> 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode·Pi 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 완료**의 한 바퀴로(회고는 완료 단계에서 판정).
 > 네 호스트가 함께 쓰는 24개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 3개와, 루프 밖 유틸리티 21개.
 
 [English](./README.md)
@@ -109,7 +109,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 |
 | `fg-run` | ② 실행 | 호스트 어댑터로 계획 실행—Claude Code는 Dynamic Workflow, Codex는 collaboration/subagent, opencode/Pi는 순차 실행(plan 하나면 즉시, 여럿이면 우선순위 선택 목록) |
-| `fg-done` | ③ 봉인 | 한 바퀴 정리 — 회고 판정(실행에서 배울 게 있으면 회고 로그를 쓰고, `CONTEXT.md`·ADR·eval 승급 후보가 바를 넘을 때만 한 번 물음 — [ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)), `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 무인 봉인으로 일괄 처리(승급 질문 없음·백로그 불가침·검증 게이트 유지) |
+| `fg-done` | ③ 완료 | 한 바퀴 정리 — 회고 판정(실행에서 배울 게 있으면 회고 로그를 쓰고, `CONTEXT.md`·ADR·eval 승급 후보가 바를 넘을 때만 한 번 물음 — [ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)), `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 무인 봉인으로 일괄 처리(승급 질문 없음·백로그 불가침·검증 게이트 유지) |
 | `fg-learn` | 유틸리티 | 미뤄 둔 학습의 일괄 승급 — 회고를 건너뛰었거나 무인으로 쓴 봉인 작업을 사람과 함께 검토해 바를 넘는 것을 `CONTEXT.md`·ADR·**eval**(기계 확인 가능한 학습은 프로젝트 자신의 테스트 스위트에 남는 영속 회귀 체크로; 스위트가 없는 리포는 상응하는 실행 착지점 — [ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md))·회고 로그로 승급. 작업별 회고는 더 이상 단계가 아니며 `fg-done`이 봉인 때 판정한다([ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)) |
 | `fg-map` | 유틸리티 | 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드 재탐색 대신 지도를 읽게 함 |
 | `fg-rules` | 유틸리티 | 근거 있는 프로젝트 규칙을 검토·채택해 저장하고 일반 AI 코딩 작업에 연결 |
@@ -148,7 +148,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-done
-① 질의/계획     ② 실행          ③ 봉인
+① 질의/계획     ② 실행          ③ 완료
 (그릴링·대화형) (Dynamic WF)   (회고 판정·재실행 방지)
 ```
 
@@ -210,7 +210,7 @@ opencode는 forge 전용 매니페스트가 필요 없다 — 스킬은 `SKILL.m
 
 **그리고 다음 질문에서 닫는다.** 지난 작업이 봉인 안 된 채 남아 있는데 새 작업을 시작하면, fg-ask의 STEP 0이 남은 판단의 양으로 갈린다 — 판단이 없으면(검증이 봉인 가능값) **묻지 않고 무인 봉인**(fg-done이 회고를 판정하고 승급은 `fg-learn`으로 미룸)하고 한 줄 보고한 뒤 같은 턴에 그릴링을 계속한다. 판단이 남았으면(`verified: pending`/`failed`·멈춘 goal 루프) 묻지만, **당신의 요청을 붙들고 있다가 잔여를 닫은 뒤 그 자리로 돌아온다** — fg-ask를 다시 칠 필요가 없다. 사정거리는 활성 슬롯 1건이며, `executed/`에 park된 작업은 잔여가 아니라 의도된 대기이므로 보고만 하고 건드리지 않는다 ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
 
-**봉인을 까먹는 것은 세션 진입에서 잡는다.** forge는 훅 **둘**을 배포한다(`hooks/hooks.json` — 플러그인 설치만으로 걸리고 설정 편집이 필요 없다). 첫째는 `SessionStart`에서 **미봉인 잔여**(실행됐지만 봉인 안 된 작업·봉인 대기로 park된 작업·멈춘 goal 루프)를 확인하고, 있을 때만 짧은 알림을 주입해 에이전트가 새 작업을 시작하기 전에 당신에게 알리도록 한다. 사용자가 답하기 전에 스스로 판단해 실행·봉인하지 않으며(fg-ask STEP 0의 자동 마감이 유일한 승인된 예외) 결정은 당신 몫이다. 깨끗한 리포나 백로그만 대기 중인 리포에서는 아무것도 뜨지 않는다. 둘째는 `Stop`에서, 무인 주행이 `/goal` 없이 턴 경계를 넘게 해 준다 — 주행의 `drive.md` 마커가 살아 있고 상한 안일 때만 막으므로 주행하지 않는 세션은 무영향이다([ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)). 훅은 세션 시작 시 로드되므로, 새로 설치·수정한 훅은 **다음** 세션부터 적용된다([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
+**봉인을 까먹는 것은 세션 진입에서 잡는다.** forge는 훅 **둘**을 배포한다(`hooks/hooks.json` — 플러그인 설치만으로 걸리고 설정 편집이 필요 없다). 첫째는 `SessionStart`에서 **미봉인 잔여**(실행됐지만 봉인 안 된 작업·완료 대기로 park된 작업·멈춘 goal 루프)를 확인하고, 있을 때만 짧은 알림을 주입해 에이전트가 새 작업을 시작하기 전에 당신에게 알리도록 한다. 사용자가 답하기 전에 스스로 판단해 실행·봉인하지 않으며(fg-ask STEP 0의 자동 마감이 유일한 승인된 예외) 결정은 당신 몫이다. 깨끗한 리포나 백로그만 대기 중인 리포에서는 아무것도 뜨지 않는다. 둘째는 `Stop`에서, 무인 주행이 `/goal` 없이 턴 경계를 넘게 해 준다 — 주행의 `drive.md` 마커가 살아 있고 상한 안일 때만 막으므로 주행하지 않는 세션은 무영향이다([ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)). 훅은 세션 시작 시 로드되므로, 새로 설치·수정한 훅은 **다음** 세션부터 적용된다([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
 
 forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델, 커밋 시점, 피처 브랜치 단계별 git CLI 워크스루 — 은 **[docs/git-workflow.md](./docs/git-workflow.md)** 에 있다.
 

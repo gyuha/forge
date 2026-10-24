@@ -219,9 +219,37 @@ find_retro() { # $1=slug -> path of the single matching retro, or empty
 }
 
 # --- GATE 2: retro done-or-skipped (before any mutation) ---------------------
+# Retro signals (ADR 261024-191024): evidence in run.md/STATUS that the task left
+# something to learn. A deliberate skip is refused while any is present — the seal
+# must carry a retro log instead. Section names are the canonical English headings
+# fg-run writes for machine-read sections; an empty section or `fix-rounds: 0` is
+# not a signal.
+section_has_items() { # $1=file $2=heading text -> 0 if "## <text>" has a "- " item
+  [ -f "$1" ] || return 1
+  awk -v h="## $2" '
+    { sub(/\r$/, "") }
+    $0 == h { ins = 1; next }
+    ins && /^#/ { ins = 0 }
+    ins && /^[[:space:]]*- / { found = 1 }
+    END { exit found ? 0 : 1 }' "$1"
+}
+retro_signals() {
+  sig=""
+  if [ -f "$R" ] && grep -E '^[[:space:]]*- S[0-9]+' "$R" | grep -qF '⚠'; then sig="${sig}diverged,"; fi
+  if section_has_items "$R" "Failed attempts"; then sig="${sig}failed-attempts,"; fi
+  if section_has_items "$R" "Rulings"; then sig="${sig}rulings,"; fi
+  fr="$(field "$S" fix-rounds)"
+  case "$fr" in ''|*[!0-9]*) : ;; *) [ "$fr" -gt 0 ] && sig="${sig}fix-rounds," ;; esac
+  printf '%s' "${sig%,}"
+}
+
 retro_out=""
 if [ "$skip_given" -eq 1 ]; then
-  retro_out="skipped ($skip_retro)"
+  signals="$(retro_signals)"
+  if [ -n "$signals" ]; then
+    echo "GATE_RETRO skip-refused signals=$signals slug=$slug"; exit 4
+  fi
+  retro_out="skipped (judged: $skip_retro)"
 else
   rf="$(find_retro "$slug")"
   if [ -n "$rf" ]; then

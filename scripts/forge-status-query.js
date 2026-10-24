@@ -161,7 +161,7 @@ function surveyForge(root, { bounded = false } = {}) {
       // Stage is gated on the verification gate, not on run.md's existence — see
       // the bash twin's comment (fg-run still owns a pending/failed UAT).
       const stage = ["yes", "skipped", "n/a"].includes(norm(v))
-        ? "seal"
+        ? "done"
         : "run";
       addRow(
         no,
@@ -209,7 +209,7 @@ function surveyForge(root, { bounded = false } = {}) {
     }
   }
 
-  // Awaiting seal (executed/)
+  // Awaiting done (executed/)
   for (const d of subDirs(path.join(root, "executed"))) {
     const dir = path.join(root, "executed", d);
     const p = path.join(dir, "plan.md");
@@ -221,7 +221,7 @@ function surveyForge(root, { bounded = false } = {}) {
     const v = field(st, "verified");
     // Only `failed` goes back to fg-run (unpark); a parked `pending` routes to
     // fg-done — see the bash twin's comment.
-    const stage = norm(v) === "failed" ? "run" : "seal";
+    const stage = norm(v) === "failed" ? "run" : "done";
     addRow(
       no,
       date,
@@ -257,7 +257,7 @@ function surveyForge(root, { bounded = false } = {}) {
         no,
         date,
         `${slug}${looptag(p)}`,
-        "done",
+        "done ✔",
         vsym(field(st, "verified")),
         rsym(field(st, "retro"), slug),
       );

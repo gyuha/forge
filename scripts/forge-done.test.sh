@@ -136,7 +136,7 @@ rm -rf "$t"
 t=$(mktmp); seed_active "$t" "task-g" "yes (ok)" "pending"
 run_done "$t" --skip-retro "fg-next all auto" --completed 2026-07-05 --sealed-id "$SID"
 assert "g-rc0" 0 "$RC"
-assert_grep "g-retro-skipped" "$t/.forge/done/$SID-task-g/STATUS.md" "retro: skipped (fg-next all auto)"
+assert_grep "g-retro-skipped" "$t/.forge/done/$SID-task-g/STATUS.md" "retro: skipped (judged: fg-next all auto)"
 assert_grep "g-status-done" "$t/.forge/done/$SID-task-g/STATUS.md" "status: done"
 rm -rf "$t"
 
@@ -398,6 +398,50 @@ assert_file "r7-plan-preserved" "$t/.forge/plan.md"
 assert_nofile "r7-no-archive" "$t/.forge/done/$SID-task-r7"
 claim_count="$(find "$t/.forge" -maxdepth 1 -name '.running.seal.*' | wc -l | tr -d ' ')"
 assert "r7-no-hidden-claim" 0 "$claim_count"
+rm -rf "$t"
+
+
+# --- (sig) retro-signal gate: --skip-retro is refused while run.md/STATUS carries a
+# retro signal (ADR 261024-191024, adversarial review finding 4). Nothing moves.
+sig_case() { # <name> <run.md body> [status extra line]
+  local name="$1" body="$2" extra="${3:-}"
+  t=$(mktmp); seed_active "$t" "sig-$name" "yes (ok)" "pending"
+  printf '%s\n' "$body" > "$t/.forge/run.md"
+  [ -z "$extra" ] || printf '%s\n' "$extra" >> "$t/.forge/STATUS.md"
+}
+sig_case diverged '- S1 thing — ✅ as planned
+- S2 other — ⚠ scope grew'
+run_done "$t" --skip-retro "nothing" --completed 2026-07-05 --sealed-id "$SID"
+assert "sig-diverged-rc4" 4 "$RC"; assert_file "sig-diverged-unmoved" "$t/.forge/plan.md"
+case "$OUT" in *GATE_RETRO*diverged*) pass=$((pass+1));; *) fail=$((fail+1)); printf '  FAIL sig-diverged-token [%s]\n' "$OUT";; esac
+rm -rf "$t"
+sig_case failed '- S1 thing — ✅
+## Failed attempts
+- 1: tests red / fixed import'
+run_done "$t" --skip-retro "nothing" --completed 2026-07-05 --sealed-id "$SID"
+assert "sig-failed-rc4" 4 "$RC"; assert_file "sig-failed-unmoved" "$t/.forge/plan.md"; rm -rf "$t"
+sig_case rulings '- S1 thing — ✅
+## Rulings
+- tdd: off (recommended default, auto-selected) — docs only'
+run_done "$t" --skip-retro "nothing" --completed 2026-07-05 --sealed-id "$SID"
+assert "sig-rulings-rc4" 4 "$RC"; assert_file "sig-rulings-unmoved" "$t/.forge/plan.md"; rm -rf "$t"
+sig_case fixrounds '- S1 thing — ✅' 'fix-rounds: 1'
+run_done "$t" --skip-retro "nothing" --completed 2026-07-05 --sealed-id "$SID"
+assert "sig-fixrounds-rc4" 4 "$RC"; assert_file "sig-fixrounds-unmoved" "$t/.forge/plan.md"; rm -rf "$t"
+# empty sections and a zero counter are not signals
+sig_case quiet '- S1 thing — ✅ as planned
+## Failed attempts
+## Rulings' 'fix-rounds: 0'
+run_done "$t" --skip-retro "nothing to learn" --completed 2026-07-05 --sealed-id "$SID"
+assert "sig-quiet-rc0" 0 "$RC"
+assert_grep "sig-quiet-judged" "$t/.forge/done/$SID-sig-quiet/STATUS.md" "retro: skipped (judged: nothing to learn)"
+rm -rf "$t"
+# a signal with a retro file present seals normally (the log was written)
+sig_case withlog '- S2 other — ⚠ scope grew'
+mkdir -p "$t/.forge/retro"; printf 'r\n' > "$t/.forge/retro/260705-110000-sig-withlog.md"
+run_done "$t" --completed 2026-07-05 --sealed-id "$SID"
+assert "sig-withlog-rc0" 0 "$RC"
+assert_grep "sig-withlog-path" "$t/.forge/done/$SID-sig-withlog/STATUS.md" "260705-110000-sig-withlog.md"
 rm -rf "$t"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"

@@ -15,8 +15,8 @@ test('disconnected and archived observations never imply a running agent', () =>
 test('pipeline uses recorded verification and retro, not agent activity', () => {
   assert.equal(ui.phase({plan:'# Task',run:'',status:''}), 'run');
   assert.equal(ui.phase({plan:'# Task',run:'result',status:'verified: failed (error)'}), 'verify');
-  assert.equal(ui.phase({plan:'# Task',run:'result',status:'verified: yes\nretro: pending'}), 'seal');
-  assert.equal(ui.phase({plan:'# Task',run:'result',status:'- verified: YES (checked)'}), 'seal');
+  assert.equal(ui.phase({plan:'# Task',run:'result',status:'verified: yes\nretro: pending'}), 'done');
+  assert.equal(ui.phase({plan:'# Task',run:'result',status:'- verified: YES (checked)'}), 'done');
   assert.equal(ui.phase({plan:'# Task',run:'result',status:' - status: DONE'}), 'done');
   assert.equal(ui.phase(null), null);
 });

@@ -14,7 +14,7 @@
 # Density (FORGE_SL_DENSITY, default "full"; the full script passes "compact"):
 #   full     -> up to two lines:
 #     [🔁 rN/cap] [⚒ [#N ]<slug> · <pipeline>[ · <flag>]]      (line 1)
-#     [📋 N queued · 📝 M awaiting seal[ · ♻️][ · 🧪]]         (line 2)
+#     [📋 N queued · 📝 M awaiting done[ · ♻️][ · 🧪]]         (line 2)
 #   compact  -> a single line, forge + queue-count + mode indicators in one group:
 #     [🔁 rN/cap] [⚒ [#N ]<slug> · <pipeline>[ · <flag>][ · 📋 N][ · ♻️][ · 🧪]]
 #
@@ -28,9 +28,9 @@
 #   no plan.md, ask.md present         -> ask current (plan.md wins if both exist)
 #   plan.md, no run.md                 -> run current
 #   run.md + verified pending/failed   -> run current (the seal refuses these)
-#   run.md + verified yes/skipped/n/a  -> seal current (verification passed; fg-done seals
+#   run.md + verified yes/skipped/n/a  -> done current (verification passed; fg-done seals
 #                                         and decides the retro — ADR 261024-191024)
-# A sealed task leaves .forge/plan.md, so the pipeline ends at seal (no done stage).
+# A sealed task leaves .forge/plan.md, so the pipeline ends at done (shown current, never ✔).
 #
 # Dependencies: bash + git only. No JSON/jq parsing (reads files by path).
 # FORGE_SL_PREFIX (env): line-1 prefix, default "⚒ ".
@@ -62,11 +62,11 @@ grp() {
   printf '%s[%s%s%s]%s' "$DIM" "$RESET" "$out" "$DIM" "$RESET"
 }
 
-# build_pipeline <stage: ask|run|seal> -> "✔ ask → ● run → ○ seal" (colored)
+# build_pipeline <stage: ask|run|done> -> "✔ ask → ● run → ○ done" (colored)
 build_pipeline() {
   local stage="$1" target=0 i=0 out="" seg w
-  case "$stage" in ask) target=0 ;; run) target=1 ;; seal) target=2 ;; esac
-  for w in ask run seal; do
+  case "$stage" in ask) target=0 ;; run) target=1 ;; done) target=2 ;; esac
+  for w in ask run done; do
     if [ "$i" -lt "$target" ]; then seg="${DOT_DONE}✔ ${w}${RESET}"
     elif [ "$i" -eq "$target" ]; then seg="${DOT_CUR}● ${w}${RESET}"
     else seg="${DOT_UPCOMING}○ ${w}${RESET}"; fi
@@ -142,10 +142,10 @@ if [ -f "$root/plan.md" ]; then
     # pipeline shows a verified task as still-owed)
     [ -f "$root/STATUS.md" ] && v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1 | tr 'A-Z' 'a-z')"
     case "$v" in
-      yes)         flag="✓"; stage="seal" ;;
+      yes)         flag="✓"; stage="done" ;;
       failed)      flag="✗"; stage="run" ;;
       pending|"")  flag="⏳"; stage="run" ;;
-      skipped|n/a) flag="";  stage="seal" ;;
+      skipped|n/a) flag="";  stage="done" ;;
       *)           flag="⏳"; stage="run" ;;
     esac
   else
@@ -165,7 +165,7 @@ fi
 
 # --- Queue counts (backlog + executed) ---------------------------------------
 queued_n=0; await_n=0; failed_n=0
-# `awaiting seal` counts only parks that CAN be sealed. A `verified: failed`
+# `awaiting done` counts only parks that CAN be sealed. A `verified: failed`
 # park is blocked from the seal and needs fg-run recovery, so it gets
 # its own tally — the same split the SessionStart hook already reports (counting a
 # failed park as awaiting would tell the user to do something the gate refuses).
@@ -194,7 +194,7 @@ fi
 if [ "$DENSITY" = "compact" ]; then
   # Always ONE line (the full script splices it as its L2). Groups: [loop] then
   # either the active forge group (with 📋N count + modes folded in) or, with no
-  # active task, a queue-count group. Awaiting-seal (📝) is dropped in compact.
+  # active task, a queue-count group. Awaiting-done (📝) is dropped in compact.
   count_bit=""; [ "${queued_n:-0}" -gt 0 ] && count_bit="📋 ${queued_n}"
   if [ "$have_forge" -eq 1 ]; then
     main_grp="$(grp "$forge_seg" "$pipeline" "$flag" "$count_bit" "$eco_ind" "$tdd_ind")"
@@ -219,7 +219,7 @@ elif [ -n "$loop_grp" ]; then
 fi
 
 queued_bit=""; [ "${queued_n:-0}" -gt 0 ] && queued_bit="📋 ${queued_n} queued"
-await_bit="";  [ "${await_n:-0}" -gt 0 ] && await_bit="📝 ${await_n} awaiting seal"
+await_bit="";  [ "${await_n:-0}" -gt 0 ] && await_bit="📝 ${await_n} awaiting done"
 failed_bit=""; [ "${failed_n:-0}" -gt 0 ] && failed_bit="✗ ${failed_n} failed"
 line2="$(grp "$queued_bit" "$await_bit" "$failed_bit" "$eco_ind" "$tdd_ind")"
 

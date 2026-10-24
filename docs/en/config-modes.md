@@ -25,7 +25,7 @@ These are Claude Code slash commands, not shell commands (in Codex, `$fg-config`
 So what `simple: true` actually does is **chain the two remaining steps automatically at fg-run's task-end**:
 
 1. Perform the UAT (**verification** — checking against the plan's goal / Definition of Done that the result actually works) and record `verified:`.
-2. Call fg-done as an **unattended seal** — the seal's retro judgment skips the retro with `retro: skipped (<reason>)` when there is nothing to learn, or writes an auto retro log (marked `<!-- auto-retro: … -->`, STATUS noting "auto, promotion unreviewed") when there is, and **asks no promotion question** (promotion is deferred to `fg-learn`'s batch promotion — the same unattended family as `fg-next all` and `fg-loop`, ADR [`261024-191024`](https://github.com/gyuha/forge/blob/main/.forge/adr/261024-191024-fold-retro-into-seal.md)).
+2. Call fg-done as an **unattended seal** — the seal's retro judgment skips the retro with `retro: skipped (<reason>)` when there is nothing to learn, or writes an auto retro log (first line marked `<!-- auto-retro: … -->`) when there is, and **asks no promotion question** (promotion is deferred to `fg-learn`'s batch promotion — the same unattended family as `fg-next all` and `fg-loop`, ADR [`261024-191024`](https://github.com/gyuha/forge/blob/main/.forge/adr/261024-191024-fold-retro-into-seal.md)).
 3. Invoke the seal script in the same turn.
 
 You experience it as two stages, `fg-ask → fg-run`, while verification and sealing both still run underneath. **The verification gate is inviolable** — if `verified:` is `pending` (never verified) or `failed` (verified and broken), **nothing is auto-sealed**; fg-run stops and reports exactly as it always did ([ADR-0009](https://github.com/gyuha/forge/blob/main/.forge/adr/0009-verification-gate-before-seal.md)).
@@ -46,7 +46,7 @@ Counted in human triggers: only on a sealable outcome does it go from **1 (`fg-d
 
 There are three costs. Turn it on for the convenience alone and all three come along quietly.
 
-1. **Promotion is deferred with no human in the loop.** An unattended seal asks no promotion question, so learnings stay in the auto retro log or the archived `run.md` (the plan-vs-actual divergence note) instead of rising into `CONTEXT.md` or `.forge/adr/`. They are marked in `.forge/done/*/STATUS.md` as `retro: skipped (…)` or "auto, promotion unreviewed" and can be revisited later — but **only when someone invokes the outside-the-loop utility `fg-learn` (batch promotion) directly**: no orchestrator ever calls it on its own.
+1. **Promotion is deferred with no human in the loop.** An unattended seal asks no promotion question, so learnings stay in the auto retro log or the archived `run.md` (the plan-vs-actual divergence note) instead of rising into `CONTEXT.md` or `.forge/adr/`. They are marked in `.forge/done/*/STATUS.md` as `retro: skipped (…)` or as a retro whose first line carries the `auto-retro` marker, and can be revisited later — but **only when someone invokes the outside-the-loop utility `fg-learn` (batch promotion) directly**: no orchestrator ever calls it on its own.
 2. **A misjudged seal cannot be undone.** If the UAT (verification) verdict itself was wrong — say it was confirmed `n/a` when the change was not really docs-only — nothing in forge reverts `status: done` (`fg-drop` leaves `done/` alone). The seal trigger `simple` removes was friction, but it was also **the checkpoint where a wrong verdict got a second look**.
 3. **You cannot run an adversarial review before the seal.** `fg-adversarial-review` (the optional utility that assumes the result is wrong and attacks it) targets **the active slot only**, and `simple` seals in the same turn the UAT passes, emptying that slot — the task moves into `done/` before you get the chance to ask for a review, and there is no path back to review a sealed task. For a team that reviews before sealing, that practice quietly disappears.
 
@@ -62,7 +62,7 @@ There are three costs. Turn it on for the convenience alone and all three come a
 | `fg-next all` (unattended drive) | No effect — already seals each task unattended (the seal decides the retro) |
 | `fg-loop` (goal-driven loop) | No effect — already seals each task unattended (the seal decides the retro) |
 | `fg-quick` (lightweight lane) | No effect — it is outside the loop and isolated from the active-slot/seal contract to begin with |
-| `fg-status` | Adds one line to the status report saying auto-seal mode is on (while it is, an awaiting-seal entry should be rare) |
+| `fg-status` | Adds one line to the status report saying auto-seal mode is on (while it is, an awaiting-done entry should be rare) |
 
 ## The flow drawn out
 
@@ -76,7 +76,7 @@ flowchart TD
     STOP -.-> RUN
     UAT -->|yes / skipped / n/a| S{simple?}
     S -->|false default| HAND[handoff table · stop]
-    HAND --> DONE1[fg-done<br/>③ seal · retro judgment<br/>promotion asked once, if any]
+    HAND --> DONE1[fg-done<br/>③ done · retro judgment<br/>promotion asked once, if any]
     S -->|true| AUTO[unattended seal · retro judgment<br/>no promotion question · same turn]
     DONE1 --> NEXT[next task]
     AUTO --> NEXT

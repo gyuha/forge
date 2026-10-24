@@ -22,8 +22,10 @@ This review **always runs conversationally.** Deciding what is worth keeping and
 - **Unsealed work is not this skill's.** A task in the active slot or `.forge/executed/` gets its retro decided when it is sealed — route it to **fg-done** (`/forge:fg-done`), which runs the retro judgment and the verification gate (ADR-0009) in order. If the task is still `verified: pending` or `failed`, fg-done routes it to fg-run first.
 - **Candidates** = sealed tasks in `.forge/done/*/STATUS.md` that still carry the "promote later" promise:
   - **Auto retros not yet reviewed** — `retro:` is a path whose file's **first line** is `<!-- auto-retro: … -->`. An unattended seal wrote it, but nobody has judged what to promote. That marker line is the **only** discriminator — never a STATUS note, which is hand-written prose that may be missing or in another language. Use the retro as a starting draft rather than re-deriving from `run.md` alone.
-  - **Skips sealed before ADR `261024-191024`** — `retro:` reads `skipped (...)` **and** STATUS `completed:` is earlier than 2026-10-24, and the line carries no `reviewed` note. Before that date the drives skipped every retro unconditionally ("promote later"), so those skips are unjudged. A skip sealed on or after that date is a seal-time **judgment** that there was nothing to learn — it is not a candidate, or every interactive seal would come back here forever.
-  - Exclude legacy tasks with no `retro:` field, and retro paths with no `auto-retro` marker (already reviewed).
+  - **Unjudged skips** — `retro:` reads `skipped (...)` **without** the `judged:` prefix, and the line carries no `reviewed` note. Since ADR `261024-191024` the seal script writes every skip as `skipped (judged: <reason>)` — a seal-time judgment that there was nothing to learn, so not a candidate. A skip without `judged:` was written by the old drives' unconditional "promote later" rule, whatever its date (a same-day seal, a project that upgraded late, a merged branch), so it is still owed.
+  - **Unapplied promotions** — a retro whose first line is `<!-- promotion-pending -->`: an interactive seal adopted promotions but did not finish applying them. Apply the recorded ones (they were already approved) and remove the marker.
+  - **Unfilled retro field** — a sealed STATUS that still reads `retro: pending` (fg-doctor A3). Resolve it to the retro path or `skipped (judged: <reason>)`.
+  - Exclude legacy tasks with no `retro:` field, and retro paths with neither an `auto-retro` nor a `promotion-pending` marker (already reviewed).
 - **Entry is explicit only.** Run it when the user asks ("일괄 승급" / "batch promotion" / following a handoff that pointed here). Orchestrators never invoke it automatically.
 
 ## Behavior
@@ -63,7 +65,7 @@ fg-learn (batch promotion)
 Active slot / executed/ task?  ── yes ──▶ not this skill: route to fg-done (retro is decided at seal)
    │ no
    ▼
-Collect candidates in done/: auto-retro marker still present · skips sealed before ADR 261024-191024 (unreviewed)
+Collect candidates in done/: auto-retro or promotion-pending marker · skips without judged: (unreviewed) · retro: pending
    ▼
 Per task, one at a time (conversational):
    read archived plan · run (Rulings, Failed attempts) · review · auto retro draft

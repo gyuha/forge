@@ -47,6 +47,7 @@ seed_skip()   { seed_active "$1" "p-skip" "yes (t)" "pending"; }
 seed_vfail()  { seed_active "$1" "p-vf" "failed (x)" "pending"; }
 seed_vpend()  { seed_active "$1" "p-vp" "pending" "pending"; }
 seed_retro_owed() { seed_active "$1" "p-ro" "yes (t)" "pending"; }
+seed_signal() { seed_active "$1" "p-sig" "yes (t)" "pending"; printf -- '- S1 x — ⚠ grew\n## Failed attempts\n- 1: red / fix\n' > "$1/.forge/run.md"; }
 seed_review() { seed_active "$1" "p-rv" "yes (t)" "pending"; printf 'findings\n' > "$1/.forge/review.md"; }
 seed_executed() {
   mkdir -p "$1/.forge/executed/p-ex"
@@ -77,6 +78,7 @@ check "docs-updated arg"               seed_skip      --skip-retro "auto" --docs
 check "verify gate: failed -> refuse"  seed_vfail     --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
 check "verify gate: pending -> refuse" seed_vpend     --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
 check "retro gate: owed -> refuse"     seed_retro_owed --completed 2026-07-05 --sealed-id 260705-120000
+check "signal gate: skip refused"     seed_signal    --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
 check "review.md moved + reviewed"     seed_review    --skip-retro "x" --completed 2026-07-05 --sealed-id 260705-120000
 check "executed parked seal"           seed_executed  --slug p-ex --completed 2026-07-05 --sealed-id 260705-120000
 check "half-sealed completion"         seed_halfsealed --slug p-hs --completed 2026-07-05 --sealed-id 260705-120000

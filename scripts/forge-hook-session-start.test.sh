@@ -117,7 +117,7 @@ for s in p1 p2 p3 p4; do
   seed_status "$t/.forge/executed/$s/STATUS.md" "$s" executed "yes (t)" pending
 done
 run_hook "$t"
-assert_grep  "5-parked-count"    "$OUT" "Parked awaiting seal: 4 in .forge/executed/ (fg-done / fg-done all)"
+assert_grep  "5-parked-count"    "$OUT" "Parked awaiting done: 4 in .forge/executed/ (fg-done / fg-done all)"
 assert_ngrep "5-no-tail-header"  "$OUT" "Unsealed tail"
 assert_ngrep "5-not-listed"      "$OUT" "\`p1\`"
 assert_ngrep "5-no-more-line"    "$OUT" "more parked"
@@ -286,7 +286,7 @@ for s in m1 m2 m3 m4 m5; do
 done
 run_hook "$t"
 assert_grep "16-active-survives" "$OUT" "\`survivor\` — active slot"
-assert_grep "16-parked-count-5"  "$OUT" "Parked awaiting seal: 5"
+assert_grep "16-parked-count-5"  "$OUT" "Parked awaiting done: 5"
 rm -rf "$t"
 
 # --- (17) hooks.json asserted as a PARSED object, not a substring grep ------

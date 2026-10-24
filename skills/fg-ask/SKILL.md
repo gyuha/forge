@@ -126,7 +126,7 @@ The original text ends above. What follows is the minimal glue that keeps the fo
   - *"Here are three arrangements of the landing-page hero — which reads as most professional?"* — a look-and-feel choice.
   - *"Here is the loop's state machine drawn out — is this the transition you meant?"* — a diagram confirming a spatial/structural understanding.
   - *"The mockup's image slot is collapsing — here it is at three widths; which behavior do you want?"* — diagnosing something visual, where the bug **is** the appearance.
-  - *"Here is the forge loop's four stages with the verification and retro gates drawn in."* — **explaining** a flow with branches and gates, where the shape is the point.
+  - *"Here is the forge loop's three stages with the verification gate and the seal-time retro judgment drawn in."* — **explaining** a flow with branches and gates, where the shape is the point.
   - *"Here are the three approaches side by side, with what each one costs and gives up."* — **explaining** a multi-dimensional comparison the user has to hold in their head at once.
 
   The boundary for explanations: **a text flow diagram comes first.** If `A → B → C` carries it, write that in the terminal — the browser is for what a text diagram cannot hold: several branches at once, a state machine's transitions, a deep hierarchy, or a comparison across more than one axis. (Skill files themselves are text-flow-only by convention; this is about the conversation, not the docs.)

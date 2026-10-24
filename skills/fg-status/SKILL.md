@@ -1,6 +1,6 @@
 ---
 name: fg-status
-description: A read-only status reporter for the forge loop — surveys .forge/ and shows where every task stands (active slot, backlog, awaiting-seal, done history, quick lane) plus the single next step you need, with its trigger. Writes nothing, never auto-runs (fg-status reports; fg-next acts). On-demand utility outside the loop. Use in contexts like 'forge status', '상태', '어디까지 했지', '진행 상황', 'where am I'.
+description: A read-only status reporter for the forge loop — surveys .forge/ and shows where every task stands (active slot, backlog, awaiting-done, done history, quick lane) plus the single next step you need, with its trigger. Writes nothing, never auto-runs (fg-status reports; fg-next acts). On-demand utility outside the loop. Use in contexts like 'forge status', '상태', '어디까지 했지', '진행 상황', 'where am I'.
 ---
 
 # fg-status — read-only status reporter (outside the loop)
@@ -41,7 +41,7 @@ Read these from `.forge/` (skip silently what doesn't exist):
 
 - **Active slot** — `.forge/plan.md`, `.forge/run.md`, `.forge/STATUS.md` (read its `status:`, `verified:`, and `retro:` fields), and `.forge/running.md` (the **in-flight marker** fg-run writes immediately before launch with `workflow: pending`, then updates with a collectable host handle when available and deletes once `run.md` lands — its presence without a `run.md` means the launch boundary was reached but no durable result was collected). This is the one task currently active.
 - **Backlog** — `.forge/backlog/*.md` (unexecuted ASKs produced by fg-ask). Read each plan's title (first `#` line) and `forge-slug`.
-- **Awaiting seal** — `.forge/executed/<slug>/` (parked by fg-run "Run all", each with `STATUS.md` at `status: executed`).
+- **Awaiting done** — `.forge/executed/<slug>/` (parked by fg-run "Run all", each with `STATUS.md` at `status: executed`).
 - **Done (history)** — `.forge/done/*/STATUS.md` (`status: done`; note each one's `retro:` = path or `skipped`).
 - **Quick lane** — `.forge/quick/LOG.md` (entries written by fg-quick).
 - **Goal loop** — `.forge/loop.md` (the goal contract written by fg-loop: one-line goal, `replan-round`/`replan-cap`, `budget-tokens`/`budget-spent`, stop-condition check states).
@@ -54,12 +54,12 @@ Report in the user's language (the section labels below are canonical English �
 
 - **Active slot** — task title · slug · has run.md? · STATUS `status`/`verified`/`retro`. (Or "none".)
 - **Backlog** — list each unexecuted ASK (title · slug). (Or "none".)
-- **Awaiting seal (executed/)** — list each parked task. (Or "none".)
+- **Awaiting done (executed/)** — list each parked task. (Or "none".)
 - **Done** — count + the most recent few (date-slug · `retro: done`/`skipped`). Summary, not a full dump.
 - **Quick lane (quick/LOG)** — count + the most recent few entries. Summary.
 - **Goal loop (loop.md)** — one line: goal · round N/cap · **spend `budget-spent`/`budget-tokens` when a ceiling is declared** (omit this part on `budget-tokens: none`) · checks passing/failing. Showing spend *before* it becomes a wall is the point — a ceiling the user only hears about at the halt is one they cannot pace against. **Say what the number is, not just the number**: it is raw token throughput for the whole project while the loop is alive (cache reads included, and work done in this repo between a wall and a resume counts), not this drive's billed cost — a safety bound, not an accounting ledger. Without that, a spend figure larger than the user expects reads as a bug rather than as the documented behavior (ADR-0016 amended 2026-08-20). (Omit the section when no `loop.md` exists.)
 - **Agenda (agenda.md)** — one line: destination · N open questions · fog yes/no · trigger `fg-agenda`. Comes from the diagnostic layer above, not from the script's output. (Omit the section when no `agenda.md` exists.)
-- **Simple mode note** — when `simple` is `true` in the **top-level** `.forge/config.json`, add one line that auto-seal mode is on (after verification fg-run seals in the same turn as an unattended seal — ADR `260905-212045`), so an `executed`/awaiting-seal entry should be rare while it is on. (Omit the line when `simple` is `false` or absent.)
+- **Simple mode note** — when `simple` is `true` in the **top-level** `.forge/config.json`, add one line that auto-seal mode is on (after verification fg-run seals in the same turn as an unattended seal — ADR `260905-212045`), so an `executed`/awaiting-done entry should be rare while it is on. (Omit the line when `simple` is `false` or absent.)
 - **Next step** — the single next step and how to trigger it, rendered as the **handoff table** (see below).
 
 Keep it scannable. Don't paste full file contents — titles, slugs, and one-line states only.
@@ -83,12 +83,12 @@ No. | Date | Task | Stage | Verify | Retro
   | active slot, `plan.md` only (no run.md) | `run` |
   | active slot, `plan.md` + `running.md` (no run.md — execution in flight) | `run` |
   | active slot `run.md` present, `verified:` **not** sealable (`pending`/missing/`failed`) | `run` |
-  | active slot `run.md` present, `verified:` sealable (`yes`/`skipped`/`n/a`) | `seal` |
+  | active slot `run.md` present, `verified:` sealable (`yes`/`skipped`/`n/a`) | `done` |
   | `executed/`, `verified: failed` | `run` |
-  | `executed/`, anything else | `seal` |
-  | `done/` (sealed) | `done` |
+  | `executed/`, anything else | `done` |
+  | `done/` (sealed) | `done ✔` |
 
-  **Once a plan has run, the discriminator is who owns the next step — not which files exist.** (Before that it is simply where the work sits: an unexecuted `backlog/` plan reads `ask` even though fg-run is what promotes it.) A run whose UAT is owed or broken is still fg-run's — its verification-only resume (`pending`) or fix-and-re-run (`failed`) — so rendering it `seal` would contradict the next-step machine below on the same screen (the table would read `seal` while the handoff says `/forge:fg-run`). A parked `pending` is the one case that inverts: fg-run cannot reach it, so it routes to fg-done (step 3) and stays `seal`. The statusline applies this same gating (ADR-0017, 3rd amendment) — the table now matches it.
+  **Once a plan has run, the discriminator is who owns the next step — not which files exist.** (Before that it is simply where the work sits: an unexecuted `backlog/` plan reads `ask` even though fg-run is what promotes it.) A run whose UAT is owed or broken is still fg-run's — its verification-only resume (`pending`) or fix-and-re-run (`failed`) — so rendering it `done` would contradict the next-step machine below on the same screen (the table would read `done` while the handoff says `/forge:fg-run`). A parked `pending` is the one case that inverts: fg-run cannot reach it, so it routes to fg-done (step 3) and stays `done`. The statusline applies this same gating (ADR-0017, 3rd amendment) — the table now matches it.
 
 - **Verify (O/~/—/✗)** — from the STATUS `verified:` field: `yes` → `O`; `skipped`/`n/a` → `~` (sealable waiver / not-applicable, not a positive confirmation); `pending` / missing / not yet reached → `—`; `failed` → `✗` (UAT ran, result broken — blocks seal). A `—` on a task that already has a `run.md` means the UAT is still owed; a `✗` means it needs fixing or re-grilling (see the next-step machine below). On a sealed `done/` task a `—` means **legacy** (sealed before ADR-0009, no `verified:` field) — not an in-flight pending; render it `—` (or note "legacy") and don't treat it as a gate violation.
 - **Retro (O/X/—)** — from the STATUS `retro:` field: a retro path (retro done) → `O`; **a matching `.forge/retro/*-<slug>.md` file exists while STATUS still reads `pending` (normal pre-seal state — fg-done fills the field at seal; see the next-step machine) → `O`**; `skipped` → `X`; anything else (pending with no retro file / not yet reached) → `—`.

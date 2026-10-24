@@ -138,7 +138,8 @@ const { rows, footer } = surveyForge(root);
 // Pad by UTF-8 BYTE length, not String.length: the bash twin aligns with
 // `LC_ALL=C awk` whose length() counts bytes, so a multibyte (e.g. Hangul) slug
 // would otherwise pad differently here and break sh↔js parity (ADR-0022 review).
-const blen = (s) => Buffer.byteLength(s || '', 'utf8');
+// Exception, mirrored in the .sh: the 3-byte "✔" on sealed rows counts as one column.
+const blen = (s) => Buffer.byteLength(s || '', 'utf8') - 2 * ((s || '').split('✔').length - 1);
 const padBytes = (s, w) => (s || '') + ' '.repeat(Math.max(0, w - blen(s)));
 const header = ['No.', 'Date', 'Task', 'Stage', 'Verify', 'Retro'];
 const all = [header, ...rows];

@@ -1,6 +1,6 @@
 ---
 name: fg-drop
-description: Discards incomplete (not-yet-sealed) forge work you no longer want — backlog plans, the active slot, awaiting-seal tasks, or a halted goal loop. Presents the items with a per-item risk level, then hard-delete (default) or archive to .forge/dropped/, behind a confirmation gate (already-run code is NOT reverted). Removes forge state only — never git or your code. Outside the loop (sealing a task is fg-done). Use in contexts like 'forge drop', 'fg-drop', '작업 버리기', '계획 지워', '백로그 비워', 'discard plan'.
+description: Discards incomplete (not-yet-sealed) forge work you no longer want — backlog plans, the active slot, awaiting-done tasks, or a halted goal loop. Presents the items with a per-item risk level, then hard-delete (default) or archive to .forge/dropped/, behind a confirmation gate (already-run code is NOT reverted). Removes forge state only — never git or your code. Outside the loop (sealing a task is fg-done). Use in contexts like 'forge drop', 'fg-drop', '작업 버리기', '계획 지워', '백로그 비워', 'discard plan'.
 ---
 
 # fg-drop — discard incomplete work (outside the loop)

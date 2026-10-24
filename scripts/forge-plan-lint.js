@@ -26,15 +26,14 @@ const sliceRe = /^\s*(- (\[[ xX]\] )?(\*\*)?|#{2,4} )(S[0-9]+)([.:)]|\*\*|\s|$)/
 // E1 — forge-slug on the first line
 if (!/^<!-- forge-slug: \S.* -->\s*$/.test(lines[0] || '')) err('E1', 'first line must be <!-- forge-slug: <slug> -->');
 
-const slices = new Set(); const deps = []; const evals = [];
+const slices = new Set(); const deps = []; const evals = []; const listItems = [], headItems = [];
 let hasTask = false, generated = false;
 for (const l of lines) {
   const s = sliceRe.exec(l);
   if (s) {
-    const id = s[4];
-    if (slices.has(id)) err('E3', id); else slices.add(id);
     const d = /\(depends: ([^)]*)\)/.exec(l);
-    if (d) deps.push([id, d[1]]);
+    // Headings are kept apart — see the .sh twin.
+    (/^\s*#/.test(l) ? headItems : listItems).push([s[4], d ? d[1] : '']);
     continue;
   }
   const m = markerRe.exec(l);
@@ -52,6 +51,11 @@ for (const l of lines) {
   else if (key === 'eval') evals.push(val);
 }
 
+// Slices = list items; heading-form slices count only when there are no list items.
+for (const [id, dep] of (listItems.length ? listItems : headItems)) {
+  if (slices.has(id)) err('E3', id); else slices.add(id);
+  if (dep) deps.push([id, dep]);
+}
 if (slices.size === 0) err('E2', "no '- [ ] S<n>.' slice");
 
 // E4 — every depends reference must exist

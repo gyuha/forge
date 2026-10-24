@@ -187,9 +187,33 @@ if (vtok !== 'yes' && vtok !== 'skipped' && vtok !== 'n/a') {
 }
 
 // --- GATE 2: retro done-or-skipped -------------------------------------------
+// Retro signals (ADR 261024-191024) — see the bash twin's comment.
+function sectionHasItems(file, heading) {
+  if (!isFile(file)) return false;
+  let ins = false, found = false;
+  for (const raw of fs.readFileSync(file, 'utf8').split('\n')) {
+    const l = raw.replace(/\r$/, '');
+    if (l === `## ${heading}`) { ins = true; continue; }
+    if (ins && /^#/.test(l)) ins = false;
+    if (ins && /^\s*- /.test(l)) found = true;
+  }
+  return found;
+}
+function retroSignals() {
+  const sig = [];
+  if (isFile(R) && fs.readFileSync(R, 'utf8').split('\n').some(l => /^\s*- S[0-9]+/.test(l) && l.includes('⚠'))) sig.push('diverged');
+  if (sectionHasItems(R, 'Failed attempts')) sig.push('failed-attempts');
+  if (sectionHasItems(R, 'Rulings')) sig.push('rulings');
+  const fr = field(S, 'fix-rounds');
+  if (/^[0-9]+$/.test(fr) && parseInt(fr, 10) > 0) sig.push('fix-rounds');
+  return sig.join(',');
+}
+
 let retroOut = '';
 if (skipGiven) {
-  retroOut = `skipped (${skipRetro})`;
+  const signals = retroSignals();
+  if (signals) die(`GATE_RETRO skip-refused signals=${signals} slug=${slug}`, 4);
+  retroOut = `skipped (judged: ${skipRetro})`;
 } else {
   const rf = findRetro(slug);
   if (rf) retroOut = rf;

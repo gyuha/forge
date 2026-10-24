@@ -172,7 +172,7 @@ if [ -f "$root/plan.md" ]; then
     # resume for pending, fix-and-re-run for failed), so `seal` would contradict
     # the next-step machine (SKILL.md step 1) on the same screen. Same gating the
     # statusline already applies (ADR-0017, 3rd amendment).
-    case "$(norm "$v")" in yes|skipped|n/a) stage="seal" ;; *) stage="run" ;; esac
+    case "$(norm "$v")" in yes|skipped|n/a) stage="done" ;; *) stage="run" ;; esac
     add_row "$no" "$date" "${slug}${tag}" "$stage" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   else
     add_row "$no" "-" "${slug}${tag}" "run" "-" "-"
@@ -200,7 +200,7 @@ $(for f in "$root"/backlog/*.md; do
 EOF
 fi
 
-# Awaiting seal (executed/)
+# Awaiting done (executed/)
 if [ -d "$root/executed" ]; then
   for dir in "$root"/executed/*/; do
     [ -d "$dir" ] || continue
@@ -212,7 +212,7 @@ if [ -d "$root/executed" ]; then
     # Only `failed` leaves fg-run's hands here: fg-run unparks it into the active
     # slot. A parked `pending` routes to fg-done (it confirms the UAT at seal
     # time), so it stays `seal` — the discriminator is who owns the next step.
-    case "$(norm "$v")" in failed) stage="run" ;; *) stage="seal" ;; esac
+    case "$(norm "$v")" in failed) stage="run" ;; *) stage="done" ;; esac
     add_row "$no" "$date" "${slug}$(looptag "$p")" "$stage" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   done
 fi
@@ -244,7 +244,7 @@ if [ -d "$root/done" ]; then
     slug="$(slugof "$p")"; [ -z "$slug" ] && slug="$(field "$st" slug)"; [ -z "$slug" ] && slug="$name_slug"
     no="$(taskof "$p")"; [ -z "$no" ] && no="-" || no="#$no"
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
-    add_row "$no" "$date" "${slug}$(looptag "$p")" "done" "$(vsym "$v")" "$(rsym "$r" "$slug")"
+    add_row "$no" "$date" "${slug}$(looptag "$p")" "done ✔" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   done <<EOF
 $(find "$root/done" -mindepth 1 -maxdepth 1 -type d | sort -r | head -"$DONE_ROWS")
 EOF
@@ -259,12 +259,14 @@ fi
   echo "No.|Date|Task|Stage|Verify|Retro"
   printf '%s' "$rows"
 } | LC_ALL=C awk -F'|' '
-{ lines[NR]=$0; nf[NR]=NF; for (i=1;i<=NF;i++) if (length($i)>w[i]) w[i]=length($i) }
+# vl = display width: byte length, except the 3-byte "✔" (sealed rows) counts as 1
+function vl(s,  t, n) { t=s; n=gsub(/✔/,"",t); return length(s)-2*n }
+{ lines[NR]=$0; nf[NR]=NF; for (i=1;i<=NF;i++) if (vl($i)>w[i]) w[i]=vl($i) }
 END {
   for (r=1;r<=NR;r++) {
     n=split(lines[r],f,"|"); out=""
     for (i=1;i<=n;i++) {
-      s=f[i]; pad=w[i]-length(s); sp=""
+      s=f[i]; pad=w[i]-vl(s); sp=""
       while (pad-- > 0) sp=sp " "
       out=out s sp; if (i<n) out=out "  "
     }

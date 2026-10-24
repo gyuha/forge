@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>forge — Claude Code 워크플로우 플러그인</title>
-<meta name="description" content="에이전트 엔지니어링을 위한 Claude Code 워크플로우 플러그인. 작업 하나를 질의·계획 → 실행 → 봉인의 한 바퀴로(회고는 봉인 안에서 판정).">
+<meta name="description" content="에이전트 엔지니어링을 위한 Claude Code 워크플로우 플러그인. 작업 하나를 질의·계획 → 실행 → 완료의 한 바퀴로(회고는 완료 단계에서 판정).">
 <link rel="canonical" href="https://gyuha.com/forge/">
 <meta name="theme-color" content="#000000">
 <meta property="og:type" content="website">
@@ -18,7 +18,7 @@
 <meta property="og:image:alt" content="forge — Agent engineering. One task, one cycle.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="forge — Agent engineering. One task, one cycle.">
-<meta name="twitter:description" content="계획 → 실행 → 봉인을 한 바퀴로 굴리는 워크플로우 플러그인.">
+<meta name="twitter:description" content="계획 → 실행 → 완료를 한 바퀴로 굴리는 워크플로우 플러그인.">
 <meta name="twitter:image" content="https://gyuha.com/forge/docs/og-image.png">
 <link rel="icon" href="./icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -138,7 +138,7 @@ document.documentElement.className+=' fg-js';
     <h1 style="position:relative;margin:0;font-size:clamp(76px,15vw,168px);font-weight:700;letter-spacing:-0.05em;line-height:0.92;color:#fff">forge<span style="color:#ff8a3d">.</span></h1>
   </div>
 
-  <p style="position:relative;margin:26px 0 0;font-size:clamp(21px,3.4vw,30px);font-weight:600;letter-spacing:-0.02em;line-height:1.18;color:#f5f5f7;max-width:660px"><span data-l="ko">에이전트 엔지니어링. 하나의 작업을 하나의 사이클로.</span><span data-l="en">Agent engineering. One task, one cycle.</span><br><span style="color:rgba(255,255,255,0.62);font-weight:400">ask·plan → execute → seal.</span></p>
+  <p style="position:relative;margin:26px 0 0;font-size:clamp(21px,3.4vw,30px);font-weight:600;letter-spacing:-0.02em;line-height:1.18;color:#f5f5f7;max-width:660px"><span data-l="ko">에이전트 엔지니어링. 하나의 작업을 하나의 사이클로.</span><span data-l="en">Agent engineering. One task, one cycle.</span><br><span style="color:rgba(255,255,255,0.62);font-weight:400">ask·plan → execute → done.</span></p>
 
   <p style="position:relative;margin:20px 0 0;font-size:16px;line-height:1.55;color:rgba(255,255,255,0.6);max-width:540px"><span data-l="ko">24개의 <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> 스킬로 만든 루프형 워크플로우. 계획은 대화로 갈고, 실행은 워크플로우로 돌리고, 봉인하며 배움을 문서로 남깁니다.</span><span data-l="en">A loop-style workflow built from twenty-four <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#ff8a3d">fg-</code> skills. Plans are sharpened in conversation, execution runs as a workflow, and the seal leaves its learnings in the docs.</span></p>
 
@@ -197,7 +197,7 @@ document.documentElement.className+=' fg-js';
             <span style="font-size:12px;font-weight:600;color:#ff8a3d;font-family:'JetBrains Mono',monospace">fg-done</span>
             <span data-stepnum style="width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:rgba(255,255,255,0.55);border:1px solid rgba(255,255,255,0.18);transition:all .5s ease">③</span>
           </div>
-          <div style="font-size:17px;font-weight:600;letter-spacing:-0.02em;color:#fff;margin-bottom:6px">Seal</div>
+          <div style="font-size:17px;font-weight:600;letter-spacing:-0.02em;color:#fff;margin-bottom:6px">Done</div>
           <div style="font-size:12.5px;line-height:1.45;color:rgba(255,255,255,0.55)"><span data-l="ko">회고가 필요한지 판정하고 작업을 봉인 — 재실행을 막습니다.</span><span data-l="en">Decides the retro and seals the task — blocks re-running.</span></div>
         </div>
       </div>
@@ -236,7 +236,7 @@ document.documentElement.className+=' fg-js';
       <div data-reveal class="fg-card" style="background:#fff;border-radius:18px;padding:26px 24px;box-shadow:rgba(0,0,0,0.06) 0 4px 20px 0;transition:transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <span style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;color:#c25a1a">fg-done</span>
-          <span style="font-size:11px;font-weight:600;color:#86868b;background:#f5f5f7;padding:3px 9px;border-radius:980px">③ Seal</span>
+          <span style="font-size:11px;font-weight:600;color:#86868b;background:#f5f5f7;padding:3px 9px;border-radius:980px">③ Done</span>
         </div>
         <div style="font-size:16px;font-weight:600;letter-spacing:-0.01em;color:#1d1d1f;margin-bottom:8px"><span data-l="ko">봉인 · 재실행 가드</span><span data-l="en">Seal · re-run guard</span></div>
         <p style="margin:0;font-size:13.5px;line-height:1.5;color:rgba(0,0,0,0.62)"><span data-l="ko">회고 필요 여부를 판정해(배울 게 있으면 회고 로그를 쓰고, 승급 후보가 바를 넘을 때만 한 번 물음) STATUS를 done으로 닫아 아카이브. 활성 상태를 비우고 루프를 닫습니다. 기계적 봉인은 결정론 스크립트(forge-done.sh/.js)가 처리합니다. all 모드는 이미 실행된 작업을 일괄 봉인합니다.</span><span data-l="en">Decides the retro (writes a retro log when there is something to learn; asks once only when a promotion clears the bar), closes STATUS as done, and archives. Empties active state and closes the loop; the mechanical seal runs as a deterministic script (forge-done.sh/.js). <code style="font-family:'JetBrains Mono',monospace;color:#c25a1a">all</code> mode batch-seals already-executed tasks.</span></p>
@@ -505,7 +505,7 @@ document.documentElement.className+=' fg-js';
       <div data-reveal style="position:relative;display:flex;gap:22px;padding:16px 0">
         <div style="flex:none;width:48px;height:48px;border-radius:50%;background:#0e0e0e;border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:#ff8a3d;z-index:1">03</div>
         <div style="padding-top:4px">
-          <div style="font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#fff;margin-bottom:5px"><span data-l="ko">봉인</span><span data-l="en">Seal</span></div>
+          <div style="font-size:17px;font-weight:600;letter-spacing:-0.01em;color:#fff;margin-bottom:5px"><span data-l="ko">완료</span><span data-l="en">Done</span></div>
           <p style="margin:0;font-size:14px;line-height:1.55;color:rgba(255,255,255,0.6)"><span data-l="ko">"작업 완료"라고 하면 fg-done이 검증을 확인하고, 배울 게 있으면 회고 로그를 쓴 뒤 done/으로 아카이브 — 대부분의 작업은 회고 질문이 없고, 같은 작업은 다시 돌지 않습니다.</span><span data-l="en">Say "seal" and fg-done checks verification, writes a retro log when there is something to learn, then archives to done/ — most tasks get no retro question, and the same task never runs again.</span></p>
         </div>
       </div>
@@ -545,7 +545,7 @@ document.documentElement.className+=' fg-js';
 ├── <span style="color:#2997ff">STATUS.md</span>         실행/검증 상태
 ├── <span style="color:#2997ff">loop.md</span>           goal 루프 계약
 ├── <span style="color:#2997ff">agenda.md</span>         결정 대기열
-├── <span style="color:#2997ff">executed/</span>         봉인 대기
+├── <span style="color:#2997ff">executed/</span>         완료 대기
 └── <span style="color:#2997ff">done/</span>             봉인 아카이브</span><span data-l="en">.forge/
 <span style="color:#6b7075"># permanent docs (git-tracked)</span>
 ├── <span style="color:#ff8a3d">CONTEXT.md</span>        glossary
@@ -560,7 +560,7 @@ document.documentElement.className+=' fg-js';
 ├── <span style="color:#2997ff">STATUS.md</span>         execute/verify status
 ├── <span style="color:#2997ff">loop.md</span>           goal loop contract
 ├── <span style="color:#2997ff">agenda.md</span>         decision queue
-├── <span style="color:#2997ff">executed/</span>         awaiting seal
+├── <span style="color:#2997ff">executed/</span>         awaiting done
 └── <span style="color:#2997ff">done/</span>             sealed archive</span></pre>
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
@@ -592,7 +592,7 @@ document.documentElement.className+=' fg-js';
       <span style="display:inline-flex;width:26px;height:26px;align-items:center;justify-content:center;color:#ff8a3d"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4-3 7-7 8-4-1-7-4-7-8V7l7-4z"/><path d="M9 12l2 2 4-4"/></svg></span>
       <span style="font-size:20px;font-weight:600;letter-spacing:-0.02em;color:#f5f5f7">forge</span>
     </div>
-    <p style="margin:0 0 26px;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.5)">ask·plan → execute → seal.<br><span data-l="ko">같은 작업은 두 번 돌지 않습니다.</span><span data-l="en">The same task never runs twice.</span></p>
+    <p style="margin:0 0 26px;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.5)">ask·plan → execute → done.<br><span data-l="ko">같은 작업은 두 번 돌지 않습니다.</span><span data-l="en">The same task never runs twice.</span></p>
     <a href="https://github.com/gyuha/forge" target="_blank" rel="noopener" style="text-decoration:none;font-size:14px;font-weight:500;color:#fff;background:#0071e3;padding:11px 24px;border-radius:980px;display:inline-block">github.com/gyuha/forge ›</a>
   </div>
 </footer>

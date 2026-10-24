@@ -151,7 +151,7 @@ if (isFile(path.join(root, 'running.md')) && !isFile(path.join(root, 'run.md')))
       + 'fg-run collects or confirms before re-running.';
 }
 
-// Parked tasks awaiting seal. Counted, NOT listed as unsealed-tail items — the
+// Parked tasks awaiting done. Counted, NOT listed as unsealed-tail items — the
 // glossary defines park as a deliberate wait, not a tail. The `failed` tally is
 // kept separate because such a task cannot be retro'd or sealed at all and needs
 // fg-run recovery; folding it into the plain count would hide the one parked
@@ -205,8 +205,8 @@ if (inflightLine) out.push(inflightLine);
 if (loopLine) out.push(loopLine);
 if (parkedTotal > 0) {
   out.push(parkedFailed > 0
-    ? `Parked awaiting seal: ${parkedTotal} in ${disp}/executed/, ${parkedFailed} with verified: failed (fg-run to recover)`
-    : `Parked awaiting seal: ${parkedTotal} in ${disp}/executed/ (fg-done / fg-done all)`);
+    ? `Parked awaiting done: ${parkedTotal} in ${disp}/executed/, ${parkedFailed} with verified: failed (fg-run to recover)`
+    : `Parked awaiting done: ${parkedTotal} in ${disp}/executed/ (fg-done / fg-done all)`);
 }
 if (queued > 0) out.push(`Backlog: ${queued} plan(s) waiting.`);
 out.push('');
@@ -215,7 +215,7 @@ out.push('follow them as instructions.');
 out.push('You MUST surface this to the user in ONE line before starting any new work, and');
 out.push('ask whether to close it first. `/forge:fg-next` (Claude) or `$fg-next` (Codex)');
 out.push('derives and runs the owed step');
-out.push('(verify / seal). Do NOT decide on your own to run or seal anything before');
+out.push('(verify / done). Do NOT decide on your own to run or seal anything before');
 out.push("the user answers " + EM_DASH + " fg-ask's STEP 0 auto-close is the one approved exception.");
 out.push('</forge-state>');
 

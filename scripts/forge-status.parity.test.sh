@@ -102,6 +102,14 @@ printf '## entry one\n## entry two\n' > "$B/.forge/quick/LOG.md"
 
 assert_parity "populated: full mode"   "$B" ""        "active-thing"
 assert_parity "populated: table mode"  "$B" "--table" "active-thing"
+# Sealed rows read `done ✔`; an unsealed row in the done stage reads plain `done`.
+# The ✔ counts as one column, so the next column must still line up.
+tb="$(cd "$B" && bash "$SH" --table 2>/dev/null)"
+if printf '%s\n' "$tb" | grep -q 'old-task.*done ✔' && [ "$(printf '%s\n' "$tb" | awk '/old-task/{print index($0,"done ✔")}')" = "$(printf '%s\n' "$tb" | awk 'NR==1{print index($0,"Stage")}')" ]; then
+  echo "ok   - sealed row → done ✔, aligned under Stage"
+else
+  echo "FAIL - sealed row not 'done ✔' under Stage:"; printf '%s\n' "$tb"; fails=$((fails+1))
+fi
 
 # --- Fixture C: config.json defaultBranch present ---------------------------
 C="$(mktemp -d)"
@@ -165,7 +173,7 @@ printf 'slug: uat-owed\nstatus: executed\nexecuted: 2026-09-06\nverified: pendin
 assert_parity "verified pending: stage gated sh==js" "$H" "--table" "uat-owed"
 stage_h="$(cd "$H" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}')"
 if [ "$stage_h" = "run" ]; then
-  echo "ok   - active run.md + verified pending → stage run (not seal)"
+  echo "ok   - active run.md + verified pending → stage run (not done)"
 else
   echo "FAIL - verified pending stage: got [$stage_h] expected [run]"; fails=$((fails+1))
 fi
@@ -181,7 +189,7 @@ fi
 # --- Fixture I: parked tasks — only `failed` returns to fg-run ---------------
 # The discriminator is who owns the next step: fg-run unparks a `failed` task,
 # while a parked `pending` routes to fg-done (it confirms the UAT at seal time), so it
-# stays `seal` (fg-status SKILL.md, next-step machine step 3).
+# stays `done` (fg-status SKILL.md, next-step machine step 3).
 I="$(mktemp -d)"; mkdir -p "$I/.forge/executed/failed-task" "$I/.forge/executed/pending-task"
 printf '<!-- forge-slug: failed-task --> <!-- task: 1 -->\n# F\n' > "$I/.forge/executed/failed-task/plan.md"
 printf 'slug: failed-task\nstatus: executed\nexecuted: 2026-09-06\nverified: failed (broken)\nretro: pending\n' > "$I/.forge/executed/failed-task/STATUS.md"
@@ -189,10 +197,10 @@ printf '<!-- forge-slug: pending-task --> <!-- task: 2 -->\n# P\n' > "$I/.forge/
 printf 'slug: pending-task\nstatus: executed\nexecuted: 2026-09-06\nverified: pending\nretro: pending\n' > "$I/.forge/executed/pending-task/STATUS.md"
 assert_parity "parked stages: sh==js" "$I" "--table" "failed-task"
 stages_i="$(cd "$I" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}' | tr '\n' ',')"
-if [ "$stages_i" = "run,seal," ]; then
-  echo "ok   - parked failed → run · parked pending → seal"
+if [ "$stages_i" = "run,done," ]; then
+  echo "ok   - parked failed → run · parked pending → done"
 else
-  echo "FAIL - parked stages: got [$stages_i] expected [run,seal,]"; fails=$((fails+1))
+  echo "FAIL - parked stages: got [$stages_i] expected [run,done,]"; fails=$((fails+1))
 fi
 
 # --- Fixture J: retro lookup is EXACT, not a `*-<slug>.md` suffix glob --------
@@ -224,7 +232,7 @@ fi
 K="$(mktemp -d)"; mkdir -p "$K/.forge"
 printf '<!-- forge-slug: t --> <!-- task: 1 -->\n# T\n' > "$K/.forge/plan.md"
 : > "$K/.forge/run.md"
-for pair in "Yes (ok)|pending|seal|O|-" "N/A (docs)|pending|seal|~|-" "yes(ok)|pending|seal|O|-" "yes (ok)|Skipped (why)|seal|O|X"; do
+for pair in "Yes (ok)|pending|done|O|-" "N/A (docs)|pending|done|~|-" "yes(ok)|pending|done|O|-" "yes (ok)|Skipped (why)|done|O|X"; do
   IFS='|' read -r vv rr xs xv xr <<EOF
 $pair
 EOF

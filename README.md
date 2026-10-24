@@ -2,7 +2,7 @@
 
 ![forge](./docs/icon-sm.png)
 
-> An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → seal** (the retro is decided inside the seal).
+> An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → done** (the retro is decided in the done stage).
 > A loop-style workflow plugin built from twenty-four shared `fg-` skills — three that form the loop, plus twenty-one utilities outside it.
 
 [한국어](./README.ko.md)
@@ -109,7 +109,7 @@ The three loop stages, then the twenty-one utilities outside the loop:
 | --- | --- | --- |
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
 | `fg-run` | ② Execute | Runs the plan through the host adapter—Dynamic Workflow on Claude Code, collaboration/subagents on Codex, sequential execution on opencode/Pi (one plan runs immediately, several show a priority-sorted selection) |
-| `fg-done` | ③ Seal | Tidies up the cycle — decides the retro (writes a retro log when the run left something to learn; asks once only when a `CONTEXT.md`/ADR/eval promotion clears the bar — [ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)), closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task as unattended seals (no promotion question, backlog untouched, verification gate intact) |
+| `fg-done` | ③ Done | Tidies up the cycle — decides the retro (writes a retro log when the run left something to learn; asks once only when a `CONTEXT.md`/ADR/eval promotion clears the bar — [ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)), closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task as unattended seals (no promotion question, backlog untouched, verification gate intact) |
 | `fg-learn` | Utility | Batch promotion of deferred learnings — reviews sealed tasks whose retro was skipped or written unattended and, with you, promotes what clears the bar to `CONTEXT.md`, ADRs, **evals** (a machine-checkable learning becomes a persistent regression check in the project's own test suite; where there is no suite, an equivalent executable landing spot — [ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) or a retro log. The per-task retro is no longer a stage: `fg-done` decides it at seal ([ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
 | `fg-rules` | Utility | Reviews evidence-backed project rules, saves adopted changes and connects them to ordinary AI coding |
@@ -148,7 +148,7 @@ When one skill finishes, it **states** the way to the next as a fixed four-row *
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-done
-① ask/plan      ② execute       ③ seal
+① ask/plan      ② execute       ③ done
 (grilling·      (Dynamic WF)    (retro judgment·
  conversational)                 re-run guard)
 ```

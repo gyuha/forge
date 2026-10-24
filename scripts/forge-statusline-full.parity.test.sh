@@ -48,7 +48,7 @@ j="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"effort\":{\"leve
 check "all fields + active yes" "$wd" "$j" "$(printf '%s\n%s\n%s' \
   '[Opus 4.8 | high] [myproj]' \
   "[⚡ Context $B45 45% | 5h $B30 30% (~30m) | 7d $B60 60% (~17h 20m)]" \
-  '[⚒ pt-a | ✔ ask → ✔ run → ● seal | ✓]')"
+  '[⚒ pt-a | ✔ ask → ✔ run → ● done | ✓]')"
 rm -rf "$A"
 
 # rate_limits absent + forge idle
@@ -97,7 +97,7 @@ fi
 
 # forge plan-only delegated (minimal system JSON)
 P="$(mktemp -d)"; wd="$P/myproj"; mkdir -p "$wd/.forge"; printf '<!-- forge-slug: t -->\n' > "$wd/.forge/plan.md"
-check "forge plan-only delegated" "$wd" "{\"cwd\":\"$wd\"}" "$(printf '%s\n%s\n%s' '[myproj]' "[🟢 Context $B0 0%]" '[⚒ t | ✔ ask → ● run → ○ seal]')"
+check "forge plan-only delegated" "$wd" "{\"cwd\":\"$wd\"}" "$(printf '%s\n%s\n%s' '[myproj]' "[🟢 Context $B0 0%]" '[⚒ t | ✔ ask → ● run → ○ done]')"
 rm -rf "$P"
 
 # boundary 89 (emoji 🔥, bar 9) + weekly 17h20m
@@ -118,7 +118,7 @@ printf '{ "eco": false }\n' > "$wd/.forge/config.json"
 j="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"context_window\":{\"used_percentage\":45,\"context_window_size\":1000000},\"cost\":{\"total_duration_ms\":60000}}"
 check "compact density splice" "$wd" "$j" "$(printf '%s\n%s' \
   "[Opus 4.8] [myproj] [⚡ Context/1M $B45 45%]" \
-  '[⚒ cp | ✔ ask → ● run → ○ seal]')" compact
+  '[⚒ cp | ✔ ask → ● run → ○ done]')" compact
 rm -rf "$K"
 
 echo ""

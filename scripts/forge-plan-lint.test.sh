@@ -69,6 +69,11 @@ for v in '- [ ] **S1. 굵게** — 완료 기준: x' '- **S1 — 대시형** 완
 done
 # --- prose that merely mentions S1 is not a slice ----------------------------
 printf '%s\n' '<!-- forge-slug: v -->' '<!-- task: 1 -->' '# t' '본문에서 S1을 언급' '- S1x 는 슬라이스가 아님' > "$P"; run_lint "$P"; assert "prose-E2" 1 "$RC"
+# --- a note heading that names a list-item slice is not a second slice (no false E3)
+printf '%s\n' '<!-- forge-slug: v -->' '<!-- task: 1 -->' '# t' '- [ ] **S3.** 본문 — 완료 기준: x' '### S3 실행 시 주의' '메모' > "$P"; run_lint "$P"; assert "note-heading-rc0" 0 "$RC"; assert_nogrep "note-heading-noE3" "$OUT" "ERROR E3"
+# --- headings still count as slices when the plan has no list-item slices ------
+printf '%s\n' '<!-- forge-slug: v -->' '<!-- task: 1 -->' '# t' '### S1 제목형' '### S2 다음 (depends: S1)' > "$P"; run_lint "$P"; assert "heading-only-rc0" 0 "$RC"
+printf '%s\n' '<!-- forge-slug: v -->' '<!-- task: 1 -->' '# t' '### S1 a' '### S1 b' > "$P"; run_lint "$P"; assert "heading-only-dup-E3" 1 "$RC"
 # --- CRLF line endings are tolerated ------------------------------------------
 good | sed 's/$/\r/' > "$P"; run_lint "$P"; assert "crlf-rc0" 0 "$RC"
 
