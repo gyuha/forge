@@ -90,3 +90,17 @@ drive entry ──▶ git status --porcelain
                                                   ├─ ok ──────▶ next task
                                                   └─ failed ──▶ (b) DELETE drive.md ──▶ wall: fork (commit rejected — <reason>)
 ```
+
+## Part 4 — Rulings: record every soft decision the drive takes
+
+**Why.** A drive must not stop to ask about *soft* decisions — choices that carry a recommended or default option (the TDD question, which task first, a slug collision, a delegated skill's stated handoff route, "retro vs. skip"). It takes the recommended option and keeps going. Taking it **silently**, though, leaves no trace: after the drive, nobody can tell which choices were the human's and which were the drive's, or why a task ran test-first. The idea is adapted from iha2/superlite, whose autonomous mode records such decisions as *rulings* instead of asking.
+
+**What counts.** Only a choice that had more than one legitimate option and a recommended/default one. Mechanical steps (run, verify, seal, promote) are not rulings. A choice the human made in this conversation is not a ruling either.
+
+**Where.** In the `## Rulings` section of the `run.md` of the task the decision affected — rendered in the user's language like every other section (the canonical name is `Rulings`). A decision taken before the task is promoted ("which task first", the slug picked on a collision) belongs to the run.md of the task it promoted or named. No new state file and no `loop.md` entry: run.md travels with the task into `done/`, which is where fg-learn's batch promotion reads it.
+
+**Shape.** One line per decision: `- <what was decided>: <chosen value> (recommended default, auto-selected) — <one-line reason>`.
+
+**Who writes.** The drive itself writes nothing (fg-next's rule; fg-loop follows the same split for task files). The drive hands its rulings for the task to the delegated fg-run, which writes them into `## Rulings` when it writes that task's `run.md`. A decision whose outcome already has its own STATUS field — `retro: skipped (<drive reason>)` — is recorded there and is not repeated in `## Rulings`.
+
+**What it does not do.** It never turns a soft decision into a question, and it is not a wall. It only makes the decision visible afterwards.
