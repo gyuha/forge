@@ -12,14 +12,14 @@
 //
 // Density (FORGE_SL_DENSITY, default "full"; full passes "compact"):
 //   full    -> [🔁 rN/cap] [⚒ [#N ]slug · pipeline[ · flag]]   (line 1)
-//              [📋 N queued · 📝 M awaiting retro[ · ♻️][ · 🧪]] (line 2)
+//              [📋 N queued · 📝 M awaiting seal[ · ♻️][ · 🧪]] (line 2)
 //   compact -> [🔁 rN/cap] [⚒ [#N ]slug · pipeline[ · flag][ · 📋 N][ · ♻️][ · 🧪]]
 //
 // flag: ✓ yes · ⏳ pending · ✗ failed · (none) skipped/n/a. 🧪 = plan tdd:on;
 // ♻️ = TOP-LEVEL config eco:true. Only lit indicators shown.
 //
 // Stage gating (ADR-0017 3rd amend): no plan/ask -> empty; ask.md -> ask; plan
-// no run -> run; run + pending/failed -> run; run + yes/skipped/n/a -> learn.
+// no run -> run; run + pending/failed -> run; run + yes/skipped/n/a -> seal.
 'use strict';
 
 const fs = require('fs');
@@ -48,10 +48,10 @@ function grp(...parts) {
   return `${DIM}[${RESET}${joined}${DIM}]${RESET}`;
 }
 
-// buildPipeline('ask'|'run'|'learn') -> "✔ ask → ● run → ○ learn → ○ done" (colored)
+// buildPipeline('ask'|'run'|'seal') -> "✔ ask → ● run → ○ seal" (colored)
 function buildPipeline(stage) {
-  const target = stage === 'learn' ? 2 : stage === 'run' ? 1 : 0;
-  return ['ask', 'run', 'learn', 'done']
+  const target = stage === 'seal' ? 2 : stage === 'run' ? 1 : 0;
+  return ['ask', 'run', 'seal']
     .map((w, i) => {
       if (i < target) return `${DOT_DONE}✔ ${w}${RESET}`;
       if (i === target) return `${DOT_CUR}● ${w}${RESET}`;
@@ -124,10 +124,10 @@ if (isFile(planPath)) {
     // lowercased — see the .sh twin
     if (isFile(st)) v = ((read(st).match(/^verified:[\t ]*([A-Za-z/]+)/m) || [])[1] || '').toLowerCase();
     switch (v) {
-      case 'yes': flag = '✓'; stage = 'learn'; break;
+      case 'yes': flag = '✓'; stage = 'seal'; break;
       case 'failed': flag = '✗'; stage = 'run'; break;
       case 'pending': case '': flag = '⏳'; stage = 'run'; break;
-      case 'skipped': case 'n/a': flag = ''; stage = 'learn'; break;
+      case 'skipped': case 'n/a': flag = ''; stage = 'seal'; break;
       default: flag = '⏳'; stage = 'run';
     }
   } else {
@@ -146,8 +146,8 @@ if (isFile(planPath)) {
 // --- Queue counts ------------------------------------------------------------
 const execDir = path.join(root, 'executed');
 const backlogDir = path.join(root, 'backlog');
-// `awaiting retro` counts only parks that CAN be retro'd — a `verified: failed`
-// park is blocked from both retro and seal (fg-run recovery) and is tallied
+// `awaiting seal` counts only parks that CAN be sealed — a `verified: failed`
+// park is blocked from the seal (fg-run recovery) and is tallied
 // separately, the same split the SessionStart hook reports. See the .sh twin.
 let awaitN = 0, failedN = 0;
 if (isDir(execDir)) {
@@ -170,7 +170,7 @@ const lines = [];
 if (DENSITY === 'compact') {
   // Always ONE line (the full script splices it as its L2). Groups: [loop] then
   // either the active forge group (with 📋N count + modes folded in) or, with no
-  // active task, a queue-count group. Awaiting-retro (📝) is dropped in compact.
+  // active task, a queue-count group. Awaiting-seal (📝) is dropped in compact.
   const countBit = queuedN > 0 ? `📋 ${queuedN}` : '';
   const mainGrp = haveForge
     ? grp(forgeSeg, pipeline, flag, countBit, ecoInd, tddInd)
@@ -186,7 +186,7 @@ if (DENSITY === 'compact') {
     line1 = loopGrp;
   }
   const queuedBit = queuedN > 0 ? `📋 ${queuedN} queued` : '';
-  const awaitBit = awaitN > 0 ? `📝 ${awaitN} awaiting retro` : '';
+  const awaitBit = awaitN > 0 ? `📝 ${awaitN} awaiting seal` : '';
   const failedBit = failedN > 0 ? `✗ ${failedN} failed` : '';
   const line2 = grp(queuedBit, awaitBit, failedBit, ecoInd, tddInd);
   if (line1) lines.push(line1);

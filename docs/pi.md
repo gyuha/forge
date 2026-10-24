@@ -17,8 +17,8 @@ pi install "$HOME/.forge"
 | --- | --- |
 | 계획 시작 | `/skill:fg-ask` |
 | 계획 실행 | `/skill:fg-run` |
-| 학습 기록 | `/skill:fg-learn` |
 | 작업 봉인 | `/skill:fg-done` |
+| 미뤄 둔 학습 일괄 승급 | `/skill:fg-learn` |
 | 상태 확인 | `/skill:fg-status` |
 | 다음 단계 실행 | `/skill:fg-next` |
 | 백로그 주행 | `/skill:fg-next all` |

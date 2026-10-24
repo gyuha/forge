@@ -2,14 +2,14 @@
 
 ![forge](./docs/icon-sm.png)
 
-> 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode·Pi 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 회고 → 완료**의 한 바퀴로.
-> 네 호스트가 함께 쓰는 24개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 4개와, 루프 밖 유틸리티 20개.
+> 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode·Pi 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 봉인**의 한 바퀴로(회고는 봉인 안에서 판정).
+> 네 호스트가 함께 쓰는 24개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 3개와, 루프 밖 유틸리티 21개.
 
 [English](./README.md)
 
 아래 문서들은 **[gyuha.com/forge/docs](https://gyuha.com/forge/docs/)** 에 문서 사이트로도 배포돼 있다 — 사이드바 네비·검색·다크모드 (English: [gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)).
 
-계획은 grill-with-docs식 대화형 그릴링으로 수행한다. 실행은 활성 호스트 어댑터—Claude Code Dynamic Workflow, Codex collaboration/subagent 또는 opencode/Pi의 순차 실행—를 사용하고, 회고는 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그 · eval — 기계 확인 가능한 학습을 프로젝트 자신의 테스트 스위트로 승급)에 되돌린 뒤, 완료 단계에서 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
+계획은 grill-with-docs식 대화형 그릴링으로 수행한다. 실행은 활성 호스트 어댑터—Claude Code Dynamic Workflow, Codex collaboration/subagent 또는 opencode/Pi의 순차 실행—를 사용하고, 봉인이 회고를 판정해 학습을 프로젝트 문서(`CONTEXT.md` · ADR · 회고 로그 · eval — 기계 확인 가능한 학습을 프로젝트 자신의 테스트 스위트로 승급)에 되돌리며, 작업을 봉인해 같은 작업이 두 번 실행되지 않게 한다.
 
 워크플로우와 `.forge/` 상태 계약은 한 벌뿐이다. Claude Code·Codex·opencode·Pi가 같은 `skills/`와 결정론 스크립트를 사용하고, 질문·위임·훅·호스트 UI만 어댑터로 나뉜다. 지원 범위와 제한은 [Codex 사용 가이드](./docs/codex.md)·[opencode 사용 가이드](./docs/opencode.md)·[Pi 사용 가이드](./docs/pi.md)에 각각 정리돼 있다.
 
@@ -21,12 +21,12 @@
 
 ```
 fg-ask   →   fg-run   →   fg-next
- (계획)        (실행)        (다음 단계 자동: 검증 → 회고/봉인)
+ (계획)        (실행)        (다음 단계 자동: 검증 → 봉인)
 ```
 
 - **`fg-ask`** — *모든* 작업은 여기서 시작. 계획을 한 질문씩 같이 그릴링합니다.
 - **`fg-run`** — 활성 호스트의 실행 어댑터로 계획을 실행합니다.
-- **`fg-next`** — *다음 한 단계*를 알아서 해줍니다(검증 → 회고 또는 봉인). 또 부르면 계속 진행.
+- **`fg-next`** — *다음 한 단계*를 알아서 해줍니다(검증 또는 봉인). 또 부르면 계속 진행.
 
 Claude Code에서는 `/forge:fg-*`, Codex에서는 `$fg-*`, opencode에서는 스킬 이름, Pi에서는 `/skill:fg-*`로 호출한다. 자연어 트리거는 네 호스트에서 동일하다.
 
@@ -94,7 +94,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | **사소한 1회 변경** (오타·버전 범프) | `fg-quick` — 가볍게 그릴링, 형식 산출물 없이 바로 실행 |
 | **무인 주행 완료까지** | 그릴된 큐: `fg-ask` ×N → `fg-next all` · 기계 검증 가능 목표: `fg-loop` — *차선 고르기*(L3) 참조 |
 | **재진입 / 점검** | *어디까지 했지*: `fg-status`(보여줌) / `fg-next`(다음 단계 실행) · *상태 건강한가*: `fg-doctor` |
-| **마무리 / 배포** | (선택 적대적 검토: `fg-adversarial-review`) → `fg-learn`(회고) → `fg-done`(봉인) → `배포` 입력 |
+| **마무리 / 배포** | (선택 적대적 검토: `fg-adversarial-review`) → `fg-done`(봉인 — 배울 게 있으면 회고 로그를 씀) → `배포` 입력 |
 | **보안 점검** (코드베이스 전체) | `fg-security`(감사) → 심각도 게이트 통과분 승인 → `fg-run`(수정 plan 실행) → 재감사(업스트림이 복수 실행 권장) |
 | **유지보수** | 오래된 ADR 은퇴 `fg-cleanup` · 머지된 브랜치 통합 `fg-merge` · 미완 작업 폐기 `fg-drop` · 설정 `fg-config` · 상태바 `fg-statusline` |
 | **팀 사용** (브랜치 + CI) | 브랜치에서 봉인 → `git merge` → `fg-merge`(또는 `fg-merge <branch>`로 둘 다 한 번에, 또는 feature 브랜치에서 `fg-merge to main`으로 커밋·머지·통합까지 한 번에; CI에선 `forge-merge.sh`) · `forge-doctor` AI 없는 CI 게이트 — **[docs/team-workflow.md](./docs/team-workflow.md)** 참조 |
@@ -103,25 +103,25 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 
 ## 스킬 카탈로그
 
-루프 4단계, 그다음 루프 밖 유틸리티 20개:
+루프 3단계, 그다음 루프 밖 유틸리티 21개:
 
 | 스킬 | 단계 | 한 줄 역할 |
 | --- | --- | --- |
 | `fg-ask` | ① 질의·계획 | grill-with-docs 원문 그대로 — 계획을 도메인·용어·결정에 대고 그릴링 |
 | `fg-run` | ② 실행 | 호스트 어댑터로 계획 실행—Claude Code는 Dynamic Workflow, Codex는 collaboration/subagent, opencode/Pi는 순차 실행(plan 하나면 즉시, 여럿이면 우선순위 선택 목록) |
-| `fg-learn` | ③ 회고 | 학습을 문서로 승급 — `CONTEXT.md`·ADR·회고 로그, 그리고 **eval**(기계 확인 가능한 학습은 프로젝트 자신의 테스트 스위트에 남는 영속 회귀 체크로 승급; 스위트가 없는 리포는 상응하는 실행 착지점) ([ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) — 하고 다음 질의 도출 |
-| `fg-done` | ④ 완료 | 한 바퀴 정리 — 회고 확인, `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 일괄 봉인(회고 skip·백로그 불가침·검증 게이트 유지) |
+| `fg-done` | ③ 봉인 | 한 바퀴 정리 — 회고 판정(실행에서 배울 게 있으면 회고 로그를 쓰고, `CONTEXT.md`·ADR·eval 승급 후보가 바를 넘을 때만 한 번 물음 — [ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)), `STATUS.md` 마감, 아카이브, 활성 상태 비우기, 봉인; 기계적 봉인은 세 봉인 경로가 공유하는 결정론 스크립트(`forge-done.sh`/`.js`)가 처리([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` 모드는 이미 실행된 작업을 무인 봉인으로 일괄 처리(승급 질문 없음·백로그 불가침·검증 게이트 유지) |
+| `fg-learn` | 유틸리티 | 미뤄 둔 학습의 일괄 승급 — 회고를 건너뛰었거나 무인으로 쓴 봉인 작업을 사람과 함께 검토해 바를 넘는 것을 `CONTEXT.md`·ADR·**eval**(기계 확인 가능한 학습은 프로젝트 자신의 테스트 스위트에 남는 영속 회귀 체크로; 스위트가 없는 리포는 상응하는 실행 착지점 — [ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md))·회고 로그로 승급. 작업별 회고는 더 이상 단계가 아니며 `fg-done`이 봉인 때 판정한다([ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)) |
 | `fg-map` | 유틸리티 | 코드베이스를 `.forge/codebase/`에 매핑해, 그릴링이 코드 재탐색 대신 지도를 읽게 함 |
 | `fg-rules` | 유틸리티 | 근거 있는 프로젝트 규칙을 검토·채택해 저장하고 일반 AI 코딩 작업에 연결 |
 | `fg-quick` | 유틸리티 | 사소한 작업용 경량 차선 — 가볍게 그릴링한 뒤 형식 산출물 없이 바로 실행 |
 | `fg-status` | 유틸리티 | 읽기 전용 — `.forge/`를 조사해 모든 작업의 현황과 다음 단계 하나를 출력 |
 | `fg-next` | 유틸리티 | fg-status의 상태 머신으로 다음 단계 하나를 도출해 실행; `all` 모드는 벽까지 주행 |
-| `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행하며, 재개해도 필요한 결정·증거가 오기 전에는 미해결 벽을 유지한다. 회고는 기본적으로 건너뛰고, `fg-loop all`이면 작업마다 회고 로그를 자동으로 쓴 뒤 봉인한다(CONTEXT·ADR 승급은 여전히 사람의 fg-learn 몫). 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
+| `fg-loop` | 유틸리티 | goal 주도 한정 재계획 루프 — 기계 검증 체크가 통과할 때까지 run → UAT → 봉인 주행하며, 재개해도 필요한 결정·증거가 오기 전에는 미해결 벽을 유지한다. 봉인은 무인으로 하며 `fg-done`이 회고를 건너뛰거나 자동 회고 로그를 쓴다(CONTEXT·ADR 승급은 여전히 사람의 `fg-learn` 몫). 두 무인 차선 모두 **태스크당 롤백 커밋**을 남길 수 있다(옵트인 `driveCommit`, 기본 off. 커밋만 하고 push는 안 함) |
 | `fg-config` | 유틸리티 | `.forge/config.json` 일곱 키(`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch` · `monitorRetention`)의 통합 설정 진입점 — `simple`은 검증 후 같은 턴에 자동 봉인(검증 게이트는 불가침), `eco`·`tdd` 의미론은 종전 그대로. 옛 키별 토글 스킬을 대체 |
 | `fg-merge` | 유틸리티 | `git merge` 뒤 브랜치의 `.forge/branch/<branch>/`를 `.forge/`로 통합 — `fg-merge <branch>`면 그 `git merge`까지 대신 실행(대화형·기본 브랜치), `fg-merge to main`이면 현재 feature 브랜치를 커밋 → checkout → 머지 → 통합 → 커밋(확인 1회, push 안 함). 스크립트-백킹(`forge-merge.sh`/`.js`), AI 없이 CI에서 동작 |
 | `fg-cleanup` | 유틸리티 | 오래된/대체된 ADR을 활성 집합에서 `.forge/adr/retired/`로 은퇴 |
 | `fg-statusline` | 유틸리티 | statusline에 forge 루프 진행 상태 표시 — 방법 1(append)은 기존 statusline을 별도 줄로 래핑, 방법 2(merge)는 daleseo식 시스템 정보 + forge 진행을 담은 통합 스크립트 설치 |
-| `fg-adversarial-review` | 유틸리티 | fg-run↔fg-learn 사이 선택적 적대적 검토 — 6개 렌즈, fix-forward findings |
+| `fg-adversarial-review` | 유틸리티 | fg-run↔봉인(fg-done) 사이 선택적 적대적 검토 — 6개 렌즈, fix-forward findings |
 | `fg-doctor` | 유틸리티 | `.forge/` 상태 계약과 문서/매니페스트 정합의 읽기 전용 무결성 검사 — 스크립트-백킹, AI 없는 CI 게이트로 사용 가능 |
 | `fg-help` | 유틸리티 | 읽기 전용 사용법 도움말 — `/fg-help`는 forge 스킬 전체를 루프 단계 + 루프 밖 유틸리티로 그룹핑한 개요를, `/fg-help <명령>`은 4줄 상세를 출력; 각 스킬의 `description`을 단일 소스로 읽어 사용자 언어로 LLM 렌더(스크립트 트윈 없음) |
 | `fg-drop` | 유틸리티 | 미완 작업(backlog/활성/executed/멈춘 루프) 폐기 — 위험도 표기 목록, 하드 삭제 또는 `.forge/dropped/` 보관 |
@@ -144,12 +144,12 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 
 ## 전체 흐름
 
-한 스킬이 끝나면 다음 스킬로 가는 길을 고정 4행 **핸드오프 표** — *방금 한 것 · 다음 단계 · 시작하는 법 · 대안* — 로 **알리고 멈춘다**. 가리킬 다음 단계가 실재하는 **15곳**에 적용되며(나머지 여덟은 가리킬 것이 없는 토글·유틸리티라 산문을 유지한다), 그래서 다음 단계가 문단 중간에 묻히지 않고 매번 같은 자리에 있다 — 이것이 고치는 통증은 **길이가 아니라 찾기 어려움**이다 ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). `eco` 요약 표와는 다른 것이다 — 그쪽은 *무엇을 했나*에 답하고, 이 표는 *다음에 무엇을*에 답하며 `eco` on/off 무관하게 렌더된다. **진술형은 변하지 않았다** — 표는 텍스트 출력이고 결코 메뉴가 아니다: "이어갈까요?"라고 묻지 않으며, 다음 단계로 잇는 것은 여전히 `fg-next`의 몫이다 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), 개정 2026-06-15 — fg-run의 과거 4지 메뉴는 변하지 않은 활성 슬롯 상태에서 다시 떠 반복되는 버그로 폐지됐다). 이는 `fg-run`의 단일작업 종료를 포함한 **모든** 핸드오프에 적용된다: 기본은 `fg-learn` 회고, divergence가 낮을 때만 `fg-done`으로 skip+봉인, 높으면 `fg-ask` 재그릴 — 알리고 멈춘다. 루프는 `fg-done`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다. 두 유틸리티가 루프 밖에서 이 연료를 돌본다: `fg-map`은 `fg-ask`가 읽는 코드베이스 지도를 작성하고, `fg-cleanup`은 `fg-ask`가 읽는 ADR 집합을 정비한다.
+한 스킬이 끝나면 다음 스킬로 가는 길을 고정 4행 **핸드오프 표** — *방금 한 것 · 다음 단계 · 시작하는 법 · 대안* — 로 **알리고 멈춘다**. 가리킬 다음 단계가 실재하는 **15곳**에 적용되며(나머지 여덟은 가리킬 것이 없는 토글·유틸리티라 산문을 유지한다), 그래서 다음 단계가 문단 중간에 묻히지 않고 매번 같은 자리에 있다 — 이것이 고치는 통증은 **길이가 아니라 찾기 어려움**이다 ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). `eco` 요약 표와는 다른 것이다 — 그쪽은 *무엇을 했나*에 답하고, 이 표는 *다음에 무엇을*에 답하며 `eco` on/off 무관하게 렌더된다. **진술형은 변하지 않았다** — 표는 텍스트 출력이고 결코 메뉴가 아니다: "이어갈까요?"라고 묻지 않으며, 다음 단계로 잇는 것은 여전히 `fg-next`의 몫이다 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), 개정 2026-06-15 — fg-run의 과거 4지 메뉴는 변하지 않은 활성 슬롯 상태에서 다시 떠 반복되는 버그로 폐지됐다). 이는 `fg-run`의 단일작업 종료를 포함한 **모든** 핸드오프에 적용된다: `fg-done`으로 봉인(회고는 그 안에서 판정)하고, divergence가 높으면 `fg-ask` 재그릴을 대안으로 — 알리고 멈춘다. 루프는 `fg-done`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다. 두 유틸리티가 루프 밖에서 이 연료를 돌본다: `fg-map`은 `fg-ask`가 읽는 코드베이스 지도를 작성하고, `fg-cleanup`은 `fg-ask`가 읽는 ADR 집합을 정비한다.
 
 ```
-fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
-① 질의/계획     ② 실행          ③ 회고        ④ 완료
-(그릴링·대화형) (Dynamic WF)   (문서 반영)    (봉인·재실행 방지)
+fg-ask ───▶ fg-run ───▶ fg-done
+① 질의/계획     ② 실행          ③ 봉인
+(그릴링·대화형) (Dynamic WF)   (회고 판정·재실행 방지)
 ```
 
 **무엇을 어떻게 말하는지는 별개의 항상-on 규율이다.** 모든 스킬이 언어 규칙 옆에 `**Explaining forge**` 문단을 담는다 — forge 전문용어는 한 메시지 안 첫 등장에서 즉시 주석하고, 목적을 메커니즘보다 먼저 쓰고, 결론을 먼저 낸다. **`eco` 게이트와 무관하다** — 주석을 가장 필요로 하는 설치자가 바로 eco를 켜 봤을 리 없는 사람이기 때문이다 — 그리고 이 규율은 **어휘**를, `eco`의 간결 규칙은 **형태**를 지배하므로 간결함이 주석을 지우지 않는다. `fg-doctor` 검사가 각 스킬의 사본을 단일 canonical 정의에 대고 비교하므로, 규율이 어느 한 곳에서 조용히 어긋날 수 없다([ADR `260824-134246`](./.forge/adr/260824-134246-explaining-forge-always-on.md)).
@@ -206,11 +206,11 @@ opencode는 forge 전용 매니페스트가 필요 없다 — 스킬은 `SKILL.m
 
 단계를 독립적으로 호출해도 흐름이 이어지도록 상태를 파일로 넘긴다. 모든 것을 `.forge/` 한 디렉터리에 둔다 — 휘발 루프 상태와 git 추적되는 영속 문서가 함께 산다(`.gitignore`가 `.forge/`를 기본 제외하고 영속 문서만 화이트리스트로 추적). 활성 슬롯은 항상 1개 — 한 `plan.md` = 한 `run.md` = 한 봉인. 비-기본 브랜치에서는 forge 루트 전체가 `.forge/branch/<branch>/`(git 추적)로 옮겨가 병렬 브랜치가 충돌하지 않는다 ([ADR-0011](./.forge/adr/0011-branch-isolated-forge-root.md)).
 
-전체 디렉터리 구조, `.gitignore` 패턴, 브랜치 격리, 회고 스킵 규칙([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), 봉인 전 검증 게이트([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md))는 **[docs/state-contract.md](./docs/state-contract.md)** 에 문서화돼 있다.
+전체 디렉터리 구조, `.gitignore` 패턴, 브랜치 격리, 봉인 시점 회고 판정([ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md), [ADR-0002](./.forge/adr/0002-optional-retro-skip.md)를 다듬음), 봉인 전 검증 게이트([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md))는 **[docs/state-contract.md](./docs/state-contract.md)** 에 문서화돼 있다.
 
-**그리고 다음 질문에서 닫는다.** 지난 작업이 봉인 안 된 채 남아 있는데 새 작업을 시작하면, fg-ask의 STEP 0이 남은 판단의 양으로 갈린다 — 판단이 없으면(검증이 봉인 가능값이고 회고도 해결됨, 또는 회고만 밀렸는데 divergence가 미미함) **묻지 않고 봉인**하고 한 줄 보고한 뒤 같은 턴에 그릴링을 계속한다. 판단이 남았으면(고-divergence·`verified: pending`/`failed`·멈춘 goal 루프) 묻지만, **당신의 요청을 붙들고 있다가 잔여를 닫은 뒤 그 자리로 돌아온다** — fg-ask를 다시 칠 필요가 없다. 사정거리는 활성 슬롯 1건이며, `executed/`에 park된 작업은 잔여가 아니라 의도된 대기이므로 보고만 하고 건드리지 않는다 ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
+**그리고 다음 질문에서 닫는다.** 지난 작업이 봉인 안 된 채 남아 있는데 새 작업을 시작하면, fg-ask의 STEP 0이 남은 판단의 양으로 갈린다 — 판단이 없으면(검증이 봉인 가능값) **묻지 않고 무인 봉인**(fg-done이 회고를 판정하고 승급은 `fg-learn`으로 미룸)하고 한 줄 보고한 뒤 같은 턴에 그릴링을 계속한다. 판단이 남았으면(`verified: pending`/`failed`·멈춘 goal 루프) 묻지만, **당신의 요청을 붙들고 있다가 잔여를 닫은 뒤 그 자리로 돌아온다** — fg-ask를 다시 칠 필요가 없다. 사정거리는 활성 슬롯 1건이며, `executed/`에 park된 작업은 잔여가 아니라 의도된 대기이므로 보고만 하고 건드리지 않는다 ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
 
-**봉인을 까먹는 것은 세션 진입에서 잡는다.** forge는 훅 **둘**을 배포한다(`hooks/hooks.json` — 플러그인 설치만으로 걸리고 설정 편집이 필요 없다). 첫째는 `SessionStart`에서 **미봉인 잔여**(실행됐지만 봉인 안 된 작업·회고 대기로 park된 작업·멈춘 goal 루프)를 확인하고, 있을 때만 짧은 알림을 주입해 에이전트가 새 작업을 시작하기 전에 당신에게 알리도록 한다. 사용자가 답하기 전에 스스로 판단해 실행·봉인하지 않으며(fg-ask STEP 0의 자동 마감이 유일한 승인된 예외) 결정은 당신 몫이다. 깨끗한 리포나 백로그만 대기 중인 리포에서는 아무것도 뜨지 않는다. 둘째는 `Stop`에서, 무인 주행이 `/goal` 없이 턴 경계를 넘게 해 준다 — 주행의 `drive.md` 마커가 살아 있고 상한 안일 때만 막으므로 주행하지 않는 세션은 무영향이다([ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)). 훅은 세션 시작 시 로드되므로, 새로 설치·수정한 훅은 **다음** 세션부터 적용된다([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
+**봉인을 까먹는 것은 세션 진입에서 잡는다.** forge는 훅 **둘**을 배포한다(`hooks/hooks.json` — 플러그인 설치만으로 걸리고 설정 편집이 필요 없다). 첫째는 `SessionStart`에서 **미봉인 잔여**(실행됐지만 봉인 안 된 작업·봉인 대기로 park된 작업·멈춘 goal 루프)를 확인하고, 있을 때만 짧은 알림을 주입해 에이전트가 새 작업을 시작하기 전에 당신에게 알리도록 한다. 사용자가 답하기 전에 스스로 판단해 실행·봉인하지 않으며(fg-ask STEP 0의 자동 마감이 유일한 승인된 예외) 결정은 당신 몫이다. 깨끗한 리포나 백로그만 대기 중인 리포에서는 아무것도 뜨지 않는다. 둘째는 `Stop`에서, 무인 주행이 `/goal` 없이 턴 경계를 넘게 해 준다 — 주행의 `drive.md` 마커가 살아 있고 상한 안일 때만 막으므로 주행하지 않는 세션은 무영향이다([ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)). 훅은 세션 시작 시 로드되므로, 새로 설치·수정한 훅은 **다음** 세션부터 적용된다([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
 
 forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델, 커밋 시점, 피처 브랜치 단계별 git CLI 워크스루 — 은 **[docs/git-workflow.md](./docs/git-workflow.md)** 에 있다.
 
@@ -250,7 +250,7 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 ### forge가 하지 않는 것
 
 - **크로스모델 벤치마킹** — GStack은 있음(`/codex`, `gstack-model-benchmark`), forge는 없음 (의도적: 모델 선택은 Claude Code 자체의 영역이지 forge의 영역이 아님)
-- **브라우저 자동화·iOS QA·디자인 생성** — GStack은 있음(`/browse`, `/ios-qa`, `/design-*`), forge는 없음 (의도적: forge는 SDLC 전체가 아니라 계획→실행→회고→완료 루프에만 집중)
+- **브라우저 자동화·iOS QA·디자인 생성** — GStack은 있음(`/browse`, `/ios-qa`, `/design-*`), forge는 없음 (의도적: forge는 SDLC 전체가 아니라 계획→실행→봉인 루프에만 집중)
 - **팀 공유 검색형 지식베이스** — GStack GBrain(Supabase 기반)은 프로젝트 간 공유·검색을 지원, forge의 `.forge/`는 리포 하나에 국한
 - **상시 강제 TDD** — Superpowers는 테스트 없이 짠 코드를 삭제할 정도로 강제, forge의 TDD는 선택적 토글(프로젝트가 안 쓸 수도 있음)
 - **작업별 git worktree 자동 격리** — Superpowers는 자동 생성, forge는 브랜치별 상태 격리(ADR-0011)만 하고 worktree 자동화는 안 함

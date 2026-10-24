@@ -87,9 +87,9 @@ and retain a short reason in the body. A terminal entry remains in the ledger.
    script collects marked run/retro blocks after its verification/retro gates
    and before removing source files. Failed collection blocks sealing; do not
    report completion or discard the source.
-4. **Skip/auto paths:** fg-ask auto-close, fg-loop (skip and auto retro),
-   fg-next all, fg-run simple mode, and fg-done all use checkpoint 3 for each
-   task. Skipping the retro never skips recording candidates.
+4. **Unattended seals:** fg-ask auto-close, fg-loop, fg-next all, fg-run simple
+   mode, and fg-done all use checkpoint 3 for each task. A skipped retro or an
+   auto retro never skips recording candidates.
 
 The script parses explicit markers only. It cannot discover semantic candidates
 under arbitrary old headings; that is the calling skill's bounded inspection

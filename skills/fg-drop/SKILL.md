@@ -5,7 +5,7 @@ description: Discards incomplete (not-yet-sealed) forge work you no longer want 
 
 # fg-drop — discard incomplete work (outside the loop)
 
-This is **not** a stage of the forge loop (fg-ask → fg-run → fg-learn → fg-done). It is an **on-demand utility** — like fg-cleanup, fg-merge, and fg-doctor — that lets you **discard incomplete work you no longer intend to do**: a backlog plan you abandoned, the active slot, a task parked in `executed/` awaiting retro, or a halted goal loop. forge had no way to do this short of a manual `rm`; fg-drop fills that gap (ADR-0021).
+This is **not** a stage of the forge loop (fg-ask → fg-run → fg-done). It is an **on-demand utility** — like fg-cleanup, fg-merge, and fg-doctor — that lets you **discard incomplete work you no longer intend to do**: a backlog plan you abandoned, the active slot, a task parked in `executed/` awaiting retro, or a halted goal loop. forge had no way to do this short of a manual `rm`; fg-drop fills that gap (ADR-0021).
 
 Note the contrast with its neighbors: **fg-done** *completes* a task and seals it (the opposite intent — finishing, not abandoning); **fg-cleanup** retires *ADRs* (a decision, not a task); **fg-status**/**fg-doctor** are read-only and cannot host a destructive action. fg-drop is the one place that abandons a not-yet-sealed task.
 

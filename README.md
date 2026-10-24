@@ -2,14 +2,14 @@
 
 ![forge](./docs/icon-sm.png)
 
-> An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → retro → done**.
-> A loop-style workflow plugin built from twenty-four shared `fg-` skills — four that form the loop, plus twenty utilities outside it.
+> An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → seal** (the retro is decided inside the seal).
+> A loop-style workflow plugin built from twenty-four shared `fg-` skills — three that form the loop, plus twenty-one utilities outside it.
 
 [한국어](./README.ko.md)
 
 The full docs below are also published as a docs site — sidebar navigation, search, dark mode — at **[gyuha.com/forge/docs/en](https://gyuha.com/forge/docs/en/)** (Korean: [gyuha.com/forge/docs](https://gyuha.com/forge/docs/)).
 
-Planning happens as grill-with-docs-style conversational grilling. Execution uses the active host adapter—a Claude Code Dynamic Workflow, Codex collaboration/subagents, or sequential execution on opencode/Pi—then the retro feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log · evals — machine-checkable learnings promoted into the project's own test suite), and the done step seals the task so the same task never runs twice.
+Planning happens as grill-with-docs-style conversational grilling. Execution uses the active host adapter—a Claude Code Dynamic Workflow, Codex collaboration/subagents, or sequential execution on opencode/Pi—then the seal decides the retro and feeds learnings back into project docs (`CONTEXT.md` · ADRs · retro log · evals — machine-checkable learnings promoted into the project's own test suite), and the done step seals the task so the same task never runs twice.
 
 The workflow and `.forge/` state contract exist once. Claude Code, Codex, opencode, and Pi use the same `skills/` and deterministic scripts; only interaction, delegation, hooks, and host UI are adapted. See [Using forge with Codex](./docs/en/codex.md), [Using forge with opencode](./docs/en/opencode.md), and [Using forge with Pi](./docs/en/pi.md) for each support matrix and its known limits.
 
@@ -21,12 +21,12 @@ Twenty-four skills look like a lot, but day to day you drive with **three**:
 
 ```
 fg-ask   →   fg-run   →   fg-next
- (plan)       (execute)     (auto-continue: verify → retro/seal)
+ (plan)       (execute)     (auto-continue: verify → seal)
 ```
 
 - **`fg-ask`** — start *every* task here. It grills the plan with you, one question at a time.
 - **`fg-run`** — runs the plan through the active host's execution adapter.
-- **`fg-next`** — does the *one next step* for you (verify → retro or seal). Run it again to keep moving.
+- **`fg-next`** — does the *one next step* for you (verify or seal). Run it again to keep moving.
 
 Use `/forge:fg-*` in Claude Code, `$fg-*` in Codex, the skill name in opencode, and `/skill:fg-*` in Pi; natural-language triggers work on all four.
 
@@ -94,7 +94,7 @@ Reach for the right sequence by situation. The everyday and unattended rows poin
 | **Tiny one-off** (typo, version bump) | `fg-quick` — grills lightly, runs directly, no formal artifacts |
 | **Unattended to done** | a grilled queue: `fg-ask` ×N → `fg-next all` · a machine-verifiable goal: `fg-loop` — see *Choosing a lane* (L3) |
 | **Re-entry / health** | *where am I*: `fg-status` (shows) / `fg-next` (does the next step) · *is the state healthy*: `fg-doctor` |
-| **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-learn` (retro) → `fg-done` (seal) → type `배포` (deploy) |
+| **Wrap-up / ship** | (optional hostile review: `fg-adversarial-review`) → `fg-done` (seal — writes a retro log when there is something to learn) → type `배포` (deploy) |
 | **Security check** (whole codebase) | `fg-security` (audit) → approve severity-gated findings → `fg-run` (fix-forward plans) → re-audit (upstream recommends repeat runs) |
 | **Maintenance** | retire stale ADRs `fg-cleanup` · integrate a merged branch `fg-merge` · discard incomplete work `fg-drop` · settings `fg-config` · statusline `fg-statusline` |
 | **Team use** (branches + CI) | seal on the branch → `git merge` → `fg-merge` (or `fg-merge <branch>` to do both, or `fg-merge to main` from the feature branch to commit · merge · integrate in one go; `forge-merge.sh` in CI) · `forge-doctor` as an AI-free CI gate — see **[docs/team-workflow.md](./docs/team-workflow.md)** |
@@ -103,25 +103,25 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The four loop stages, then the twenty utilities outside the loop:
+The three loop stages, then the twenty-one utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
 | `fg-ask` | ① Ask·plan | grill-with-docs verbatim — grills the plan against domain, terms, and decisions |
 | `fg-run` | ② Execute | Runs the plan through the host adapter—Dynamic Workflow on Claude Code, collaboration/subagents on Codex, sequential execution on opencode/Pi (one plan runs immediately, several show a priority-sorted selection) |
-| `fg-learn` | ③ Retro | Promotes learnings to docs — `CONTEXT.md`, ADRs, the retro log, and **evals** (a machine-checkable learning becomes a persistent regression check in the project's own test suite; where there is no suite, an equivalent executable landing spot) ([ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) — and surfaces the next inquiry |
-| `fg-done` | ④ Done | Tidies up the cycle — confirms retro, closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task (retros skipped, backlog untouched, verification gate intact) |
+| `fg-done` | ③ Seal | Tidies up the cycle — decides the retro (writes a retro log when the run left something to learn; asks once only when a `CONTEXT.md`/ADR/eval promotion clears the bar — [ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)), closes `STATUS.md`, archives, clears active state, seals; the mechanical seal runs as a deterministic script (`forge-done.sh`/`.js`) shared by every seal path ([ADR-0030](./.forge/adr/0030-fg-done-deterministic-seal-script.md)). `all` mode batch-seals every already-executed task as unattended seals (no promotion question, backlog untouched, verification gate intact) |
+| `fg-learn` | Utility | Batch promotion of deferred learnings — reviews sealed tasks whose retro was skipped or written unattended and, with you, promotes what clears the bar to `CONTEXT.md`, ADRs, **evals** (a machine-checkable learning becomes a persistent regression check in the project's own test suite; where there is no suite, an equivalent executable landing spot — [ADR `260906-171420`](./.forge/adr/260906-171420-eval-promotion.md)) or a retro log. The per-task retro is no longer a stage: `fg-done` decides it at seal ([ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md)) |
 | `fg-map` | Utility | Maps the codebase into `.forge/codebase/` so grilling reads a map instead of re-exploring |
 | `fg-rules` | Utility | Reviews evidence-backed project rules, saves adopted changes and connects them to ordinary AI coding |
 | `fg-quick` | Utility | Lightweight lane for trivial tasks — grills lightly, runs directly with no formal artifacts |
 | `fg-status` | Utility | Read-only — surveys `.forge/` and prints where every task stands plus the single next step |
 | `fg-next` | Utility | Derives the single next step (via fg-status's state machine) and runs it; `all` mode drives to the wall |
-| `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass; a resume preserves unresolved walls until the required decision or evidence arrives. Retros are skipped by default; `fg-loop all` instead writes an auto retro log per task before sealing (promotion to CONTEXT/ADR stays a human fg-learn step). Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
+| `fg-loop` | Utility | Goal-driven loop with bounded replan — drives run → UAT → seal until machine-verifiable checks pass; a resume preserves unresolved walls until the required decision or evidence arrives. Each seal is unattended: `fg-done` skips the retro or writes an auto retro log, and promotion to CONTEXT/ADR stays a human `fg-learn` step. Both unattended lanes can leave a **per-task rollback commit** (opt-in `driveCommit`, off by default; commit only, never push) |
 | `fg-config` | Utility | Unified settings surface for the seven `.forge/config.json` keys (`simple` · `eco` · `tdd` · `driveCommit` · `driveCommitMessage` · `defaultBranch` · `monitorRetention`) — `simple` auto-seals after verification in the same turn (the verification gate stays inviolable), `eco` and `tdd` keep their former semantics. Replaces the former per-key toggle skills |
 | `fg-merge` | Utility | After a `git merge`, folds a branch's `.forge/branch/<branch>/` into `.forge/` — or `fg-merge <branch>` runs that `git merge` for you (interactive, default branch), or `fg-merge to main` ships the current feature branch: commit → checkout → merge → integrate → commit (one confirmation, never pushes). Script-backed (`forge-merge.sh`/`.js`), usable AI-free in CI |
 | `fg-cleanup` | Utility | Retires stale/superseded ADRs out of the active set into `.forge/adr/retired/` |
 | `fg-statusline` | Utility | Shows forge's loop progress in your statusline — method 1 (append) wraps your existing one as an extra row, or method 2 (merge) installs a unified script with daleseo-style system info + forge progress |
-| `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and fg-learn — six lenses, fix-forward findings |
+| `fg-adversarial-review` | Utility | Optional hostile second look between fg-run and the seal (fg-done) — six lenses, fix-forward findings |
 | `fg-doctor` | Utility | Read-only integrity check of the `.forge/` state contract and docs/manifest sync — script-backed, usable as an AI-free CI gate |
 | `fg-help` | Utility | Read-only usage help — `/fg-help` prints an overview of every forge skill grouped by loop stage + outside-the-loop utilities, `/fg-help <command>` a 4-line detail; reads each skill's own `description` as the single source, LLM-rendered in your language (no script twin) |
 | `fg-drop` | Utility | Discards incomplete work (backlog/active/executed/halted loop) — risk-labeled list, hard-delete or archive to `.forge/dropped/` |
@@ -144,13 +144,13 @@ Per-skill detail — input/output/next, triggers, and the rationale ADRs — is 
 
 ## Overall flow
 
-When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **15 points** that have a real next step (the other eight are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: default retro via `fg-learn`, skip+seal via `fg-done` only when divergence is low, re-grill via `fg-ask` when it is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
+When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **15 points** that have a real next step (the other eight are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: the seal via `fg-done` (which decides the retro), with a re-grill via `fg-ask` as the alternative when divergence is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
 
 ```
-fg-ask ───▶ fg-run ───▶ fg-learn ───▶ fg-done
-① ask/plan      ② execute       ③ retro       ④ done
-(grilling·      (Dynamic WF)    (reflect      (seal·
- conversational)                 into docs)    re-run guard)
+fg-ask ───▶ fg-run ───▶ fg-done
+① ask/plan      ② execute       ③ seal
+(grilling·      (Dynamic WF)    (retro judgment·
+ conversational)                 re-run guard)
 ```
 
 **How it phrases anything is a separate always-on rule.** Every skill carries an `**Explaining forge**` paragraph next to its language rule: gloss a forge-specific term the first time it appears in a message, put the purpose before the mechanism, and lead with the answer. It is **not** gated on `eco` — the installers who most need a gloss are the ones least likely to have turned eco on — and it governs **vocabulary** while `eco`'s terse rules govern **form**, so terseness never deletes a gloss. A `fg-doctor` check compares each skill's copy against a single canonical definition, so the rule cannot quietly drift out of one of them ([ADR `260824-134246`](./.forge/adr/260824-134246-explaining-forge-always-on.md)).
@@ -207,11 +207,11 @@ After installing, start with `fg-ask` (`/forge:fg-ask` on Claude Code, `$fg-ask`
 
 State is passed through files so the flow continues even when stages are invoked independently. A single `.forge/` directory holds everything — both the volatile loop state and the git-tracked permanent docs (the `.gitignore` excludes `.forge/` by default and whitelists only the permanent docs). The active slot is always exactly one — one `plan.md` = one `run.md` = one seal. On a non-default branch the whole forge root moves to `.forge/branch/<branch>/` (git-tracked) so parallel branches never collide ([ADR-0011](./.forge/adr/0011-branch-isolated-forge-root.md)).
 
-The full directory layout, the `.gitignore` pattern, branch isolation, the retro-skip rule ([ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), and the verification-before-seal gate ([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md)) are documented in **[docs/state-contract.md](./docs/state-contract.md) (Korean)**.
+The full directory layout, the `.gitignore` pattern, branch isolation, the seal-time retro judgment ([ADR `261024-191024`](./.forge/adr/261024-191024-fold-retro-into-seal.md), refining [ADR-0002](./.forge/adr/0002-optional-retro-skip.md)), and the verification-before-seal gate ([ADR-0009](./.forge/adr/0009-verification-gate-before-seal.md)) are documented in **[docs/state-contract.md](./docs/state-contract.md) (Korean)**.
 
-**And it is closed at the next question.** When you start a new task while a previous one sits unsealed, fg-ask's STEP 0 decides by how much judgment is left: none (verification is sealable and the retro is resolved, or only the retro is owed and the run barely diverged) → it **seals without asking**, reports one line, and keeps grilling in the same turn; judgment remains (high divergence, `verified: pending`/`failed`, a halted goal loop) → it asks, but **holds your request and returns to it** once the tail is closed — you never have to re-trigger fg-ask. Its reach is the active slot only; tasks parked in `executed/` are a deliberate wait, not part of the tail, so they are reported and left alone ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
+**And it is closed at the next question.** When you start a new task while a previous one sits unsealed, fg-ask's STEP 0 decides by how much judgment is left: none (verification is sealable) → it **seals without asking** as an unattended seal (fg-done decides the retro; any promotion waits for `fg-learn`), reports one line, and keeps grilling in the same turn; judgment remains (`verified: pending`/`failed`, a halted goal loop) → it asks, but **holds your request and returns to it** once the tail is closed — you never have to re-trigger fg-ask. Its reach is the active slot only; tasks parked in `executed/` are a deliberate wait, not part of the tail, so they are reported and left alone ([ADR 260727-201115](./.forge/adr/260727-201115-fg-ask-auto-close-sealable-tail.md)).
 
-**Forgetting to seal is caught at session entry.** forge ships two hooks (`hooks/hooks.json`, installed with the plugin — no settings edit). The first, at `SessionStart`, checks for an **unsealed tail** — a task that ran but was never sealed, a task parked awaiting retro, or a halted goal loop — and, only then, injects a short notice so the agent tells you about it before starting new work. It never runs or seals on its own initiative before you answer — fg-ask's STEP 0 auto-close is the one approved exception — so the decision stays yours. A clean repo, or one with only a backlog waiting, gets nothing at all. The second, at `Stop`, is what lets an unattended drive cross turn boundaries without `/goal` — it blocks only while a drive's `drive.md` marker is live and inside its bounds, so a session that is not driving is untouched ([ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)). Because hooks load at session start, a newly installed or edited hook applies from the **next** session ([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
+**Forgetting to seal is caught at session entry.** forge ships two hooks (`hooks/hooks.json`, installed with the plugin — no settings edit). The first, at `SessionStart`, checks for an **unsealed tail** — a task that ran but was never sealed, a task parked awaiting the seal, or a halted goal loop — and, only then, injects a short notice so the agent tells you about it before starting new work. It never runs or seals on its own initiative before you answer — fg-ask's STEP 0 auto-close is the one approved exception — so the decision stays yours. A clean repo, or one with only a backlog waiting, gets nothing at all. The second, at `Stop`, is what lets an unattended drive cross turn boundaries without `/goal` — it blocks only while a drive's `drive.md` marker is live and inside its bounds, so a session that is not driving is untouched ([ADR-0028](./.forge/adr/0028-unattended-drive-continuation-and-goal-pairing.md)). Because hooks load at session start, a newly installed or edited hook applies from the **next** session ([ADR 260727-201031](./.forge/adr/260727-201031-forge-ships-session-start-hook.md)).
 
 How git and branches are operated with forge — the git-abstinence model, the commit points, and a feature-branch walkthrough with git CLI — is in **[docs/git-workflow.md](./docs/git-workflow.md) (Korean)**.
 
@@ -251,7 +251,7 @@ Legend: ✓ explicitly supported · △ something similar exists but differs in 
 ### What forge doesn't do
 
 - **Cross-model benchmarking** — GStack has it (`/codex`, `gstack-model-benchmark`), forge doesn't (deliberate: model choice is Claude Code's own domain, not forge's).
-- **Browser automation, iOS QA, design generation** — GStack has these (`/browse`, `/ios-qa`, `/design-*`), forge doesn't (deliberate: forge stays scoped to the plan→execute→retro→done loop, not the whole SDLC).
+- **Browser automation, iOS QA, design generation** — GStack has these (`/browse`, `/ios-qa`, `/design-*`), forge doesn't (deliberate: forge stays scoped to the plan→execute→seal loop, not the whole SDLC).
 - **Team-shared, searchable knowledge base across projects** — GStack's GBrain (Supabase-backed) does this; forge's `.forge/` is scoped to a single repo.
 - **Always-on, unconditional TDD enforcement** — Superpowers deletes code written before tests; forge's TDD is an opt-in toggle a project can choose not to use.
 - **Automatic per-task git worktree isolation** — Superpowers creates one automatically; forge isolates state per branch (ADR-0011) but doesn't automate worktree creation itself.

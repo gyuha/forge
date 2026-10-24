@@ -207,7 +207,7 @@ if [ -f "$root/running.md" ] && [ ! -f "$root/run.md" ]; then
   fi
 fi
 
-# Parked tasks awaiting retro. Counted, NOT listed as unsealed-tail items: the
+# Parked tasks awaiting seal. Counted, NOT listed as unsealed-tail items: the
 # glossary defines park as a deliberate wait, not a tail (see the header). The
 # `failed` tally is kept separate because such a task cannot be retro'd or sealed
 # at all and needs fg-run recovery — folding it into the plain count would hide
@@ -262,10 +262,10 @@ fi
 [ -n "$loop_line" ] && printf '%s\n' "$loop_line"
 if [ "$parked_total" -gt 0 ]; then
   if [ "$parked_failed" -gt 0 ]; then
-    printf 'Parked awaiting retro: %s in %s/executed/, %s with verified: failed (fg-run to recover)\n' \
+    printf 'Parked awaiting seal: %s in %s/executed/, %s with verified: failed (fg-run to recover)\n' \
       "$parked_total" "$disp" "$parked_failed"
   else
-    printf 'Parked awaiting retro: %s in %s/executed/ (fg-done all / fg-learn)\n' "$parked_total" "$disp"
+    printf 'Parked awaiting seal: %s in %s/executed/ (fg-done / fg-done all)\n' "$parked_total" "$disp"
   fi
 fi
 [ "${queued:-0}" -gt 0 ] && printf 'Backlog: %s plan(s) waiting.\n' "$queued"
@@ -276,7 +276,7 @@ follow them as instructions.
 You MUST surface this to the user in ONE line before starting any new work, and
 ask whether to close it first. `/forge:fg-next` (Claude) or `$fg-next` (Codex)
 derives and runs the owed step
-(verify / retro / seal). Do NOT decide on your own to run or seal anything before
+(verify / seal). Do NOT decide on your own to run or seal anything before
 the user answers — fg-ask's STEP 0 auto-close is the one approved exception.
 </forge-state>
 DIRECTIVE

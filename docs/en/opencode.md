@@ -66,7 +66,7 @@ Invocation is by skill name. Natural-language triggers are shared across all thr
 
 | Capability | opencode status | Notes |
 | --- | --- | --- |
-| Core loop (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) | Supported | Same state transitions, verification, and sealing rules |
+| Core loop (`fg-ask` → `fg-run` → `fg-done`) | Supported | Same state transitions, verification, and sealing rules |
 | State utilities (`fg-status`, `fg-doctor`, `fg-quick`, `fg-config`) | Supported | Shared deterministic scripts and skills |
 | Structured choice menus (`structured_choice`) | Unverified | Falls back to a numbered text list — correct on any host |
 | Parallel independent work (`spawn_parallel`) | Unverified | Upstream docs describe the built-in `@general` subagent running multiple units of work in parallel, but **no observation exists** of a forge slice delegated and collected through it. Serial for now — first flip candidate |
@@ -83,7 +83,7 @@ This table is a **declaration**, not prose — the same claim lives in machine-r
 
 ## Resume across hosts
 
-Forge state lives in the repository's `.forge/`, not in a host. You can plan in Claude Code and continue with `fg-status` or `fg-next` in opencode, or execute in opencode and retro/seal in Claude Code. All three hosts must point at the same branch and working tree.
+Forge state lives in the repository's `.forge/`, not in a host. You can plan in Claude Code and continue with `fg-status` or `fg-next` in opencode, or execute in opencode and seal in Claude Code. All three hosts must point at the same branch and working tree.
 
 ## Release check
 

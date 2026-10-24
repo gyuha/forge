@@ -1,6 +1,6 @@
 # Getting started
 
-**forge** is a workflow plugin for Claude Code and Codex. It takes one task through a **single cycle of the loop** — grill the plan (①), execute it (②), leave what you learned in the docs (③), and seal it to close the loop (④).
+**forge** is a workflow plugin for Claude Code and Codex. It takes one task through a **single cycle of the loop** — grill the plan (①), execute it (②), and seal it to close the loop (③) — when there is something to learn, the seal leaves it in the docs.
 
 This site is forge's **English documentation**. The introduction and the skill-catalog summary live on the [landing page](https://gyuha.com/forge/), and the original Markdown and source live in the [GitHub repo](https://github.com/gyuha/forge).
 
@@ -23,12 +23,12 @@ Twenty-four skills look like a lot, but day to day you drive with **three**.
 
 ```
 fg-ask   →   fg-run   →   fg-next
- (plan)       (execute)     (auto-continue: verify → retro/seal)
+ (plan)       (execute)     (auto-continue: verify → seal)
 ```
 
 - **`/fg-ask`** — start *every* task here. It grills the plan with you, one question at a time.
 - **`fg-run`** — executes through a Dynamic Workflow on Claude Code or the collaboration/subagent adapter on Codex.
-- **`/fg-next`** — does the *one next step* for you (verify → retro or seal). Run it again to keep moving.
+- **`/fg-next`** — does the *one next step* for you (verify or seal). Run it again to keep moving.
 
 To plan once and let it drive to the end, call `/fg-next all` after `/fg-ask` — it keeps executing, verifying, and sealing until it hits a wall where it needs you.
 

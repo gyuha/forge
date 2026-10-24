@@ -5,7 +5,7 @@ description: A decision queue for foggy work — outside the forge loop. Settles
 
 # fg-agenda — decision queue (outside the loop)
 
-This is **not** a stage of the forge loop (fg-ask → fg-run → fg-learn → fg-done). It is an **on-demand planning utility** — like fg-map and fg-loop — that gives forge a place for **a decision not yet made**. Everything forge produces today is a *build* artifact (`plan.md`'s Work slices) and an ADR records a decision **already made**, so work that is still in fog either gets forced into a prematurely-complete plan or its open decisions scatter across conversation and retro prose and vanish. fg-agenda keeps one file — a destination plus the open questions — and resolves them one at a time until the way is clear, then deletes itself.
+This is **not** a stage of the forge loop (fg-ask → fg-run → fg-done). It is an **on-demand planning utility** — like fg-map and fg-loop — that gives forge a place for **a decision not yet made**. Everything forge produces today is a *build* artifact (`plan.md`'s Work slices) and an ADR records a decision **already made**, so work that is still in fog either gets forced into a prematurely-complete plan or its open decisions scatter across conversation and retro prose and vanish. fg-agenda keeps one file — a destination plus the open questions — and resolves them one at a time until the way is clear, then deletes itself.
 
 **The agent's autonomy is in finding what must be decided; the human answers.** That split is the whole point of this skill, and it is structural here, not advice (see the Autonomy boundary and Prohibition 1).
 

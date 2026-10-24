@@ -161,7 +161,7 @@ function surveyForge(root, { bounded = false } = {}) {
       // Stage is gated on the verification gate, not on run.md's existence — see
       // the bash twin's comment (fg-run still owns a pending/failed UAT).
       const stage = ["yes", "skipped", "n/a"].includes(norm(v))
-        ? "learn"
+        ? "seal"
         : "run";
       addRow(
         no,
@@ -209,7 +209,7 @@ function surveyForge(root, { bounded = false } = {}) {
     }
   }
 
-  // Awaiting retro (executed/)
+  // Awaiting seal (executed/)
   for (const d of subDirs(path.join(root, "executed"))) {
     const dir = path.join(root, "executed", d);
     const p = path.join(dir, "plan.md");
@@ -220,8 +220,8 @@ function surveyForge(root, { bounded = false } = {}) {
     let date = field(st, "executed") || "-";
     const v = field(st, "verified");
     // Only `failed` goes back to fg-run (unpark); a parked `pending` routes to
-    // fg-learn — see the bash twin's comment.
-    const stage = norm(v) === "failed" ? "run" : "learn";
+    // fg-done — see the bash twin's comment.
+    const stage = norm(v) === "failed" ? "run" : "seal";
     addRow(
       no,
       date,

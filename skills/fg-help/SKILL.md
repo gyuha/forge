@@ -1,6 +1,6 @@
 ---
 name: fg-help
-description: A read-only usage-help reporter for forge — `/forge:fg-help` prints an overview of every fg-* skill grouped by the loop's four stages plus the outside-the-loop utilities, and `/forge:fg-help <command>` a short detail (what it does · when to use · trigger · next step) for one skill. Each skill's own SKILL.md `description` is the single source, rendered in the user's language. Writes nothing, never auto-runs. Outside the loop. Use in contexts like 'forge help', 'fg-help', '도움말', '사용법', 'how do I use forge', 'what commands are there', 'fg-help fg-run'.
+description: A read-only usage-help reporter for forge — `/forge:fg-help` prints an overview of every fg-* skill grouped by the loop's three stages plus the outside-the-loop utilities, and `/forge:fg-help <command>` a short detail (what it does · when to use · trigger · next step) for one skill. Each skill's own SKILL.md `description` is the single source, rendered in the user's language. Writes nothing, never auto-runs. Outside the loop. Use in contexts like 'forge help', 'fg-help', '도움말', '사용법', 'how do I use forge', 'what commands are there', 'fg-help fg-run'.
 ---
 
 # fg-help — forge usage help (read-only, outside the loop)
@@ -43,7 +43,7 @@ Mode is chosen by whether an argument was given.
 
 Glob the skill files, read each `name` + `description`, and print a grouped overview **in the user's language**:
 
-- **Group by the loop's four stages, then the outside-the-loop utilities** — the same organization CLAUDE.md and the README already use, so the user sees the structure they'll meet elsewhere. Lead with the loop `① fg-ask → ② fg-run → ③ fg-learn → ④ fg-done`, then an "outside the loop utilities" group for the rest (fg-status, fg-next, fg-loop, fg-map, fg-quick, fg-doctor, fg-agenda, fg-help itself, etc.).
+- **Group by the loop's three stages, then the outside-the-loop utilities** — the same organization CLAUDE.md and the README already use, so the user sees the structure they'll meet elsewhere. Lead with the loop `① fg-ask → ② fg-run → ③ fg-done` (the retro is decided inside the seal), then an "outside the loop utilities" group for the rest (fg-learn, fg-status, fg-next, fg-loop, fg-map, fg-quick, fg-doctor, fg-agenda, fg-help itself, etc.).
 - **Derive the grouping from each `description`, not a hard-coded list.** A skill's own description states whether it is a loop stage or an `outside the loop` utility (fg-status's says *"On-demand utility outside the loop."*). Read that phrase to place each skill, so the grouping needs no maintained classification table and a new skill lands in the right group automatically. If a description is ambiguous about placement, put it under the utilities group (the safe default) rather than guessing a loop position.
 - For each skill show one line: its `name`, its trigger (`/forge:<name>`), and a one-phrase summary distilled from its description — not the whole description (that is what the detail mode is for).
 - **fg-help includes itself** — the glob picks up its own SKILL.md, so it appears under the utilities group like any other. Do not special-case it out.

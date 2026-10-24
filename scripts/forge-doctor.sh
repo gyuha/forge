@@ -66,7 +66,7 @@ check_status() { # <status-file> <ctx: active|executed|done>
   # A3(a) dangling retro path
   case "$rt" in
     .forge/*|"$repo"/*|/*) [ -f "$rt" ] || [ -f "$repo/$rt" ] || finding error "A3 dangling retro" "$sf" "retro: points to a missing file ($rt)";;
-    pending) [ "$ctx" = "done" ] && finding warning "A3 retro pending in done/" "$sf" "seal left retro: unfilled — fg-learn then re-seal, or record 'skipped'";;
+    pending) [ "$ctx" = "done" ] && finding warning "A3 retro pending in done/" "$sf" "seal left retro: unfilled — write the retro or record skipped, then re-seal with fg-done, or record 'skipped'";;
   esac
 }
 [ -f "$root/STATUS.md" ] && check_status "$root/STATUS.md" active

@@ -37,7 +37,7 @@ assert_parity() { # $1=desc  $2=workdir  $3=mode("" or "--table")  $4=must-conta
 A="$(mktemp -d)"
 assert_parity "empty: no .forge dir" "$A" ""
 
-# --- Fixture B: populated (active learn + backlog + executed + done) --------
+# --- Fixture B: populated (active seal + backlog + executed + done) --------
 B="$(mktemp -d)"
 mkdir -p "$B/.forge/backlog" "$B/.forge/executed/parked-task" \
          "$B/.forge/done/2026-06-10-old-task" "$B/.forge/retro" "$B/.forge/adr" "$B/.forge/quick"
@@ -155,7 +155,7 @@ else
 fi
 
 # --- Fixture H: Stage is gated on `verified:`, not on run.md's existence -----
-# Regression: the table printed `learn` for an active run whose UAT was still
+# Regression: the table printed `learn` (now `seal`) for an active run whose UAT was still
 # owed (`verified: pending`), while the next-step machine sent the user to
 # fg-run on the same screen — the table contradicted the handoff.
 H="$(mktemp -d)"; mkdir -p "$H/.forge"
@@ -165,7 +165,7 @@ printf 'slug: uat-owed\nstatus: executed\nexecuted: 2026-09-06\nverified: pendin
 assert_parity "verified pending: stage gated sh==js" "$H" "--table" "uat-owed"
 stage_h="$(cd "$H" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}')"
 if [ "$stage_h" = "run" ]; then
-  echo "ok   - active run.md + verified pending → stage run (not learn)"
+  echo "ok   - active run.md + verified pending → stage run (not seal)"
 else
   echo "FAIL - verified pending stage: got [$stage_h] expected [run]"; fails=$((fails+1))
 fi
@@ -180,8 +180,8 @@ fi
 
 # --- Fixture I: parked tasks — only `failed` returns to fg-run ---------------
 # The discriminator is who owns the next step: fg-run unparks a `failed` task,
-# while a parked `pending` routes to fg-learn (its gate confirms the UAT), so it
-# stays `learn` (fg-status SKILL.md, next-step machine step 3).
+# while a parked `pending` routes to fg-done (it confirms the UAT at seal time), so it
+# stays `seal` (fg-status SKILL.md, next-step machine step 3).
 I="$(mktemp -d)"; mkdir -p "$I/.forge/executed/failed-task" "$I/.forge/executed/pending-task"
 printf '<!-- forge-slug: failed-task --> <!-- task: 1 -->\n# F\n' > "$I/.forge/executed/failed-task/plan.md"
 printf 'slug: failed-task\nstatus: executed\nexecuted: 2026-09-06\nverified: failed (broken)\nretro: pending\n' > "$I/.forge/executed/failed-task/STATUS.md"
@@ -189,10 +189,10 @@ printf '<!-- forge-slug: pending-task --> <!-- task: 2 -->\n# P\n' > "$I/.forge/
 printf 'slug: pending-task\nstatus: executed\nexecuted: 2026-09-06\nverified: pending\nretro: pending\n' > "$I/.forge/executed/pending-task/STATUS.md"
 assert_parity "parked stages: sh==js" "$I" "--table" "failed-task"
 stages_i="$(cd "$I" && bash "$SH" --table 2>/dev/null | awk 'NR>1{print $4}' | tr '\n' ',')"
-if [ "$stages_i" = "run,learn," ]; then
-  echo "ok   - parked failed → run · parked pending → learn"
+if [ "$stages_i" = "run,seal," ]; then
+  echo "ok   - parked failed → run · parked pending → seal"
 else
-  echo "FAIL - parked stages: got [$stages_i] expected [run,learn,]"; fails=$((fails+1))
+  echo "FAIL - parked stages: got [$stages_i] expected [run,seal,]"; fails=$((fails+1))
 fi
 
 # --- Fixture J: retro lookup is EXACT, not a `*-<slug>.md` suffix glob --------
@@ -224,7 +224,7 @@ fi
 K="$(mktemp -d)"; mkdir -p "$K/.forge"
 printf '<!-- forge-slug: t --> <!-- task: 1 -->\n# T\n' > "$K/.forge/plan.md"
 : > "$K/.forge/run.md"
-for pair in "Yes (ok)|pending|learn|O|-" "N/A (docs)|pending|learn|~|-" "yes(ok)|pending|learn|O|-" "yes (ok)|Skipped (why)|learn|O|X"; do
+for pair in "Yes (ok)|pending|seal|O|-" "N/A (docs)|pending|seal|~|-" "yes(ok)|pending|seal|O|-" "yes (ok)|Skipped (why)|seal|O|X"; do
   IFS='|' read -r vv rr xs xv xr <<EOF
 $pair
 EOF

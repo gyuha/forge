@@ -2,7 +2,7 @@
 
 > Single definition of how an **unattended multi-step drive** keeps going — within one turn, and across turn boundaries. Shared by `fg-next` (`all` mode) and `fg-loop` so the discipline lives in one place, not two drifting copies (same "single definition, referenced, no copy-paste" pattern as `FORGE-ROOT.md`). Each lane keeps its **own** halt/wall set and entry framing; this file owns only what they genuinely share.
 
-A drive delegates each step to fg-run / fg-done / fg-learn and repeats until it either reaches its terminal state or hits a wall. Two independent things make "repeat" actually happen: continuing **within** a turn (Part 1) and crossing a genuine turn **boundary** (Part 2). They are separate mechanisms with separate guarantees — do not conflate them.
+A drive delegates each step to fg-run / fg-done and repeats until it either reaches its terminal state or hits a wall. Two independent things make "repeat" actually happen: continuing **within** a turn (Part 1) and crossing a genuine turn **boundary** (Part 2). They are separate mechanisms with separate guarantees — do not conflate them.
 
 ## Part 1 — Continue within the turn (best-effort)
 
@@ -10,11 +10,11 @@ The skills a drive delegates to (fg-run, fg-done) end in **statement-form handof
 
 - **Sealing one task is not a stopping point.** After each seal, immediately derive and take the next step. The **only** legitimate ends of a turn are the drive's **terminal state** (nothing left to auto-progress) and a genuine **wall** — and each lane defines its own walls (fg-next all: `../fg-next/SKILL.md`; fg-loop: `../fg-loop/SKILL.md`). Pausing anywhere else is the "one cycle then stall" failure this discipline exists to prevent.
 - **No re-run / repeat-menu risk.** This continuation advances on **changing** state — a sealed task leaves the active slot, the next is promoted — never on unchanged state. So it does **not** reintroduce the ADR-0015 repeat bug (that was an `AskUserQuestion` menu re-triggering on *unchanged* state; a drive has no such menu, and its state moves forward each step). The drive loop asks the user nothing between steps.
-- **Do not relay a delegated skill's retro recommendation.** fg-run's (and fg-done's) statement-form handoff *states* "next: fg-learn (retro)" — written for a **human** caller who will read it and decide. **In a drive you must NOT surface that "run fg-learn" line to the user.** The moment the delegated step completes, apply the lane's retro policy (referenced above — fg-next all / fg-loop both auto-skip) and continue straight to skip-retro + seal. Relaying fg-run's "run fg-learn" handoff — so the user is told to retro manually and the drive stalls at the learn stage — is a primary way the "keeps telling me to run fg-learn, never seals" stall happens; it is the same leak as surfacing a delegated seal summary, and this discipline forbids both.
+- **Do not relay a delegated skill's next-step line.** fg-run's statement-form handoff *states* "next: fg-done (seal)" — written for a **human** caller who will read it and decide. **In a drive you must NOT surface that line to the user.** The moment the delegated step completes, continue straight to the seal, invoking fg-done as an **unattended** seal: its retro judgment (`../fg-done/SKILL.md` step 0b) skips the retro or writes an auto retro log and never asks — promotion is deferred to fg-learn's batch promotion (ADR `261024-191024`). Relaying the handoff — so the user is told to run the next step manually and the drive stalls — is a primary way the "keeps telling me to run it, never seals" stall happens (historically "run fg-learn"); it is the same leak as surfacing a delegated seal summary, and this discipline forbids both.
 - **A delegated seal stays terse.** A seal reached inside a drive is a *delegated* seal — it uses fg-done's terse completion notice, **never** the explicit-single-seal summary chapter (ADR-0032). That summary is for a human's bare `/fg-done` only; in an unattended drive it would be a wall of text against the momentum this discipline exists to keep.
   - **Eco: terse becomes one row per task, not prose.** When `eco` is `true` in the **top-level** `.forge/config.json`, a drive reports each delegated seal as **one row** of the batch **eco summary table** — accumulated across the drive — instead of a per-task prose notice. The shape is defined once in [`../fg-config/ECO.md`](../fg-config/ECO.md); reference it, never restate the layout. **The summary chapter stays forbidden** — a row is not a chapter. This does not loosen the terseness rule above, it *implements* it: a row is shorter than the notice it replaces (ADR-0032's 2026-07-31 amendment). Both lanes (fg-next `all`, fg-loop) inherit this from here; neither restates it. When `eco` is `false` or absent, the terse prose notice above is unchanged.
-- **Follow-up persistence is never skipped.** Before each delegated seal, apply fg-done Behavior step 0 and [../fg-learn/FOLLOWUPS-FORMAT.md](../fg-learn/FOLLOWUPS-FORMAT.md). The retro-skip choice does not suppress the ledger write; every candidate shown later must have a saved ID.
-- **`simple` changes nothing in a drive.** A drive already auto-skips retros and seals per task, so `simple: true` in the **top-level** `.forge/config.json` is a no-op here — it exists for the *conversational* fg-run path (ADR `260905-212045`). Do not double-apply it.
+- **Follow-up persistence is never skipped.** Before each delegated seal, apply fg-done Behavior step 0 and [../fg-learn/FOLLOWUPS-FORMAT.md](../fg-learn/FOLLOWUPS-FORMAT.md). Neither a skipped retro nor an auto retro suppresses the ledger write; every candidate shown later must have a saved ID.
+- **`simple` changes nothing in a drive.** A drive already seals every task unattended, so `simple: true` in the **top-level** `.forge/config.json` is a no-op here — it exists for the *conversational* fg-run path (ADR `260905-212045`). Do not double-apply it.
 - **Honest limit.** Skill text cannot guarantee the model will not yield after a delegated handoff. Continue as far as the turn allows; Part 2 owns host-supported cross-turn continuation and its fallback. Neither mechanism permits crossing an unresolved wall.
 
 ## Part 2 — Cross genuine turn boundaries: forge's own Stop hook (`/goal` is the fallback)
@@ -40,7 +40,7 @@ drive entry
 present frozen work ──▶ write <forge-root>/drive.md (primary path: forge's Stop hook)
    │                       └─ hook not live? (just installed/updated) ─▶ also offer the paste-ready /goal line (fallback)
    ▼
-┌─▶ delegated step (run · verify · [lane's retro policy] · seal · derive next)
+┌─▶ delegated step (run · verify · seal (unattended retro judgment) · derive next)
 │      │ completed ──▶ DO NOT yield on the stated stop; derive next & continue (Part 1) ─┐
 │      └─ genuine boundary (async workflow not held by blocking-collect · script approval · yield despite Part 1) ──▶ turn would end;
 │              Stop hook sees the marker ──▶ exit 2 blocks it, the drive continues (Part 2)
@@ -93,7 +93,7 @@ drive entry ──▶ git status --porcelain
 
 ## Part 4 — Rulings: record every soft decision the drive takes
 
-**Why.** A drive must not stop to ask about *soft* decisions — choices that carry a recommended or default option (the TDD question, which task first, a slug collision, a delegated skill's stated handoff route, "retro vs. skip"). It takes the recommended option and keeps going. Taking it **silently**, though, leaves no trace: after the drive, nobody can tell which choices were the human's and which were the drive's, or why a task ran test-first. The idea is adapted from iha2/superlite, whose autonomous mode records such decisions as *rulings* instead of asking.
+**Why.** A drive must not stop to ask about *soft* decisions — choices that carry a recommended or default option (the TDD question, which task first, a slug collision, a delegated skill's stated handoff route). It takes the recommended option and keeps going. Taking it **silently**, though, leaves no trace: after the drive, nobody can tell which choices were the human's and which were the drive's, or why a task ran test-first. The idea is adapted from iha2/superlite, whose autonomous mode records such decisions as *rulings* instead of asking.
 
 **What counts.** Only a choice that had more than one legitimate option and a recommended/default one. Mechanical steps (run, verify, seal, promote) are not rulings. A choice the human made in this conversation is not a ruling either.
 
@@ -101,6 +101,6 @@ drive entry ──▶ git status --porcelain
 
 **Shape.** One line per decision: `- <what was decided>: <chosen value> (recommended default, auto-selected) — <one-line reason>`.
 
-**Who writes.** The drive itself writes nothing (fg-next's rule; fg-loop follows the same split for task files). The drive hands its rulings for the task to the delegated fg-run, which writes them into `## Rulings` when it writes that task's `run.md`. A decision whose outcome already has its own STATUS field — `retro: skipped (<drive reason>)` — is recorded there and is not repeated in `## Rulings`.
+**Who writes.** The drive itself writes nothing (fg-next's rule; fg-loop follows the same split for task files). The drive hands its rulings for the task to the delegated fg-run, which writes them into `## Rulings` when it writes that task's `run.md`. A decision whose outcome already has its own STATUS field — the retro outcome fg-done records (`retro: skipped (<reason>)` or an auto retro path) — is recorded there and is not repeated in `## Rulings`.
 
 **What it does not do.** It never turns a soft decision into a question, and it is not a wall. It only makes the decision visible afterwards.

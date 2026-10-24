@@ -5,7 +5,7 @@ description: Retires stale or superseded ADRs out of the active decision set —
 
 # fg-cleanup — retire stale ADRs (outside the loop)
 
-This is **not** a stage of the forge loop (fg-ask → fg-run → fg-learn → fg-done). It is an **on-demand utility** — like fg-map and fg-merge — that tends the permanent-doc fuel: it retires ADRs that no longer apply so the active decision set in `.forge/adr/` stays current, while preserving the *why* of every past decision. Sealing a finished task (closing its STATUS, archiving, emptying the active slot) is **fg-done**, not this skill (see ADR-0012 for why the name moved here).
+This is **not** a stage of the forge loop (fg-ask → fg-run → fg-done). It is an **on-demand utility** — like fg-map and fg-merge — that tends the permanent-doc fuel: it retires ADRs that no longer apply so the active decision set in `.forge/adr/` stays current, while preserving the *why* of every past decision. Sealing a finished task (closing its STATUS, archiving, emptying the active slot) is **fg-done**, not this skill (see ADR-0012 for why the name moved here).
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The candidate list, rationale, and any confirmation question are written in the user's language.
 

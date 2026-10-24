@@ -39,7 +39,7 @@ Script paths prefer the host's **own** variable — `CLAUDE_PLUGIN_ROOT` first, 
 
 | Capability | Codex status | Notes |
 | --- | --- | --- |
-| Core loop (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) | Supported | Same state transitions, verification, and sealing rules |
+| Core loop (`fg-ask` → `fg-run` → `fg-done`) | Supported | Same state transitions, verification, and sealing rules |
 | State utilities (`fg-status`, `fg-doctor`, `fg-quick`, `fg-config`) | Supported | Shared scripts and skills |
 | Parallel independent work (`spawn_parallel`) | Supported | Serial fallback when Codex collaboration/subagent tools are unavailable. **Not yet observed** — it presumes a fallback when the tools are absent, so confirm it on Codex |
 | SessionStart notice (`session_start`) | Supported | Default `hooks/hooks.json` discovery; the user must review and trust hooks. **Not yet observed** — `.codex-plugin/plugin.json` declares no hooks, so confirm it on Codex |
@@ -56,7 +56,7 @@ This table is a **declaration**, not prose — the same claim lives in machine-r
 
 ## Resume across hosts
 
-Forge state lives in the repository's `.forge/`, not in a host. You can plan in Claude Code and continue with `$fg-status` or `$fg-next` in Codex, or execute in Codex and retro/seal in Claude Code. Both hosts must point at the same branch and working tree.
+Forge state lives in the repository's `.forge/`, not in a host. You can plan in Claude Code and continue with `$fg-status` or `$fg-next` in Codex, or execute in Codex and seal in Claude Code. Both hosts must point at the same branch and working tree.
 
 ## Release check
 

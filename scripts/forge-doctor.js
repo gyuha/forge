@@ -65,7 +65,7 @@ function checkStatus(sf, ctx) {
   if (/^(\.forge\/|\/)/.test(rt) || rt.startsWith(repo + '/')) {
     if (!isFile(rt) && !isFile(path.join(repo, rt))) finding('error', 'A3 dangling retro', sf, `retro: points to a missing file (${rt})`);
   } else if (rt === 'pending') {
-    if (ctx === 'done') finding('warning', 'A3 retro pending in done/', sf, "seal left retro: unfilled — fg-learn then re-seal, or record 'skipped'");
+    if (ctx === 'done') finding('warning', 'A3 retro pending in done/', sf, "seal left retro: unfilled — write the retro or record skipped, then re-seal with fg-done, or record 'skipped'");
   }
 }
 if (isFile(path.join(root, 'STATUS.md'))) checkStatus(path.join(root, 'STATUS.md'), 'active');

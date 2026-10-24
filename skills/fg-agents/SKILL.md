@@ -5,7 +5,7 @@ description: Generates a project's domain agents — conversational grilling der
 
 # fg-agents — generate project domain agents (outside the loop)
 
-This is **not** a stage of the forge loop (fg-ask → fg-run → fg-learn → fg-done). It is an **on-demand utility** — like fg-map, fg-cleanup, and fg-merge — that produces project assets the loop can later use: standard Claude Code subagent definitions under `.claude/agents/<role>.md`. fg-run (extended per ADR-0024) discovers those cards and dispatches a slice through the matching role via the workflow `agent()` call's `agentType`. fg-agents only **creates** the cards by grilling the project's domain; calling them is fg-run's job, and is entirely graceful — a project with no domain agents runs exactly as before.
+This is **not** a stage of the forge loop (fg-ask → fg-run → fg-done). It is an **on-demand utility** — like fg-map, fg-cleanup, and fg-merge — that produces project assets the loop can later use: standard Claude Code subagent definitions under `.claude/agents/<role>.md`. fg-run (extended per ADR-0024) discovers those cards and dispatches a slice through the matching role via the workflow `agent()` call's `agentType`. fg-agents only **creates** the cards by grilling the project's domain; calling them is fg-run's job, and is entirely graceful — a project with no domain agents runs exactly as before.
 
 **These agents are the user project's, not forge's.** fg-agents writes them into the *project's* `.claude/agents/`; it does not add agents to the forge plugin (ADR-0013 stands — see ADR-0024 for why this is non-conflicting). The roles are whatever this project's work needs, derived by grilling, not a fixed forge-supplied set.
 

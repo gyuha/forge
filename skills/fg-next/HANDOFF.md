@@ -78,7 +78,7 @@ Read the state → first matching case wins → that case fills Next step + How 
                                           → the runner-up, if any, is Alternative
 ```
 
-`../fg-run/SKILL.md` ("Divergence shapes the `Alternative` cell") and `../fg-learn/SKILL.md` ("Divergence shapes the cells", a 3-case precedence) are the worked examples. Three further rules:
+`../fg-run/SKILL.md` ("Divergence shapes the `Alternative` cell") and `../fg-adversarial-review/SKILL.md` (§4, a 3-case precedence) are the worked examples. Three further rules:
 
 - **Never assert in a cell what is only sometimes true.** `Just did` is the usual offender — "the active state is now empty" is false the moment one task was set aside. If a path can make the sentence false, branch it or drop the claim.
 - **Order is fixed, so "lead with X" is not an instruction.** The rows are always `Just did · Next step · How to start · Alternative`. A hint that a route should be *preferred* must change **which case wins**, not the row order — otherwise it is a no-op.
@@ -102,8 +102,8 @@ So, without exception:
 
 | Group | Skills |
 | --- | --- |
-| Loop stages | `fg-ask` · `fg-run` · `fg-learn` · `fg-done` |
-| Outside-the-loop, with a next step | `fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents` · `fg-security` · `fg-debug` |
+| Loop stages | `fg-ask` · `fg-run` · `fg-done` |
+| Outside-the-loop, with a next step | `fg-learn` · `fg-status` · `fg-next` · `fg-loop` · `fg-quick` · `fg-map` · `fg-doctor` · `fg-agenda` · `fg-adversarial-review` · `fg-agents` · `fg-security` · `fg-debug` |
 
 **Does NOT apply (8)** — leave their prose as it is:
 
@@ -121,13 +121,13 @@ Applying it everywhere was considered and rejected: a toggle would render three 
 
 **Inside `fg-next all` or `fg-loop`, a delegated skill does not render its handoff table at all.** The driver owns the user-facing report; it renders one table for its own step — the wall it halted at, or the drive's completion.
 
-This is not a style preference. [`DRIVE.md`](./DRIVE.md) forbids relaying a delegated skill's next-step line to the user in a drive, because being told "run fg-learn" while the drive auto-skips the retro is **the primary way the "keeps telling me to run fg-learn, never seals" stall happens**. A table makes that worse than the prose did: a table reads as an instruction. So the drive exception is mandatory, and it applies to the whole table, not just the `Next step` row.
+This is not a style preference. [`DRIVE.md`](./DRIVE.md) forbids relaying a delegated skill's next-step line to the user in a drive, because being told "run the next skill" while the drive is already doing it is **the primary way the "keeps telling me to run it, never seals" stall happens** (historically "run fg-learn", when the retro was a separate stage). A table makes that worse than the prose did: a table reads as an instruction. So the drive exception is mandatory, and it applies to the whole table, not just the `Next step` row.
 
-The delegated skill cannot detect its caller (the same limit ADR-0015 documented for fg-run's handoff), so **the driver suppresses it**: `fg-next` in `all` mode and `fg-loop` instruct the steps they invoke not to render, exactly as they already suppress the delegated seal summary (ADR-0032). One-shot `fg-next` is different — it runs a single step for a human who is reading, so that step's table is wanted; but when the one-shot chains learn→done (ADR-0026), **only the last step in the chain renders**, or the user gets a live trigger for something already done.
+The delegated skill cannot detect its caller (the same limit ADR-0015 documented for fg-run's handoff), so **the driver suppresses it**: `fg-next` in `all` mode and `fg-loop` instruct the steps they invoke not to render, exactly as they already suppress the delegated seal summary (ADR-0032). One-shot `fg-next` is different — it runs a single step for a human who is reading, so that step's table is wanted.
 
 ```
 human invokes a skill directly      → that skill renders its table
-fg-next (one-shot)                  → the invoked step renders; on a learn→done chain, only fg-done
+fg-next (one-shot)                  → the invoked step renders
 fg-next all · fg-loop               → no delegated table; the driver renders at its wall / completion
 ```
 

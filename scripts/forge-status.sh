@@ -169,10 +169,10 @@ if [ -f "$root/plan.md" ]; then
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
     # Stage is gated on the verification gate, not on run.md's existence: while
     # `verified:` is not sealable, fg-run still owns the task (verification-only
-    # resume for pending, fix-and-re-run for failed), so `learn` would contradict
+    # resume for pending, fix-and-re-run for failed), so `seal` would contradict
     # the next-step machine (SKILL.md step 1) on the same screen. Same gating the
     # statusline already applies (ADR-0017, 3rd amendment).
-    case "$(norm "$v")" in yes|skipped|n/a) stage="learn" ;; *) stage="run" ;; esac
+    case "$(norm "$v")" in yes|skipped|n/a) stage="seal" ;; *) stage="run" ;; esac
     add_row "$no" "$date" "${slug}${tag}" "$stage" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   else
     add_row "$no" "-" "${slug}${tag}" "run" "-" "-"
@@ -200,7 +200,7 @@ $(for f in "$root"/backlog/*.md; do
 EOF
 fi
 
-# Awaiting retro (executed/)
+# Awaiting seal (executed/)
 if [ -d "$root/executed" ]; then
   for dir in "$root"/executed/*/; do
     [ -d "$dir" ] || continue
@@ -210,9 +210,9 @@ if [ -d "$root/executed" ]; then
     date="$(field "$st" executed)"; [ -z "$date" ] && date="-"
     v="$(field "$st" verified)"; r="$(field "$st" retro)"
     # Only `failed` leaves fg-run's hands here: fg-run unparks it into the active
-    # slot. A parked `pending` routes to fg-learn (its gate confirms the UAT
-    # first), so it stays `learn` — the discriminator is who owns the next step.
-    case "$(norm "$v")" in failed) stage="run" ;; *) stage="learn" ;; esac
+    # slot. A parked `pending` routes to fg-done (it confirms the UAT at seal
+    # time), so it stays `seal` — the discriminator is who owns the next step.
+    case "$(norm "$v")" in failed) stage="run" ;; *) stage="seal" ;; esac
     add_row "$no" "$date" "${slug}$(looptag "$p")" "$stage" "$(vsym "$v")" "$(rsym "$r" "$slug")"
   done
 fi

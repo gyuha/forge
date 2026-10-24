@@ -72,7 +72,7 @@ printf '# LOOP — make the CI pipeline green\nwall: no-progress (C1)\n' > "$D/.
 seed_plan "$D/.forge/backlog/q1.md" q1 50
 seed_plan "$D/.forge/backlog/q2.md" q2 51
 # 1 unsealed-tail item + a parked count line + loop + backlog
-assert_parity "populated: active + parked count + loop + backlog" "$D" "Parked awaiting retro: 4 in"
+assert_parity "populated: active + parked count + loop + backlog" "$D" "Parked awaiting seal: 4 in"
 
 # --- E: multibyte values -> byte-identical output (LC_ALL=C vs latin1 view) ---
 # Slugs are rendered for the active slot, so that is where the multibyte parity

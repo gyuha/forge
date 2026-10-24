@@ -2,7 +2,7 @@
 
 (function () {
   const agentLabels = {running: '실행 중', waiting: '대기 중', ended: '응답 종료', unknown: '확인 불가', failed: '실패'};
-  const stageLabels = {ask: '계획', run: '실행', verify: '검증', learn: '회고', done: '완료'};
+  const stageLabels = {ask: '계획', run: '실행', verify: '검증', seal: '봉인', done: '완료'};
   const eventLabels = {
     SessionStart: '세션 시작', UserPromptSubmit: '요청 접수', PreToolUse: '도구 실행',
     PostToolUse: '도구 실행 종료', PostToolUseFailure: '도구 실행 오류',
@@ -30,7 +30,7 @@
     if (!active) return null;
     if (field(active.status, 'status') === 'done') return 'done';
     if (!active.run) return 'run';
-    if (['yes', 'skipped', 'n/a'].includes(field(active.status, 'verified'))) return 'learn';
+    if (['yes', 'skipped', 'n/a'].includes(field(active.status, 'verified'))) return 'seal';
     return 'verify';
   }
 

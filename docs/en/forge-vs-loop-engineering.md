@@ -6,13 +6,13 @@
 
 ## Answering the core thesis
 
-Osmani's thesis is "replace the person typing prompts at an agent with a system — be a loop designer, not a prompt engineer." forge's answer: **automate the loop, but leave the irreducible judgment (grilling, the retro, confirming verification) to the human.** That is forge's two pillars, and it is the structural device that blocks the cognitive surrender Osmani warns about.
+Osmani's thesis is "replace the person typing prompts at an agent with a system — be a loop designer, not a prompt engineer." forge's answer: **automate the loop, but leave the irreducible judgment (grilling, promoting learnings, confirming verification) to the human.** That is forge's two pillars, and it is the structural device that blocks the cognitive surrender Osmani warns about.
 
 ## Primitive mapping
 
 | Loop Engineering concept | forge's implementation | Reference |
 | --- | --- | --- |
-| **Skills** — encode conventions and intent in SKILL.md, prevent intent debt | forge itself is 24 `fg-*` skills (the loop's four stages + 20 outside-the-loop utilities). Terms live in `CONTEXT.md`, decisions in ADRs, code context in the `.forge/codebase/` map — "docs are the loop's fuel, not its by-product" (pillar 2) *is* the defense against intent debt | README's two pillars, ADR-0001 |
+| **Skills** — encode conventions and intent in SKILL.md, prevent intent debt | forge itself is 24 `fg-*` skills (the loop's three stages + 21 outside-the-loop utilities). Terms live in `CONTEXT.md`, decisions in ADRs, code context in the `.forge/codebase/` map — "docs are the loop's fuel, not its by-product" (pillar 2) *is* the defense against intent debt | README's two pillars, ADR-0001 |
 | **State/Memory** — durable on-disk state outside the context window | The entire `.forge/` state contract: backlog → active slot (plan/run/STATUS) → executed/ → done/. "memory has to be on disk" implemented literally — every skill is invoked independently, yet the flow continues through files | README's shared state, FORGE-ROOT.md |
 | **Worktrees** — isolating parallel agents | The branch-scoped forge root (`.forge/branch/<branch>/`) solves the same collision problem at the state level. git worktrees can be used alongside it; "worktrees alone are enough" was considered and rejected (it cannot resolve conflicts in tracked docs) | ADR-0011 |
 | **Sub-agents** — maker/checker separation, no self-grading | fg-run's Dynamic Workflow (parallel execution) + the dedicated adversarial review skill **fg-adversarial-review** (assumes the result is wrong and fans six lenses out as parallel subagents) + fg-map's four-mapper fan-out. The separate trio (explorer/retro-analyzer/verifier) is **deliberately deferred** for lack of concrete pain — with the revisit bar written down | ADR-0007, ADR-0013, ADR-0018 |
@@ -28,8 +28,8 @@ The warnings Osmani piles up in the back half of the post are not advice in forg
 | --- | --- |
 | Token cost volatility | `fg-config`'s `eco` setting — when on, caps delegated subagents at sonnet and adds the Eco laziness-first discipline (`ECO.md`), which cuts code and plan complexity too (ADR-0014, amended). Plus the estimate-cost-first principle (fg-run Constraints) |
 | "A loop running unattended is a loop making mistakes unattended" | **no-seal-without-verification** — no seal unless a verification decision is recorded (ADR-0009). `failed` cannot be sealed by any waiver |
-| Comprehension debt | The retro is the default (ADR-0002) — skipping is allowed only at low divergence, and auditably (`retro: skipped (<reason>)`). Learnings are promoted into permanent docs |
-| Cognitive surrender | Pillar 1 — grilling and the retro are conversation outside the workflow. Even `fg-next all` halts and hands back to the human on a failed UAT, a genuine fork, or a costly judgment call |
+| Comprehension debt | Every seal decides the retro (ADR `261024-191024`) — a mechanical signal (a slice that diverged from the plan, a failure history, an accepted-but-unfixed review finding, a record of unattended rulings) makes a retro log mandatory, and a skip stays auditable (`retro: skipped (<reason>)`). A human confirms every promotion; an unattended seal defers it to `fg-learn`'s batch promotion |
+| Cognitive surrender | Pillar 1 — grilling and the promotion call are conversation outside the workflow. Even `fg-next all` halts and hands back to the human on a failed UAT, a genuine fork, or a costly judgment call |
 | Orchestration tax | The active slot is always exactly one (one plan = one run = one seal) — the loop's width is sized to human review bandwidth |
 
 ## fg-loop's second hardening — the Loop Library audit (2026-06-25)

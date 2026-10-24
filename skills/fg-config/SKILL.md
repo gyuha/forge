@@ -1,6 +1,6 @@
 ---
 name: fg-config
-description: "Unified settings surface for forge — every key in .forge/config.json: `simple` (auto-seal — fg-run verifies then seals in the same turn, retro auto-skipped), `eco` (sonnet-capped subagents + ECO.md discipline), `tdd` (test-first default), `driveCommit`/`driveCommitMessage`, `defaultBranch`, `monitorRetention`. `fg-config` (no arg) shows all and offers changes via a menu; `fg-config <key> <value>` sets one directly. Outside the loop. Use in contexts like 'forge config', '설정', 'simple mode', '심플 모드', 'eco on', 'eco off', '에코 모드', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼'."
+description: "Unified settings surface for forge — every key in .forge/config.json: `simple` (auto-seal — fg-run verifies then seals in the same turn, no questions), `eco` (sonnet-capped subagents + ECO.md discipline), `tdd` (test-first default), `driveCommit`/`driveCommitMessage`, `defaultBranch`, `monitorRetention`. `fg-config` (no arg) shows all and offers changes via a menu; `fg-config <key> <value>` sets one directly. Outside the loop. Use in contexts like 'forge config', '설정', 'simple mode', '심플 모드', 'eco on', 'eco off', '에코 모드', 'tdd on', 'tdd off', 'TDD 켜', 'TDD 꺼'."
 ---
 
 # fg-config — forge's settings surface (outside the loop)
@@ -36,7 +36,7 @@ This is **not** a stage of the forge loop. It is the **single entry point for ev
 
 ### `simple` — auto-seal mode (ADR `260905-212045`)
 
-When `true`, fg-run's task-end handoff chains straight through in the same turn: UAT (verification) → record `retro: skipped (simple mode)` (unconditional, regardless of divergence — the same relaxation family as fg-next all / fg-loop) → invoke the deterministic seal script (forge-done). The user experiences the loop as ask → run; internally verify and seal still happen. **The verification gate (ADR-0009) is inviolable**: on `verified: pending|failed` nothing is auto-sealed — fg-run stops and reports as it always did. Not a skip mode: skipping the seal would leave the active slot occupied and block the next run. fg-next / fg-next all / fg-loop already auto-seal, so `simple` changes nothing for them; fg-quick is outside the loop and unaffected.
+When `true`, fg-run's task-end handoff chains straight through in the same turn: UAT (verification) → fg-done as an **unattended** seal (its retro judgment skips the retro or writes an auto retro log, and asks no promotion question — promotion is deferred to fg-learn's batch promotion; ADR `261024-191024`). The user experiences the loop as ask → run; internally verify and seal still happen. **The verification gate (ADR-0009) is inviolable**: on `verified: pending|failed` nothing is auto-sealed — fg-run stops and reports as it always did. Not a skip mode: skipping the seal would leave the active slot occupied and block the next run. fg-next / fg-next all / fg-loop already auto-seal, so `simple` changes nothing for them; fg-quick is outside the loop and unaffected.
 
 ### `eco` — economical delegated execution (ADR-0014)
 

@@ -6,7 +6,7 @@ forge를 쓰면서 git을 어떻게 굴리는지에 대한 사용자 매뉴얼�
 
 ## 1. 원칙 — forge는 기본적으로 git을 건드리지 않는다
 
-forge의 루프 스킬(`fg-ask` → `fg-run` → `fg-learn` → `fg-done`)과 대부분의 유틸리티는 **`.forge/` 상태 파일만 쓴다.** 네 코드를 `commit`하거나 원격에 `push`하거나 `branch`를 만드는 일은 **하지 않는다.** 대신 커밋할 게 생기면 "커밋하세요"라고 **알려줄 뿐**이다.
+forge의 루프 스킬(`fg-ask` → `fg-run` → `fg-done`)과 대부분의 유틸리티는 **`.forge/` 상태 파일만 쓴다.** 네 코드를 `commit`하거나 원격에 `push`하거나 `branch`를 만드는 일은 **하지 않는다.** 대신 커밋할 게 생기면 "커밋하세요"라고 **알려줄 뿐**이다.
 
 이유는 경계를 명확히 하기 위해서다 — git 협업(브랜치 전략·PR·머지 타이밍·브랜치 보호)은 git 도구와 팀 규약의 몫이고, forge는 거기에 끼어들지 않는다. 그래서 forge를 어떤 git 워크플로 위에도 얹을 수 있다.
 
@@ -62,7 +62,7 @@ forge가 하는 일:   .forge/ 상태 쓰기  +  "이 파일들 커밋하세요"
 혼자 기본 브랜치(`main`)에서 작업한다면 **브랜치를 쓸 필요가 없다.** forge 루프를 그대로 돌리면 휘발 상태는 gitignore돼 있으니 신경 쓸 것도 없고, 커밋할 것은 **영속 연료(그릴링이 만든 ADR·CONTEXT, 회고)와 네 코드**뿐이다.
 
 ```
-fg-ask → fg-run → fg-learn → fg-done   (한 바퀴)
+fg-ask → fg-run → fg-done   (한 바퀴)
    → 봉인 후 남는 tracked 문서를 커밋:
      git add .forge/adr .forge/retro .forge/CONTEXT.md <바뀐 코드>
      git commit -m "..."
@@ -84,7 +84,7 @@ git switch -c feature/login      # (구식: git checkout -b feature/login)
 
 이 순간부터 forge 루트는 `.forge/branch/feature/login/`으로 해석된다(ADR-0011). 이후 forge 상태는 전부 거기 쌓인다.
 
-**② forge 루프 실행 + 브랜치 상태 커밋.** 평소처럼 `fg-ask` → `fg-run` → `fg-learn` → `fg-done`을 돈다. 피처 브랜치에선 `.forge/branch/<branch>/`가 **통째 tracked**이므로, 코드와 함께 forge 상태도 커밋된다.
+**② forge 루프 실행 + 브랜치 상태 커밋.** 평소처럼 `fg-ask` → `fg-run` → `fg-done`을 돈다. 피처 브랜치에선 `.forge/branch/<branch>/`가 **통째 tracked**이므로, 코드와 함께 forge 상태도 커밋된다.
 
 ```bash
 # forge 루프를 돌린 뒤
@@ -125,7 +125,7 @@ git branch -d feature/login      # 로컬 브랜치 정리 (원격은 호스트�
 
 ```mermaid
 flowchart TD
-    A["git switch -c feature/login"] --> B["forge 루프 실행<br/>fg-ask → run → learn → done<br/>상태: .forge/branch/feature/login/"]
+    A["git switch -c feature/login"] --> B["forge 루프 실행<br/>fg-ask → run → done<br/>상태: .forge/branch/feature/login/"]
     B --> C["git add -A && git commit<br/>(코드 + 브랜치 forge 상태)"]
     C --> D["fg-done — 브랜치에서 봉인"]
     D --> E["git switch main"]
@@ -169,8 +169,8 @@ forge는 커밋을 강제하지 않으니, 무엇을 언제 커밋할지는 아�
 |------|----------|------|
 | `fg-ask` 그릴링 후 | 새로 생긴 ADR·CONTEXT 항목 (tracked) | backlog plan은 gitignore(기본 브랜치) — 커밋 대상 아님 |
 | `fg-run` 실행 후 | 바뀐 **네 코드** | forge는 강제 안 함 — 원할 때 커밋 |
-| `fg-learn` 회고 후 | 승급된 ADR·CONTEXT·회고 로그 (tracked) | |
-| `fg-done` 봉인 후 | 아직 미커밋인 tracked 문서 | done 아카이브 자체는 기본 브랜치에서 gitignore |
+| `fg-done` 봉인 후 | 봉인이 쓴 회고 로그·승급된 ADR·CONTEXT 등 아직 미커밋인 tracked 문서 | done 아카이브 자체는 기본 브랜치에서 gitignore |
+| `fg-learn` 일괄 승급 후 | 승급된 ADR·CONTEXT·회고 로그 (tracked) | 루프 밖 — 무인 봉인이 미뤄 둔 승급을 처리할 때만 |
 | 피처 브랜치 작업 중 | 코드 + `.forge/branch/<branch>/` (통째 tracked) | |
 | `fg-merge` 통합 후 | 통합 결과(옮겨진 문서 + 브랜치 폴더 삭제) | `<branch>`·무인자 모드는 커밋 안 함(`to` 모드는 이미 커밋) |
 

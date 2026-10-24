@@ -4,7 +4,7 @@
 
 ## What it is
 
-`fg-agenda` is the place where **a decision not yet made** lives. Everything the forge loop (fg-ask → fg-run → fg-learn → fg-done) produces is a *build* artifact, and an ADR records a decision *already made* — so a large piece of work that is still in fog either gets forced into a prematurely-complete plan or its decisions scatter across conversation and vanish. `fg-agenda` fills that gap with **a single file**, `.forge/agenda.md`: it holds the destination and the open questions, you resolve them one at a time, and when no open question is left the file deletes itself.
+`fg-agenda` is the place where **a decision not yet made** lives. Everything the forge loop (fg-ask → fg-run → fg-done) produces is a *build* artifact, and an ADR records a decision *already made* — so a large piece of work that is still in fog either gets forced into a prematurely-complete plan or its decisions scatter across conversation and vanish. `fg-agenda` fills that gap with **a single file**, `.forge/agenda.md`: it holds the destination and the open questions, you resolve them one at a time, and when no open question is left the file deletes itself.
 
 There is one core rule: **the agent surfaces what must be decided; the human gives every answer.** The moment the agent answers its own question, what sits under "Decided" is no longer a decision but a guess (pillar #1).
 
@@ -26,7 +26,7 @@ The test is not "can I answer this now" but **"can I state precisely what I must
 Entry flow by kind of work:
 
 ```
-Sharp work:  fg-ask → fg-run → fg-learn → fg-done
+Sharp work:  fg-ask → fg-run → fg-done
 Foggy work:  fg-agenda (load the questions → decide one at a time) → fg-ask as soon as something is buildable → into the loop
 ```
 

@@ -122,7 +122,7 @@ export default withMermaid(
       root: {
         label: '한국어',
         lang: 'ko-KR',
-        description: '에이전트 엔지니어링을 위한 Claude Code 워크플로우 플러그인 — 작업 하나를 질의·계획 → 실행 → 회고 → 완료의 한 바퀴로',
+        description: '에이전트 엔지니어링을 위한 Claude Code 워크플로우 플러그인 — 작업 하나를 질의·계획 → 실행 → 봉인의 한 바퀴로',
         themeConfig: {
           nav: [
             { text: '시작하기', link: '/' },
@@ -155,7 +155,7 @@ export default withMermaid(
         label: 'English',
         lang: 'en',
         link: '/en/',
-        description: 'An agent-engineering workflow plugin for Claude Code — one task through a single cycle of ask·plan → execute → retro → done',
+        description: 'An agent-engineering workflow plugin for Claude Code — one task through a single cycle of ask·plan → execute → seal',
         themeConfig: {
           nav: [
             { text: 'Getting started', link: '/en/' },

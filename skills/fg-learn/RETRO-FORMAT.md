@@ -1,6 +1,6 @@
 # Retro Log Format
 
-> For `fg-learn` only. Retro logs are stored as per-task files at `.forge/retro/YYMMDD-HHMMSS-slug.md` (one file per retro'd task; multiple tasks retro'd in one session each get their own timestamped, slug-named file).
+> Written by `fg-done` (seal-time retro) and `fg-learn` (batch promotion). Retro logs are stored as per-task files at `.forge/retro/YYMMDD-HHMMSS-slug.md` (one file per retro'd task; multiple tasks retro'd in one session each get their own timestamped, slug-named file).
 
 Documents are written in the user's language; the headings below are canonical English names — render them in the user's language.
 
@@ -35,7 +35,7 @@ Documents are written in the user's language; the headings below are canonical E
 - **"Do differently next time" and "Divergences" are fuel the next loop reads.** Failing to be promoted does not mean they're buried — the next task's fg-ask grilling and fg-run workflow composition read these two fields from retros in the same area as a starting point. So write them concretely enough that the next task can use them directly (what diverged, why, and how to handle it next time) instead of vague impressions.
 - **Avoid polluting CONTEXT.md.** Record implementation details in the retro log, but do not put them into the glossary (CONTEXT.md).
 - **Decide what to promote together with the human.** Don't push automatically — propose and get confirmation.
-- **Auto retros (`fg-loop all`) are the one unattended author, and they never promote.** A retro written by `fg-loop all` carries `<!-- auto-retro: fg-loop all -->` as its first line, fills only `Plan vs actual` and `Learnings` from that task's plan/run/repair record, and marks `Doc updates` as unreviewed — it neither promotes nor proposes. The marker means "no human has judged this yet": fg-learn's batch promotion picks such tasks up, and the marker is removed once a human has reviewed it (ADR `261010-230950`).
+- **Auto retros are written by unattended seals, and they never promote.** When fg-done seals without a human present (`fg-next all`, `fg-loop`, `simple`, `fg-done all`, fg-ask's auto-close) and its retro judgment finds something to learn, the retro carries `<!-- auto-retro: <seal path> -->` as its first line, fills only `Plan vs actual` and `Learnings` from that task's plan/run/repair record, and marks `Doc updates` as unreviewed — it neither promotes nor proposes. The marker means "no human has judged this yet": fg-learn's batch promotion picks such tasks up, and the marker is removed once a human has reviewed it (ADR `261010-230950`, generalized by ADR `261024-191024`).
 
 ## Follow-up candidates
 

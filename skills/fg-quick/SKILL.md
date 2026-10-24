@@ -5,7 +5,7 @@ description: A lightweight lane outside the forge loop for trivial tasks (typo f
 
 # fg-quick — lightweight lane (outside the loop)
 
-This is **not** a stage of the forge loop. It is a side lane for genuinely small, low-risk tasks where the full loop (fg-ask → fg-run → fg-learn → fg-done, with its plan/ADR/run/STATUS/retro artifacts) is pure ceremony. fg-quick keeps the one pillar that makes forge forge — **grilling is conversational** — but deliberately drops the formal-artifact pillar for trivial work, recording a single line to a log instead. See `.forge/adr/0003-fg-quick-lightweight-lane.md` for the decision and its trade-off.
+This is **not** a stage of the forge loop. It is a side lane for genuinely small, low-risk tasks where the full loop (fg-ask → fg-run → fg-done, with its plan/ADR/run/STATUS/retro artifacts) is pure ceremony. fg-quick keeps the one pillar that makes forge forge — **grilling is conversational** — but deliberately drops the formal-artifact pillar for trivial work, recording a single line to a log instead. See `.forge/adr/0003-fg-quick-lightweight-lane.md` for the decision and its trade-off.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** The LOG entry and any handoff are written in the user's language.
 

@@ -6,7 +6,7 @@ This is the user manual for how you drive git while using forge. The question th
 
 ## 1. The principle — forge does not touch git by default
 
-The loop skills (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) and almost every utility **only write `.forge/` state files.** They do **not** `commit` your code, `push` it to a remote, or create a `branch`. When there is something to commit, they simply **tell you** "commit these."
+The loop skills (`fg-ask` → `fg-run` → `fg-done`) and almost every utility **only write `.forge/` state files.** They do **not** `commit` your code, `push` it to a remote, or create a `branch`. When there is something to commit, they simply **tell you** "commit these."
 
 The reason is a clean boundary — git collaboration (branching strategy, PRs, merge timing, branch protection) belongs to your git tooling and your team's conventions, and forge stays out of it. That is what lets you put forge on top of any git workflow.
 
@@ -62,7 +62,7 @@ In short: **`fg-merge` (its `<branch>` and `to` modes) is the only thing that ru
 If you work alone on the default branch (`main`), you **don't need branches at all.** Just run the forge loop: the volatile state is gitignored so there is nothing to think about, and the only things to commit are the **permanent fuel (the ADRs and CONTEXT entries grilling produced, plus retros) and your code**.
 
 ```
-fg-ask → fg-run → fg-learn → fg-done   (one turn)
+fg-ask → fg-run → fg-done   (one turn)
    → after sealing, commit the tracked docs left behind:
      git add .forge/adr .forge/retro .forge/CONTEXT.md <changed code>
      git commit -m "..."
@@ -84,7 +84,7 @@ git switch -c feature/login      # (older form: git checkout -b feature/login)
 
 From this moment the forge root resolves to `.forge/branch/feature/login/` (ADR-0011). Every bit of forge state from here on piles up there.
 
-**② Run the forge loop + commit the branch state.** Run `fg-ask` → `fg-run` → `fg-learn` → `fg-done` as usual. On a feature branch `.forge/branch/<branch>/` is **tracked whole**, so the forge state gets committed alongside the code.
+**② Run the forge loop + commit the branch state.** Run `fg-ask` → `fg-run` → `fg-done` as usual. On a feature branch `.forge/branch/<branch>/` is **tracked whole**, so the forge state gets committed alongside the code.
 
 ```bash
 # after running the forge loop
@@ -125,7 +125,7 @@ The steps above as a picture:
 
 ```mermaid
 flowchart TD
-    A["git switch -c feature/login"] --> B["Run the forge loop<br/>fg-ask → run → learn → done<br/>state: .forge/branch/feature/login/"]
+    A["git switch -c feature/login"] --> B["Run the forge loop<br/>fg-ask → run → done<br/>state: .forge/branch/feature/login/"]
     B --> C["git add -A && git commit<br/>(code + branch forge state)"]
     C --> D["fg-done — seal on the branch"]
     D --> E["git switch main"]
@@ -169,8 +169,8 @@ forge never forces a commit, so use the table below to decide what to commit whe
 |--------|---------------|------|
 | After `fg-ask` grilling | Newly created ADRs and CONTEXT entries (tracked) | Backlog plans are gitignored (default branch) — not commit material |
 | After `fg-run` execution | **Your changed code** | forge doesn't force it — commit when you want |
-| After the `fg-learn` retro | Promoted ADRs, CONTEXT entries, and the retro log (tracked) | |
-| After the `fg-done` seal | Any tracked docs still uncommitted | The done archive itself is gitignored on the default branch |
+| After the `fg-done` seal | Any tracked docs still uncommitted, such as the retro log, promoted ADRs, and CONTEXT entries the seal wrote | The done archive itself is gitignored on the default branch |
+| After an `fg-learn` batch promotion | Promoted ADRs, CONTEXT entries, and the retro log (tracked) | Outside the loop — only when it handles promotions an unattended seal deferred |
 | While working on a feature branch | Code + `.forge/branch/<branch>/` (tracked whole) | |
 | After the `fg-merge` integration | The integration result (moved docs + the deleted branch folder) | the `<branch>` and no-arg modes don't commit (`to` mode already did) |
 

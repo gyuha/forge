@@ -61,7 +61,7 @@ Follow `DIAGNOSE.md` through Phase 4 (instrument) until one hypothesis is confir
 
 ## Unattended lanes — always skipped
 
-`fg-next all` (ADR-0010) and `fg-loop` (ADR-0016) **never run this skill**, the same way they auto-skip the retro and `fg-adversarial-review`: ranking hypotheses with a human is conversational work, and an unattended drive cannot make that call. It is invoked deliberately, by a human.
+`fg-next all` (ADR-0010) and `fg-loop` (ADR-0016) **never run this skill**, the same way they skip `fg-adversarial-review` and never ask a promotion question at the seal: ranking hypotheses with a human is conversational work, and an unattended drive cannot make that call. It is invoked deliberately, by a human.
 
 ```
 fg-debug ("debug this" / "디버깅해줘")

@@ -12,7 +12,7 @@
 #     [<model> | <effort>] [<dir> | ⎇ <branch [↑N ↓N] [+s !m ?u]>] [⏱ (D) | $X.XX | +A −R]
 #     [<emoji> Context[/<size>] <bar> N% | 5h <bar> N% (~H) | 7d <bar> N% (~H)]
 #     [⚒ [#N ]<slug> | <pipeline>[ | <flag>]]                     (DELEGATED)
-#     [📋 N queued | 📝 M awaiting retro[ | ♻️][ | 🧪]]            (DELEGATED)
+#     [📋 N queued | 📝 M awaiting seal[ | ♻️][ | 🧪]]            (DELEGATED)
 #   compact (2 lines): system groups + the usage-bars group on ONE line, then the
 #     fragment's single compact group; the session group (⏱/$/±lines) is dropped.
 #     [<model> | <effort>] [<dir> | ⎇ …] [<emoji> Context[/<size>] <bar> N% | 5h … | 7d …]

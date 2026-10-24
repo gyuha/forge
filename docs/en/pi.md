@@ -17,8 +17,8 @@ If you already have a checkout, pass its absolute path instead. `pi install` reg
 | --- | --- |
 | Start planning | `/skill:fg-ask` |
 | Execute a plan | `/skill:fg-run` |
-| Record learnings | `/skill:fg-learn` |
 | Seal a task | `/skill:fg-done` |
+| Batch-promote deferred learnings | `/skill:fg-learn` |
 | Inspect status | `/skill:fg-status` |
 | Execute the next step | `/skill:fg-next` |
 | Drive the backlog | `/skill:fg-next all` |

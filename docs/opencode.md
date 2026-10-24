@@ -66,7 +66,7 @@ ls ~/.config/opencode/skills/ | wc -l   # forge 스킬 개수만큼 나오면 �
 
 | 기능 | opencode 상태 | 설명 |
 | --- | --- | --- |
-| 핵심 루프 (`fg-ask` → `fg-run` → `fg-learn` → `fg-done`) | 지원 | 동일한 상태 전이와 검증·봉인 규칙 사용 |
+| 핵심 루프 (`fg-ask` → `fg-run` → `fg-done`) | 지원 | 동일한 상태 전이와 검증·봉인 규칙 사용 |
 | 상태/도구 (`fg-status`, `fg-doctor`, `fg-quick`, `fg-config`) | 지원 | 공통 결정론 스크립트와 스킬 사용 |
 | 선택 메뉴 (`structured_choice`) | 미확인 | 번호 텍스트 목록으로 fallback — 어느 호스트에서도 정확하다 |
 | 독립 작업 병렬 실행 (`spawn_parallel`) | 미확인 | 업스트림 문서는 내장 `@general` 서브에이전트가 여러 작업 단위를 병렬 실행한다고 기술하지만, forge 슬라이스를 위임·회수해 본 **관측이 없다**. 현재는 직렬 실행 — 플립 1순위 |
@@ -83,7 +83,7 @@ ls ~/.config/opencode/skills/ | wc -l   # forge 스킬 개수만큼 나오면 �
 
 ## 호스트를 바꿔 이어서 작업하기
 
-Forge 상태는 호스트가 아니라 저장소의 `.forge/`에 저장된다. Claude Code에서 계획을 만든 뒤 opencode에서 `fg-status`·`fg-next`로 이어가거나, 반대로 opencode에서 실행한 작업을 Claude Code에서 회고·봉인할 수 있다. 단, 세 호스트가 같은 브랜치와 working tree를 보고 있어야 한다.
+Forge 상태는 호스트가 아니라 저장소의 `.forge/`에 저장된다. Claude Code에서 계획을 만든 뒤 opencode에서 `fg-status`·`fg-next`로 이어가거나, 반대로 opencode에서 실행한 작업을 Claude Code에서 봉인할 수 있다. 단, 세 호스트가 같은 브랜치와 working tree를 보고 있어야 한다.
 
 ## 릴리스 검사
 

@@ -1,13 +1,13 @@
 ---
 name: fg-learn
-description: After execution, classify learnings and promote them to CONTEXT.md, ADRs, evals (machine-checkable learnings promoted into the project's test suite), and the retro log (.forge/retro), then surface the next inquiry. Always conversational; respects the promotion discipline. Use to record what you learned after a task — 'forge learn', '회고하자', '이번 작업 정리해줘'.
+description: Batch promotion of deferred learnings, outside the loop — reviews sealed tasks whose retro was skipped or written unattended (fg-next all, fg-loop, simple, fg-done all), and with you promotes what clears the bar to CONTEXT.md, ADRs, evals (machine-checkable learnings as persistent tests) or a retro log. The per-task retro is no longer a loop stage — fg-done decides it at seal. Always conversational. Use for 'batch promotion', '일괄 승급', 'forge learn', '회고 모아서 정리', '미뤄둔 학습 정리'.
 ---
 
-# fg-learn — ③ Retro (reflect into docs)
+# fg-learn — batch promotion of deferred learnings (outside the loop)
 
 **Host contract**: this skill's state transitions are host-neutral. Read [../../core/HOST.md](../../core/HOST.md) and use the active host's interaction adapter (`structured_choice`, falling back to a numbered text choice) for any user choice.
 
-This is the third turn of the forge loop. It classifies the learnings gained during execution, routes them to the right doc, and surfaces the next inquiry. The reason to run a retro is simple — if you don't write down what you learned during execution right then, the next person (or future you) hits the same wall again. But if you push every learning into permanent docs, the docs get polluted with noise. So the core of this skill is **classification and promotion discipline**.
+This is **not** a stage of the forge loop. The loop is ask → run → done, and the per-task retro happens inside the seal: fg-done decides whether a task left something to learn, writes the retro log when it did, and — when a human is present — asks once about promotions (ADR `261024-191024`). Seals that run without a human (`fg-next all`, `fg-loop`, `simple` mode, `fg-done all`, fg-ask's auto-close) cannot ask, so they skip the retro or write an auto retro and **defer promotion**. This skill is where those deferred promotions are finally judged, a batch at a time. The reason it exists is simple — a learning that never reaches the docs is re-learned the hard way; but pushing every learning into permanent docs pollutes them. So the core of this skill is **classification and promotion discipline**.
 
 **Language**: This skill file is authored in English, but **you MUST write every message shown to the user — questions, menus, status/next-step lines, and handoff text — in the user's language (detect it from the user's own messages), never mirroring this file's English.** All documents this skill generates for the user's project (plan, run notes, retros, CONTEXT.md entries, ADRs, handoff messages) are written in the user's language. Section headings defined in the format docs are canonical English names — when writing a document, render headings in the user's language; consumers match sections by meaning and position, not exact strings.
 
@@ -15,122 +15,88 @@ This is the third turn of the forge loop. It classifies the learnings gained dur
 
 **Forge root**: every `.forge/...` path below is **relative to the resolved forge root** — `.forge/` on the default branch, `.forge/branch/<branch>/` (git-tracked) on any other branch. Resolve it per `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-run/FORGE-ROOT.md` (skill-relative `../fg-run/FORGE-ROOT.md`) before reading or writing state (ADR-0011).
 
-This retro **always runs conversationally.** It does not auto-generate a retro draft via a workflow. Deciding what is worth learning and which doc each learning belongs in requires human judgment, so extracting it mechanically only breaks the discipline.
+This review **always runs conversationally.** Deciding what is worth keeping and which doc it belongs in requires human judgment, so extracting it mechanically only breaks the discipline.
 
-## Input
+## When it applies (and when it does not)
 
-It reads `.forge/run.md` (the run record: plan vs actual) and `.forge/plan.md` (the plan = the source of truth for execution). You have to put these side by side to pinpoint "where did the plan and reality diverge."
-
-If `.forge/review.md` exists (adversarial review findings left by `fg-adversarial-review` — ADR-0018), read it too as **retro-promotion input**: findings the human accepted but did not fix are exactly the kind of learning to fold into the retro (and, past the usual bar, possibly promote to an ADR or a CONTEXT term). The review is optional, so this file is often absent — skip silently when it is.
-
-Also consult the completion markers **`.forge/done/*/STATUS.md`** before picking what to retro — a task whose slug already has a sealed STATUS.md (`status: done`) is out of scope (retroing it again would be a state error worth surfacing, not silently doing — **except through Batch promotion mode below, the one deliberate entry for sealed tasks**). The companion marker **`.forge/executed/<slug>/STATUS.md`** (`status: executed`), by contrast, confirms execution finished and the work is awaiting retro — exactly the candidates this step picks from.
-
-Besides the active slot, **`.forge/executed/<slug>/`** (work parked by fg-run "Run all" that is awaiting retro, each carrying a `STATUS.md` with `status: executed`) is also an input — in this case plan/run are read **inside each `executed/<slug>/` directory**, not the active slot (when parked, the active slot is empty). Work whose retro is already done (a `.forge/retro/*-<slug>.md` exists) **or was intentionally skipped** (its `STATUS.md` carries `retro: skipped` — a trivial, low-divergence task fg-run let the user skip) is dropped from the candidates: a skipped task has already declared it has nothing to fold into the docs, so do not re-offer it here (a *sealed* `retro: skipped` task becomes reachable again only through Batch promotion mode below — never in this default path). Among the remaining candidates, if two or more remain, first ask "which work should we retro first," and retro **each work separately and conversationally** — do not lump multiple works into one retro. Each work's slug is taken from the `<!-- forge-slug: ... -->` comment on the first line of the plan and used verbatim in the retro filename (`.forge/retro/YYMMDD-HHMMSS-<slug>.md`) — fg-done judges retro completion by this slug.
-
-**Verification gate (run → verify → learn).** Before retroing a candidate, read its `STATUS.md` `verified:` field. A retro folds learnings into permanent docs, so retroing work that was never confirmed to achieve its goal risks promoting conclusions drawn from a broken result. The field gates the retro:
-- **Active slot with `running.md` and no `run.md`** → execution is still in flight or awaiting collection, so there is no completed result to verify or retro. Route to **fg-run step 4a** to collect or confirm it before any re-run; do not delete the marker or run a cleanup-time UAT here.
-- **`pending` or missing** → the UAT never happened. **Do not run the normal retro yet** — route by location: an **active-slot** task (`run.md` present) goes back to **fg-run's verification-only resume** (it runs the UAT and sets `verified:` without re-executing the workflow); a **parked `executed/<slug>` task or an older run predating the gate** has no reachable fg-run handoff (active slot empty), so guide the user to confirm the UAT now (the same recovery fg-done offers) and record the outcome in its STATUS before retroing.
-- **`failed`** → the UAT ran and the result is broken. **Do not retro it** — there is no stable result to fold into docs. Route to **fg-run**, which is the single owner of unparking a failed task: for a parked `executed/<slug>` task it moves the files back to the active slot before fix-and-re-run (fg-learn does not move them itself — fg-run executes only from the active slot, so it unparks the files first; see fg-run's "Failed parked-task recovery"), or re-grill via fg-ask. The task returns for retro only once a fresh run re-verifies to a sealable value.
-- **`yes` / `skipped (<reason>)` / `n/a (<reason>)`** → proceed with the retro. `skipped`/`n/a` are recorded verification decisions and do not block it.
-
-If the input files are missing, point to the prior step. If `run.md` is missing (and `executed/` is also empty), execution hasn't finished yet, so tell them to run `fg-run` first. If even `plan.md` is missing, guide them through the order `fg-ask` → `fg-run`. If the active `.forge/` is empty, it means there's no work in progress, so recommend opening new work with `fg-ask` first — unless the user asked for batch promotion (below), which reads `done/`, not the active state.
-
-## Batch promotion mode (deferred retros of auto-skipped tasks)
-
-The orchestrators that auto-skip retros — `fg-next all` (ADR-0010) and `fg-loop` (ADR-0016), plus fg-run's own skip path — all promise "learnings stay in the archived run.md; a human promotes them later in one fg-learn batch." **This mode is that promised receiving end.** It deliberately bypasses the two exclusions above (sealed = state error; `retro: skipped` = do not re-offer), which keep guarding the default path.
-
-- **Entry is explicit only.** Enter when the user asks for it ("일괄 승급" / "batch promotion" / following an auto-skip handoff that pointed here). Never enter it implicitly, and orchestrators never invoke it automatically.
-- **Candidates** = sealed tasks in `.forge/done/*/STATUS.md` whose `retro:` reads `skipped (...)` — the set that carries the "promote later" promise. Exclude legacy tasks with no `retro:` field and tasks already retro'd (a path in `retro:` or a matching `.forge/retro/*-<slug>.md`). **Exception — auto retros are candidates too.** A task sealed by `fg-loop all` has a retro file whose first line is `<!-- auto-retro: fg-loop all -->` and a `retro:` path carrying an "auto, promotion unreviewed" note: a retro was *written*, but nobody has yet judged what to promote, so it still carries the same promise. Include it, and use its auto retro as a starting draft for the conversation rather than re-deriving from `run.md` alone. Once a human has reviewed it — whether or not anything was promoted — remove the `auto-retro` marker line from the retro file and drop the unreviewed note from the sealed STATUS (ADR `261010-230950`).
-- **Per task**, read its archived `done/<date-slug>/run.md` (and plan.md) — including its `## Rulings` section, the soft decisions an unattended drive took on the human's behalf (`../fg-next/DRIVE.md` Part 4), which are worth confirming or overturning here — and review conversationally, one task at a time — the same retro questions and classification discipline as the normal path (sections 1–3 below apply unchanged).
-- **Write a retro file only where a learning clears the promotion bar** (`.forge/retro/YYMMDD-HHMMSS-<slug>.md`, slug pairing intact). "Reviewed, nothing worth promoting" is a normal, file-less outcome — do not manufacture retro files for every skipped task (restraint discipline).
-- **When a retro file is written, correct that task's sealed STATUS** `retro:` field from `skipped (...)` to the retro path plus a late-promotion note, e.g. `retro: .forge/retro/2026-06-12-<slug>.md (batch promotion 2026-06-15)` — so fg-status's table reflects reality. Seal immutability lives in `status: done`, which is never touched. Tasks reviewed without promotion keep their `retro: skipped` as is.
+- **Unsealed work is not this skill's.** A task in the active slot or `.forge/executed/` gets its retro decided when it is sealed — route it to **fg-done** (`/forge:fg-done`), which runs the retro judgment and the verification gate (ADR-0009) in order. If the task is still `verified: pending` or `failed`, fg-done routes it to fg-run first.
+- **Candidates** = sealed tasks in `.forge/done/*/STATUS.md` that still carry the "promote later" promise:
+  - `retro:` reads `skipped (...)` — sealed without a retro. Exclude legacy tasks with no `retro:` field.
+  - `retro:` is a path whose file's first line is `<!-- auto-retro: … -->` and whose STATUS note says "auto, promotion unreviewed" — a retro was *written* by an unattended seal, but nobody has judged what to promote. Use that retro as a starting draft rather than re-deriving from `run.md` alone.
+  - Exclude tasks already reviewed (a retro path with no `auto-retro` marker).
+- **Entry is explicit only.** Run it when the user asks ("일괄 승급" / "batch promotion" / following a handoff that pointed here). Orchestrators never invoke it automatically.
 
 ## Behavior
 
-### 1. Ask retro questions
+### 1. Review one task at a time
 
-Work through the following with the human. Don't dump it all at once — draw it out in conversation.
-
-- Did the plan match reality? Ask grounded in the divergence points in `run.md`.
-- Which terms/assumptions broke? Were there concepts that newly appeared or shifted meaning during execution.
-- What to do differently next time? Among process, tooling, and order of approach, what would you change.
-
-If nothing notable happened, things went per plan, and there's nothing learned, don't stretch it out. A retro is not a ritual. Record it in one line and move on.
+List the candidates (newest first, with the reason each is a candidate), then review **each task separately and conversationally** — do not lump several into one review. Per task, read its archived `done/<date-slug>/run.md` and `plan.md` — including its `## Rulings` section, the soft decisions an unattended drive took on the human's behalf (`../fg-next/DRIVE.md` Part 4), and its `## Failed attempts` section, both worth confirming or overturning here — plus `review.md` when the archive has one (findings the human accepted but did not fix are exactly the kind of learning to fold in). Ask grounded in those records: did the plan match reality, which terms or assumptions broke, what to do differently next time. If nothing notable happened, say so in one line and move on — a review is not a ritual.
 
 ### 2. Classify learnings into four kinds
 
-Split what you learned into four branches by nature and route each to its doc. Learnings that don't clear the promotion bar **all go to the retro log** — that's the reason the retro log exists.
+This table is the single definition of the destinations and their bars; fg-done's seal-time retro (`../fg-done/SKILL.md` step 0b) uses it too. Learnings that don't clear the promotion bar **all go to the retro log** — that's the reason the retro log exists.
 
 | Nature of the learning | Destination | Promotion bar |
 | --- | --- | --- |
 | New/changed domain term | `CONTEXT.md` | Only if it's a context-specific concept. General concepts and implementation details are excluded |
-| A decision that is hard to reverse, puzzling, and a real trade-off | `.forge/adr/NNNN-slug.md` | Only when **all three** conditions are met |
+| A decision that is hard to reverse, puzzling, and a real trade-off | `.forge/adr/<id>-slug.md` | Only when **all three** conditions are met |
 | A mechanically checkable learning — a failure or trap that could recur (a structural trap, not a one-off mistake) | The project's own test suite as a persistent regression check (an "eval"); in a repo with no test suite, an equivalent executable landing spot (e.g. an fg-doctor check in forge's own repo) | Only when **all three** hold — mechanically checkable · recurrence plausible (structural, not one-off) · cheap to run (does not slow the suite/CI) |
 | Process/session learning | `.forge/retro/YYMMDD-HHMMSS-slug.md` | If it's worth recording |
 
-**Eval size split.** When the eval is small (one or two tests, immediately writable and runnable green), write it **inline during the retro** — the same inline-update precedent as CONTEXT.md/ADR entries. When it needs infrastructure or touches several files, do **not** bloat the retro — load it as a backlog plan via fg-ask instead. Newly authored fix-forward plans already carry this mechanically via PLAN-FORMAT.md's fix-forward eval rule (see [`../fg-run/PLAN-FORMAT.md`](../fg-run/PLAN-FORMAT.md)) — ADR `260906-171420`.
+**Eval size split.** When the eval is small (one or two tests, immediately writable and runnable green), write it **inline** — the same inline-update precedent as CONTEXT.md/ADR entries. When it needs infrastructure or touches several files, load it as a backlog plan via fg-ask instead. Newly authored fix-forward plans already carry this mechanically via PLAN-FORMAT.md's fix-forward eval rule (see [`../fg-run/PLAN-FORMAT.md`](../fg-run/PLAN-FORMAT.md)) — ADR `260906-171420`.
 
 ### 3. Respect the promotion discipline
 
-Don't push everything that came out of the retro into `CONTEXT.md` or an ADR. The reason is clear — `CONTEXT.md` is a glossary, and if implementation details and one-off noise get mixed in, the next reader stops trusting it. The same goes for ADRs: if you record even trivial decisions, the truly important ones get buried.
+Don't push everything into `CONTEXT.md` or an ADR. `CONTEXT.md` is a glossary; if implementation details and one-off noise get mixed in, the next reader stops trusting it. The same goes for ADRs: if trivial decisions are recorded, the important ones get buried. **The judgment of what to promote is never made automatically** — present candidates and promote only what the human confirms.
 
-So learnings that don't clear the bar go to the retro log without hesitation. And **the judgment of what to promote is not made automatically.** Reflect into `CONTEXT.md`/ADR only after presenting candidates and getting the human's confirmation.
+### 4. Write the docs and correct the sealed STATUS
 
-### 4. Write the docs
-
-- The retro log always lands in `.forge/retro/YYMMDD-HHMMSS-slug.md` (one file per retro'd task, lazily created). For the format, read [RETRO-FORMAT.md](./RETRO-FORMAT.md) in the same directory as this skill and follow it.
-- If you promote a term, reflect it into `CONTEXT.md`. Follow the format in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/CONTEXT-FORMAT.md` (skill-relative path `../fg-ask/CONTEXT-FORMAT.md`).
-- If you promote a decision, add `.forge/adr/NNNN-slug.md`. Follow the format in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-ask/ADR-FORMAT.md` (`../fg-ask/ADR-FORMAT.md`).
-
-In the "Doc updates" field of the retro log, record what was promoted to where (or none) to leave traceability.
-
-The following diagram shows the learning classification and re-grilling branch at a glance.
+- A retro log goes to `.forge/retro/YYMMDD-HHMMSS-<slug>.md` per [RETRO-FORMAT.md](./RETRO-FORMAT.md) — **only where a learning clears the bar**, or to replace an auto retro's "unreviewed" sections. "Reviewed, nothing worth promoting" is a normal, file-less outcome.
+- Promoted terms follow `../fg-ask/CONTEXT-FORMAT.md`; promoted decisions follow `../fg-ask/ADR-FORMAT.md`.
+- **Correct the sealed STATUS `retro:` line** so fg-status reflects reality: from `skipped (...)` to the new retro path plus a late-promotion note (e.g. `retro: .forge/retro/<file> (batch promotion 2026-10-24)`), or, for an auto retro, drop the "auto, promotion unreviewed" note and remove the `auto-retro` marker line from the retro file once reviewed — whether or not anything was promoted (ADR `261010-230950`). Seal immutability lives in `status: done`, which is never touched. Tasks reviewed without promotion keep `retro: skipped` as is.
+- Record in the retro's "Doc updates" field what was promoted to where (or none).
 
 ```
-Read run.md · plan.md (active slot or executed/<slug>/)
+fg-learn (batch promotion)
    │
    ▼
-Diverged a lot from the plan?
-   │ yes ──▶ Guide fg-ask re-grilling (recommended before wrapping up)
+Active slot / executed/ task?  ── yes ──▶ not this skill: route to fg-done (retro is decided at seal)
    │ no
    ▼
-Retro questions (conversational)
+Collect candidates in done/: retro skipped · auto retro, promotion unreviewed
    ▼
-Classify each learning (promote only past the bar, after human confirmation):
+Per task, one at a time (conversational):
+   read archived plan · run (Rulings, Failed attempts) · review · auto retro draft
+   ▼
+Classify (bar + human confirmation):
    • domain-specific term ──▶ CONTEXT.md
    • hard-to-reverse · puzzling · trade-off (all three) ──▶ new ADR
-   • mechanically checkable · recurrence plausible · cheap to run (all three) ──▶ eval in the project's test suite
-   • everything else ──▶ no promotion
+   • mechanically checkable · recurrence plausible · cheap (all three) ──▶ eval
+   • everything else ──▶ retro log only, or nothing
    ▼
-.forge/retro/ retro log   (every learning lands here, promoted or not)
+Correct the sealed STATUS retro: line / clear the auto-retro marker
    ▼
-Guide fg-done + surface follow-up candidates
+Persist follow-up candidates → handoff table
 ```
 
 ## Persist follow-up candidates
 
-Before the handoff, including Batch promotion mode, record every concrete follow-up in `.forge/followups.md` using [FOLLOWUPS-FORMAT.md](./FOLLOWUPS-FORMAT.md). Read existing entries first and reuse IDs from the run or earlier retro. Put marked snapshots in the final section of the retro, then collect them into the ledger; replay must preserve taken/dismissed states. Candidates are proposals, so this does not bypass human confirmation for CONTEXT/ADR/eval promotion. No candidates means no ledger creation.
+Before the handoff, record every concrete follow-up in `.forge/followups.md` using [FOLLOWUPS-FORMAT.md](./FOLLOWUPS-FORMAT.md). Read existing entries first and reuse IDs from the run or earlier retro. Put marked snapshots in the final section of the retro, then collect them into the ledger; replay must preserve taken/dismissed states. Candidates are proposals, so this does not bypass human confirmation. No candidates means no ledger creation.
 
-## Next-flow guidance (handoff)
+## Handoff
 
-When the retro is done, **render the handoff table** at the end — its shape is defined once in `${PLUGIN_ROOT:-${CLAUDE_PLUGIN_ROOT}}/skills/fg-next/HANDOFF.md` (skill-relative [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md)); reference it, never restate the layout here. Render it in the user's language, from this material:
+When the batch is done, **render the handoff table** — its shape is defined once in [`../fg-next/HANDOFF.md`](../fg-next/HANDOFF.md); reference it, never restate the layout here. Render it in the user's language:
 
-- **What you just did** — you left a retro at `.forge/retro/...`, and one line on what was promoted to `CONTEXT.md`/ADR (or that nothing was promoted).
-- **Next step / How to start** — divergence and any remaining retro-awaiting work decide these two cells; fill them by the precedence below.
-- **Follow-up candidates** — render the entries just persisted in `.forge/followups.md` **below** the table as bullets with their IDs and ledger path (HANDOFF.md's list rule). Chat is a view of the saved candidates, never their only home.
+- **Just did** — how many sealed tasks were reviewed, and one line on what was promoted where (or that nothing was).
+- **Next step** — candidates remain → reviewing the rest (`/forge:fg-learn`); otherwise a new task with fg-ask (`/forge:fg-ask`, or `fg-next`).
+- **Follow-up candidates** — the entries just persisted, as bullets **below** the table with their IDs and ledger path.
 
-**Divergence shapes the cells** (the same rule fg-run's handoff carries). Read the plan-vs-actual divergence in `run.md` — already read in step 1 — and fill `Next step` / `How to start` by the **first case that applies**:
-
-1. **High divergence** → `Next step` is **re-grilling with `fg-ask`**, `How to start` its trigger (`/forge:fg-ask`). Sealing is the `Alternative` **at most**, never the stated next step: plan and actual too far apart is exactly when the next work needs a fresh starting point. This is also what ADR-0026 rests on — `fg-next`'s one-shot learn→done chain stops when the retro recommends re-grilling, so a cell naming the seal trigger would hand the user a live trigger for the very thing this skill just advised against.
-2. **Low/negligible divergence, and more retro-awaiting work remains in `.forge/executed/`** → `Next step` is **retroing the next work first** (`/forge:fg-learn`) — better to batch retros while memory is fresh — with sealing as the `Alternative`.
-3. **Low/negligible divergence, nothing else awaiting** → `Next step` is tidying this work up: seal it with `fg-done`, `How to start` is `/forge:fg-done`, or `fg-next`.
-
-Then **state it and stop**; the table is text output, never an `AskUserQuestion` — do **not** ask "shall I seal now?" or auto-invoke fg-done (chaining is `fg-next`'s job — ADR-0015).
+Then **state it and stop**; the table is text output, never an `AskUserQuestion` (ADR-0015).
 
 ## Doc impact
 
-- Creates `.forge/retro/YYMMDD-HHMMSS-slug.md` (always, lazy).
-- Creates/updates `.forge/followups.md` when candidates exist, per FOLLOWUPS-FORMAT; preserves terminal states on repeated retros.
-- When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/NNNN-slug.md` (after human confirmation).
-- **Does NOT touch the STATUS.md `retro:` field on in-flight tasks** — it stays `pending` until fg-done fills in the retro path at seal time; retro completion is judged by the retro file's existence (slug match), not by the STATUS field (see fg-status's state machine and fg-done's close-out). The STATUS writes this skill may make are: the `verified:` field of a parked/legacy task during the verification-gate recovery, and — **in Batch promotion mode only** — correcting a *sealed* task's `retro: skipped` to the late-written retro path (never `status:`).
-- On the default branch the volatile loop state is gitignored; the retro/ADR/CONTEXT docs this skill writes are git-tracked via the `.gitignore` whitelist, and a non-default branch root is tracked whole (ADR-0011).
+- Creates `.forge/retro/YYMMDD-HHMMSS-slug.md` only where a learning clears the bar or an auto retro is reviewed.
+- Creates/updates `.forge/followups.md` when candidates exist, per FOLLOWUPS-FORMAT; preserves terminal states on repeated reviews.
+- When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/<id>-slug.md` / writes an eval (after human confirmation).
+- Corrects a sealed task's STATUS `retro:` line (never `status:`) and removes a reviewed retro's `auto-retro` marker.
+- Never touches the active slot, `executed/`, or the backlog — unsealed work belongs to fg-done.

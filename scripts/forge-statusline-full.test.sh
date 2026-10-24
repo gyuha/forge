@@ -7,7 +7,7 @@
 #   L1: [<model> | <effort>] [<dir> | ⎇ <branch [↑N ↓N] [+s !m ?u]>] [⏱ (D) | $X.XX | +A −R]
 #   L2: [<emoji> Context[/<size>] <bar> N% | 5h <bar> N% (~H) | 7d <bar> N% (~H)]
 #   L3: [⚒ [#N ]<slug> | <pipeline>[ | <flag>]]                   (delegated)
-#   L4: [📋 N queued | 📝 M awaiting retro[ | ♻️][ | 🧪]]          (delegated)
+#   L4: [📋 N queued | 📝 M awaiting seal[ | ♻️][ | 🧪]]          (delegated)
 # System groups (L1/L2) always render; forge groups (L3/L4) omitted when idle.
 # compact: system groups + usage-bars group on ONE line, then the fragment's
 # single compact group; the session group (⏱/$/±lines) is dropped.
@@ -60,7 +60,7 @@ json="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"effort\":{\"l
 exp="$(printf '%s\n%s\n%s' \
   "[Opus 4.8 | high] [myproj]" \
   "[⚡ Context/200K $B45 45% | 5h $B30 30% (~30m) | 7d $B60 60% (~17h 20m)]" \
-  "[⚒ active-a | ✔ ask → ✔ run → ● learn → ○ done | ✓]")"
+  "[⚒ active-a | ✔ ask → ✔ run → ● seal | ✓]")"
 assert "all-fields+active-yes" "$exp" "$(run_full "$wd" "$json")"
 rm -rf "$t"
 
@@ -126,25 +126,25 @@ rm -rf "$t"
 minsys() { printf '{"cwd":"%s"}' "$1"; }
 
 t=$(mktmp); wd="$t/myproj"; write "$wd/.forge/plan.md" "<!-- forge-slug: t -->"
-exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ● run → ○ learn → ○ done]")"
+exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ● run → ○ seal]")"
 assert "forge-plan-only" "$exp" "$(run_full "$wd" "$(minsys "$wd")")"
 rm -rf "$t"
 
 t=$(mktmp); wd="$t/myproj"; write "$wd/.forge/plan.md" "<!-- forge-slug: t -->"; write "$wd/.forge/run.md" "r"
 printf 'verified: pending\n' > "$wd/.forge/STATUS.md"
-exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ● run → ○ learn → ○ done | ⏳]")"
+exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ● run → ○ seal | ⏳]")"
 assert "forge-verified-pending" "$exp" "$(run_full "$wd" "$(minsys "$wd")")"
 rm -rf "$t"
 
 t=$(mktmp); wd="$t/myproj"; write "$wd/.forge/plan.md" "<!-- forge-slug: t -->"; write "$wd/.forge/run.md" "r"
 printf 'verified: failed (broke)\n' > "$wd/.forge/STATUS.md"
-exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ● run → ○ learn → ○ done | ✗]")"
+exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ● run → ○ seal | ✗]")"
 assert "forge-verified-failed" "$exp" "$(run_full "$wd" "$(minsys "$wd")")"
 rm -rf "$t"
 
 t=$(mktmp); wd="$t/myproj"; write "$wd/.forge/plan.md" "<!-- forge-slug: t -->"; write "$wd/.forge/run.md" "r"
 printf 'verified: skipped (docs)\n' > "$wd/.forge/STATUS.md"
-exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ✔ run → ● learn → ○ done]")"
+exp="$(printf '%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" "[⚒ t | ✔ ask → ✔ run → ● seal]")"
 assert "forge-verified-skipped" "$exp" "$(run_full "$wd" "$(minsys "$wd")")"
 rm -rf "$t"
 
@@ -154,8 +154,8 @@ write "$wd/.forge/plan.md" "<!-- forge-slug: active-h -->"
 write "$wd/.forge/backlog/x.md" "<!-- forge-slug: x -->"
 mkdir -p "$wd/.forge/executed/foo"; printf 'status: executed\n' > "$wd/.forge/executed/foo/STATUS.md"
 exp="$(printf '%s\n%s\n%s\n%s' "[myproj]" "[🟢 Context $B0 0%]" \
-  "[⚒ active-h | ✔ ask → ● run → ○ learn → ○ done]" \
-  "[📋 1 queued | 📝 1 awaiting retro]")"
+  "[⚒ active-h | ✔ ask → ● run → ○ seal]" \
+  "[📋 1 queued | 📝 1 awaiting seal]")"
 assert "forge-active+backlog+executed" "$exp" "$(run_full "$wd" "$(minsys "$wd")")"
 rm -rf "$t"
 
@@ -240,7 +240,7 @@ fi
 # (l) cwd from workspace.current_dir
 t=$(mktmp); wd="$t/wsproj"; write "$wd/.forge/plan.md" "<!-- forge-slug: ws -->"
 json="{\"workspace\":{\"current_dir\":\"$wd\"},\"model\":{\"display_name\":\"Opus 4.8\"}}"
-exp="$(printf '%s\n%s\n%s' "[Opus 4.8] [wsproj]" "[🟢 Context $B0 0%]" "[⚒ ws | ✔ ask → ● run → ○ learn → ○ done]")"
+exp="$(printf '%s\n%s\n%s' "[Opus 4.8] [wsproj]" "[🟢 Context $B0 0%]" "[⚒ ws | ✔ ask → ● run → ○ seal]")"
 assert "workspace-current-dir" "$exp" "$(run_full "$wd" "$json")"
 rm -rf "$t"
 
@@ -286,7 +286,7 @@ t=$(mktmp); wd="$t/myproj"; write "$wd/.forge/plan.md" "<!-- forge-slug: active-
 json="{\"cwd\":\"$wd\",\"model\":{\"display_name\":\"Opus 4.8\"},\"effort\":{\"level\":\"high\"},\"context_window\":{\"used_percentage\":45,\"context_window_size\":1000000}}"
 exp="$(printf '%s\n%s' \
   "[Opus 4.8 | high] [myproj] [⚡ Context/1M $B45 45%]" \
-  "[⚒ active-o | ✔ ask → ● run → ○ learn → ○ done]")"
+  "[⚒ active-o | ✔ ask → ● run → ○ seal]")"
 assert "compact-active" "$exp" "$(run_full "$wd" "$json" compact)"
 rm -rf "$t"
 
@@ -296,7 +296,7 @@ write "$wd/.forge/backlog/x.md" "<!-- forge-slug: x -->"
 json="{\"cwd\":\"$wd\",\"context_window\":{\"used_percentage\":0},\"cost\":{\"total_duration_ms\":4980000,\"total_cost_usd\":0.23}}"
 exp="$(printf '%s\n%s' \
   "[myproj] [🟢 Context $B0 0%]" \
-  "[⚒ active-o | ✔ ask → ● run → ○ learn → ○ done | 📋 1]")"
+  "[⚒ active-o | ✔ ask → ● run → ○ seal | 📋 1]")"
 assert "compact-drops-session+folds-count" "$exp" "$(run_full "$wd" "$json" compact)"
 rm -rf "$t"
 

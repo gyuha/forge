@@ -278,7 +278,7 @@ test("status shared query and bounded metadata handle partial/duplicate events",
     fs.writeFileSync(path.join(dir, "STATUS.md"), "verified: failed\n");
     assert.equal(surveyForge(dir).rows[0][3], "run");
     fs.writeFileSync(path.join(dir, "STATUS.md"), "verified: yes\n");
-    assert.equal(surveyForge(dir).rows[0][3], "learn");
+    assert.equal(surveyForge(dir).rows[0][3], "seal");
     const e = {
       id: "one",
       time: new Date().toISOString(),

@@ -61,7 +61,7 @@ Then `fg-run` picks them up like any other plan. Do not run the fixes here.
 
 ## Unattended lanes — always skipped
 
-`fg-next all` (ADR-0010) and `fg-loop` (ADR-0016) **never run this audit**, the same way they auto-skip the retro: judging which findings are real and which deserve a fix is human work, and an unattended drive cannot make that call. It is invoked deliberately, by a human.
+`fg-next all` (ADR-0010) and `fg-loop` (ADR-0016) **never run this audit**, the same way they never ask a promotion question at the seal: judging which findings are real and which deserve a fix is human work, and an unattended drive cannot make that call. It is invoked deliberately, by a human.
 
 ```
 fg-security

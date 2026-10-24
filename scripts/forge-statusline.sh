@@ -14,7 +14,7 @@
 # Density (FORGE_SL_DENSITY, default "full"; the full script passes "compact"):
 #   full     -> up to two lines:
 #     [🔁 rN/cap] [⚒ [#N ]<slug> · <pipeline>[ · <flag>]]      (line 1)
-#     [📋 N queued · 📝 M awaiting retro[ · ♻️][ · 🧪]]         (line 2)
+#     [📋 N queued · 📝 M awaiting seal[ · ♻️][ · 🧪]]         (line 2)
 #   compact  -> a single line, forge + queue-count + mode indicators in one group:
 #     [🔁 rN/cap] [⚒ [#N ]<slug> · <pipeline>[ · <flag>][ · 📋 N][ · ♻️][ · 🧪]]
 #
@@ -27,9 +27,10 @@
 #   no plan.md, no ask.md              -> line 1 empty (or loop-only fallback)
 #   no plan.md, ask.md present         -> ask current (plan.md wins if both exist)
 #   plan.md, no run.md                 -> run current
-#   run.md + verified pending/failed   -> run current (retro gate refuses these)
-#   run.md + verified yes/skipped/n/a  -> learn current (retro gate passed)
-# "done" never becomes current — a sealed task leaves .forge/plan.md.
+#   run.md + verified pending/failed   -> run current (the seal refuses these)
+#   run.md + verified yes/skipped/n/a  -> seal current (verification passed; fg-done seals
+#                                         and decides the retro — ADR 261024-191024)
+# A sealed task leaves .forge/plan.md, so the pipeline ends at seal (no done stage).
 #
 # Dependencies: bash + git only. No JSON/jq parsing (reads files by path).
 # FORGE_SL_PREFIX (env): line-1 prefix, default "⚒ ".
@@ -61,11 +62,11 @@ grp() {
   printf '%s[%s%s%s]%s' "$DIM" "$RESET" "$out" "$DIM" "$RESET"
 }
 
-# build_pipeline <stage: ask|run|learn> -> "✔ ask → ● run → ○ learn → ○ done" (colored)
+# build_pipeline <stage: ask|run|seal> -> "✔ ask → ● run → ○ seal" (colored)
 build_pipeline() {
   local stage="$1" target=0 i=0 out="" seg w
-  case "$stage" in ask) target=0 ;; run) target=1 ;; learn) target=2 ;; esac
-  for w in ask run learn done; do
+  case "$stage" in ask) target=0 ;; run) target=1 ;; seal) target=2 ;; esac
+  for w in ask run seal; do
     if [ "$i" -lt "$target" ]; then seg="${DOT_DONE}✔ ${w}${RESET}"
     elif [ "$i" -eq "$target" ]; then seg="${DOT_CUR}● ${w}${RESET}"
     else seg="${DOT_UPCOMING}○ ${w}${RESET}"; fi
@@ -141,10 +142,10 @@ if [ -f "$root/plan.md" ]; then
     # pipeline shows a verified task as still-owed)
     [ -f "$root/STATUS.md" ] && v="$(sed -n 's/^verified:[[:space:]]*\([A-Za-z/]\{1,\}\).*/\1/p' "$root/STATUS.md" | head -1 | tr 'A-Z' 'a-z')"
     case "$v" in
-      yes)         flag="✓"; stage="learn" ;;
+      yes)         flag="✓"; stage="seal" ;;
       failed)      flag="✗"; stage="run" ;;
       pending|"")  flag="⏳"; stage="run" ;;
-      skipped|n/a) flag="";  stage="learn" ;;
+      skipped|n/a) flag="";  stage="seal" ;;
       *)           flag="⏳"; stage="run" ;;
     esac
   else
@@ -164,10 +165,10 @@ fi
 
 # --- Queue counts (backlog + executed) ---------------------------------------
 queued_n=0; await_n=0; failed_n=0
-# `awaiting retro` counts only parks that CAN be retro'd. A `verified: failed`
-# park is blocked from both retro and seal and needs fg-run recovery, so it gets
+# `awaiting seal` counts only parks that CAN be sealed. A `verified: failed`
+# park is blocked from the seal and needs fg-run recovery, so it gets
 # its own tally — the same split the SessionStart hook already reports (calling it
-# "awaiting retro" told the user to do something the gate refuses).
+# "awaiting seal" told the user to do something the gate refuses).
 if [ -d "$root/executed" ]; then
   for d_ex in "$root"/executed/*/; do
     [ -d "$d_ex" ] || continue
@@ -193,7 +194,7 @@ fi
 if [ "$DENSITY" = "compact" ]; then
   # Always ONE line (the full script splices it as its L2). Groups: [loop] then
   # either the active forge group (with 📋N count + modes folded in) or, with no
-  # active task, a queue-count group. Awaiting-retro (📝) is dropped in compact.
+  # active task, a queue-count group. Awaiting-seal (📝) is dropped in compact.
   count_bit=""; [ "${queued_n:-0}" -gt 0 ] && count_bit="📋 ${queued_n}"
   if [ "$have_forge" -eq 1 ]; then
     main_grp="$(grp "$forge_seg" "$pipeline" "$flag" "$count_bit" "$eco_ind" "$tdd_ind")"
@@ -218,7 +219,7 @@ elif [ -n "$loop_grp" ]; then
 fi
 
 queued_bit=""; [ "${queued_n:-0}" -gt 0 ] && queued_bit="📋 ${queued_n} queued"
-await_bit="";  [ "${await_n:-0}" -gt 0 ] && await_bit="📝 ${await_n} awaiting retro"
+await_bit="";  [ "${await_n:-0}" -gt 0 ] && await_bit="📝 ${await_n} awaiting seal"
 failed_bit=""; [ "${failed_n:-0}" -gt 0 ] && failed_bit="✗ ${failed_n} failed"
 line2="$(grp "$queued_bit" "$await_bit" "$failed_bit" "$eco_ind" "$tdd_ind")"
 
