@@ -1,6 +1,6 @@
 # Forge root resolution
 
-> Where forge state lives depends on the current git branch. This rule is defined **once, here** (owned by fg-run, the primary state navigator); every loop skill (fg-ask, fg-run, fg-learn, fg-done, fg-status, fg-next, fg-quick) resolves the root through it before reading or writing any `.forge/...` path. Do not duplicate the logic — reference this file. (See `.forge/adr/0011-branch-isolated-forge-root.md`.)
+> Where forge state lives depends on the current git branch. This rule is defined **once, here** (owned by fg-run, the primary state navigator); every skill that reads or writes forge state (fg-ask, fg-run, fg-done, fg-learn, fg-status, fg-next, fg-quick) resolves the root through it before reading or writing any `.forge/...` path. Do not duplicate the logic — reference this file. (See `.forge/adr/0011-branch-isolated-forge-root.md`.)
 
 ## Installed files versus project state
 

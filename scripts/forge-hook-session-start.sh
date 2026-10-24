@@ -19,7 +19,7 @@
 #     (tell the user, never auto-run).
 #     Terminology follows the glossary (`.forge/CONTEXT.md`): the **unsealed tail**
 #     is work that ran but was never sealed, and `executed/` park is deliberately
-#     NOT part of it — a human parked it to retro later. So park is reported as
+#     NOT part of it — a human parked it to seal later. So park is reported as
 #     its own count line, not as an item in the unsealed-tail list.
 #   - ALWAYS exits 0 — a hook must never fail a session start.
 #

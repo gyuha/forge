@@ -167,8 +167,8 @@ fi
 queued_n=0; await_n=0; failed_n=0
 # `awaiting seal` counts only parks that CAN be sealed. A `verified: failed`
 # park is blocked from the seal and needs fg-run recovery, so it gets
-# its own tally — the same split the SessionStart hook already reports (calling it
-# "awaiting seal" told the user to do something the gate refuses).
+# its own tally — the same split the SessionStart hook already reports (counting a
+# failed park as awaiting would tell the user to do something the gate refuses).
 if [ -d "$root/executed" ]; then
   for d_ex in "$root"/executed/*/; do
     [ -d "$d_ex" ] || continue

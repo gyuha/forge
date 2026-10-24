@@ -1,11 +1,11 @@
 ---
 name: fg-drop
-description: Discards incomplete (not-yet-sealed) forge work you no longer want — backlog plans, the active slot, awaiting-retro tasks, or a halted goal loop. Presents the items with a per-item risk level, then hard-delete (default) or archive to .forge/dropped/, behind a confirmation gate (already-run code is NOT reverted). Removes forge state only — never git or your code. Outside the loop (sealing a task is fg-done). Use in contexts like 'forge drop', 'fg-drop', '작업 버리기', '계획 지워', '백로그 비워', 'discard plan'.
+description: Discards incomplete (not-yet-sealed) forge work you no longer want — backlog plans, the active slot, awaiting-seal tasks, or a halted goal loop. Presents the items with a per-item risk level, then hard-delete (default) or archive to .forge/dropped/, behind a confirmation gate (already-run code is NOT reverted). Removes forge state only — never git or your code. Outside the loop (sealing a task is fg-done). Use in contexts like 'forge drop', 'fg-drop', '작업 버리기', '계획 지워', '백로그 비워', 'discard plan'.
 ---
 
 # fg-drop — discard incomplete work (outside the loop)
 
-This is **not** a stage of the forge loop (fg-ask → fg-run → fg-done). It is an **on-demand utility** — like fg-cleanup, fg-merge, and fg-doctor — that lets you **discard incomplete work you no longer intend to do**: a backlog plan you abandoned, the active slot, a task parked in `executed/` awaiting retro, or a halted goal loop. forge had no way to do this short of a manual `rm`; fg-drop fills that gap (ADR-0021).
+This is **not** a stage of the forge loop (fg-ask → fg-run → fg-done). It is an **on-demand utility** — like fg-cleanup, fg-merge, and fg-doctor — that lets you **discard incomplete work you no longer intend to do**: a backlog plan you abandoned, the active slot, a task parked in `executed/` awaiting the seal, or a halted goal loop. forge had no way to do this short of a manual `rm`; fg-drop fills that gap (ADR-0021).
 
 Note the contrast with its neighbors: **fg-done** *completes* a task and seals it (the opposite intent — finishing, not abandoning); **fg-cleanup** retires *ADRs* (a decision, not a task); **fg-status**/**fg-doctor** are read-only and cannot host a destructive action. fg-drop is the one place that abandons a not-yet-sealed task.
 
@@ -29,7 +29,7 @@ Drop targets are **incomplete** work = anything not sealed in `done/`. Scan the 
 | active slot `plan.md` + `running.md` (no `run.md`) | execution **in flight** or never collected (fg-run's in-flight marker) | **high** — code may already have changed and a background run may still be writing; dropping forge tracking does not itself stop the run |
 | orphan `running.md` only (no `plan.md`) | an in-flight marker with no active task to collect | **high** — an uncollected workflow may still finish and change code even though its task state is already missing |
 | active slot **with** `run.md` (+`STATUS.md`, +`review.md`) | **already executed**, awaiting verify/retro/seal | **high** — the code already changed; dropping removes only forge tracking |
-| `executed/<slug>/` | parked after "Run all", awaiting retro | **high** — already executed, same warning |
+| `executed/<slug>/` | parked after "Run all", awaiting the seal | **high** — already executed, same warning |
 | `loop.md` (halted goal loop) | an fg-loop drive stopped at a wall | **high** — abandons the whole goal loop |
 
 **Excluded — never drop targets:** `done/` (sealed work — that is "completed", not incomplete; un-completing a sealed task is a different operation, out of scope), `quick/LOG.md` (an append-only log, not a task), and the persistent global exemptions above.

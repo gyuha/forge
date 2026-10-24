@@ -135,7 +135,7 @@ fg-next all · fg-loop               → no delegated table; the driver renders 
 
 When `eco` is `true` in the **top-level** `.forge/config.json` (a global exemption — never the branch root; treat as off if the file or key is absent), the **human-facing** task-end points — `fg-run`'s handoff, `fg-done`'s explicit single seal, and `fg-run`'s Run-all batch end — already render the **eco summary table**, defined once in [`../fg-config/ECO.md`](../fg-config/ECO.md), section "eco summary table". Do not restate that layout here or there.
 
-**Unattended drives are not in this list.** Inside `fg-next all` / `fg-loop` a delegated step renders nothing at all (see the section above), so there is no handoff table to combine there; the driver's own accumulated eco rows stand alone, per [`DRIVE.md`](./DRIVE.md). Run all is a human-facing batch end, **not** a drive — it stops at the retro — so it does render.
+**Unattended drives are not in this list.** Inside `fg-next all` / `fg-loop` a delegated step renders nothing at all (see the section above), so there is no handoff table to combine there; the driver's own accumulated eco rows stand alone, per [`DRIVE.md`](./DRIVE.md). Run all is a human-facing batch end, **not** a drive — it stops before the seal — so it does render.
 
 Two rows move, in opposite directions, so nothing is said twice:
 

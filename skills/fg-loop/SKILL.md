@@ -58,7 +58,7 @@ Drive one task loop at a time, reusing `fg-next all`'s machinery **by reference*
 
 **Follow-ups.** Every delegated seal must run fg-done's candidate checkpoint ([../fg-learn/FOLLOWUPS-FORMAT.md](../fg-learn/FOLLOWUPS-FORMAT.md)). Persist concrete future work in the ledger before the task sources are removed; neither a skipped retro nor an auto retro suppresses this write. Auto retros reuse run candidate IDs so later batch promotion cannot duplicate them.
 
-**The retro is fg-done's, decided unattended.** fg-done's step 0b (`../fg-done/SKILL.md`) owns the judgment, the auto retro log (`<!-- auto-retro: fg-loop -->`, nothing promoted or proposed) and the "auto, promotion unreviewed" STATUS note. fg-loop adds only its own material: when it hands a task to fg-done, it points at that task's in-place repair record (`repaired-by`, the fresh run.md, the ledger's `reflection:` for its check), so a repaired task's retro sees what was tried.
+**The retro is fg-done's, decided unattended.** fg-done's step 0b (`../fg-done/SKILL.md`) owns the judgment, and the auto retro log (`<!-- auto-retro: fg-loop -->` on its first line, nothing promoted or proposed). fg-loop adds only its own material: when it hands a task to fg-done, it points at that task's in-place repair record (`repaired-by`, the fresh run.md, the ledger's `reflection:` for its check), so a repaired task's retro sees what was tried.
 - **A repaired task** gets its retro once, at the seal after the re-verification that made it sealable — one task, one retro.
 - **The verification gate is untouched** (ADR-0009): nothing is sealed, and no retro decided, for a `pending` or `failed` task.
 

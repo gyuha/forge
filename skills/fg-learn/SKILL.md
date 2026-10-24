@@ -21,9 +21,9 @@ This review **always runs conversationally.** Deciding what is worth keeping and
 
 - **Unsealed work is not this skill's.** A task in the active slot or `.forge/executed/` gets its retro decided when it is sealed — route it to **fg-done** (`/forge:fg-done`), which runs the retro judgment and the verification gate (ADR-0009) in order. If the task is still `verified: pending` or `failed`, fg-done routes it to fg-run first.
 - **Candidates** = sealed tasks in `.forge/done/*/STATUS.md` that still carry the "promote later" promise:
-  - `retro:` reads `skipped (...)` — sealed without a retro. Exclude legacy tasks with no `retro:` field.
-  - `retro:` is a path whose file's first line is `<!-- auto-retro: … -->` and whose STATUS note says "auto, promotion unreviewed" — a retro was *written* by an unattended seal, but nobody has judged what to promote. Use that retro as a starting draft rather than re-deriving from `run.md` alone.
-  - Exclude tasks already reviewed (a retro path with no `auto-retro` marker).
+  - **Auto retros not yet reviewed** — `retro:` is a path whose file's **first line** is `<!-- auto-retro: … -->`. An unattended seal wrote it, but nobody has judged what to promote. That marker line is the **only** discriminator — never a STATUS note, which is hand-written prose that may be missing or in another language. Use the retro as a starting draft rather than re-deriving from `run.md` alone.
+  - **Skips sealed before ADR `261024-191024`** — `retro:` reads `skipped (...)` **and** STATUS `completed:` is earlier than 2026-10-24, and the line carries no `reviewed` note. Before that date the drives skipped every retro unconditionally ("promote later"), so those skips are unjudged. A skip sealed on or after that date is a seal-time **judgment** that there was nothing to learn — it is not a candidate, or every interactive seal would come back here forever.
+  - Exclude legacy tasks with no `retro:` field, and retro paths with no `auto-retro` marker (already reviewed).
 - **Entry is explicit only.** Run it when the user asks ("일괄 승급" / "batch promotion" / following a handoff that pointed here). Orchestrators never invoke it automatically.
 
 ## Behavior
@@ -53,7 +53,7 @@ Don't push everything into `CONTEXT.md` or an ADR. `CONTEXT.md` is a glossary; i
 
 - A retro log goes to `.forge/retro/YYMMDD-HHMMSS-<slug>.md` per [RETRO-FORMAT.md](./RETRO-FORMAT.md) — **only where a learning clears the bar**, or to replace an auto retro's "unreviewed" sections. "Reviewed, nothing worth promoting" is a normal, file-less outcome.
 - Promoted terms follow `../fg-ask/CONTEXT-FORMAT.md`; promoted decisions follow `../fg-ask/ADR-FORMAT.md`.
-- **Correct the sealed STATUS `retro:` line** so fg-status reflects reality: from `skipped (...)` to the new retro path plus a late-promotion note (e.g. `retro: .forge/retro/<file> (batch promotion 2026-10-24)`), or, for an auto retro, drop the "auto, promotion unreviewed" note and remove the `auto-retro` marker line from the retro file once reviewed — whether or not anything was promoted (ADR `261010-230950`). Seal immutability lives in `status: done`, which is never touched. Tasks reviewed without promotion keep `retro: skipped` as is.
+- **Correct the sealed STATUS `retro:` line** so fg-status reflects reality: from `skipped (...)` to the new retro path plus a late-promotion note (e.g. `retro: .forge/retro/<file> (batch promotion 2026-10-24)`), or, for an auto retro, remove the `auto-retro` marker line from the retro file once reviewed — whether or not anything was promoted — and drop any informational note the seal left on the `retro:` line (ADR `261010-230950`). Seal immutability lives in `status: done`, which is never touched. A skip reviewed without promotion appends ` (reviewed <date>)` to its `retro:` line so it leaves the candidate list.
 - Record in the retro's "Doc updates" field what was promoted to where (or none).
 
 ```
@@ -63,7 +63,7 @@ fg-learn (batch promotion)
 Active slot / executed/ task?  ── yes ──▶ not this skill: route to fg-done (retro is decided at seal)
    │ no
    ▼
-Collect candidates in done/: retro skipped · auto retro, promotion unreviewed
+Collect candidates in done/: auto-retro marker still present · skips sealed before ADR 261024-191024 (unreviewed)
    ▼
 Per task, one at a time (conversational):
    read archived plan · run (Rulings, Failed attempts) · review · auto retro draft
@@ -98,5 +98,5 @@ Then **state it and stop**; the table is text output, never an `AskUserQuestion`
 - Creates `.forge/retro/YYMMDD-HHMMSS-slug.md` only where a learning clears the bar or an auto retro is reviewed.
 - Creates/updates `.forge/followups.md` when candidates exist, per FOLLOWUPS-FORMAT; preserves terminal states on repeated reviews.
 - When the promotion conditions are met, updates `CONTEXT.md` / adds `.forge/adr/<id>-slug.md` / writes an eval (after human confirmation).
-- Corrects a sealed task's STATUS `retro:` line (never `status:`) and removes a reviewed retro's `auto-retro` marker.
+- Corrects a sealed task's STATUS `retro:` line (never `status:`), marks reviewed skips, and removes a reviewed retro's `auto-retro` marker.
 - Never touches the active slot, `executed/`, or the backlog — unsealed work belongs to fg-done.
