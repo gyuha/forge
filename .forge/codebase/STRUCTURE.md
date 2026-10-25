@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
-mapped: 2026-10-25
+last_mapped_commit: d2c48ad1d77115706026b4c2fd00715a904d1fcb
+mapped: 2026-10-26
 ---
 
 # STRUCTURE — forge
@@ -74,7 +74,7 @@ hosts/
 
 ## 스킬 트리
 
-직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 24개다. 루프 단계는 `fg-ask`→`fg-run`→`fg-done` 셋이고 `fg-learn`은 루프 밖 일괄 승급 유틸리티다.
+직접 실행 가능한 기능은 `skills/<name>/SKILL.md` 형태다. 현재 최상위 스킬 디렉터리는 25개다(`scripts/pi-host.test.mjs`의 카탈로그 크기 단언도 25). 루프 단계는 `fg-ask`→`fg-run`→`fg-done` 셋이고 `fg-learn`은 루프 밖 일괄 승급 유틸리티다.
 
 ```text
 skills/
@@ -101,6 +101,7 @@ skills/
 ├── fg-debug/               진단 절차와 vendored 자료
 ├── fg-security/            보안 감사 절차와 스키마
 ├── fg-showme/              로컬 시각 동반 서버
+├── fg-verify/              프로젝트 검증 스킬(verify-<app>) 생성·갱신
 └── fg-help/                스킬 사용법 보고
 ```
 
@@ -117,6 +118,7 @@ skills/
 - `skills/fg-debug/DIAGNOSE.md`, `skills/fg-debug/scripts/hitl-loop.template.sh`
 - `skills/fg-security/AUDIT.md`, `skills/fg-security/ATTACK-CLASSES.md`, `skills/fg-security/report-schema.json`, `skills/fg-security/validate-findings.cjs`
 - `skills/fg-showme/VISUAL.md`, `skills/fg-showme/scripts/`
+- `skills/fg-verify/references/feature-map-example/`(`README.md`·`create-note.md`·`search.md` — feature-map 형식 단일 정의, 업스트림 바이트 동일), `skills/fg-verify/LICENSE`
 
 스킬 디렉터리는 kebab-case `fg-<name>`을 사용한다. 실행 식별자는 각 `SKILL.md` 첫 YAML 블록의 `name` 값이다.
 
@@ -208,10 +210,11 @@ Node 전용(Bash 트윈 없음) 파일은 다음과 같다.
 ├── review.md               선택적 적대 검토 결과
 ├── branch/<branch>/        비기본 브랜치의 forge 루트
 ├── showme/<session>/       시각 동반 세션 파일
-└── monitor/                모니터 런타임 (active/ 소유권·키, records/ 요약; 자체 ignore)
+├── monitor/                모니터 런타임 (active/ 소유권·키, records/ 요약; 자체 ignore)
+└── verify/<run>/<YYMMDD-HHMMSS>/  검증 스킬 주행 증거 (attempt별 새 디렉터리; 자체 ignore)
 ```
 
-이 중 `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 모든 브랜치가 공유한다. `.forge/showme/`와 `.forge/monitor/`는 전역 휘발 저장소다. 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
+이 중 `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`는 모든 브랜치가 공유한다. `.forge/showme/`·`.forge/monitor/`·`.forge/verify/`는 전역 휘발 저장소다(`.forge/verify/`의 `<run>`은 UAT면 작업 slug, `fg-verify` 자체 증명이면 `fg-verify`). 나머지 루프 상태는 `skills/fg-run/FORGE-ROOT.md`가 정한 현재 브랜치 루트를 따른다.
 
 계획 파일은 첫 줄에 `<!-- forge-slug: <slug> -->` 표식을 사용하고 `<!-- task: N -->`, `<!-- priority: high|medium|low -->`, 필요 시 `<!-- part: N/M -->` 같은 HTML 주석 메타데이터를 둔다. 완료 디렉터리는 `YYMMDD-HHMMSS-<slug>` 형태이며 같은 초·slug 충돌 때 문자 접미사가 붙는다. 신규 ADR은 `YYMMDD-HHMMSS` 기반 ID를 사용하고 같은 초 충돌 때 문자 접미사를 붙는다. 기존의 4자리 ADR 파일도 `.forge/adr/`에 함께 남아 있다.
 
@@ -223,7 +226,7 @@ Node 전용(Bash 트윈 없음) 파일은 다음과 같다.
 - `.claude/agents/script-twin-engineer.md`
 - `.claude/agents/skill-author.md`
 
-`.claude/skills/issue-triage/SKILL.md`는 저장소 로컬 스킬이다. `.claude/settings.local.json`은 로컬 Claude 설정이며 플러그인 배포 매니페스트와 분리된다.
+`.claude/skills/issue-triage/SKILL.md`는 저장소 로컬 스킬이다. `fg-verify`가 사용자 프로젝트에 만드는 `.claude/skills/verify-<app>/`도 같은 위치 규칙(Codex는 `.codex/skills/` 심볼릭 링크)을 따르지만 이 저장소에는 아직 없다. `.claude/settings.local.json`은 로컬 Claude 설정이며 플러그인 배포 매니페스트와 분리된다.
 
 ## 문서 사이트
 

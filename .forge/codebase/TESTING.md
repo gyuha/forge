@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
-mapped: 2026-10-25
+last_mapped_commit: d2c48ad1d77115706026b4c2fd00715a904d1fcb
+mapped: 2026-10-26
 ---
 
 # TESTING
@@ -43,7 +43,7 @@ mapped: 2026-10-25
 | append wrapper | `scripts/forge-statusline-wrapper.test.sh` | 기존 statusline 보존, stdin 재전달, idle 출력, 설치 위치 기준 동반 파일 탐색 |
 | 무결성 검사 | `scripts/forge-doctor.test.sh`, `scripts/forge-doctor.parity.test.sh` | 상태 오류 A군, 문서/매니페스트 B군, severity exit code, ADR ID, 트윈 존재, description, `scripts/*.rule.txt` 항상-on 문단 각각의 독립 대조(한쪽만 있거나 한 절이 바뀐 경우 해당 규칙 이름으로만 경고), handoff·debug·showme·host 계약 정합, 자기참조 `§N` 인용(B21) |
 | 모니터 | `scripts/forge-monitor.test.js`, `scripts/forge-monitor-ui.test.js`, `scripts/forge-monitor-wiring.test.js` | 서버·HTTP·수명·격리·정리·설정, UI 순수 함수(API URL key, 연결 끊김·불명 상태 표시, 기록된 verified/retro 기반 단계), 실제 훅 dispatch. `scripts/forge-monitor.test.js`가 나머지 두 파일을 `require`하므로 한 명령으로 함께 실행된다 |
-| Pi 호스트 | `scripts/pi-host.test.mjs` | 설치된 Pi SDK(`pi` CLI 위치 또는 `FORGE_PI_PACKAGE_ROOT`)로 공통 `skills/` 로딩·참조·외부 작업 디렉터리 상태 조회. 모델 호출·설정 쓰기 없음 |
+| Pi 호스트 | `scripts/pi-host.test.mjs` | 설치된 Pi SDK(`pi` CLI 위치 또는 `FORGE_PI_PACKAGE_ROOT`)로 공통 `skills/` 로딩·참조·외부 작업 디렉터리 상태 조회. 카탈로그 크기를 `assert.equal(expected.length, 25, ...)`로 고정하므로 스킬을 추가·삭제하면 이 숫자도 함께 고쳐야 한다(2026-10-26 Pi 0.85.1에서 `PI HOST OK: … 25 skills` 실행 확인). 모델 호출·설정 쓰기 없음 |
 | 릴리스 gate | `scripts/release-check.parity.test.sh` | 버전 네 값, Codex skills 경로, hook 파일, 동적 host 목록, adapter 파일, capability JSON·문서 키, 오류 순서와 트윈 parity |
 | forge root | `scripts/resolve-forge-root.parity.test.sh` | 비-git fallback, 기본/비기본/중첩 브랜치, `defaultBranch`, 저장소 하위 cwd, 두 구현의 실제 기대 경로 |
 

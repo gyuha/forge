@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
-mapped: 2026-10-25
+last_mapped_commit: d2c48ad1d77115706026b4c2fd00715a904d1fcb
+mapped: 2026-10-26
 ---
 
 # STACK — 기술 스택
@@ -31,7 +31,7 @@ mapped: 2026-10-25
 
 ### 플러그인 실행
 
-- 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 24개의 `SKILL.md`가 있다(`skills/fg-monitor/`, `skills/fg-rules/` 포함).
+- 각 `SKILL.md`는 호스트가 직접 읽고 실행한다. 현재 `skills/` 아래에는 25개의 `SKILL.md`가 있다(`skills/fg-monitor/`, `skills/fg-rules/`, `skills/fg-verify/` 포함). `scripts/pi-host.test.mjs`가 이 개수(25)를 카탈로그 크기로 단언한다.
 - 결정론 작업은 Bash 구현과 Node.js 구현을 쌍으로 제공한다. `scripts/forge-status.sh`와 `scripts/forge-status.js`처럼 같은 basename의 트윈이 상태 조사, 봉인, 병합, 상태줄, 훅, 예산 계측, 계획 린트(`scripts/forge-plan-lint.*`), 후속 후보 원장(`scripts/forge-followups.*`)을 담당한다.
 - `scripts/`에는 Bash·Node 트윈 13쌍(`forge-doctor`, `forge-done`, `forge-followups`, `forge-hook-session-start`, `forge-hook-stop`, `forge-loop-spend`, `forge-merge`, `forge-plan-lint`, `forge-status`, `forge-statusline`, `forge-statusline-full`, `release-check`, `resolve-forge-root`)이 있고, `scripts/forge-statusline-wrapper.sh`는 Bash 전용이다. Node 구현은 외부 패키지 없이 `fs`, `path`, `os`, `crypto`, `child_process` 같은 내장 모듈을 사용한다.
 - `scripts/forge-doctor.sh`와 `scripts/forge-doctor.js`는 B17 검사에서 `scripts/*.rule.txt`를 전부 순회해 각 원문이 모든 `skills/*/SKILL.md`에 그대로 포함되는지 대조한다. Bash 쪽은 `grep -F`로 비교하므로 rule 파일은 한 줄이어야 트윈 판정이 일치한다.
@@ -61,7 +61,7 @@ mapped: 2026-10-25
 - `skills/fg-showme/scripts/server.cjs`는 `http`, `crypto`, `fs`, `path`만으로 HTTP와 RFC 6455 WebSocket을 구현한다. 브라우저 자동 열기는 `child_process.execFile`로 OS 런처에 URL을 인자로 전달한다.
 - `skills/fg-security/validate-findings.cjs`는 외부 JSON Schema 라이브러리 없이 `skills/fg-security/report-schema.json`의 필요한 부분집합을 검사한다.
 - `scripts/forge-statusline-full.sh`는 `jq` 없이 JSON 입력을 방어적으로 파싱한다. 대응 파일 `scripts/forge-statusline-full.js`는 `JSON.parse`를 사용한다.
-- `skills/fg-debug/scripts/hitl-loop.template.sh`, `skills/fg-security/`, `skills/fg-showme/`의 일부는 저장소 안에 라이선스와 함께 vendoring된 자산이다.
+- `skills/fg-debug/scripts/hitl-loop.template.sh`, `skills/fg-security/`, `skills/fg-showme/`의 일부는 저장소 안에 라이선스와 함께 vendoring된 자산이다. `skills/fg-verify/`는 스크립트 없는 Markdown 스킬로, `skills/fg-verify/references/feature-map-example/*.md`만 업스트림(pstack)과 바이트 동일하게 유지하고 `skills/fg-verify/LICENSE`에 MIT 고지를 둔다.
 
 ## 호스트 계약과 설정
 

@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
-mapped: 2026-10-25
+last_mapped_commit: d2c48ad1d77115706026b4c2fd00715a904d1fcb
+mapped: 2026-10-26
 ---
 
 # ARCHITECTURE — forge
@@ -25,7 +25,7 @@ forge는 실행 애플리케이션이 아니라 에이전트 호스트가 읽어
 - Codex용 메타데이터는 `.codex-plugin/plugin.json`에 있으며 `skills: "./skills/"`로 동일한 스킬 트리를 가리킨다.
 - opencode 전용 매니페스트는 없다. 설치 후 검색 경로에 연결하는 절차는 `docs/opencode.md`와 `docs/en/opencode.md`에 기록되어 있다.
 - Pi도 별도 매니페스트·확장 없이 기존 `skills/` 디렉터리를 패키지로 읽어 `/skill:fg-*`로 노출한다. 절차는 `docs/pi.md`·`docs/en/pi.md`, 로딩 검증은 설치된 Pi SDK를 쓰는 `scripts/pi-host.test.mjs`에 있다.
-- 저장소 로컬 유틸리티 스킬은 실체를 `.claude/skills/<name>/`에 두고 Codex용 `.codex/skills/<name>`을 심볼릭 링크로 잇는다(현재 `.codex/skills/issue-triage`). 배포 스킬 트리 `skills/`와는 분리된다.
+- 저장소 로컬 유틸리티 스킬은 실체를 `.claude/skills/<name>/`에 두고 Codex용 `.codex/skills/<name>`을 심볼릭 링크로 잇는다(현재 `.codex/skills/issue-triage`). 배포 스킬 트리 `skills/`와는 분리된다. `skills/fg-verify/SKILL.md`가 사용자 프로젝트에 생성하는 검증 스킬도 같은 배치(`.claude/skills/verify-<app>/` 한 벌 + Codex용 `.codex/skills/verify-<app>` 상대 심볼릭 링크)를 따른다.
 - 스킬은 디렉터리명이 아니라 각 `skills/*/SKILL.md` YAML frontmatter의 `name` 필드로 식별된다.
 - 프로젝트 전용 Claude Code 에이전트 카드는 `.claude/agents/*.md`에 있으며, `skills/fg-run/SKILL.md`가 호스트 지원 시 계획 슬라이스와 카드의 `description`을 맞춰 역할 위임에 사용한다.
 
@@ -55,14 +55,15 @@ skills/fg-ask/SKILL.md
   -> <forge-root>/done/<timestamp>-<slug>/
 ```
 
-- `skills/fg-ask/SKILL.md`는 대화를 통해 계획을 작성하고 `skills/fg-run/PLAN-FORMAT.md` 형식으로 backlog에 둔다.
+- `skills/fg-ask/SKILL.md`는 대화를 통해 계획을 작성하고 `skills/fg-run/PLAN-FORMAT.md` 형식으로 backlog에 둔다. 프로젝트에 `.claude/skills/verify-<app>/`가 있고 작업이 지도에 오른 사용자 경로를 건드리면 DoD에 `verify-<app>: features/<feature>.md` 줄을 적고(마커가 아닌 산문 줄이라 린트 대상 아님), 경로 자체를 바꾸면 그 feature 파일 갱신 슬라이스를 더하며, 검증 스킬이 없고 명령으로 확인 못 하는 DoD가 있으면 `fg-verify`를 한 번 안내한다(ADR `.forge/adr/261025-090138-fg-verify-verification-skill.md`).
 - `skills/fg-run/SKILL.md`는 계획을 활성 슬롯으로 승격한 뒤 `scripts/forge-plan-lint.sh`(bash 없으면 `.js`)로 구조를 검사하고(exit 1이면 실행하지 않음, exit 0의 `WARN`은 표시 후 진행, exit 2는 읽기 불가 정지), 린트는 slug·슬라이스·depends·마커 값 외에 fix-forward(`generated-by`)·`playbook: bug-fix` 계획의 `eval` 마커(E6/E7), `playbook: refactor` 계획의 `pin` 마커와 모든 슬라이스가 pin 슬라이스에 직·간접 의존하는 순서(E8/E9), 계획당 playbook 1개(E5)를 검사한다(형식 단일 정의는 `skills/fg-run/PLAN-FORMAT.md`의 Playbooks 절, ADR `.forge/adr/261025-005132-bug-fix-refactor-playbooks.md`). `core/EXECUTION.md`와 선택된 `hosts/<host>/execution.md`를 통해 실행한다. 무인 주행에서 린트 error는 `skills/fg-next/ALL-MODE.md`·`skills/fg-loop/SKILL.md`의 벽으로 처리된다.
 - 위임 시작과 결과 기록 사이에는 `<forge-root>/running.md`가 존재한다. 복구 절차는 `skills/fg-run/RECOVERY.md`가 소유한다.
 - 실행 결과와 계획 차이는 `<forge-root>/run.md`, 검증 및 회고 상태는 `<forge-root>/STATUS.md`에 기록된다.
+- `skills/fg-run/SKILL.md`의 UAT는 DoD가 feature-map 항목을 지목하고 `.claude/skills/verify-<app>/`가 존재하면 그 스킬을 호출하지 않고 파일을 읽어 Launch → Doctor → Drive → Evidence → Cleanup을 따른다(같은 세션에서도 사용 가능). 판별자는 Doctor 통과 여부다 — Launch/Doctor 미통과면 `verified: pending`(무인 주행에서는 검증불가 UAT 벽), Doctor 통과 후 종료 상태가 feature 파일과 다르면 `failed (<관찰>)`, 일치하면 `yes (verify-<app>: <feature> → <evidence dir>)`. 무인 주행은 Doctor가 사람을 요구하거나 경로의 부수효과가 자기가 띄운 인스턴스 밖에 닿으면 `pending`으로 남긴다. 증거는 attempt마다 새 `.forge/verify/<run>/<YYMMDD-HHMMSS>/`(`<run>`=작업 slug)에 쓴다.
 - `skills/fg-done/SKILL.md`는 봉인 전에 step 0(대상 작업의 follow-up 후보를 run/retro 끝의 표식 블록으로 정규화)과 step 0b(회고 판정 — `run.md`의 `⚠` 슬라이스 줄·`## Failed attempts`·`## Rulings`, STATUS `fix-rounds`, `review.md`의 `disposition: accepted`를 신호로 읽어 회고 로그 작성 또는 `--skip-retro` 결정)를 수행한 뒤 `scripts/forge-done.sh` 또는 `scripts/forge-done.js`를 호출한다. 스크립트는 검증 게이트(exit 3)·회고 게이트(exit 4 — 회고 파일 부재, 또는 스크립트가 직접 읽는 신호(`run.md`의 `⚠` 슬라이스 줄·`## Failed attempts`·`## Rulings` 항목, STATUS `fix-rounds` ≥ 1)가 있는데 `--skip-retro`를 받으면 `GATE_RETRO skip-refused signals=…`; `review.md` 신호는 스킬만 판정)·중복(exit 5)을 무변경으로 거부하고, 통과 시 `scripts/forge-followups.sh collect`로 후보를 원장에 모은 뒤 staging 복사→STATUS 마감→rename 게시→원본 제거 순으로 봉인한다(exit 6은 I/O 실패).
 - 대화형 봉인만 승급 후보를 한 번 묻고, 무인 봉인은 회고 로그 첫 줄 `<!-- auto-retro: <seal path> -->`로 남긴다. `skills/fg-learn/SKILL.md`는 루프 단계가 아니라 이런 미검토·`retro: skipped` 작업과 `<!-- promotion-pending -->` 로그를 모아 승급하는 루프 밖 유틸리티다.
 
-`skills/fg-status/SKILL.md`는 `scripts/forge-status.sh` 또는 `scripts/forge-status.js`의 조사를 바탕으로 현재 상태를 표시하지만(작업 표의 단계 열은 `ask`/`run`/`done`이며 봉인된 작업은 `done ✔`; `--json` 출력 스키마는 `skills/fg-status/STATUS-JSON.md`, 그 안의 follow-up 집계는 `forge-followups.sh list`에서 온다) 다음 단계 판정은 스킬 본문에 둔다. `skills/fg-next/SKILL.md`는 그 판정을 참조해 다음 스킬을 호출한다. 공통 핸드오프 출력 형식은 `skills/fg-next/HANDOFF.md`에 한 번 정의되어 있다.
+`skills/fg-status/SKILL.md`는 `scripts/forge-status.sh` 또는 `scripts/forge-status.js`의 조사를 바탕으로 현재 상태를 표시하지만(작업 표의 단계 열은 `ask`/`run`/`done`이며 봉인된 작업은 `done ✔`; `--json` 출력 스키마는 `skills/fg-status/STATUS-JSON.md`, 그 안의 follow-up 집계는 `forge-followups.sh list`에서 온다) 다음 단계 판정은 스킬 본문에 둔다. `skills/fg-next/SKILL.md`는 그 판정을 참조해 다음 스킬을 호출한다. 공통 핸드오프 출력 형식은 `skills/fg-next/HANDOFF.md`에 한 번 정의되어 있으며 적용 대상은 16개 스킬(`fg-verify` 포함)이다.
 
 ## 상태 저장 경계
 
@@ -70,7 +71,7 @@ forge 상태 루트의 단일 규칙은 `skills/fg-run/FORGE-ROOT.md`에 있고,
 
 - 기본 브랜치에서는 `<forge-root>`가 `.forge/`다.
 - 다른 브랜치에서는 `<forge-root>`가 `.forge/branch/<branch>/`다.
-- `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`·`.forge/showme/`·`.forge/monitor/`는 브랜치와 무관하게 최상위 경로를 사용한다.
+- `.forge/config.json`·`.forge/codebase/`·`.forge/rules/`·`.forge/showme/`·`.forge/monitor/`·`.forge/verify/`는 브랜치와 무관하게 최상위 경로를 사용한다. `.forge/verify/`의 배치(`<run>/<YYMMDD-HHMMSS>/`)와 첫 쓰기 전 자체-ignore(`.forge/verify/.gitignore`에 `*` 한 줄) 규칙은 `skills/fg-run/FORGE-ROOT.md`에 한 번만 정의되며, 증거는 자동 삭제되지 않는다.
 - follow-up 원장 `<forge-root>/followups.md`는 브랜치별이며(오버레이 없음), 형식은 `skills/fg-learn/FOLLOWUPS-FORMAT.md`, 쓰기는 `scripts/forge-followups.sh`/`.js`(`add`·`collect`·`take`·`dismiss`·`list`)가 담당한다. fg-merge 통합 시 task 참조가 재매핑된다.
 - 비기본 브랜치의 영속 자료 읽기는 브랜치 쪽 `.forge/branch/<branch>/CONTEXT.md`, `adr/`, `retro/`를 최상위 `.forge/` 위에 겹쳐 읽는다.
 - 비기본 브랜치 상태의 기본 브랜치 통합은 `skills/fg-merge/SKILL.md`와 `scripts/forge-merge.sh`/`.js`가 수행한다.
@@ -135,3 +136,7 @@ forge 상태 루트의 단일 규칙은 `skills/fg-run/FORGE-ROOT.md`에 있고,
 ## 규칙 채택
 
 `skills/fg-rules/SKILL.md`는 채택한 규칙을 최상위 `.forge/rules/`에 쓰고, 기존 프로젝트 지침에서 규칙 색인을 읽도록 하는 연결 절차를 `skills/fg-rules/CONNECTIONS.md`에 둔다.
+
+## 검증 스킬 생성
+
+`skills/fg-verify/SKILL.md`는 루프 밖 유틸리티로, 검증을 실행하지 않고 사용자 프로젝트에 `.claude/skills/verify-<app>/`(`SKILL.md`·`features/`·보조 스크립트)를 생성하거나 갱신한다. 검증 스킬이 없으면 생성 후 자기 증명 주행을 하고, 있으면 갱신할 스킬을 고르거나 다른 표면용 새 스킬을 만든다. 갱신 모드의 소스 읽기는 호스트 `spawn_parallel`이 `true`일 때 feature별로 병렬 위임하고 아니면 직렬로 읽으며, 앱 구동은 위임하지 않는다. feature-map 형식의 단일 정의는 업스트림 바이트 그대로인 `skills/fg-verify/references/feature-map-example/`(`README.md`·`create-note.md`·`search.md`)이고 라이선스는 `skills/fg-verify/LICENSE`다. 자기 증명 주행의 증거 경로는 `.forge/verify/fg-verify/<YYMMDD-HHMMSS>/`다. `fg-next all`·`fg-loop` 무인 주행에서는 건너뛴다.

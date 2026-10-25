@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
-mapped: 2026-10-25
+last_mapped_commit: d2c48ad1d77115706026b4c2fd00715a904d1fcb
+mapped: 2026-10-26
 ---
 
 # INTEGRATIONS — 외부 연동
@@ -79,7 +79,7 @@ mapped: 2026-10-25
 ## 파일 시스템과 프로세스 경계
 
 - Forge의 영속·휘발 상태는 프로젝트 로컬 `.forge/` 파일에 저장된다. 별도 데이터베이스나 원격 상태 저장소는 없다.
-- 기본 브랜치 상태는 `.forge/`, 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 둔다. 예외인 전역 지도는 `.forge/codebase/`, 채택한 규칙은 `.forge/rules/`, 시각 컴패니언 임시 상태는 `.forge/showme/`, 모니터 런타임은 `.forge/monitor/`에 둔다. 후속 후보 원장 `.forge/followups.md`는 `scripts/forge-followups.*`가 읽고 쓴다.
+- 기본 브랜치 상태는 `.forge/`, 비기본 브랜치 상태는 `.forge/branch/<branch>/`에 둔다. 예외인 전역 지도는 `.forge/codebase/`, 채택한 규칙은 `.forge/rules/`, 시각 컴패니언 임시 상태는 `.forge/showme/`, 모니터 런타임은 `.forge/monitor/`에 둔다. 검증 스킬의 UAT 증거는 `.forge/verify/<run>/<YYMMDD-HHMMSS>/`에 두며, 레이아웃의 단일 정의는 `skills/fg-run/FORGE-ROOT.md`다. 후속 후보 원장 `.forge/followups.md`는 `scripts/forge-followups.*`가 읽고 쓴다.
 - `hooks/run-hook.cmd`는 `CLAUDE_PROJECT_DIR`가 있으면 그 경로로 이동한 뒤 훅 본체를 실행한다. Unix에서는 Bash 우선·Node 폴백, Windows에서는 Git Bash 우선·Node 폴백이다.
 - `scripts/forge-loop-spend.*`는 Claude Code transcript 파일을 읽어 선택적 토큰 예산을 계측한다. 다른 호스트에서는 transcript 경로를 명시하지 않으면 해당 기능을 사용할 수 없다는 제한이 `docs/codex.md`와 `docs/opencode.md`에 기록돼 있다.
 
@@ -88,11 +88,12 @@ mapped: 2026-10-25
 - 애플리케이션 수준의 사용자 계정, OAuth 공급자, 결제 공급자, 외부 데이터베이스, 메시지 큐, 객체 저장소, HTTP webhook 수신기는 구현돼 있지 않다.
 - 저장소에는 외부 SaaS API SDK가 런타임 의존성으로 선언돼 있지 않다. `package.json`의 직접 의존성은 문서 빌드 도구뿐이다.
 - GitHub Actions 인증은 GitHub가 제공하는 workflow token과 Pages OIDC 권한에 의존하며, 저장소 코드에 자격 증명을 하드코딩하지 않는다. 관련 권한은 `.github/workflows/docs.yml`, `.github/workflows/release-check.yml`, `.github/workflows/monitor-check.yml`에 명시돼 있다.
-- 시각 컴패니언의 세션 키는 `.forge/showme/` 내부 파일과 로컬 URL에만 존재하며, `skills/fg-showme/scripts/start-server.sh`가 해당 디렉터리에 자기 자신을 무시하는 `.gitignore`를 만든다. 모니터의 키·PID 파일은 `.forge/monitor/`에 있으며 세션 종료 시 제거된다.
+- 시각 컴패니언의 세션 키는 `.forge/showme/` 내부 파일과 로컬 URL에만 존재하며, `skills/fg-showme/scripts/start-server.sh`가 해당 디렉터리에 자기 자신을 무시하는 `.gitignore`를 만든다. 모니터의 키·PID 파일은 `.forge/monitor/`에 있으며 세션 종료 시 제거된다. `.forge/verify/`도 첫 쓰기 전에 `*` 한 줄짜리 자체 `.gitignore`를 만들고 증거를 자동 삭제하지 않는다(`skills/fg-run/FORGE-ROOT.md`). `skills/fg-verify/SKILL.md`는 생성한 프로젝트 검증 스킬(`.claude/skills/verify-<app>/`)을 커밋 제안 전에 `sk-`, `ghp_`, `AKIA`, PEM 개인키 등 비밀 패턴으로 스캔하도록 지시한다.
 
 ## 공급망과 vendoring
 
 - `skills/fg-security/`는 Cloudflare의 `security-audit-skill`을 MIT 라이선스와 함께 vendoring한다. 출처 표기는 `skills/fg-security/AUDIT.md`와 `skills/fg-security/LICENSE`에 있다.
 - `skills/fg-debug/`는 `mattpocock/skills`의 진단 자료를 MIT 라이선스와 함께 vendoring한다. 출처와 수정 경계는 `skills/fg-debug/SKILL.md`와 `skills/fg-debug/LICENSE`에 있다.
+- `skills/fg-verify/`는 pstack(`cursor/plugins`, Lauren Tan)의 검증 스킬 생성·유지 방법을 개념 각색하며, `skills/fg-verify/references/feature-map-example/`만 업스트림과 바이트 동일하게 유지한다. 라이선스는 `skills/fg-verify/LICENSE`(MIT)에 있다.
 - `skills/fg-showme/`와 `hooks/run-hook.cmd`는 obra/superpowers 계열 코드를 MIT 고지와 함께 포함한다. 라이선스는 `skills/fg-showme/LICENSE`, 변경 내역은 각 소스 파일 머리말에 있다.
 

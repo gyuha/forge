@@ -1,6 +1,6 @@
 ---
-last_mapped_commit: 0b8423d0dbcb836a75dcaf951afe993a97c8eb25
-mapped: 2026-10-25
+last_mapped_commit: d2c48ad1d77115706026b4c2fd00715a904d1fcb
+mapped: 2026-10-26
 ---
 
 # CONVENTIONS
@@ -9,7 +9,7 @@ mapped: 2026-10-25
 
 ## 저장소 산출물
 
-- 플러그인의 주 산출물은 `skills/*/SKILL.md`, 그 형제 Markdown 계약 문서, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`이다. `skills/` 아래에는 `SKILL.md`가 24개 있다.
+- 플러그인의 주 산출물은 `skills/*/SKILL.md`, 그 형제 Markdown 계약 문서, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.codex-plugin/plugin.json`이다. `skills/` 아래에는 `SKILL.md`가 25개 있다(`skills/fg-verify/SKILL.md` 추가).
 - 결정론적 동작은 최상위 `scripts/`에 둔다. 운영 스크립트는 Bash/Node 트윈 13쌍이며(`scripts/forge-plan-lint.*`, `scripts/forge-followups.*` 추가), `scripts/forge-statusline-wrapper.sh`만 최상위 Bash 전용 구현이다. Node 전용 구현은 `scripts/forge-monitor.js`, `scripts/forge-hook-monitor.js`, `scripts/forge-status-query.js`이며, `scripts/forge-doctor.sh`·`.js`의 B15가 이 세 파일과 `*.test.js`를 `.sh` 트윈 검사에서 제외한다.
 - `package.json`은 `docs/`의 VitePress 사이트와 릴리스 검사 명령을 제공한다. 플러그인 Markdown이나 JSON을 컴파일하는 빌드 단계는 없다.
 - `package.json`에는 `"type"` 필드가 없다. `scripts/*.js`는 `require(...)`를 사용하는 CommonJS이며 파일 시작에 `'use strict';`를 둔다.
@@ -27,6 +27,7 @@ mapped: 2026-10-25
 - 스킬 문서의 흐름과 분기는 Mermaid가 아니라 텍스트 화살표와 들여쓰기로 표현한다. 둘 이상의 결과를 기술할 때는 같은 문단에 판정 기준도 둔다.
 - `skills/fg-run/PLAN-FORMAT.md`의 언어 중립 구조 규칙(첫 줄 `forge-slug` 주석, `- [ ] S<n>.` 슬라이스 줄, `depends`, 마커 값, fix-forward plan과 `playbook: bug-fix`의 `eval` 마커, `playbook: refactor`의 `pin` 마커와 모든 슬라이스가 pin에 직·간접 의존하는 순서)은 `scripts/forge-plan-lint.sh`·`.js`가 구현한다(E1–E9, W1). `playbook` 값은 `bug-fix|refactor`만 허용하고 계획당 1개다. 목록형 슬라이스가 하나라도 있으면 헤딩형(`### S3 …`)은 메모 헤딩으로 보아 슬라이스로 세지 않고, 목록형이 없을 때만 헤딩을 슬라이스로 센다. `none — <사유>`의 사유 판정은 `eval`·`pin`이 같은 helper(`none_reason`)를 공유한다. 사용자 언어로 렌더되는 헤딩·라벨은 검사하지 않고 HTML 주석 마커와 슬라이스 줄만 본다. 이 스크립트는 규칙을 구현만 하고 확장하지 않는다고 머리말에 적혀 있다.
 - 다음 단계가 있는 스킬의 출력 표 형식은 `skills/fg-next/HANDOFF.md`가 소유한다. 다른 스킬은 그 파일을 참조하며 표 정의를 복사하지 않는다.
+- 외부 원본을 차용한 스킬은 `LICENSE`를 스킬 디렉터리에 함께 두고 본문 머리에 출처를 밝힌다(`skills/fg-security/`, `skills/fg-debug/`, `skills/fg-showme/`, `skills/fg-verify/`). vendoring한 파일은 바이트 동일로 유지하고 진입 파일만 `SKILL.md`로 둔다. `skills/fg-verify/SKILL.md`는 "Adapted, not vendored"로 방법을 다시 쓰고, `skills/fg-verify/references/feature-map-example/`만 원본과 바이트 동일한 기능 지도 형식의 단일 정의로 두며 본문에서 그 계약을 재진술하지 않는다고 적는다.
 
 ## Markdown과 사용자 문서
 
