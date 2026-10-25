@@ -39,7 +39,7 @@ async function main() {
     assert.deepEqual(diagnostics.filter(d => belongs(d.path)), [], 'Forge loader diagnostics');
     const expected = fs.readdirSync(path.join(installed, 'skills')).filter(name =>
       fs.existsSync(path.join(installed, 'skills', name, 'SKILL.md'))).sort();
-    assert.equal(expected.length, 24, 'catalogue size');
+    assert.equal(expected.length, 25, 'catalogue size');
     assert.ok(loaded.some(s => s.name === 'fg-rules'), 'project rules skill loads');
     assert.deepEqual(loaded.map(s => s.name).sort(), expected, 'all shared skills, no companion docs as skills');
     for (const skill of loaded) {

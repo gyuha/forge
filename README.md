@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > An agent-engineering workflow plugin for Claude Code, Codex, opencode, and Pi — one task through a single cycle of **ask·plan → execute → done** (the retro is decided in the done stage).
-> A loop-style workflow plugin built from twenty-four shared `fg-` skills — three that form the loop, plus twenty-one utilities outside it.
+> A loop-style workflow plugin built from twenty-five shared `fg-` skills — three that form the loop, plus twenty-two utilities outside it.
 
 [한국어](./README.ko.md)
 
@@ -17,7 +17,7 @@ Sealing prepares a complete archive before removing source files, and recovery e
 
 ## Quick start — you mostly only need three
 
-Twenty-four skills look like a lot, but day to day you drive with **three**:
+Twenty-five skills look like a lot, but day to day you drive with **three**:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -103,7 +103,7 @@ First-time setup is the one sequence *Quick start* skips: on a fresh project, ma
 
 ## Skill catalog
 
-The three loop stages, then the twenty-one utilities outside the loop:
+The three loop stages, then the twenty-two utilities outside the loop:
 
 | Skill | Stage | One-line role |
 | --- | --- | --- |
@@ -131,6 +131,7 @@ The three loop stages, then the twenty-one utilities outside the loop:
 | `fg-agenda` | Utility | Decision queue for work still in fog — settles a destination with you, then surfaces what must be decided and keeps it in `.forge/agenda.md`, resolving one question at a time until the way is clear and then deleting itself; the agent finds the decisions, **you answer them**, and anything that becomes buildable leaves for the backlog |
 | `fg-security` | Utility | Security audit of a codebase (methodology vendored from cloudflare/security-audit-skill, MIT) — multi-phase, multi-agent hunting by attack class; artefacts stay OUTSIDE the repo (upstream's `~/security-audit-skill/`) so a vulnerability list has no path into a commit at all, and findings past a severity gate become fix-forward backlog plans on your approval |
 | `fg-debug` | Utility | Conversational diagnosis discipline for hard bugs (vendored from mattpocock/skills' diagnosing-bugs, MIT) — diagnosis only; an active failed task returns to fg-run, while an independent diagnosis branches to fg-quick or an approved fix plan. A red command counts as a persistent eval only when durable; raw captures stay outside the repo and every exit cleans temporary artefacts. Always skipped in unattended drives |
+| `fg-verify` | Utility | Builds (or refreshes) a project-local verification skill, `verify-<app>`, that drives your app the way a user does — launch, health check, drive a feature, capture evidence, clean up — plus a feature map of the journeys it can prove; it builds the tool fg-run's UAT uses, it does not verify anything itself. Lives in `.claude/skills/` (committed), evidence in the self-ignored `.forge/verify/`. The UAT reads the skill's files, so no restart is needed; unattended drives never run this command |
 
 Follow-up candidates persist in `.forge/followups.md` with source, date, and state. When `fg-ask` adopts one into a plan, it links to the new task number. External tools can read all tasks and candidates with `forge-status.sh --json` or `forge-status.js --json`.
 
@@ -144,7 +145,7 @@ Per-skill detail — input/output/next, triggers, and the rationale ADRs — is 
 
 ## Overall flow
 
-When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **15 points** that have a real next step (the other eight are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: the seal via `fg-done` (which decides the retro), with a re-grill via `fg-ask` as the alternative when divergence is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
+When one skill finishes, it **states** the way to the next as a fixed four-row **handoff table** — *what was just done · next step · how to start · alternative* — at each of the **16 points** that have a real next step (the other eight are toggles and utilities with nothing to point at, and keep their prose). The next step then sits in the same place every time instead of being buried mid-paragraph: the pain this fixes is **findability, not length** ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). It is a different thing from the `eco` summary table, which answers *what was done*; this one answers *what comes next*, and it renders whether `eco` is on or off. **The statement form is unchanged** — the table is text output, never a menu: no "shall I continue?", and chaining into the next stage is still `fg-next`'s job ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), amended 2026-06-15 — fg-run's old four-way menu was dropped because it re-triggered on the unchanged active-slot state and looped). This holds for **every** handoff, including `fg-run`'s single-task end: the seal via `fg-done` (which decides the retro), with a re-grill via `fg-ask` as the alternative when divergence is high — stated, then stop. After `fg-done` seals a task, the loop restarts at `fg-ask` only as a **new task** — the same task never runs again. Two utilities tend this fuel from outside the loop: `fg-map` writes the codebase map `fg-ask` reads, and `fg-cleanup` curates the ADR set `fg-ask` reads.
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-done
@@ -193,7 +194,7 @@ Codex currently supports the core loop, state utilities, serial fallback, parall
 
 ### Pi
 
-Pi loads the same 24 skills from a local forge checkout: run `pi install /absolute/path/to/forge`, then start a fresh Pi session and invoke `/skill:fg-ask`, `/skill:fg-run`, or `/skill:fg-status`. It discovers the package’s `skills/` directory without a separate manifest or extension. Use a checkout containing the Pi support changes.
+Pi loads the same 25 skills from a local forge checkout: run `pi install /absolute/path/to/forge`, then start a fresh Pi session and invoke `/skill:fg-ask`, `/skill:fg-run`, or `/skill:fg-status`. It discovers the package’s `skills/` directory without a separate manifest or extension. Use a checkout containing the Pi support changes.
 
 Basic support uses text choices and sequential execution. `fg-next all` and `fg-loop` run within the current turn and resume when invoked again; Pi hooks, a statusline, and custom subagents are not included. Installation, capability limits, and verification scope: [Pi guide](./docs/en/pi.md).
 
@@ -270,6 +271,8 @@ The terse-communication output rules in the same `ECO.md` — compressing execut
 The **always-on `**Explaining forge**` rule** carried by every `SKILL.md` — gloss a forge-specific term on first use, purpose before mechanism, lead with the answer — is adapted **in concept** from the [eli5 skill by dreambigou](https://github.com/dreambigou/eli5) (MIT). No code was vendored: only the vocabulary-calibration rules were taken, its audience tables were dropped (forge output has one reader), and it is deliberately **not** part of eco — the installers who most need a gloss are the ones least likely to have eco on. It governs **vocabulary** while `ECO.md`'s terse rules govern **form**, so terseness never deletes a gloss (ADR `260824-134246`).
 
 The **always-on `**Evidence and candor**` rule** — evidence or a Measured/Inferred/Guess label on every claim, and "agreement is not the default" — is adapted **in concept** from the poteto-mode skill of [pstack by Lauren Tan](https://github.com/cursor/plugins/tree/main/pstack) (MIT). No code was vendored; forge added the "the decision stays the user's" clause and extended it to generated documents (ADR `261025-005131`).
+
+The **verification-skill method** behind `fg-verify` is adapted **in concept** from the `create-verification-skill` and `maintain-verification-skill` skills of the same [pstack](https://github.com/cursor/plugins/tree/main/pstack) (MIT, licence copy at `skills/fg-verify/LICENSE`). Only the feature-map example in `skills/fg-verify/references/feature-map-example/` is kept byte-for-byte with upstream; forge rewrote the rest — one command for create and update, the skill under `.claude/skills/` instead of `.cursor/skills/`, no PR, and evidence in a self-ignored `.forge/verify/` (ADR `261025-090138`).
 
 The situational output examples adapt numbered procedures, context restoration, and grouped lists from [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (MIT). These are forge-specific examples, not a vendored skill or a claim of measured output improvement.
 

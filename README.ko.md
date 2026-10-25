@@ -3,7 +3,7 @@
 ![forge](./docs/icon-sm.png)
 
 > 에이전트 엔지니어링을 위한 Claude Code·Codex·opencode·Pi 워크플로우 플러그인 — 작업 하나를 **질의·계획 → 실행 → 완료**의 한 바퀴로(회고는 완료 단계에서 판정).
-> 네 호스트가 함께 쓰는 24개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 3개와, 루프 밖 유틸리티 21개.
+> 네 호스트가 함께 쓰는 25개의 `fg-` 스킬로 구성된 루프형 워크플로우 플러그인 — 루프를 이루는 3개와, 루프 밖 유틸리티 22개.
 
 [English](./README.md)
 
@@ -17,7 +17,7 @@
 
 ## 빠른 시작 — 사실 3개만 쓰면 된다
 
-스킬이 24개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
+스킬이 25개라 많아 보이지만, 평소엔 **3개**로 굴립니다:
 
 ```
 fg-ask   →   fg-run   →   fg-next
@@ -103,7 +103,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 
 ## 스킬 카탈로그
 
-루프 3단계, 그다음 루프 밖 유틸리티 21개:
+루프 3단계, 그다음 루프 밖 유틸리티 22개:
 
 | 스킬 | 단계 | 한 줄 역할 |
 | --- | --- | --- |
@@ -131,6 +131,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 | `fg-agenda` | 유틸리티 | 안개 속 작업의 결정 대기열 — 목적지를 함께 정한 뒤 무엇을 결정해야 하는지 캐내 `.forge/agenda.md`에 담고, 길이 밝아질 때까지 한 번에 하나씩 해소한 다음 스스로 삭제; 결정을 찾는 것은 에이전트, **답은 당신**이 하며, 빌드 가능해진 것은 백로그로 떠난다 |
 | `fg-security` | 유틸리티 | 코드베이스 보안 감사(방법론은 cloudflare/security-audit-skill vendoring, MIT) — 공격 유형별 다중 에이전트 다단계 hunting, 산출물은 **리포 밖**(업스트림 `~/security-audit-skill/`)에 남아 커밋 경로가 애초에 없고, 심각도 게이트와 당신의 승인을 통과한 findings가 fix-forward 백로그 plan이 된다 |
 | `fg-debug` | 유틸리티 | 어려운 버그의 대화형 진단 규율(mattpocock/skills의 diagnosing-bugs vendoring, MIT) — 진단 전용; 활성 실패 작업은 fg-run으로 복귀하고, 독립 진단만 fg-quick 또는 승인된 fix plan으로 갈린다. red 명령은 영속할 때만 eval이며, 원본 캡처는 리포 밖에 두고 모든 종료 경로에서 임시 산출물을 정리한다. 무인 주행에선 항상 skip |
+| `fg-verify` | 유틸리티 | 앱을 사용자처럼 띄우고 조작해 동작을 증명하는 프로젝트 전용 검증 스킬 `verify-<app>`(기동·건강 점검·기능 구동·증거·정리 + 증명할 수 있는 사용자 경로의 기능 지도)을 만들거나 갱신한다 — 검증을 직접 하는 게 아니라 fg-run UAT가 쓸 도구를 만든다. 스킬은 `.claude/skills/`(커밋), 증거는 자체-ignore `.forge/verify/`. UAT는 스킬 파일을 직접 읽으므로 재시작 불필요; 무인 주행은 이 명령을 실행하지 않음 |
 
 후속 후보는 `.forge/followups.md`에 출처·날짜·상태와 함께 보존됩니다. `fg-ask`에서 계획으로 채택하면 새 task 번호로 연결됩니다. 외부 도구는 `forge-status.sh --json` 또는 `forge-status.js --json`으로 전체 작업과 후보를 읽을 수 있습니다.
 
@@ -144,7 +145,7 @@ fg-agenda ──질문 하나──▶ (fg-ask의 그릴링) ──▶ "결정�
 
 ## 전체 흐름
 
-한 스킬이 끝나면 다음 스킬로 가는 길을 고정 4행 **핸드오프 표** — *방금 한 것 · 다음 단계 · 시작하는 법 · 대안* — 로 **알리고 멈춘다**. 가리킬 다음 단계가 실재하는 **15곳**에 적용되며(나머지 여덟은 가리킬 것이 없는 토글·유틸리티라 산문을 유지한다), 그래서 다음 단계가 문단 중간에 묻히지 않고 매번 같은 자리에 있다 — 이것이 고치는 통증은 **길이가 아니라 찾기 어려움**이다 ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). `eco` 요약 표와는 다른 것이다 — 그쪽은 *무엇을 했나*에 답하고, 이 표는 *다음에 무엇을*에 답하며 `eco` on/off 무관하게 렌더된다. **진술형은 변하지 않았다** — 표는 텍스트 출력이고 결코 메뉴가 아니다: "이어갈까요?"라고 묻지 않으며, 다음 단계로 잇는 것은 여전히 `fg-next`의 몫이다 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), 개정 2026-06-15 — fg-run의 과거 4지 메뉴는 변하지 않은 활성 슬롯 상태에서 다시 떠 반복되는 버그로 폐지됐다). 이는 `fg-run`의 단일작업 종료를 포함한 **모든** 핸드오프에 적용된다: `fg-done`으로 봉인(회고는 그 안에서 판정)하고, divergence가 높으면 `fg-ask` 재그릴을 대안으로 — 알리고 멈춘다. 루프는 `fg-done`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다. 두 유틸리티가 루프 밖에서 이 연료를 돌본다: `fg-map`은 `fg-ask`가 읽는 코드베이스 지도를 작성하고, `fg-cleanup`은 `fg-ask`가 읽는 ADR 집합을 정비한다.
+한 스킬이 끝나면 다음 스킬로 가는 길을 고정 4행 **핸드오프 표** — *방금 한 것 · 다음 단계 · 시작하는 법 · 대안* — 로 **알리고 멈춘다**. 가리킬 다음 단계가 실재하는 **16곳**에 적용되며(나머지 여덟은 가리킬 것이 없는 토글·유틸리티라 산문을 유지한다), 그래서 다음 단계가 문단 중간에 묻히지 않고 매번 같은 자리에 있다 — 이것이 고치는 통증은 **길이가 아니라 찾기 어려움**이다 ([ADR `260805-231104`](./.forge/adr/260805-231104-handoff-table.md)). `eco` 요약 표와는 다른 것이다 — 그쪽은 *무엇을 했나*에 답하고, 이 표는 *다음에 무엇을*에 답하며 `eco` on/off 무관하게 렌더된다. **진술형은 변하지 않았다** — 표는 텍스트 출력이고 결코 메뉴가 아니다: "이어갈까요?"라고 묻지 않으며, 다음 단계로 잇는 것은 여전히 `fg-next`의 몫이다 ([ADR-0015](./.forge/adr/0015-fg-run-handoff-menu-others-stated.md), 개정 2026-06-15 — fg-run의 과거 4지 메뉴는 변하지 않은 활성 슬롯 상태에서 다시 떠 반복되는 버그로 폐지됐다). 이는 `fg-run`의 단일작업 종료를 포함한 **모든** 핸드오프에 적용된다: `fg-done`으로 봉인(회고는 그 안에서 판정)하고, divergence가 높으면 `fg-ask` 재그릴을 대안으로 — 알리고 멈춘다. 루프는 `fg-done`이 작업을 봉인한 뒤, **새 작업**으로서만 `fg-ask`에서 다시 시작된다 — 같은 작업을 다시 실행하지 않는다. 두 유틸리티가 루프 밖에서 이 연료를 돌본다: `fg-map`은 `fg-ask`가 읽는 코드베이스 지도를 작성하고, `fg-cleanup`은 `fg-ask`가 읽는 ADR 집합을 정비한다.
 
 ```
 fg-ask ───▶ fg-run ───▶ fg-done
@@ -192,7 +193,7 @@ Forge는 `.codex-plugin/plugin.json`을 포함한다. Codex의 플러그인/마�
 
 ### Pi
 
-Pi는 로컬 forge 체크아웃에서 동일한 스킬 24개를 로드한다. `pi install /absolute/path/to/forge`를 실행하고 새 Pi 세션에서 `/skill:fg-ask`, `/skill:fg-run`, `/skill:fg-status`로 호출한다. 별도 매니페스트나 확장 없이 패키지의 `skills/` 디렉터리를 탐색한다. Pi 지원 변경이 포함된 체크아웃을 사용한다.
+Pi는 로컬 forge 체크아웃에서 동일한 스킬 25개를 로드한다. `pi install /absolute/path/to/forge`를 실행하고 새 Pi 세션에서 `/skill:fg-ask`, `/skill:fg-run`, `/skill:fg-status`로 호출한다. 별도 매니페스트나 확장 없이 패키지의 `skills/` 디렉터리를 탐색한다. Pi 지원 변경이 포함된 체크아웃을 사용한다.
 
 기본 지원은 텍스트 선택과 순차 실행이다. `fg-next all`과 `fg-loop`는 현재 턴 안에서 실행하고 다시 호출하면 재개한다. Pi 훅·statusline·커스텀 subagent는 포함하지 않는다. 설치 방법·능력 제한·검증 범위는 [Pi 가이드](./docs/pi.md)를 참조한다.
 
@@ -269,6 +270,8 @@ forge를 쓰면서 git·브랜치를 운영하는 법 — git-abstinence 모델,
 모든 `SKILL.md`가 담는 **항상-on `**Explaining forge**` 규율** — forge 전문용어를 첫 등장에서 주석하고, 목적을 메커니즘보다 먼저 쓰고, 결론을 먼저 낸다 — 은 [dreambigou의 eli5 스킬](https://github.com/dreambigou/eli5)(MIT)에서 **개념만** 각색했다. 코드 vendoring이 아니다 — 어휘 교정 규칙만 취하고 청중 표는 버렸으며(forge 출력의 독자는 한 명이다), 의도적으로 eco에 **넣지 않았다** — 주석을 가장 필요로 하는 설치자가 eco를 켜 봤을 리 없는 사람이기 때문이다. 이 규율은 **어휘**를, `ECO.md`의 간결 규칙은 **형태**를 지배하므로 간결함이 주석을 지우지 않는다(ADR `260824-134246`).
 
 **항상-on `**Evidence and candor**` 규율** — 모든 주장에 근거 또는 측정/추론/추측 라벨, 그리고 "동의가 기본값이 아니다" — 은 [Lauren Tan의 pstack](https://github.com/cursor/plugins/tree/main/pstack)(MIT) poteto-mode 스킬에서 **개념만** 각색했다. 코드 vendoring이 아니다 — forge가 "결정은 사용자의 것" 절을 더하고 적용면을 생성 문서까지 넓혔다(ADR `261025-005131`).
+
+`fg-verify`의 **검증 스킬 방법**은 같은 [pstack](https://github.com/cursor/plugins/tree/main/pstack)(MIT, 라이선스 사본 `skills/fg-verify/LICENSE`)의 `create-verification-skill`·`maintain-verification-skill` 스킬에서 **개념만** 각색했다. 업스트림과 바이트 동일로 둔 것은 `skills/fg-verify/references/feature-map-example/`의 기능 지도 예시뿐이고, 나머지는 forge가 새로 썼다 — 생성·갱신을 명령 하나로, 스킬 위치를 `.cursor/skills/` 대신 `.claude/skills/`로, PR 없이, 증거는 자체-ignore `.forge/verify/`에(ADR `261025-090138`).
 
 상황별 출력 예시는 [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)(MIT)의 절차 번호·맥락 복원·목록 묶기 아이디어를 각색했다. forge 상황에 맞춘 예시이며, 원본 스킬을 vendoring하거나 출력 개선을 실측했다고 주장하는 것은 아니다.
 
