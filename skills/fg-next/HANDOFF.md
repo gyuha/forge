@@ -65,7 +65,7 @@ Some skills must emit a list, and a list does not fit a cell — cramming paths 
 · .forge/CONTEXT.md
 ```
 
-**Ten wired sites emit below-table lists** — do not compress any of them into a cell: `fg-ask` (documents this grilling created), `fg-learn` (follow-up candidates), `fg-doctor` (findings: severity · path · fix hint), `fg-loop` (per-check evidence at a wall, and the passing evidence on goal-met), `fg-agents` (the cards written), `fg-agenda` (what changed in the agenda), `fg-adversarial-review` (fix-forward ordering), `fg-run` (the adversarial-review pointer), `fg-done` (the git-commit reminder), `fg-verify` (product defects an update found). Two of these — fg-doctor's fix hints and fg-loop's evidence — are the reason the rule exists: squeezing them into one line destroys the only actionable content the skill produced.
+**Ten wired sites emit below-table lists** — do not compress any of them into a cell: `fg-ask` (documents this grilling created), `fg-learn` (follow-up candidates), `fg-doctor` (findings: severity · path · fix hint), `fg-loop` (per-check evidence at a wall; on goal-met, the unrun member slugs, the stop checks' passing evidence, and an optional fg-learn note), `fg-agents` (the cards written), `fg-agenda` (what changed in the agenda), `fg-adversarial-review` (fix-forward ordering), `fg-run` (the adversarial-review pointer), `fg-done` (the git-commit reminder), `fg-verify` (product defects an update found). Two of these — fg-doctor's fix hints and fg-loop's evidence — are the reason the rule exists: squeezing them into one line destroys the only actionable content the skill produced.
 
 ## A conditional next step needs a precedence rule, never a hard-coded row
 
