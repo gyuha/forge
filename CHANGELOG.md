@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.11] - 2026-11-02
+
+### Fixed
+- **fg-loop가 `## Tasks` 멤버 plan이 미실행으로 남아 있는데 goal 충족을 선언하던 문제를 고쳤다.** goal 충족 판정이 "백로그에 태스크가 남았나" 확인보다 먼저 일어나, 루프가 멤버를 남긴 채 닫히고 `loop.md`가 삭제된 뒤 멤버를 `fg-run`에 넘겼다 — 정지 체크의 감독 없이 실행되는 경로였다. 이제 §2 정지 조건이 명시적 선착순으로 평가된다: blocked-health → (체크 전부 통과 시) 낡은 `generated-by: fg-loop` 멤버를 폐기하고 누적 `discarded:` 원장 줄에 기록 → 미실행 멤버가 있으면 계속 주행 → goal 충족. goal 충족 핸드오프는 다시 단일 케이스이며, `loop.md`를 삭제하기 전에 봉인된 멤버의 `done/` 경로를 forge-slug 정확 일치로 찾고(일치가 없으면 경로를 지어내지 않는다) 자동 회고 건수를 봉인된 `STATUS.md`의 `retro:` 경로로 센다(fg-learn과 동일, 접미 글롭 대신). 순서도·`/goal` 정지 목록·Document impact·INQUIRY 원장 템플릿·`HANDOFF.md`·`docs/skills.md`(ko/en) fg-loop 행도 함께 맞췄다.
+
 ## [0.9.10] - 2026-10-30
 
 ### Fixed
