@@ -99,7 +99,7 @@ The script emits language-neutral tokens (`SEALED …` / `EMPTY …` / `GATE_INF
 
 It integrates the branch root's **permanent docs** into the top-level `.forge/`:
 
-- **ADRs** (`adr/*`) — **time-based IDs (`YYMMDD-HHMMSS`, or grandfathered `YYMMDD-HH`+letter — ADR-FORMAT.md) move as-is**; an exact-ID collision with the target takes the **next free letter** (no cascade renumber — the #77 scheme), and the bumped ADR's cross-references are rewritten inside the moved incoming docs. `retired/` moves as-is.
+- **ADRs** (`adr/*`) — **time-based IDs (`YYMMDD-HHMMSS`, or grandfathered `YYMMDD-HH`+letter — ADR-FORMAT.md) move as-is**; an exact-ID collision with the target takes the **next free letter** (no cascade renumber — the #77 scheme), and the bumped ADR's cross-references are rewritten inside the moved incoming docs — both the `ADR-<id>` form and the backticked ``ADR `<id>` `` form, the former only when the next character is not `[a-z0-9]` (so an already-bumped `<id>a` or a prefix-sharing `<id>b` is untouched); a bare backticked `<id>` is never rewritten, because it cannot be told apart from a same-second retro ID. `retired/` moves as-is.
 - **Follow-ups** (`followups.md`) — preserve candidate IDs, dates, source slugs and states; remap source/taken task numbers with the same incoming-task mapping. Identical IDs deduplicate only when the remapped entries agree; conflicting entries stop before mutation. See [../fg-learn/FOLLOWUPS-FORMAT.md](../fg-learn/FOLLOWUPS-FORMAT.md).
 - **Retros** (`retro/*`) — moved; `-2` suffix on a filename collision.
 - **CONTEXT.md** — glossary terms merged **term-by-term** (new terms appended; a term identical in both is a no-op).

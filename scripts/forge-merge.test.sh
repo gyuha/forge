@@ -88,6 +88,21 @@ mkdir -p "$t/.forge/adr/retired"; printf '# ra\n' > "$t/.forge/adr/retired/26071
 run_merge "$t" feat-x; assert "f4-rc0" 0 "$RC"
 assert_file "f4-bumped-to-b" "$t/.forge/adr/260719-161701b-foo.md"
 assert_nofile "f4-not-a" "$t/.forge/adr/260719-161701a-foo.md"; rm -rf "$t"
+# --- (f5) backtick citation form ADR `<id>` is rewritten; no double-bump, no prefix-ADR touch ---
+t=$(mktmp); seed_adr "$t" feat-x 260719-161701-foo.md
+mkdir -p "$t/.forge/adr"; printf '# e\n' > "$t/.forge/adr/260719-161701-existing.md"
+mkdir -p "$t/.forge/branch/feat-x/retro"
+printf 'one ADR `260719-161701` two ADR `260719-161701a` three ADR `260719-161701b` four ADR-260719-161701b five ADR-260719-161701a six ADR-260719-161701, end ADR-260719-161701\n' > "$t/.forge/branch/feat-x/retro/260719-161701-foo.md"
+run_merge "$t" feat-x; assert "f5-rc0" 0 "$RC"
+assert "f5-rewrite" 'one ADR `260719-161701a` two ADR `260719-161701a` three ADR `260719-161701b` four ADR-260719-161701b five ADR-260719-161701a six ADR-260719-161701a, end ADR-260719-161701a' "$(cat "$t/.forge/retro/260719-161701-foo.md")"; rm -rf "$t"
+# --- (f6) external-ref warning scan covers the backtick form --------------------
+t=$(mktmp); seed_adr "$t" feat-x 260719-161701-foo.md
+mkdir -p "$t/.forge/adr" "$t/docs"; printf '# e\n' > "$t/.forge/adr/260719-161701-existing.md"
+( cd "$t" && git init -q -b main . && printf 'x\n' > docs/x.md && git add docs && git -c user.name=t -c user.email=t@t commit -q -m a \
+  && printf 'y\n' > docs/x.md && git -c user.name=t -c user.email=t@t commit -q -am b && git reset -q --hard HEAD~1 \
+  && printf 'see ADR `260719-161701` here\n' > docs/x.md )
+run_merge "$t" feat-x; assert "f6-rc0" 0 "$RC"
+assert_grep "f6-warn-backtick" <(printf '%s' "$OUT") 'WARN external ref ADR `260719-161701` in docs/x.md'; rm -rf "$t"
 # --- (g) ambiguous -> exit 6 -------------------------------------------------
 t=$(mktmp); seed_adr "$t" feat-x 260716-14a-foo.md; seed_adr "$t" feat-y 260716-15a-bar.md
 run_merge "$t"; assert "g-ambiguous-rc6" 6 "$RC"; rm -rf "$t"

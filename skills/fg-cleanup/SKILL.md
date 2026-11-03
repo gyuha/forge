@@ -23,7 +23,7 @@ The utterance `forge cleanup` used to seal a finished task — that job is now *
 
 Retirement is **human-approved, never automatic**. Whether an ADR "no longer applies" is a meaning judgment; an LLM deciding it alone risks killing a live decision. So this skill only *proposes*, with evidence — the same restraint as fg-merge's "mechanical auto, genuine conflict asks the human."
 
-1. **Scan the active ADRs.** Read every `.forge/adr/*.md` at the top level (not `retired/`). For each, look for retirement signals: another ADR that supersedes/contradicts it, a `Status: superseded by ADR-NNNN` already noted, or a decision the codebase has clearly moved past.
+1. **Scan the active ADRs.** Read every `.forge/adr/*.md` at the top level (not `retired/`). For each, look for retirement signals: another ADR that supersedes/contradicts it, a `## Status` already reading `superseded by ADR <id>` (ADR-FORMAT.md's "Superseding an ADR"), or a decision the codebase has clearly moved past.
 2. **Present candidates, one line each, with rationale.** e.g. *"ADR-0003 (fg-quick lane) — looks superseded by ADR-0009's verification gate? (your call)"*. Be honest when there are **no** clear candidates — "nothing looks retirable; these are an additive decision log" is a valid, common outcome (don't manufacture retirements).
 3. **The human picks** which to retire (any subset, possibly none). Only approved ADRs are touched.
 
@@ -31,9 +31,9 @@ Retirement is **human-approved, never automatic**. Whether an ADR "no longer app
 
 For each approved ADR:
 
-- **Move it to `.forge/adr/retired/<NNNN>-slug.md`** — same filename, keep the directory under `adr/` (so the `!.forge/adr/` gitignore whitelist still tracks it; create `retired/` lazily on first retirement).
-- **Add a one-line status marking at the top**: `Status: Superseded by ADR-NNNN` when there is a successor, or `Status: Retired (<reason>)` when the decision simply no longer applies (no successor required).
-- **IDs never change and are never reused.** ADR-0003 stays `0003` even under `retired/`. New ADRs no longer mint from a `max+1` counter — they use **time-based IDs** (`YYMMDD-HH`+letter; see ADR-FORMAT.md), so there is no "gap" left behind by retirement; but a retired ID (whether a grandfathered `NNNN` or a time-based one) is **still never reused** — when minting a new letter for a given hour, the `retired/` scan must be included to avoid a collision. Reconciling a merge-time ID collision (next-free-letter, not a cascade renumber) is fg-merge's job for branch merges — a different situation — and is **not** done here.
+- **Move it to `.forge/adr/retired/<id>-slug.md`** — same filename, keep the directory under `adr/` (so the `!.forge/adr/` gitignore whitelist still tracks it; create `retired/` lazily on first retirement).
+- **Set its `## Status` section** (directly under the title, per [ADR-FORMAT.md](../fg-ask/ADR-FORMAT.md); add it if missing): `superseded by ADR <id>` when there is a successor, or `retired (<reason>)` when the decision simply no longer applies (no successor required). If the file also carries a legacy top-of-file `Status: …` line, remove it — the `## Status` section replaces it, and keeping both leaves two status lines that can disagree.
+- **IDs never change and are never reused.** ADR-0003 stays `0003` even under `retired/`. New ADRs no longer mint from a `max+1` counter — they use **time-based IDs** (`YYMMDD-HHMMSS`, a letter only on a same-second collision; see ADR-FORMAT.md), so there is no "gap" left behind by retirement; but a retired ID (whether a grandfathered `NNNN` or a time-based one) is **still never reused** — when minting, the `retired/` scan must be included to avoid a collision. Reconciling a merge-time ID collision (next-free-letter, not a cascade renumber) is fg-merge's job for branch merges — a different situation — and is **not** done here.
 - **Do not rewrite inbound cross-references.** Other docs cite ADRs by *ID* (`ADR-0003` or `ADR-260716-14a`), so moving the file to `retired/` does not break those citations — path rewriting (fg-merge style) would be over-engineering.
 
 Retired ADRs drop out of fg-ask's grilling fuel: fg-ask reads only `.forge/adr/*.md` (top level) as source of truth and does **not** read `retired/`. The history stays on disk for archaeology ("why did we decide that back then?") — retirement is removal from the *active set*, not deletion.
@@ -52,7 +52,7 @@ Human approves a subset (possibly none)
    │ none ──▶ report "nothing retired" → end
    │ some
    ▼
-For each: move → .forge/adr/retired/<NNNN>-slug.md  +  top marking (Superseded by NNNN / Retired (reason))
+For each: move → .forge/adr/retired/<id>-slug.md  +  ## Status (superseded by ADR <id> / retired (reason))
    │ (numbers unchanged, not reused; no cross-ref rewrite; nothing deleted)
    ▼
 Report what was retired and where → end
@@ -60,7 +60,7 @@ Report what was retired and where → end
 
 ## Document impact
 
-- Moves approved ADRs `.forge/adr/<NNNN>-slug.md` → `.forge/adr/retired/<NNNN>-slug.md` with a one-line status marking. Lazy-creates `retired/`.
+- Moves approved ADRs `.forge/adr/<id>-slug.md` → `.forge/adr/retired/<id>-slug.md` and sets their `## Status`. Lazy-creates `retired/`.
 - Creates/changes nothing else — no loop state (`plan/run/STATUS/backlog/done`) is touched. This is a permanent-doc utility, not a loop stage.
 - `.forge/adr/` (including `retired/`) is git-tracked via the `!.forge/adr/` whitelist, so retirements are committed like any other ADR change.
 

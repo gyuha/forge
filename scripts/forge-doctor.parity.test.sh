@@ -152,6 +152,24 @@ check "B20 coherence missing"   seed_b20_missing
 check "B20 coherence no key"    seed_b20_nokey
 check "B20 key outside contract" seed_b20_outside
 check "B20 coherence label"     seed_b20_label
+gitbr() { ( cd "$1" && git init -q -b "$2" . && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m x ); }
+seed_b14ov_dup()    { mkdir -p "$1/.forge/adr" "$1/.forge/branch/feat-x/adr"; printf '# m\n' > "$1/.forge/adr/260719-161701-main.md"; printf '# b\n' > "$1/.forge/branch/feat-x/adr/260719-161701-branch.md"; gitbr "$1" feat-x; }
+seed_b14ov_noadr()  { mkdir -p "$1/.forge/adr" "$1/.forge/branch/feat-x"; printf '# a\n' > "$1/.forge/adr/260719-161701-x.md"; printf '# b\n' > "$1/.forge/adr/260719-161701-y.md"; gitbr "$1" feat-x; }
+seed_b14ov_retired(){ mkdir -p "$1/.forge/adr/retired" "$1/.forge/branch/feat-x/adr"; printf '# r\n' > "$1/.forge/adr/retired/260719-161701-old.md"; printf '# b\n' > "$1/.forge/branch/feat-x/adr/260719-161701-new.md"; gitbr "$1" feat-x; }
+seed_b14ov_clean()  { mkdir -p "$1/.forge/adr" "$1/.forge/branch/feat-x/adr"; printf '# m\n' > "$1/.forge/adr/260719-161701-main.md"; printf '# b\n' > "$1/.forge/branch/feat-x/adr/260719-161702-branch.md"; gitbr "$1" feat-x; }
+seed_b14ov_default(){ mkdir -p "$1/.forge/adr"; printf '# m\n' > "$1/.forge/adr/260719-161701-main.md"; gitbr "$1" main; }
+check "B14 overlay branch-vs-main dup" seed_b14ov_dup
+check "B14 overlay branch root without adr/" seed_b14ov_noadr
+check "B14 overlay branch-vs-main retired dup" seed_b14ov_retired
+check "B14 overlay distinct clean" seed_b14ov_clean
+check "B14 overlay default no double count" seed_b14ov_default
+
+# resolver-fallback path: twins copied WITHOUT resolve-forge-root.sh -> root="$repo/.forge" ("./.forge" in non-git)
+D=$(mktmp); X=$(mktmp); cp "$SH" "$JS" "$X/"; mkdir -p "$D/.forge/adr"; printf '# m\n' > "$D/.forge/adr/260719-161701-main.md"
+O_SH="$( cd "$D" && bash "$X/forge-doctor.sh" 2>&1 )"; rc_sh=$?; O_JS="$( cd "$D" && node "$X/forge-doctor.js" 2>&1 )"; rc_js=$?
+if [ "$rc_sh" = 0 ] && [ "$rc_js" = 0 ] && [ "$(norm "$O_SH")" = "$(norm "$O_JS")" ]; then echo "ok   - B14 overlay resolver-fallback no double count  (rc=0)"
+else echo "FAIL - B14 overlay resolver-fallback  rc sh=$rc_sh js=$rc_js"; fails=$((fails+1)); fi
+rm -rf "$D" "$X"
 
 echo ""
 if [ "$fails" -eq 0 ]; then echo "FORGE-DOCTOR PARITY OK"; exit 0

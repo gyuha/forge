@@ -313,5 +313,34 @@ Citing §12 must not match section 1.
 
 Fine.'; run_doc "$t"; assert "B21-prefix-rc0" 0 "$RC"; assert_nogrep "B21-prefix-none" "$OUT" "B21 "; rm -rf "$t"
 
+# --- B14 overlay: non-default branch scans top-level adr/ + branch root adr/ ---
+# (git fixture on branch feat-x so the resolver yields .forge/branch/feat-x)
+gitbranch() { ( cd "$1" && git init -q -b feat-x . && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m x ); }
+t=$(mktmp); mkdir -p "$t/.forge/adr" "$t/.forge/branch/feat-x/adr"
+printf '# m\n' > "$t/.forge/adr/260719-161701-main.md"; printf '# b\n' > "$t/.forge/branch/feat-x/adr/260719-161701-branch.md"; gitbranch "$t"
+run_doc "$t"; assert "B14ov-dup-rc2" 2 "$RC"; assert_grep "B14ov-dup-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+# branch root WITHOUT adr/ must still scan the top-level set (was: B14 skipped, green)
+t=$(mktmp); mkdir -p "$t/.forge/adr" "$t/.forge/branch/feat-x"
+printf '# a\n' > "$t/.forge/adr/260719-161701-x.md"; printf '# b\n' > "$t/.forge/adr/260719-161701-y.md"; gitbranch "$t"
+run_doc "$t"; assert "B14ov-noadr-rc2" 2 "$RC"; assert_grep "B14ov-noadr-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+# branch-vs-main retired/ duplicate -> error
+t=$(mktmp); mkdir -p "$t/.forge/adr/retired" "$t/.forge/branch/feat-x/adr"
+printf '# r\n' > "$t/.forge/adr/retired/260719-161701-old.md"; printf '# b\n' > "$t/.forge/branch/feat-x/adr/260719-161701-new.md"; gitbranch "$t"
+run_doc "$t"; assert "B14ov-retired-rc2" 2 "$RC"; assert_grep "B14ov-retired-msg" "$OUT" "B14 duplicate time-ID"; rm -rf "$t"
+# distinct ids across top-level + branch -> clean
+t=$(mktmp); mkdir -p "$t/.forge/adr" "$t/.forge/branch/feat-x/adr"
+printf '# m\n' > "$t/.forge/adr/260719-161701-main.md"; printf '# b\n' > "$t/.forge/branch/feat-x/adr/260719-161702-branch.md"; gitbranch "$t"
+run_doc "$t"; assert "B14ov-distinct-rc0" 0 "$RC"; assert_nogrep "B14ov-distinct-none" "$OUT" "B14 "; rm -rf "$t"
+# default branch: root == top-level, a single unique id must not be double counted
+t=$(mktmp); mkdir -p "$t/.forge/adr"; printf '# m\n' > "$t/.forge/adr/260719-161701-main.md"
+( cd "$t" && git init -q -b main . && git -c user.name=t -c user.email=t@t commit -q --allow-empty -m x )
+run_doc "$t"; assert "B14ov-default-nodouble-rc0" 0 "$RC"; assert_nogrep "B14ov-default-none" "$OUT" "B14 "; rm -rf "$t"
+
+# --- B14 overlay: resolver-fallback path (resolver missing -> root="$repo/.forge", "./.forge" in non-git) ---
+# must not scan the same adr/ twice (string-compare "./.forge" vs ".forge" -> false duplicate time-ID)
+t=$(mktmp); s=$(mktmp); cp "$SCRIPT" "$s/"; mkdir -p "$t/.forge/adr"; printf '# m\n' > "$t/.forge/adr/260719-161701-main.md"
+case "$SCRIPT" in *.js) ( cd "$t" && node "$s/$(basename "$SCRIPT")" >/tmp/fgdoc.out 2>&1 ); RC=$? ;; *) ( cd "$t" && bash "$s/$(basename "$SCRIPT")" >/tmp/fgdoc.out 2>&1 ); RC=$? ;; esac
+assert "B14ov-fallback-nodouble-rc0" 0 "$RC"; assert_nogrep "B14ov-fallback-none" "$(cat /tmp/fgdoc.out)" "B14 "; rm -rf "$t" "$s" /tmp/fgdoc.out
+
 printf '\nforge-doctor: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ]

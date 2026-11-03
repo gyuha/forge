@@ -175,24 +175,30 @@ if (isFile(RE) && isFile(RK)) {
   const ce = (read(RE).match(/\| ?`fg-/g) || []).length, ck = (read(RK).match(/\| ?`fg-/g) || []).length;
   if (ce !== ck) finding('warning', 'B13 README bilingual drift', `${RE}|${RK}`, `skill-row counts differ (en=${ce} ko=${ck}) — sync the pair`);
 }
-const ADRD = path.join(root, 'adr');
-if (isDir(ADRD)) {
+// Scans the read OVERLAY (top-level .forge/adr + the resolved branch root's adr/ when it differs,
+// skills/fg-doctor/SKILL.md Group B) — twin of .sh. On the default branch root == top-level, so the
+// list has one entry (no double count); retired/ is scanned under each dir.
+const TOPF = path.join(repo, '.forge');
+const ADRDS = [];
+if (isDir(path.join(TOPF, 'adr'))) ADRDS.push(path.join(TOPF, 'adr'));
+if (path.resolve(root) !== path.resolve(TOPF) && isDir(path.join(root, 'adr'))) ADRDS.push(path.join(root, 'adr'));
+if (ADRDS.length) {
   // time-ID uniqueness across BOTH granularities (grandfathered YYMMDD-HH+letter,
   // and current YYMMDD-HHMMSS[+letter] — ADR 260719-161701); globs mutually exclusive by digit count
   // scan active adr/ AND adr/retired/ — a retired time-id is frozen/never reused,
   // so an active<->retired duplicate is an error (mirrors the NNNN gap scan below,
   // which already includes retired/).
-  const collectTids = (d) => ls(d)
+  const files = [];
+  for (const d of ADRDS) files.push(...ls(d), ...ls(path.join(d, 'retired')));
+  const tids = files
     .filter((f) => /^\d{6}-\d{2}[a-z]+-.*\.md$/.test(f) || /^\d{6}-\d{6}[a-z]?-.*\.md$/.test(f))
     .map((f) => (f.match(/^(\d{6}-\d{2}[a-z]+)-/) || f.match(/^(\d{6}-\d{6}[a-z]?)-/))[1]);
-  const tids = [...collectTids(ADRD), ...collectTids(path.join(ADRD, 'retired'))];
   const tseen = {}, tdups = [];
   for (const t of tids) tseen[t] = (tseen[t] || 0) + 1;
   for (const t of Object.keys(tseen).sort()) if (tseen[t] > 1) tdups.push(t);
   if (tdups.length) finding('error', 'B14 duplicate time-ID', tdups.join(' ') + ' ', 'two ADRs share a time-based id — bump one to the next free letter');
   const nnSet = new Set();
-  for (const f of ls(ADRD)) { const m = f.match(/^(\d{4})-.*\.md$/); if (m) nnSet.add(m[1]); }
-  for (const f of ls(path.join(ADRD, 'retired'))) { const m = f.match(/^(\d{4})-.*\.md$/); if (m) nnSet.add(m[1]); }
+  for (const f of files) { const m = f.match(/^(\d{4})-.*\.md$/); if (m) nnSet.add(m[1]); }
   const nn = [...nnSet].sort();
   let prev = '';
   for (const n of nn) {

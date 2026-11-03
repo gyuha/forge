@@ -29,15 +29,18 @@ This is **not** a stage of the forge loop. It is a side lane for genuinely small
 
 Clarify just enough to act safely. Prefer exploring the codebase over asking. Ask at most a question or two, one at a time, and only for things the code can't answer (intent, choice between two equally-valid options). Don't run the full grill-with-docs interrogation — this is the quick lane.
 
+**Glance at the active decisions before running the change.** Apply fg-ask's **header triage** ([`../fg-ask/SKILL.md`](../fg-ask/SKILL.md), "Before starting: read the active decisions" — same read overlay, never `retired/`), kept light: only the one-pass title-and-Status extraction that bullet gives, and open an ADR's body only when its title touches what this change touches. A hit that the change would contradict is a bail (below). No ADRs, or none touched → say nothing.
+
 ### 2. Bail guard — is this actually a quick task?
 
 While clarifying, watch for signs the task is **not** trivial:
 
 - a decision that is **hard to reverse**, or that a future reader would find surprising without context (i.e. ADR-worthy),
 - **multiple work slices** or real architectural shape,
-- anything touching **migrations, public contracts, auth, or data** in a non-obvious way.
+- anything touching **migrations, public contracts, auth, or data** in a non-obvious way,
+- a change that would **contradict an accepted ADR** (as [ADR-FORMAT.md](../fg-ask/ADR-FORMAT.md) defines "Contradicting an ADR"; found by the glance above) — deciding to supersede, amend, or adjust around it is fg-ask's confrontation step, not a quick call.
 
-If any appears, **stop and bail to `fg-ask`**: tell the user "this isn't a quick task — it deserves the full loop (grilling → plan → run → retro → done)," and point them to `fg-ask` (or offer to invoke it). Do not force a serious task through the quick lane — that is exactly what this guard prevents. Leave no quick-lane residue when you bail.
+If any appears, **stop and bail to `fg-ask`**: tell the user "this isn't a quick task — it deserves the full loop (ask → run → done)," and point them to `fg-ask` (or offer to invoke it). Do not force a serious task through the quick lane — that is exactly what this guard prevents. Leave no quick-lane residue when you bail.
 
 ### 3. Record one line to the log
 

@@ -426,12 +426,17 @@ integrate_dropped() {
 
 rewrite_bumped_crossrefs() {
   [ -n "$BUMPS" ] || return 0
+  local bt='`'
   local oldid newid target
   while IFS=' ' read -r oldid newid; do
     [ -n "${newid:-}" ] || continue
     while IFS= read -r target; do
       [ -f "$target" ] || continue
-      sed -i.bak "s/ADR-$oldid/ADR-$newid/g; s/$oldid-/$newid-/g" "$target" 2>/dev/null && rm -f "$target.bak"
+      # `ADR-<id>` needs an id boundary (next char not [a-z0-9], or EOL) so an already-bumped
+      # `<id>a` is not double-bumped to `<id>aa` and a prefix-sharing ADR `<id>b` is untouched.
+      # The backtick form ADR `<id>` is bounded by its closing backtick. A bare backticked `<id>`
+      # is NOT rewritten: it cannot be told from a same-second retro id.
+      sed -i.bak "s/ADR-$oldid\([^a-z0-9]\)/ADR-$newid\1/g; s/ADR-$oldid\$/ADR-$newid/; s/$oldid-/$newid-/g; s/ADR $bt$oldid$bt/ADR $bt$newid$bt/g" "$target" 2>/dev/null && rm -f "$target.bak"
     done <<EOF
 $MOVED
 EOF
@@ -444,7 +449,8 @@ EOF
       [ -n "${newid:-}" ] || continue
       git -C "$top" diff --name-only ORIG_HEAD..HEAD 2>/dev/null | grep -v '^\.forge/' | while IFS= read -r pf; do
         [ -f "$top/$pf" ] || continue
-        grep -qF "ADR-$oldid" "$top/$pf" 2>/dev/null && echo "  WARN external ref ADR-$oldid in $pf (now $newid) — rewrite by hand"
+        if grep -qF "ADR-$oldid" "$top/$pf" 2>/dev/null; then echo "  WARN external ref ADR-$oldid in $pf (now $newid) — rewrite by hand"
+        elif grep -qF "ADR $bt$oldid$bt" "$top/$pf" 2>/dev/null; then echo "  WARN external ref ADR $bt$oldid$bt in $pf (now $newid) — rewrite by hand"; fi
       done
     done <<EOF
 $BUMPS

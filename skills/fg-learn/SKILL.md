@@ -56,7 +56,7 @@ Don't push everything into `CONTEXT.md` or an ADR. `CONTEXT.md` is a glossary; i
 ### 4. Write the docs and correct the sealed STATUS
 
 - A retro log goes to `.forge/retro/YYMMDD-HHMMSS-<slug>.md` per [RETRO-FORMAT.md](./RETRO-FORMAT.md) — **only where a learning clears the bar**, or to replace an auto retro's "unreviewed" sections. "Reviewed, nothing worth promoting" is a normal, file-less outcome.
-- Promoted terms follow `../fg-ask/CONTEXT-FORMAT.md`; promoted decisions follow `../fg-ask/ADR-FORMAT.md`.
+- Promoted terms follow `../fg-ask/CONTEXT-FORMAT.md`; promoted decisions follow `../fg-ask/ADR-FORMAT.md` — including its "Superseding an ADR" rule when the new ADR replaces all or part of an existing one.
 - **Correct the sealed STATUS `retro:` line** so fg-status reflects reality: from `skipped (...)` to the new retro path plus a late-promotion note (e.g. `retro: .forge/retro/<file> (batch promotion 2026-10-24)`), or, for an auto retro, remove the `auto-retro` marker line from the retro file once reviewed — whether or not anything was promoted — and drop any informational note the seal left on the `retro:` line (ADR `261010-230950`). Seal immutability lives in `status: done`, which is never touched. A skip reviewed without promotion appends ` (reviewed <date>)` to its `retro:` line so it leaves the candidate list.
 - Record in the retro's "Doc updates" field what was promoted to where (or none).
 

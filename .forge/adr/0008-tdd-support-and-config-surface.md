@@ -1,7 +1,7 @@
 # forge에 설정 표면(.forge/config.json)과 선택적 TDD 모드를 도입한다
 
 ## Status
-accepted
+accepted (partly superseded by ADR 260905-212045: 진입 표면인 fg-tdd 토글 스킬 — 이제 fg-config. tdd 설정 의미론은 유효)
 
 ## 맥락과 결정
 TDD를 옵션으로 켜고 끄며(영속 토글 커맨드), fg-ask 시작 때 물어보고, on이면 test-first로 개발하고 싶다는 요구가 나왔다. 이를 위해 두 가지를 도입한다:

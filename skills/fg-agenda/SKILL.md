@@ -56,7 +56,7 @@ Which mode you are in is decided by one thing: whether `.forge/agenda.md` alread
 1. **Read the agenda** and orient to `## Destination` before choosing anything.
 2. **Choose one question.** If the user named one, that one. If not, **the agent picks** — the first line of `## Open questions` (the list is kept in answerable-now order, so the top line *is* the frontier).
 3. **Resolve it by grilling** — fg-ask's method, by reference (see below). The **human** answers.
-4. **Record the answer**: one line under `## Decided`, and delete the line from `## Open questions`. Write an ADR too **if** it clears the usual three-condition gate (hard to reverse · puzzling without context · a real tradeoff) — which is fg-ask's existing judgment, not a new one.
+4. **Record the answer**: one line under `## Decided`, and delete the line from `## Open questions`. Write an ADR too **if** it clears the usual three-condition gate (hard to reverse · puzzling without context · a real tradeoff) — which is fg-ask's existing judgment, not a new one; when that ADR supersedes all or part of an existing one, follow [ADR-FORMAT.md](../fg-ask/ADR-FORMAT.md)'s "Superseding an ADR".
 5. **Update the agenda**: add questions the answer newly surfaced, graduate fog that just became sharp into `## Open questions`, and move anything the answer revealed to be past the destination into `## Out of scope`.
 6. **When a decision makes a build task specifiable, that is a backlog plan** — hand off to fg-ask to grill and load it, and drop the line from the agenda. The agenda does not carry buildable work (Prohibition 4).
 

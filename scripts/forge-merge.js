@@ -368,7 +368,13 @@ function rewriteBumpedCrossrefs() {
   for (const [oldid, newid] of BUMPS) {
     for (const target of MOVED) {
       if (!exists(target) || !fs.statSync(target).isFile()) continue;
-      const t = read(target).split(`ADR-${oldid}`).join(`ADR-${newid}`).split(`${oldid}-`).join(`${newid}-`);
+      // id boundary on `ADR-<id>` (no double-bump of `<id>a`, prefix-sharing `<id>b` untouched); the
+      // backtick form ADR `<id>` is bounded by its closing backtick; bare backticked `<id>` is NOT rewritten.
+      const esc = oldid.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const t = read(target)
+        .replace(new RegExp(`ADR-${esc}(?![a-z0-9])`, 'g'), () => `ADR-${newid}`)
+        .split(`${oldid}-`).join(`${newid}-`)
+        .split('ADR `' + oldid + '`').join('ADR `' + newid + '`');
       fs.writeFileSync(target, t);
     }
   }
@@ -379,7 +385,10 @@ function rewriteBumpedCrossrefs() {
       for (const pf of changed.split('\n')) {
         if (!pf || pf.startsWith('.forge/')) continue;
         const full = path.join(top, pf);
-        if (exists(full) && fs.statSync(full).isFile() && read(full).includes(`ADR-${oldid}`)) log(`  WARN external ref ADR-${oldid} in ${pf} (now ${newid}) — rewrite by hand`);
+        if (!exists(full) || !fs.statSync(full).isFile()) continue;
+        const body = read(full);
+        if (body.includes(`ADR-${oldid}`)) log(`  WARN external ref ADR-${oldid} in ${pf} (now ${newid}) — rewrite by hand`);
+        else if (body.includes('ADR `' + oldid + '`')) log('  WARN external ref ADR `' + oldid + '` in ' + pf + ` (now ${newid}) — rewrite by hand`);
       }
     }
   }

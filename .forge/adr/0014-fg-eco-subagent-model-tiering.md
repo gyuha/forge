@@ -1,7 +1,7 @@
 # fg-eco — 세션 모델 전환 불가로 서브에이전트 모델 티어링만 도입한다
 
 ## Status
-accepted
+accepted (partly superseded by ADR 260905-212045: 진입 표면인 fg-eco 토글 스킬 — 이제 fg-config. eco 설정 의미론은 유효)
 
 ## 맥락
 "단계별 모델 자동 전환"(설계=최강, 수행=일반, 완료=경량) 요구가 나왔다(가칭 fg-auto-model). 그러나 Claude Code에서 **스킬은 현재 세션의 모델을 바꿀 수 없다** — `/model`은 사용자 전용 interactive 명령이고, 스킬·도구·훅 어느 것도 세션 모델을 프로그램적으로 전환할 수단이 없다. forge의 설계(fg-ask 그릴링)와 완료(fg-done 봉인)는 메인 세션 대화로 돌므로(기둥 1), 이 두 단계의 모델은 강제 불가다. 반면 **서브에이전트/워크플로우 호출은 `model` 파라미터를 받는다**(Agent 도구·Workflow `agent()`).

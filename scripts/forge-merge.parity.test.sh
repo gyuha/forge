@@ -50,12 +50,14 @@ seed_ambig()   { s_adr "$1"; mkdir -p "$1/.forge/branch/feat-y/adr"; printf '# t
 seed_empty()   { mkdir -p "$1/.forge"; }
 seed_deep() { mkdir -p "$1/.forge/branch/feature/team/topic/adr"; printf '# t\n' > "$1/.forge/branch/feature/team/topic/adr/260716-14a-deep.md"; }
 seed_deep_ambig() { seed_deep "$1"; s_adr "$1"; }
+seed_collide_bt() { seed_collide_new "$1"; printf 'one ADR `260719-161701` two ADR `260719-161701a` three ADR `260719-161701b` four ADR-260719-161701b five ADR-260719-161701a six ADR-260719-161701, end ADR-260719-161701\n' > "$1/.forge/branch/feat-x/retro/260719-161701-foo.md"; }
 check "deep branch auto discovery" seed_deep
 check "deep branch ambiguity" seed_deep_ambig
 
 check "clean move + folder removed"   seed_clean    feat-x
 check "time-ID collision + xref"      seed_collide  feat-x
 check "NEW-fmt time-ID collision"     seed_collide_new feat-x
+check "backtick xref + no double-bump" seed_collide_bt feat-x
 check "retired-id collision -> bump"  seed_retired_collide feat-x
 check "retired letter-skip -> b"      seed_retired_letterskip feat-x
 check "retro move + -2 disambig"      seed_retro    feat-x

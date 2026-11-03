@@ -28,9 +28,24 @@ The `author`/`decided` frontmatter is the decision's **provenance** — who made
 
 Only include these when they add genuine value. Most ADRs won't need them.
 
-- **Status** frontmatter (`proposed | accepted | deprecated | superseded by ADR-NNNN`) — useful when decisions are revisited
+- **Status** — a `## Status` section **directly under the title**, one line: `proposed | accepted | deprecated | superseded by ADR <id>`, optionally followed by a parenthetical note. It sits there, not in the frontmatter or the body's end, so a header read sees it (fg-ask's "Before starting: read the active decisions" counts it as part of the header). Useful when decisions are revisited; required on both ADRs when one supersedes another (below).
 - **Considered Options** — only when the rejected alternatives are worth remembering
 - **Consequences** — only when non-obvious downstream effects need to be called out
+
+## Superseding an ADR
+
+This is the single definition; every site that writes an ADR (fg-ask, fg-agenda, fg-done's promotion, fg-learn's promotion) references it, never restates it.
+
+**When a new ADR supersedes all or part of an existing one, the same write that creates the new ADR also updates the old ADR's `## Status`** (add the section under its title if it has none). A supersede recorded only on the new ADR is invisible from the old one, and the old one is what a reader finds first. The old ADR's line reads:
+
+- **Full** — `superseded by ADR <new-id>` (a note may follow in parentheses).
+- **Partial** — `accepted (partly superseded by ADR <new-id>: <what part>)` — name the part, so a reader knows what still stands.
+
+Edit the old ADR where it lives. On a non-default branch that may be the top-level `.forge/adr/` base rather than the branch root — the one write that reaches the read overlay's base, because copying the ADR into the branch root would turn into a second ADR at fg-merge time. That one edit is not namespaced the way the branch root is, so ADR-0011's no-conflict premise does not hold for it: if the default branch changed the same Status line meanwhile, `git merge` reports a conflict on that file — resolve it in the merge like any other conflict.
+
+**Reading a Status.** An ADR with **no** `## Status` section is `accepted` — current; older ADRs simply predate the section, and none needs backfilling. `superseded by` means not current: never use it as a source of truth — read the superseding ADR instead. `partly superseded` means current except the named part: read the superseding ADR too, for that part. A fully superseded ADR is a retirement candidate for fg-cleanup — mention it to the user when you write the supersede; never move it yourself.
+
+**Contradicting an ADR** — the single definition fg-ask's confrontation step, fg-quick's bail guard, and PLAN-FORMAT.md's fix-forward ADR rule reference. A plan or change contradicts an ADR when it would do what a **current** decision (an accepted ADR, or the not-superseded part of a partly superseded one) says not to do, or undo what it says to do. Touching the same area, or extending a decision, is not a contradiction.
 
 ## Numbering (ID minting)
 
