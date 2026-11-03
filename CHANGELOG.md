@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.12] - 2026-11-04
+
+### Fixed
+- **ADR가 기록은 잘 되는데 상기가 약하던 문제를 고쳤다.** `fg-ask`는 ADR을 회고 항목 안에서만 읽어 관련 회고가 없으면 ADR도 읽지 않았고, 계획이 기존 결정과 모순돼도 맞서지 않았으며, `fg-quick`과 생성된 fix-forward plan은 ADR을 아예 읽지 않았다. 이제 `fg-ask`는 모든 경로에서 읽기 오버레이의 활성 ADR을 제목+Status만으로 한 번 훑고(회고 유무와 무관), 계획이나 답이 현재 결정과 모순되면 즉시 근거를 대고 대체·수정·계획 조정 중 하나를 고르게 한다. `fg-quick`도 같은 훑기를 하고 모순이면 `fg-ask`로 bail한다. 생성된 fix-forward plan은 Related ADRs를 채우고, 대화형 생산자는 묻고, `fg-loop`는 `fork (ADR conflict — <id>)` 벽에서 멈추며(제자리 수리 포함), `fg-run`은 Related ADRs를 서브에이전트에 넘긴다.
+- **ADR 대체 관계가 양방향으로 기록된다.** Status는 제목 바로 아래 `## Status` 절이고(절이 없으면 accepted), 새 ADR이 기존 ADR을 전부 또는 일부 대체하면 같은 쓰기에서 옛 ADR의 Status도 `superseded by ADR <id>` / `accepted (partly superseded by ADR <id>: <부분>)`로 갱신한다. "ADR와 모순"의 정의와 Status 읽는 법을 `ADR-FORMAT.md` 한 곳에 두고 `fg-ask`·`fg-agenda`·`fg-done`·`fg-learn`·`fg-cleanup`이 참조한다. 소급 대체 참조를 ADR 0002·0008·0014·0026·261010-230950에 채웠다.
+- **ADR 조회가 ID 형식에 중립이 됐다.** `fg-run`·`fg-done`·`fg-cleanup`·`RETRO-FORMAT.md`가 `NNNN`을 가정하지 않는다. `forge-merge`는 ADR `<id>` 백틱 인용을 함께 재작성하고 `ADR-<id>` 경계 버그(`<id>a` → `<id>aa` 이중 증가)를 고쳤으며, `forge-doctor` B14는 읽기 오버레이를 정규 경로 중복 제거와 함께 훑는다. 동작·패리티 테스트를 추가했다.
+
+### Changed
+- **ADR-0026(fg-next 회고→봉인 자동 연쇄)을 은퇴시켰다.** 회고가 봉인에 흡수돼(ADR `261024-191024`) 연쇄 자체가 사라졌으므로 `.forge/adr/retired/`로 옮겼고, CHANGELOG의 경로 링크도 그 위치를 가리킨다. `fg-cleanup` 문서의 ADR 파일명을 `<id>-slug.md`로, 마킹 문구를 `## Status` 기준으로 맞췄다.
+
 ## [0.9.11] - 2026-11-02
 
 ### Fixed
