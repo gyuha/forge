@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "goal": "Claude Code, Codex용 플러그인 개발",
+  "orchestrator": {
+    "workspace": "orchestrator",
+    "provider": "claude",
+    "model": "claude-opus-5-5"
+  },
+  "roles": [
+    {
+      "name": "skills",
+      "provider": "claude",
+      "model": "claude-opus-5-5",
+      "folders": [
+        "skills",
+        ".claude/agents",
+        ".claude/skills"
+      ],
+      "instructions": "Write and edit the fg-* SKILL.md files and the *-FORMAT.md, FORGE-ROOT.md, DRIVE.md and HANDOFF.md documents in English. Keep the canonical Explaining forge and Evidence and candor paragraphs, the stated handoff tables and text-only flow charts, and the verbatim body of fg-ask. Do not copy any single-definition document into another skill."
+    },
+    {
+      "name": "twins",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "folders": [
+        "scripts",
+        "hooks"
+      ],
+      "instructions": "Build and fix the deterministic forge-*.sh/.js script pairs, the hooks and the fg-monitor Node runtime. Keep exit codes the same across each sh/js pair, keep the JS in CommonJS and use only Node built-ins. Run the behavior, parity and node --test suites before handing work back."
+    },
+    {
+      "name": "hosts",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "folders": [
+        "core",
+        "hosts",
+        ".codex-plugin",
+        ".codex"
+      ],
+      "instructions": "Own the host-neutral contracts in core/ and the claude, codex, opencode and pi adapters, so that Codex loads the same skills/ tree as Claude Code. Adapters may define only how questions are asked, how work is delegated, how agents are loaded, how a drive continues and the status UI. Never copy the state model or make Codex-only copies of skills."
+    },
+    {
+      "name": "release",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "folders": [
+        ".claude-plugin",
+        ".github",
+        "docs",
+        "README.md",
+        "README.ko.md",
+        "CHANGELOG.md",
+        ".codex-plugin/plugin.json",
+        "package.json"
+      ],
+      "instructions": "Keep the version in sync across all 4 manifest fields, and keep the skill catalog, README.md/README.ko.md and the docs/ ko/en pairs aligned section for section. Pass npm run release:check and npm run docs:build, and check external links and dark-mode Mermaid contrast. Run the release steps only when the user says 배포."
+    },
+    {
+      "name": "reviewer",
+      "provider": "claude",
+      "model": "claude-sonnet-5-5",
+      "folders": [],
+      "instructions": "Review each change before it is sealed, assuming the result is wrong. Look for silently failing shell commands, fail-open checks, gaps between the contract and the code, and Claude/Codex host drift. Report findings with evidence and edit no files."
+    }
+  ]
+}
